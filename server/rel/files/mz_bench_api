@@ -146,11 +146,11 @@ export ORIG_PATH=$PATH
 case "$1" in
     start|start_boot)
         # Make sure there is not already a node running
-        # RES=`ping_node`
-        # if [ "$RES" = "pong" ]; then
-        #     echo "Node is already running!"
-        #     exit 1
-        # fi
+        RES=`ping_node`
+        if [ "$RES" = "pong" ]; then
+            echo "Node is already running!"
+            exit 1
+        fi
         case "$1" in
             start)
                 shift
@@ -168,6 +168,29 @@ case "$1" in
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
         $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR "exec $RUNNER_BASE_DIR/bin/$SCRIPT $START_OPTION $RUN_PARAM" 2>&1
+
+        attempts=5
+        while true; do
+            RES=`ping_node`
+            if [ "$RES" != "pong" ]; then
+                echo "Node start failed"
+                exit 1
+            fi
+            RES=`$NODETOOL rpcterms mzb_api_server ensure_started ''`
+            EC=$?
+            if [ "$EC" -eq 0 ]; then
+                echo "ok"
+                break
+            else
+                if [ $attempts -lt 1 ]; then
+                    echo "Node start failed"
+                    exit 1;
+                fi
+                attempts=$[$attempts-1]
+                sleep 1
+            fi
+        done
+
         ;;
 
     stop)

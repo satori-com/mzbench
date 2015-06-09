@@ -11,7 +11,8 @@
     get_info/0,
     bench_finished/2,
     status/1,
-    server_data_dir/0
+    server_data_dir/0,
+    ensure_started/0
 ]).
 
 %% gen_server callbacks
@@ -23,6 +24,12 @@ start_link() ->
 
 deactivate() ->
     gen_server:call(?MODULE, deactivate, infinity).
+
+ensure_started() ->
+    case gen_server:call(?MODULE, is_ready) of
+        true -> ok;
+        false -> erlang:error(server_not_active)
+    end.
 
 start_bench(Params) ->
     case gen_server:call(?MODULE, {start_bench, Params}, infinity) of
@@ -126,6 +133,12 @@ handle_call(lock_localhost, _, #{localhost_allocated:= false} = State) ->
 
 handle_call(unlock_localhost, _, State) ->
     {reply, ok, State#{localhost_allocated => false}};
+
+handle_call(is_ready, _, #{status:= active} = State) ->
+    {reply, true, State};
+
+handle_call(is_ready, _, #{status:= inactive} = State) ->
+    {reply, false, State};
 
 handle_call(_Request, _From, State) ->
     lager:error("Unhandled call: ~p", [_Request]),
