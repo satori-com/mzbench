@@ -44,11 +44,85 @@
         });
     };
 
+    var findMask = function(targets) {
+        targets = targets || [];
+
+        if (targets.length <= 1) {
+            return null;
+        }
+
+        var pivot = targets[0].split(".");
+        var maskIdx = -1;
+
+        for (var i = 1; i < targets.length; i++) {
+            var x = targets[i].split(".");
+
+            if (x.length != pivot.length) {
+                return null;
+            }
+
+            for (var j=0; j < pivot.length; j++) {
+                if ((x[j] != pivot[j]) && (j != maskIdx)) {
+                    if (-1 != maskIdx) {
+                        return null;
+                    }
+                    maskIdx = j;
+                }
+            }
+        }
+
+        if (-1 != maskIdx) {
+            pivot[maskIdx] = "*";
+        }
+
+        return pivot.join(".");
+    };
+
+    var truncateTargets = function(targets, threshold) {
+        var length = 0;
+        var result = targets.filter(function (value) {
+            length += ("&target=" + value).length;
+            return (length < threshold);
+        });
+        return result;
+    };
+
+    /* 
+     * Sometimes we receive a lot of targets. We use the following optimization algorithm:
+     *
+     * 1. if we are able to draw all targets then draw all of them
+     * 2. if we are not able to draw all target then try to find mask and draw targets by mask
+     * 3. if we didn't find mask then we truncate targets
+     * */
+
+    $.fn.graphite.optimizeTargets = function(targets, opts) {
+        opts = $.extend({threshold: 3800, legendMax: 10}, opts);
+        targets = targets || [];
+
+
+        if (targets.length <= opts.legendMax) {
+            return targets;
+        };
+
+        var mask = findMask(targets);
+        if (null != mask) {
+            return [
+                'alias(lineWidth('+mask+',0.5),"")',
+                'color(aliasSub(lineWidth(highestAverage('+mask+',1),3),"^(.*)$","\\1 -- high.avg."),"8e2800")',
+                'color(aliasSub(lineWidth(lowestAverage('+mask+',1),3),"^(.*)$","\\1 -- low.avg."),"35478c")',
+                'color(lineWidth(averageSeries('+mask+'),5),"ffb03b")'
+            ];
+        }
+
+        return truncateTargets(targets, opts.threshold);
+    };
+
     // Default settings
     $.fn.graphite.defaults = {
         from: "-1hour",
         height: "300",
         until: "now",
+        hideLegend: "0",
         url: "/render/",
         width: "940"
     };
