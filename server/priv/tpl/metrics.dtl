@@ -47,6 +47,9 @@ $(document).ready(function() {
             var targets = $.map(groupMetrics, function(m) {
                 return $.isArray(m) ? m.join(".") : m; // Backward compatibility
             });
+
+            targets = $.fn.graphite.optimizeTargets(targets);
+
             var period = calculatePeriod(startTime, finishTime);
 
             return $("<img class='graph'/>")
