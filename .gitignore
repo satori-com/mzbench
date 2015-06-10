@@ -11,6 +11,7 @@ server/rel/mz_bench_api
 .rebar
 log
 *.rpm
+*.tgz
 pkgroot
 dialyzer.log
 *.pyc
