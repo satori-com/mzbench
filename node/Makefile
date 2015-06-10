@@ -51,13 +51,22 @@ install: generate
 	mkdir -p ~/mz
 	cp -rf rel/mz_bench ~/mz
 
+.PHONY: generate_tgz
+generate_tgz: generate
+	mkdir -p tmp/$(SERVICE_PREFIX)
+	cp -rf rel/mz_bench tmp/$(SERVICE_PREFIX)
+	cd tmp && tar czf ../node-`git rev-parse --short HEAD`.tgz ./$(SERVICE_PREFIX) && cd ..
+	rm -rf tmp
+
 .PHONY: clean
 clean:
 	$(REBAR) clean skip_deps=true
 	rm -rf .make
 	rm -rf *.rpm
+	rm -rf *.tgz
 	rm -rf rel/$(SERVICE_NAME)
 	rm -rf deps
+	rm -rf tmp
 
 .PHONY: distclean
 distclean: clean
