@@ -1,0 +1,13 @@
+%% -*- mode: erlang -*-
+{application, tcp_worker,
+ [
+  {description, "Mz-bench tcp worker"},
+  {vsn, "1.0.0"},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager
+                 ]},
+  {env, []}
+  %{mod, {tcp_worker, []}}
+ ]}.

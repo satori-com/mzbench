@@ -1,0 +1,13 @@
+{application, dummy_worker,
+ [
+  {description, ""},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  mz_bench,
+                  lager
+                 ]},
+  {env, []}
+ ]}.

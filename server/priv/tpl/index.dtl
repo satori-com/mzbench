@@ -1,0 +1,79 @@
+{% extends "layout.dtl" %}
+
+{% block container %}
+<div class="row">
+    <table id="mz-bench-report" class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th class="col-sm-2">Date</th>
+                <th>Scenario</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th></th>
+            </tr>
+        </thead>
+    </table>
+</div>
+<hr />
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+        var refreshInterval = {{ refreshInterval }};
+        var table = $('#mz-bench-report').DataTable({
+          ordering: false,
+          ajax: 'report.json',
+          pageLength: 25,
+          columnDefs: [
+              {
+                  "render": function ( data, type, row ) {
+                      return moment(data).format("lll");
+                  },
+                  "targets": 1
+              },
+              {
+                  "render": function ( data, type, row ) {
+                      var css_class;
+                      switch (data) {
+                        case "complete":
+                          css_class = "label-success";
+                          break;
+                        case "failed":
+                          css_class = "label-danger";
+                          break;
+                        case "stopped":
+                          css_class = "label-default";
+                          break;
+                        default:
+                          css_class = "label-info";
+                          break;
+                      }
+                      return "<span class=\"label " + css_class + "\">" + data + "</span>"
+                  },
+                  "targets": 3
+              },
+              {
+                  "render": function ( data, type, row ) {
+                      return data + " secs";
+                  },
+                  "targets": 4
+              },
+              {
+                  "render": function ( data, type, row ) {
+                      var graphs = data ? '<a href="graphs?id=' + row[0] + '">graphs</a>' : "no graphs";
+                      var logs = '<a href="logs?id=' + row[0] + '">logs</a>';
+                      var metrics = '<a href="data?id=' + row[0] + '">metrics</a>';
+                      return [graphs, logs, metrics].join(" | ");
+                  },
+                  "targets": 5
+              },
+          ]
+        });
+        setInterval( function () {
+            table.ajax.reload( null, false ); // user paging is not reset on reload
+        }, refreshInterval);
+    });
+</script>
+{% endblock %}

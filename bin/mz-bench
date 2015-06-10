@@ -1,0 +1,404 @@
+#!/usr/bin/env python
+"""mz-bench CLI interface
+
+Usage:
+  mz-bench clean
+  mz-bench install_server
+  mz-bench start_server
+  mz-bench stop_server
+  mz-bench [--host=<host>] (start|run)
+    [--nodes=<nodes>]
+    [(--email=<email> ...)]
+    [(--package=<package> ...)]
+    [(--env=<name=value>...)]
+    [--user_repo=<user_repo> | --node_commit=<commit>]
+    [--verbose=<verbose>]
+    [--deallocate_after_bench=<deallocate_after_bench>]
+    [--dont_provision_nodes=<dont_provision_nodes>]
+    [--exclusive_node_usage=<exclusive_node_usage>]
+    <script_file>
+  mz-bench [--host=<host>] status [--wait] <bench_id>
+  mz-bench [--host=<host>] stop <bench_id>
+  mz-bench [--host=<host>] log <bench_id>
+  mz-bench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
+  mz-bench run_local <script> [--env=<name=value>...]
+  mz-bench validate <script> [--env=<name=value>...]
+  mz-bench list_templates
+  mz-bench new_worker [--template=<template>] <name>
+  mz-bench -h | --help
+
+Options:
+    -h, --help       Show this help
+    --skip_install   Skip stage with building and deploying RPMs
+    --tests <tests>  Execute only the specified tests
+    --host <host>    Specify host providing mz-bench api. Alternatively,
+                     you can set environment variable MZ_BENCH_API_HOST.
+    --nodes <nodes>  Specify either an amount of nodes to be allocated or a
+                     comma-separated list of hostnames of preallocated nodes.
+                     Beware that one additional node will be allocated for
+                     the director. If you provide preallocated nodes, you 
+                     must provide at least two (one for director and one for
+                     the workers).
+    --deallocate_after_bench <deallocate_after_bench>
+                     Either "true" or "false". Default is "true". Setting
+                     this to "false" results in worker nodes still being
+                     alive and accessible after bench finishes. Can be useful
+                     for debugging purposes.
+    --dont_provision_nodes <dont_provision_nodes>
+                     Don't perform nodes provision. Useful when reusing already
+                     preallocated and provisioned nodes.
+    --exclusive_node_usage <exclusive_node_usage>
+                     Either "true" or "false". Default is "true".
+                     If set to true mz-bench will request exclusive physical
+                     hosts for each worker node.
+    --env <name=value>  
+                     Pass a variable to script
+    --template <template> 
+                     Choose a template for new worker, default is 'empty'
+"""
+
+from __future__ import print_function
+
+import glob
+import os
+import sys
+import docopt
+import time
+import json
+import csv
+import re
+from shutil import copytree
+
+dirname = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dirname + "/../lib")
+sys.dont_write_bytecode = True
+
+import util
+from subprocess import check_call
+
+import mz_bench_api_client as api
+
+#=================================================================================================
+# Installation and cleanup
+#=================================================================================================
+NODE_PROJECTS = [dirname + "/../node"]
+SERVER_PROJECTS = [dirname + "/../server"]
+
+def execute_make(projects, target):
+    for subproject in projects:
+        util.cmd('make -C ' + subproject + ' ' + target)
+
+def compile_projects(projects):
+    execute_make(projects, 'compile')
+
+def clean_projects(projects):
+    execute_make(projects, 'clean')
+
+def install_projects(projects):
+    execute_make(projects, 'install')
+
+def clean():
+    clean_projects(NODE_PROJECTS + SERVER_PROJECTS)
+
+def install_server():
+    install_projects(SERVER_PROJECTS)
+
+#=================================================================================================
+# API server startup and stop
+#=================================================================================================
+def start_server():
+    Server = "/mz/mz_bench_api/bin/mz_bench_api"
+    if os.path.isfile(Server):
+        cmd('{0} start'.format(Server))
+        time.sleep(5)
+    else:
+        print("You have no mz_bench server installed, please install it using mz-bench install_server command")
+        sys.exit(2)
+
+def stop_server():
+    Server = "/mz/mz_bench_api/bin/mz_bench_api"
+    if os.path.isfile(Server):
+        cmd('{0} stop'.format(Server))
+    else:
+        print("You have no mz_bench server installed, please install it using mz-bench install_server command")
+        sys.exit(2)
+
+#=================================================================================================
+# Communication with the API server
+#=================================================================================================
+def pretty_print(data):
+    json.dump(data, sys.stdout, indent=4)
+
+def run(host, script_file, script_content, email, package, user_repo, nodes,
+        node_commit, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
+    bench_id = start(host, script_file, script_content, email, package, user_repo, node_commit,
+        nodes, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env)
+    response = status(host, bench_id, wait=True)
+    if response[u'status'] == u'failed':
+        print('Bench failed')
+        sys.exit(3)
+
+def start(host, script_file, script_content, email, package, user_repo, node_commit, nodes,
+        deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
+    import erl_utils
+    import erl_terms
+        
+    try:
+        script_terms = erl_utils.convert(script_content, env)
+        include = erl_utils.get_includes(script_terms)
+        package += erl_utils.get_packages(script_terms)
+        response = api.start(host,
+            script_file,
+            script_content,
+            emails=email,
+            packages=package,
+            user_repos=[user_repo] if user_repo else [],
+            node_commit=node_commit if node_commit else 'master',
+            includes=include,
+            deallocate_after_bench=deallocate_after_bench,
+            dont_provision_nodes=dont_provision_nodes,
+            exclusive_node_usage=exclusive_node_usage,
+            env=env,
+            nodes=nodes)
+        pretty_print(response)
+        return response['id']
+    except erl_terms.ParseError as e:
+        print('Syntax error: {0}'.format(e))
+        sys.exit(7)
+
+def status(host, bench_id, wait):
+    if not wait:
+        response = api.status(host, bench_id, wait)
+        pretty_print(response)
+        return response
+    else:
+        print('')
+        start_time = int(time.time())
+        try:
+            # server doesn't support 'wait' flag yet
+            while True:
+                response = api.status(host, bench_id, wait)
+                if 'DEBUG' in os.environ:
+                    pretty_print(response)
+
+                if sys.stdout.isatty():
+                    current_time = int(time.time())
+                    mins = (current_time - start_time) / 60
+                    secs = (current_time - start_time) % 60
+                    statusline = 'status: {0}{1}{2}'.format(
+                        response[u'status'],
+                        ' ' * (30 - len(response[u'status'])),
+                        '{0:02}:{1:02}'.format(mins, secs))
+                    print('\r' + statusline, end='')
+
+                if response[u'status'] in [u'failed', u'complete', u'stopped']:
+                    print('')
+                    pretty_print(response)
+                    if response[u'status'] == u'failed':
+                        sys.exit(3)
+                    return response
+                sys.stdout.flush()
+                time.sleep(3)
+        except KeyboardInterrupt:
+            should_stop = '?'
+            while should_stop not in 'yn':
+                should_stop = raw_input('\nStop the bench before quitting? (y/n) ')
+            if should_stop == 'y':
+                stop(host, bench_id)
+            sys.exit(0)
+
+def stop(host, bench_id):
+    response = api.stop(host, bench_id)
+    pretty_print(response)
+
+def log(host, bench_id):
+    print('Start of log for bench {0}'.format(bench_id))
+    for line in api.logs(host, bench_id):
+        print(line)
+    print('End of log for bench {0}'.format(bench_id))
+
+def data(host, bench_id, target, format):
+    def data_generator():
+        for line in api.data(host, bench_id):
+            worker_timestamp, name, value = line.split("\t")
+
+            try:
+                value = int(value)
+            except ValueError:
+                try:
+                    value = float(value)
+                except:
+                    pass
+
+            if (name in target) or not target:
+                timestamp = int(worker_timestamp)
+                yield (timestamp, name, value)
+
+    if format == "csv":
+        data_csv(data_generator)
+    else:
+        data_default(data_generator)
+
+def data_csv(gen):
+    writer = csv.writer(sys.stdout, delimiter=',',
+                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    for timestamp, name, value in gen():
+        writer.writerow([name, timestamp, value])
+
+def data_default(gen):
+    result = {}
+    for timestamp, name, value in gen():
+        if name not in result:
+            result[name]=[]
+        result[name].append([value, timestamp])
+
+    pretty_print(map(lambda (k,v): {'target':k, 'datapoints':v}, result.iteritems()))
+
+#=================================================================================================
+# Local bench script execution
+#=================================================================================================
+def run_or_validate(script, env, validate):
+    compile_projects(NODE_PROJECTS)
+    
+    escript_name = 'run_local.escript'
+    escript_path = os.path.join(dirname, '../node/scripts')
+    
+    maybe_plugin_name = [app_src_filename[4:-8] for app_src_filename in glob.glob('src/*.app.src')]
+    if len(maybe_plugin_name) == 1:
+        [plugin_name] = maybe_plugin_name
+        if not os.path.exists('ebin/' + plugin_name + '.beam'):
+            print("WARNING: no worker beam files detected, launching make")
+            check_call(['make'])
+            if not os.path.exists('ebin/' + plugin_name + '.beam'):
+                print ("WARNING: make didn't produce worker beam files")
+
+    pa = []
+    for p in glob.glob(os.getcwd() + "/deps/*/ebin"):
+        pa += ["--pa", p]
+    cmd = [os.path.join(escript_path, escript_name), script, '--pa', os.getcwd() + "/ebin"] + pa
+    
+    if validate:
+        cmd.append('--validate')
+    
+    for k, v in env.iteritems():
+        cmd.append('--env')
+        cmd.append(k + '=' + v)
+    
+    check_call(cmd)
+
+def run_local(script, env):
+    run_or_validate(script, env, False)
+    
+def validate(script, env):
+    run_or_validate(script, env, True)
+
+#=================================================================================================
+# Worker creation
+#=================================================================================================
+def list_templates():
+    templates_path = os.path.join(dirname, '../worker-templates/')
+    
+    for tname in os.listdir(templates_path):
+        print(tname)
+
+def new_worker(template, name):
+    templates_path = os.path.join(dirname, '../worker-templates/')
+    
+    template_name = template or 'empty'
+    worker_name = name
+    copytree(os.path.join(templates_path, template_name), worker_name)
+
+    for dirpath, dirs, files in os.walk(worker_name):
+        for filename in files:
+            # replace contents
+            with open(os.path.join(dirpath, filename)) as f:
+                indata = f.read()
+            if template_name in indata:
+                new = re.sub('\\b' + template_name, worker_name, indata)
+                with open(os.path.join(dirpath, filename), "w") as output:
+                    output.write(new)
+
+            if template_name in filename:
+                os.rename(os.path.join(dirpath, filename), 
+                    os.path.join(dirpath, filename.replace(template_name, worker_name)))
+
+    print('new worker ' + worker_name + ' has been created\n')
+
+#=================================================================================================
+# Internal routines
+#=================================================================================================
+def augment_args(args):
+    if not args['--host']:
+        args['--host'] = os.environ.get('MZ_BENCH_API_HOST') or 'localhost:4800'
+
+    try:
+        args['--nodes'] = int(args['--nodes'] or 1)
+    except ValueError:
+        args['--nodes'] = args['--nodes'].split(',')
+    args['--env'] = dict(map(lambda x: x.split("=", 2), args['--env']))
+
+    if args['--deallocate_after_bench'] is None:
+        args['--deallocate_after_bench'] = 'true'
+    elif args['--deallocate_after_bench'] not in ['true', 'false']:
+        print("invalid value for --deallocate_after_bench: {0}".format(
+                args['--deallocate_after_bench']))
+        sys.exit(4)
+    
+    if args['--dont_provision_nodes'] is None:
+        args['--dont_provision_nodes'] = 'false'
+    elif args['--dont_provision_nodes'] not in ['true', 'false']:
+        print("invalid value for --dont_provision_nodes: {0}".format(
+                args['--dont_provision_nodes']))
+        sys.exit(4)
+
+    if args['--exclusive_node_usage'] is None:
+        args['--exclusive_node_usage'] = 'true'
+    elif args['--exclusive_node_usage'] not in ['true', 'false']:
+        print("invalid value for --exclusive_node_usage: {0}".format(
+                args['--exclusive_node_usage']))
+        sys.exit(4)
+
+    script_file = args['<script_file>']
+    if script_file:
+        if not os.path.exists(script_file):
+            print("File '{0}' doesn't exist.".format(script_file), file=sys.stderr)
+            sys.exit(2)
+        with open(script_file) as fi:
+            args['<script_content>'] = fi.read()
+
+def apply_args(fun, kwargs):
+    import inspect
+    argnames = inspect.getargspec(fun)[0]
+
+    def get_arg(argname, kwargs):
+        result = kwargs.get('--' + argname)
+        if result is not None:
+            return result
+        return kwargs.get('<' + argname + '>')
+
+    return fun(**dict((k, get_arg(k, kwargs)) for k in argnames))
+
+def main():
+    args = docopt.docopt(__doc__, version='0.1.0')
+    
+    augment_args(args)
+    
+    known_commands = [k for k in args
+        if not k.startswith('-') and not k.startswith('<')]
+
+    for cmd in known_commands:
+        if args[cmd]:
+            return apply_args(globals()[cmd], args)
+
+    print('Unsupported command', file=sys.stderr)
+    sys.exit(1)
+
+def cmd(command):
+    import subprocess
+    try:
+        util.cmd(command)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
+if __name__ == '__main__':
+    main()

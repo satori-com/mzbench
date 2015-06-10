@@ -1,0 +1,109 @@
+{% extends "layout.dtl" %}
+
+{% block container %}
+<ol class="breadcrumb">
+    <li><a href="/">MZ Bench</a></li>
+    <li class="active">Graphs #{{ bench_id }}</li>
+</ol>
+<div id="metrics-pane"></div>
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript" charset="utf-8">
+
+$(document).ready(function() {
+    var metrics = {{ metrics|safe }};
+    var benchId = {{ bench_id }};
+    var startTime = "{{ start_time }}";
+    var finishTime = "{{ finish_time }}";
+    var refreshInterval = {{ refreshInterval }};
+
+    var metricsCount = $.map(metrics, function(n, i) { return i; }).length;
+
+    if (0 == metricsCount) {
+        var msg = $("<div class='alert alert-warning' role='alert'><strong>Oh snap!</strong> This bench hasn't produced any graphs</div>");
+        msg.appendTo("#metrics-pane");
+        return;
+    }
+
+    var formatGraphDate = function(iso, offsetMinutes) {
+        return moment(iso).utc().add(offsetMinutes || 0, "minutes").format("HH:mm_YYYYMMDD");
+    }
+
+    var calculatePeriod = function (startTime, finishTime) {
+        // if bench isn't completed then use (-10min, now) interval
+        // if bench is completed then use (start - 2min, finish + 2min)
+
+        var from = finishTime ? formatGraphDate(startTime, -2) : "-10min";
+        var until = finishTime ? formatGraphDate(finishTime, 2) : "now" ;
+
+        return {from: from, until: until};
+    }
+
+    var bigGraphSize = {width: 960, height: 720};
+
+    $.each(metrics, function(graphiteUrl, groups) {
+        var graphs = $.map(groups, function (groupMetrics) {
+            var targets = $.map(groupMetrics, function(m) {
+                return $.isArray(m) ? m.join(".") : m; // Backward compatibility
+            });
+            var period = calculatePeriod(startTime, finishTime);
+
+            return $("<img class='graph'/>")
+                    .graphite({
+                        target: targets,
+                        url: graphiteUrl + "/render/",
+                        from: period.from,
+                        until: period.until,
+                        width: "555",
+                        height: "418"
+                    });
+
+        });
+        $.each(partition(graphs, 2), function(index, pair) {
+            var row = $("<div />", {class: "row"}).appendTo("#metrics-pane");
+            $.each(pair, function(index, graph) {
+                graph
+                .appendTo(row)
+                .wrap(function () {
+                    return $("<div class=\"col-md-6\"></div>")})
+                .wrap(function () {
+                    var link = $.fn.graphite.geturl($(this), bigGraphSize);
+                    return $("<a />", {href: link, target: "_blank"})});
+            })
+        });
+    });
+
+    var updateStatusFn = function () {
+        $.ajax({
+            url: "/status",
+            method: "GET",
+            data: { id: benchId},
+            dataType: "json",
+            success: function(data, status, xhr) {
+                var period = calculatePeriod(data.start_time, data.finish_time);
+
+                $.each($("img.graph"), function(index, graph) {
+                    $.fn.graphite.update($(graph), {
+                        from: period.from,
+                        until: period.until
+                    });
+                    var link = $.fn.graphite.geturl($(graph), bigGraphSize);
+                    $(graph).closest("a").attr("href", link);
+                });
+
+                if (!data.finish_time) {
+                    setTimeout(updateStatusFn, refreshInterval);
+                }
+            }
+        })
+    }
+
+    if (!finishTime) {
+        setTimeout(updateStatusFn, refreshInterval);
+    }
+});
+
+</script>
+{% endblock %}
+

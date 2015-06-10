@@ -1,0 +1,199 @@
+-module(mzb_worker_runner).
+
+-export([run_worker_script/5]).
+
+% For Common and EUnit tests
+-export([eval_expr/4, time_of_next_iteration_in_ramp/4, mknow/0]).
+
+-include("mzb_types.hrl").
+-include("mzb_ast.hrl").
+
+-spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), Suspended :: boolean())
+    -> ok.
+run_worker_script(Script, Env, Worker, Pool, true) ->
+    receive
+        resume ->
+            run_worker_script(Script, Env, Worker, Pool, false)
+    end;
+run_worker_script(Script, Env, {WorkerProvider, Worker}, Pool, false) ->
+
+    Res =
+        try
+            _ = random:seed(now()),
+            InitialState = WorkerProvider:init(Worker),
+            {WorkerResult, WorkerResultState} = eval_expr(Script, InitialState, Env, WorkerProvider),
+            _ = WorkerProvider:terminate(WorkerResult, WorkerResultState),
+            {ok, WorkerResult}
+        catch
+            C:E ->
+                {exception, node(), {C, E, erlang:get_stacktrace()}}
+        end,
+
+    Pool ! {worker_result, self(), Res},
+    ok.
+
+-spec eval_expr(script_expr(), worker_state(), worker_env(), module())
+    -> {script_value(), worker_state()}.
+eval_expr(#operation{is_std = false, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
+    eval_function(Name, Args, Meta, State, Env, WorkerProvider);
+eval_expr(#operation{is_std = true, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
+    eval_std_function(Name, Args, Meta, State, Env, WorkerProvider);
+eval_expr(ExprList, State, Env, WorkerProvider) when is_list(ExprList) ->
+    lists:foldl(fun(E, {EvaluatedParams, CurrentState}) ->
+                    {Result, S} = eval_expr(E, CurrentState, Env, WorkerProvider),
+                    {EvaluatedParams ++ [Result], S}
+              end,
+              {[], State},
+              ExprList);
+eval_expr(#constant{value=V} = C, State, Env,  WorkerProvider) -> 
+    {Value, NewState} = eval_expr(V, State, Env, WorkerProvider),
+    {C#constant{value=Value}, NewState};
+eval_expr(#ramp{from=F, to=T} = R, State, Env,  WorkerProvider) ->
+    {F2, State2} = eval_expr(F, State, Env, WorkerProvider),
+    {T2, NewState} = eval_expr(T, State2, Env, WorkerProvider),
+    {R#ramp{from=F2, to=T2}, NewState};
+eval_expr(Value, State, _Env,  _) -> {Value, State}.
+
+eval_function(Name, [], Meta, State, _, WorkerProvider) ->
+    WorkerProvider:apply(Name, [], State, Meta);
+eval_function(Name, Args, Meta, State, Env, WorkerProvider) ->
+    %% Eager left-to-right evaluation of parameters.
+    {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
+    WorkerProvider:apply(Name, Params, NextState, Meta).
+
+eval_std_function(loop, [LoopSpec, Body], _, State, Env, WorkerProvider) ->
+    {LoopSpec2, NextState} =
+    lists:foldl(
+        fun (#operation{args = A} = O, {EvaluatedParams, CurrentState}) ->
+              {Result, S} = eval_expr(A, CurrentState, Env, WorkerProvider),
+              {EvaluatedParams ++ [O#operation{args = Result}], S}
+        end,
+        {[], State},
+        LoopSpec),
+    eval_loop(LoopSpec2, Body, NextState, Env, WorkerProvider);
+eval_std_function(t, Args, _, State, Env, WorkerProvider) ->
+    {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
+    {list_to_tuple(Params), NextState};
+eval_std_function(Name, [], Meta, State, Env, _) ->
+    apply(mzb_stdlib, Name, [State, Env, Meta]);
+eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
+    %% Eager left-to-right evaluation of parameters.
+    {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
+    apply(mzb_stdlib, Name, [NextState, Env, Meta | Params]).
+
+
+-spec eval_loop([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
+    -> {script_value(), worker_state()}.
+eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
+    [#constant{value = Time, units = ms}] =
+        mzb_literals:convert(mzb_mproplists:get_value(time, LoopSpec, [#constant{value = undefined, units = ms}])),
+    [Iterator] = mzb_mproplists:get_value(iterator, LoopSpec, [undefined]),
+    [ProcNum] = mzb_mproplists:get_value(parallel, LoopSpec, [1]),
+    [Spawn] = mzb_mproplists:get_value(spawn, LoopSpec, [false]),
+
+    case mzb_literals:convert(mzb_mproplists:get_value(rate, LoopSpec, 
+                                        [#constant{value = undefined, units = rps}])) of
+        [#constant{value = 0, units = rps}] -> {nil, State};
+        [#constant{value = Rps, units = rps}] ->
+            looprun(ProcNum, Time, Iterator, Spawn, {constant, Rps}, Body, WorkerProvider, State, Env);
+        [#ramp{curve_type = linear,
+               from = #constant{value = From, units = rps},
+               to = #constant{value = To, units = rps}}] ->
+            if
+                From == To -> looprun(ProcNum, Time, Iterator, Spawn, {constant, From}, Body, WorkerProvider, State, Env);
+                true -> looprun(ProcNum, Time, Iterator, Spawn, {linear, From, To}, Body, WorkerProvider, State, Env)
+            end
+    end.
+
+-spec mknow() -> integer().
+mknow() ->
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
+    MegaSecs * 1000000000000 + Secs * 1000000 + MicroSecs.
+
+-spec time_of_next_iteration_in_ramp(number(), number(), number(), integer())
+    -> number().
+time_of_next_iteration_in_ramp(StartRPS, FinishRPS, RampDuration, IterationNumber) ->
+  % This function solves the following equation for Elapsed:
+  %
+  % IterationNumber = Elapsed *
+  %   average(linear_interpolation(StartRPS, FinishRPS, Elapsed/RampDuration),
+  %           StartRPS)
+  %
+  % Expanding linear interpolation:
+  %
+  % IterationNumber = Elapsed *
+  %   (StartRPS * (RampDuration - Elapsed/2) + FinishRPS * Elapsed / 2) / RampDuration
+  %
+    DRPS = FinishRPS - StartRPS,
+    Time = RampDuration / 1000000,
+    1000000
+        * (math:sqrt(StartRPS * StartRPS * Time * Time
+               + 2 * (IterationNumber + 1) * DRPS * Time)
+        - StartRPS * Time)
+        / DRPS.
+
+looprun(1, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
+    timerun(mknow(), 1, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, 0);
+looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
+    _ = mzb_utility:pmap(fun (I) ->
+        timerun(mknow(), N, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, I)
+    end, lists:seq(0, N - 1)),
+    {nil, State}.
+
+timerun(Start, Step, Time, Iterator, Spawn, Rate, Body, WorkerProvider, Env, Batch, State, Done) ->
+    ShouldBe = case Rate of
+        {constant, undefined} -> 0;
+        {constant, RPS} -> (Done * 1000000) div RPS;
+        {linear, From, To} ->
+            time_of_next_iteration_in_ramp(From, To, Time, Done)
+    end,
+    LocalStart = mknow(),
+    Remain = Start + trunc(ShouldBe) - LocalStart,
+    GotTime = Start + Time - LocalStart,
+    Sleep = max(0, min(Remain, GotTime)),
+    if
+        Sleep > 1000 -> timer:sleep(Sleep div 1000);
+        true -> ok
+    end,
+    %io:format("Time: ~p, Start: ~p, LocalStart: ~p, Sleep: ~p~n", [Time, Start, LocalStart, Sleep]),
+    case Time + Start =< LocalStart + Sleep of
+        true -> {nil, State};
+        false ->
+            BatchStart = mknow(),
+            NextState =
+                case Spawn of
+                    false ->
+                        case Iterator of
+                            undefined -> k_times(Body, WorkerProvider, Env, Step, State, Done, Batch);
+                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State, Done, Batch)
+                        end;
+                    true ->
+                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State, Done, Batch)
+                end,
+            BatchEnd = mknow(),
+            TimePerIter = max(0, (BatchEnd - BatchStart) div Batch),
+            NewBatch =
+                if (BatchEnd - BatchStart) * 4 > GotTime -> Batch div 2 + 1;
+                   (Sleep < 1000) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
+                   Sleep > 2*TimePerIter -> max(Batch - Batch div 16 - 1, 1);
+                   true -> Batch
+                end,
+
+            timerun(Start, Step, Time, Iterator, Spawn, Rate, Body, WorkerProvider, Env, NewBatch, NextState, Done + Step*Batch)
+    end.
+
+k_times(_, _, _, _, S, _, 0) -> S;
+k_times(Expr, Provider, Env, Step, S, Done, N) ->
+    {_, NewS} = eval_expr(Expr, S, Env, Provider),
+    k_times(Expr, Provider, Env, Step, NewS, Done + Step, N-1).
+
+k_times_iter(_, _, _, _, _, S, _, 0) -> S;
+k_times_iter(Expr, Provider, I, Env, Step, S, Done, N) ->
+    {_, NewS} = eval_expr(Expr, S, [{I, Done}|Env], Provider),
+    k_times_iter(Expr, Provider, I, Env, Step, NewS, Done + Step, N-1).
+
+k_times_spawn(_, _, _, _, _, S, _, 0) -> S;
+k_times_spawn(Expr, Provider, I, Env, Step, S, Done, N) ->
+    spawn_link(fun() -> eval_expr(Expr, S, [{I, Done}|Env], Provider) end),
+    k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, N-1).
+

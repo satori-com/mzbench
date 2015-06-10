@@ -1,0 +1,4 @@
+
+docopt
+requests
+-e git://github.com/machinezone/python_etf.git#egg=erl_terms

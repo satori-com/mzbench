@@ -1,0 +1,51 @@
+{application, mz_bench_api, [
+    {description, "MZ Bench API server"},
+    {vsn, "0.0.1"},
+    {modules, []},
+    {registered, [mzb_api_sup]},
+    {applications, [
+        kernel,
+        stdlib,
+        cowboy,
+        lager,
+        jiffy,
+        inets,
+        erlcloud,
+        gen_smtp
+    ]},
+    {mod, {mzb_api_app, []}},
+    {env, [
+        {cloud_plugin, {module, mzb_dummycloud_plugin}},
+        {aws_config, [{ec2_host, "ec2.us-west-2.amazonaws.com"},
+                      {access_key_id, "-"},
+                      {secret_access_key, "-"}]},
+        {ec2_instance_spec, [
+                      {image_id, "ami-xxxxxxx"},
+                      {group_set, ""},
+                      {key_name, "-"},
+                      {subnet_id, "-"},
+                      {instance_type, "t2.micro"},
+                      {availability_zone, "us-west-2a"}]},
+        {ec2_instance_user, "ec2-user"},
+
+        {mail, [{from, <<"mz-bench-api@localhost">>}
+            %,   {smtp, [{relay, "smtp.gmail.com"}, {port, 587}, 
+              %  {username, "user"}, {password, "password"}, {ssl, true}]}
+        ]},
+        {network_interface, "127.0.0.1"},
+        {listen_port, 4800},
+        {bench_log_file, "log.txt"},
+        {bench_log_port, 4801},
+        {bench_metrics_file, "metrics.txt"},
+        {bench_metrics_port, 4802},
+        {bench_read_at_once, 1024},
+        {bench_poll_timeout, 1000},
+%        {graphite, "172.21.6.181"},
+%        {graphite_api_key, ""}, % only for hostedgraphite
+%        {graphite_url, ""}, % only for hostedgraphite
+        {mzbench_git, "https://github.com/machinezone/mzbench.git"},
+
+        {bench_data_dir, "./mz_bench_api_data"},
+        {server_config, "/mz/mz_bench_api/mz_bench_server.config"}
+    ]}
+]}.

@@ -1,0 +1,24 @@
+{application, mz_bench,
+ [
+  {description, ""},
+  {vsn, "0.3.3"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager,
+                  exometer,
+                  jiffy,
+                  luerl,
+                  sasl,
+                  ranch,
+                  mz_histogram,
+                  os_mon
+                 ]},
+  {mod, { mzb_app, []}},
+  {env, [
+    {workers_dirs, ["/mz/mz_bench_workers", "../workers"]},
+    {bench_log_port, 4801},
+    {bench_metrics_port, 4802}
+  ]}
+ ]}.

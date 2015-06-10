@@ -1,0 +1,11 @@
+%% -*- mode: erlang -*-
+{application, exec_worker,
+ [
+  {description, "Mz-bench exec-worker"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.

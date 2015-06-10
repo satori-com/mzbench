@@ -1,0 +1,12 @@
+%% -*- mode: erlang -*-
+{application, http_worker,
+ [
+  {description, "MZBench http worker"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  hackney
+                 ]},
+  {env, []}
+ ]}.

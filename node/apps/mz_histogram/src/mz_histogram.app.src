@@ -1,0 +1,15 @@
+{application, mz_histogram,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager,
+                  hdr_histogram
+                 ]},
+  {mod, { mz_histogram_app, []}},
+  {env, [
+  ]}
+ ]}.
