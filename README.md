@@ -13,9 +13,9 @@ To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
     git clone https://github.com/machinezone/mzbench.git
 
     # install python packages
-    pip install -r mz-bench/requirements.txt
+    pip install -r mzbench/requirements.txt
 
-    cd mz-bench
+    cd mzbench
 
     # install MZBench server
     ./bin/mz-bench install_server
@@ -26,7 +26,7 @@ To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
     # run a benchmark with graphite
     ./bin/mz-bench run examples/ramp.erl --env graphite=<graphite_address>
 
-    # or run a benchmark with graphite
+    # or run a benchmark without graphite
     ./bin/mz-bench run examples/ramp.erl
 
     # check dashboard at http://localhost:4800/ for the results
