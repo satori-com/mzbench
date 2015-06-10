@@ -86,7 +86,9 @@ AWS image tips: an image should contain Erlang R17, gcc, gcc-c++, git, sudo.
 sudo shoud be available for non-tty execution (put "Defaults !requiretty" to /etc/sudoers).
 It is also required to have ssh and tcp 4801/4802 ports connectivity between server and nodes for
 logs and metrics. Please refer EC2 documentation on image publish process, it can be done from
-web AWS console within few clicks.
+web AWS console within few clicks. We prepared such image with Amazon Linux (ami-3b90a80b), but you
+may require some additional software. For this image you need to register and specify your keypair name
+with your AWS credentials.
 
 ### `{bench_data_dir, "<path>"}`
 

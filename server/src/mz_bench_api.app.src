@@ -20,7 +20,7 @@
                       {access_key_id, "-"},
                       {secret_access_key, "-"}]},
         {ec2_instance_spec, [
-                      {image_id, "ami-xxxxxxx"},
+                      {image_id, "ami-3b90a80b"},
                       {group_set, ""},
                       {key_name, "-"},
                       {subnet_id, "-"},
