@@ -327,7 +327,7 @@ generate_bench_env(Params) ->
 script_path(Script) ->
     case Script of
         #{filename := FileName} -> FileName;
-        Pkg -> "/mz/mz_bench_workers/" ++ Pkg ++ "/default.erl"
+        Pkg -> "~/mz/mz_bench_workers/" ++ Pkg ++ "/default.erl"
     end.
 
 start_report_sender_child(State) ->

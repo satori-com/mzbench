@@ -12,7 +12,9 @@
     to_integer_with_default/2,
     int_ceil/1,
     pmap/2,
-    any_to_num/1
+    any_to_num/1,
+    expand_filename/1,
+    wildcard/1
    ]).
 
 taken(L, N) ->
@@ -104,3 +106,17 @@ any_to_num(Value) when is_list(Value) ->
         {error,no_float} -> list_to_integer(Value);
         {F,_Rest} -> F
     end.
+
+expand_filename("~/" ++ Filename) ->
+    case init:get_argument(home) of
+        {ok, [[HomeDir|_]|_]} ->
+            filename:join(HomeDir, Filename);
+        Error ->
+            lager:error("Can't get home directory: ~p", [Error]),
+            erlang:error({get_homedir_error, Error})
+    end;
+expand_filename(Filename) -> Filename.
+
+wildcard(Wildcard) ->
+    filelib:wildcard(expand_filename(Wildcard)).
+

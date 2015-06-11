@@ -86,9 +86,9 @@ ensure_all_started(Application, Type, Started) ->
 
 load_config(_, []) -> ok;
 load_config(Worker, [Dir|T]) ->
-    WorkerDir = atom_to_list(Worker),
-    File = filename:join([Dir, WorkerDir, "sys.config"]),
-    case file:consult(File) of
+    WorkerStr = atom_to_list(Worker),
+    File = filename:join([Dir, WorkerStr, "sys.config"]),
+    case file:consult(mzb_utility:expand_filename(File)) of
         {ok, [Config]} ->
             lager:info("Reading configuration from ~s", [File]),
             lists:foreach(fun ({App, Env}) ->

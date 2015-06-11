@@ -13,12 +13,12 @@ get-deps:
 	$(REBAR) get-deps
 
 install:
-	sudo mkdir -p /mz/mz_bench_workers/${PKG_NAME}/ebin
-	sudo cp ebin/* /mz/mz_bench_workers/${PKG_NAME}/ebin/
-	if [ -d "deps" ]; then sudo cp -R deps /mz/mz_bench_workers/${PKG_NAME}; fi
-	if [ -d "examples" ]; then sudo cp -R examples /mz/mz_bench_workers/${PKG_NAME}; fi
-	if [ -d "resources" ]; then sudo cp -R resources /mz/mz_bench_workers/${PKG_NAME}; fi
-	if [ -f "sys.config" ]; then sudo cp sys.config /mz/mz_bench_workers/${PKG_NAME}/; fi
+	mkdir -p ~/mz/mz_bench_workers/${PKG_NAME}/ebin
+	cp ebin/* ~/mz/mz_bench_workers/${PKG_NAME}/ebin/
+	if [ -d "deps" ]; then cp -Rf deps ~/mz/mz_bench_workers/${PKG_NAME}; fi
+	if [ -d "examples" ]; then cp -Rf examples ~/mz/mz_bench_workers/${PKG_NAME}; fi
+	if [ -d "resources" ]; then cp -Rf resources ~/mz/mz_bench_workers/${PKG_NAME}; fi
+	if [ -f "sys.config" ]; then cp sys.config ~/mz/mz_bench_workers/${PKG_NAME}/; fi
 
 clean:
 	rm -rf deps
