@@ -26,7 +26,6 @@ def main():
             run_command =\
                 ['mzbench'
                 , 'run'
-                , '--user_repo=' + user 
                 , '--exclusive_node_usage=false'
                 ]
 

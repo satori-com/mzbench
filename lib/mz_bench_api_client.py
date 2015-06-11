@@ -9,7 +9,7 @@ import requests
 import multipart
 
 def start(host, script_file=None, script_content=None,
-        emails=[], packages=[], worker_package_with_default_scenario=None, user_repos=[], node_commit='master',
+        emails=[], packages=[], worker_package_with_default_scenario=None, node_commit='master',
         nodes=1, deallocate_after_bench='true', dont_provision_nodes='false', exclusive_node_usage='true', 
         includes=[], env={}):
 
@@ -23,7 +23,6 @@ def start(host, script_file=None, script_content=None,
     params += [('exclusive_node_usage', exclusive_node_usage)]
     params += [('package', p) for p in packages]
     params += [('email', email) for email in emails]
-    params += [('user_repo', u) for u in user_repos]
     params += [('node_commit', node_commit)]
     params += [(k, v) for k, v in env.iteritems()]
 
