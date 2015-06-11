@@ -6,6 +6,7 @@ Usage:
   mzbench install_server
   mzbench start_server
   mzbench stop_server
+  mzbench restart_server
   mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>]
     [(--email=<email> ...)]
@@ -122,6 +123,10 @@ def stop_server():
     else:
         print("You have no mz_bench server installed, please install it using mzbench install_server command")
         sys.exit(2)
+
+def restart_server():
+    stop_server()
+    start_server()
 
 #=================================================================================================
 # Communication with the API server
