@@ -19,7 +19,8 @@ main([Script | Params]) ->
                      "../../workers/*/ebin/",
                      "../deps/*/ebin/"]),
 
-    RpmCodePaths = filelib:wildcard("/mz/mz_bench/lib/*/ebin/"),
+    BinDir = filename:dirname(escript:script_name()),
+    RpmCodePaths = filelib:wildcard(filename:join(BinDir, "../lib/*/ebin/")),
 
     code:add_pathsa(RpmCodePaths ++ LocalCodePaths ++ Pa),
 

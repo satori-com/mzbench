@@ -132,10 +132,8 @@ handle_call(_Request, _From, State) ->
 
 handle_cast(start, #{start_time:= ST, config:= Config} = State) ->
     info("Starting benchmark at ~b ~p", [ST, Config], State),
-    #{nodes_arg:= NodesArg, purpose:= Purpose, initial_user:= InitialUser, exclusive_node_usage:= Exclusive} = Config,
-    Description = lists:flatten(io_lib:format("MZ-Bench cluster:~n~p", [Config])),
     async(hosts_allocation, fun () ->
-        allocate_hosts(InitialUser, Purpose, NodesArg, Description, Exclusive, logger_fun(State))
+        allocate_hosts(Config, logger_fun(State))
     end, State);
 
 handle_cast({_, finished, Ref, _}, #{spawned_ref:= Ref, stop_requested:= true} = State) ->
@@ -204,13 +202,15 @@ handle_cast({starting_collectors, finished, Ref, ok}, #{director_node:= DirNode,
         end, State);
 
 handle_cast({gather_metric_names, finished, Ref, MetricsMap}, #{director_node:= DirNode, spawned_ref:= Ref, config:= Config} = State) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+    #{user_name:= UserName,
+      director_host:= DirectorHost,
+      script:= Script} = Config,
     async(running, fun () ->
             ScriptFilePath = script_path(Script),
             _ = mzb_api_provision:remote_cmd(
                 UserName,
                 [DirectorHost],
-                "/mz/mz_bench/bin/run.escript",
+                "~/mz/mz_bench/bin/run.escript",
                 [DirNode] ++
                 [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
                 logger_fun(State)),
@@ -393,7 +393,11 @@ async(Op, F, State) ->
         end),
     {noreply, State#{spawned_ref => Ref, status => Op}}.
 
-allocate_hosts(User, Purpose, N, Description, Exclusive, _) when is_integer(N), N > 0 ->
+allocate_hosts(#{nodes_arg:= N} = Config, _) when is_integer(N), N > 0 ->
+    #{purpose:= Purpose,
+      initial_user:= User,
+      exclusive_node_usage:= Exclusive} = Config,
+    Description = lists:flatten(io_lib:format("MZ-Bench cluster:~n~p", [Config])),
     CloudProvider = get_cloud_provider(),
     ClusterConfig = #{
         user => User, 
@@ -409,7 +413,7 @@ allocate_hosts(User, Purpose, N, Description, Exclusive, _) when is_integer(N), 
     {Hosts, UserName, Deallocator};
 
 
-allocate_hosts(_User,  _Purpose, [HostsStr], _Descr, _Exclusive, Logger) when is_list(HostsStr) ->
+allocate_hosts(#{nodes_arg:= [HostsStr]}, Logger) when is_list(HostsStr) ->
     URIs = string:tokens(HostsStr, ","),
 
     {Users, Hosts} = lists:foldr(fun (URI, {Users, Hosts}) ->
@@ -433,7 +437,7 @@ allocate_hosts(_User,  _Purpose, [HostsStr], _Descr, _Exclusive, Logger) when is
     if erlang:length(Hosts) >= 2 ->
             Deallocator =
                 fun () ->
-                    mzb_api_provision:remote_cmd(UserName, Hosts, "/mz/mz_bench/bin/mz_bench stop; true", [], Logger)
+                    mzb_api_provision:remote_cmd(UserName, Hosts, "~/mz/mz_bench/bin/mz_bench stop; true", [], Logger)
                 end,
                 {Hosts, UserName, Deallocator};
         true -> 
