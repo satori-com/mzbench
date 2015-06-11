@@ -2,9 +2,10 @@
 -mode(compile).
 
 add_libs() ->
-    CodePaths = [filename:join(filename:dirname(escript:script_name()), "../apps/mz_bench/ebin/")] ++
-                 filelib:wildcard("/mz/mz_bench/lib/mz_bench-*/ebin/") ++
-                 filelib:wildcard("/mz/mz_bench/lib/jiffy-*/ebin/"),
+    BinDir = filename:dirname(escript:script_name()),
+    CodePaths = [filename:join(BinDir, "../apps/mz_bench/ebin/")] ++
+                 filelib:wildcard(filename:join(BinDir, "../lib/mz_bench-*/ebin/")) ++
+                 filelib:wildcard(filename:join(BinDir, "../lib/jiffy-*/ebin/")),
     code:add_pathsz(CodePaths).
 
 main([Node, ScriptName]) ->

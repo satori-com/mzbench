@@ -39,8 +39,8 @@ check: test-unit dialyzer.log
 
 .PHONY: install
 install: generate
-	sudo mkdir -p /mz
-	sudo cp -rf rel/mz_bench /mz
+	mkdir -p ~/mz
+	cp -rf rel/mz_bench ~/mz
 
 .PHONY: clean
 clean:

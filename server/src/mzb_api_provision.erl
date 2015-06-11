@@ -29,7 +29,7 @@ provision_nodes(Config, Logger) ->
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
     log(Logger, info, "NTP check result: ~p", [CheckResult]),
     
-    catch remote_cmd(UserName, UniqHosts, "/mz/mz_bench/bin/mz_bench stop; true", [], Logger),
+    catch remote_cmd(UserName, UniqHosts, "~/mz/mz_bench/bin/mz_bench stop; true", [], Logger),
     
     case DontProvisionNodes of
         false ->
@@ -40,10 +40,10 @@ provision_nodes(Config, Logger) ->
     end,
     
     ensure_vm_args(DirectorHost, WorkerHosts, Config, Logger),
-    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && /mz/mz_bench/bin/mz_bench start", [RootDir]), [], Logger),
+    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench start", [RootDir]), [], Logger),
     [DirNode] = [nodename(director_sname(Config), H) || H <- get_hostnames(UserName, [DirectorHost], Logger)],
     WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
-    _ = remote_cmd(UserName, [DirectorHost], "/mz/mz_bench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
+    _ = remote_cmd(UserName, [DirectorHost], "~/mz/mz_bench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
     DirNode.
 
 clean_nodes(Config, Logger) ->
@@ -52,7 +52,7 @@ clean_nodes(Config, Logger) ->
         remote_dir:= RootDir,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
-    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && /mz/mz_bench/bin/mz_bench stop", [RootDir]), [], Logger),
+    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench stop", [RootDir]), [], Logger),
     length(RootDir) > 1 andalso remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger).
 
 ntp_check(UserName, Hosts, Logger) ->
@@ -147,7 +147,7 @@ git_install(UserName, Hosts, GitRepo, GitBranch, GitSubDir, Logger) ->
     ProvisionCmd = io_lib:format("mkdir ~s && cd ~s && git clone ~s deployment_code && "
                                     "cd deployment_code && git checkout ~s && "
                                     "cd ~s && make install && cd ../../.. && "
-                                    "sudo rm -rf ~s",
+                                    "rm -rf ~s",
                                     [DeploymentDirectory, DeploymentDirectory, GitRepo, Branch, SubDir, DeploymentDirectory]),
     _ = remote_cmd(UserName, Hosts, ProvisionCmd, [], Logger).
 
