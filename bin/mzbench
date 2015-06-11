@@ -12,7 +12,7 @@ Usage:
     [(--email=<email> ...)]
     [(--package=<package> ...)]
     [(--env=<name=value>...)]
-    [--user_repo=<user_repo> | --node_commit=<commit>]
+    [--node_commit=<commit>]
     [--verbose=<verbose>]
     [--deallocate_after_bench=<deallocate_after_bench>]
     [--dont_provision_nodes=<dont_provision_nodes>]
@@ -134,16 +134,16 @@ def restart_server():
 def pretty_print(data):
     json.dump(data, sys.stdout, indent=4)
 
-def run(host, script_file, script_content, email, package, user_repo, nodes,
+def run(host, script_file, script_content, email, package, nodes,
         node_commit, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
-    bench_id = start(host, script_file, script_content, email, package, user_repo, node_commit,
+    bench_id = start(host, script_file, script_content, email, package, node_commit,
         nodes, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
         sys.exit(3)
 
-def start(host, script_file, script_content, email, package, user_repo, node_commit, nodes,
+def start(host, script_file, script_content, email, package, node_commit, nodes,
         deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
     import erl_utils
     import erl_terms
@@ -157,7 +157,6 @@ def start(host, script_file, script_content, email, package, user_repo, node_com
             script_content,
             emails=email,
             packages=package,
-            user_repos=[user_repo] if user_repo else [],
             node_commit=node_commit if node_commit else 'master',
             includes=include,
             deallocate_after_bench=deallocate_after_bench,

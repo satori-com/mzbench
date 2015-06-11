@@ -241,7 +241,7 @@ parse_start_params(Req) ->
             {{K, V}, proplists:delete(K1, Acc)}
         end,
         cowboy_req:parse_qs(Req),
-        [package, default_scenario_package, user_repo,
+        [package, default_scenario_package,
             node_commit, nodes, email, deallocate_after_bench,
             dont_provision_nodes, exclusive_node_usage, 
             emulate_bench_crash]),
