@@ -23,11 +23,12 @@ get_real_script_name(Env) ->
 
 read_and_validate(ScriptFileName, Env) ->
     try
+        {ok, WorkerDirs} = application:get_env(mz_bench, workers_dirs),
         Nodes = [node()|nodes()],
         AutoEnv = [{"nodes_num", length(Nodes)},
                    {"bench_hosts", [hostname(N) || N <- Nodes]},
                    {"bench_script_dir", filename:dirname(ScriptFileName)},
-                   {"bench_workers_dir", "/mz/mz_bench_workers"}],
+                   {"bench_workers_dir", WorkerDirs}],
         Body = read(ScriptFileName, AutoEnv ++ Env),
         ok = validate(Body),
         {ok, Body, AutoEnv ++ Env}
@@ -207,12 +208,13 @@ opposite_op(lte) -> gte.
 
 import_resource(Env, File, Type) ->
     Root = proplists:get_value("bench_script_dir", Env),
-    WorkerDir = proplists:get_value("bench_workers_dir", Env),
+    WorkerDirs = proplists:get_value("bench_workers_dir", Env),
     try
         import_resource(filename:join(Root, File), Type)
     catch
         error:{read_file_error, _, enoent} = E ->
-            case filelib:wildcard(filename:join([WorkerDir, "*", "resources", File])) of
+            Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
+            case lists:append([mzb_utility:wildcard(M) || M <- Masks])  of
                 [] -> erlang:error(E);
                 [Path|_] -> import_resource(Path, Type)
             end

@@ -20,8 +20,8 @@ To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
     # install MZBench server
     ./bin/mzbench install_server
 
-    # start MZBench server (sudo is required for local provisioning)
-    sudo ./bin/mzbench start_server
+    # start MZBench server
+    ./bin/mzbench start_server
 
     # run a benchmark with graphite
     ./bin/mzbench run examples/ramp.erl --env graphite=<graphite_address>

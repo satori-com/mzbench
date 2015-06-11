@@ -92,7 +92,7 @@ using_var_in_poolspec_test() ->
       , []
       }
     ].",
-    [{"nodes_num",1},{"bench_hosts",["box-type0"]},{"bench_script_dir","/root"},{"bench_workers_dir","/mz/mz_bench_workers"},{"exclusive_node_usage","true"},{"size","40"},{"size_per_node","40"}],
+    [{"nodes_num",1},{"bench_hosts",["box-type0"]},{"bench_script_dir","/root"},{"bench_workers_dir","~/mz/mz_bench_workers"},{"exclusive_node_usage","true"},{"size","40"},{"size_per_node","40"}],
     "[ { pool
       , [ {per_node, 40}
         , {size, 40}
