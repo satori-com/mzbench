@@ -143,13 +143,15 @@ looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
 timerun(Start, Step, Time, Iterator, Spawn, Rate, Body, WorkerProvider, Env, Batch, State, Done) ->
     ShouldBe = case Rate of
         {constant, undefined} -> 0;
-        {constant, RPS} -> (Done * 1000000) div RPS;
+        {constant, RPS} -> (Done * 1000000) / RPS;
         {linear, From, To} ->
             time_of_next_iteration_in_ramp(From, To, Time, Done)
     end,
     LocalStart = mknow(),
+
     Remain = Start + trunc(ShouldBe) - LocalStart,
-    GotTime = Start + Time - LocalStart,
+    GotTime = Start + trunc(Time) - LocalStart,
+
     Sleep = max(0, min(Remain, GotTime)),
     if
         Sleep > 1000 -> timer:sleep(Sleep div 1000);
