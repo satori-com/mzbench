@@ -33,7 +33,8 @@ provision_nodes(Config, Logger) ->
     
     case DontProvisionNodes of
         false ->
-            git_install(UserName, UniqHosts, GitRepo, GitCommit, "node", Logger),
+            %git_install(UserName, UniqHosts, GitRepo, GitCommit, "node", Logger),
+            node_tgz_install(UserName, UniqHosts, RootDir, Logger),
             ensure_worker_from_repo(UserName, UniqHosts, Script, Logger),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
@@ -150,6 +151,20 @@ git_install(UserName, Hosts, GitRepo, GitBranch, GitSubDir, Logger) ->
                                     "rm -rf ~s",
                                     [DeploymentDirectory, DeploymentDirectory, GitRepo, Branch, SubDir, DeploymentDirectory]),
     _ = remote_cmd(UserName, Hosts, ProvisionCmd, [], Logger).
+
+tgz_install(UserName, Hosts, RemoteRoot, PackageName, Logger) ->
+    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
+    LocalPkgName = PackagesDir ++ "/" ++ PackageName,
+    RemotePkgName = RemoteRoot ++ "/" ++ PackageName,
+    
+    ensure_file(UserName, Hosts, LocalPkgName, RemotePkgName, Logger),
+    InstallationCmd = io_lib:format("cd / && tar xzf ~s", [RemotePkgName]),
+    _ = remote_cmd(UserName, Hosts, InstallationCmd, [], Logger).
+
+node_tgz_install(UserName, Hosts, RemoteRoot, Logger) ->
+    {ok, ShortGitRev} = application:get_key(mz_bench_api, vsn),
+    NodePkgName = io_lib:format("node-~s.tgz", [ShortGitRev]),
+    tgz_install(UserName, Hosts, RemoteRoot, NodePkgName, Logger).
 
 remote_cmd(UserName, Hosts, Executable, Args, Logger) ->
     remote_cmd(UserName, Hosts, Executable, Args, Logger, [stderr_to_stdout]).

@@ -1,6 +1,6 @@
 {application, mz_bench_api, [
     {description, "MZ Bench API server"},
-    {vsn, "0.0.1"},
+    {vsn, git},
     {modules, []},
     {registered, [mzb_api_sup]},
     {applications, [
@@ -46,6 +46,7 @@
         {mzbench_git, "https://github.com/machinezone/mzbench.git"},
 
         {bench_data_dir, "./mz_bench_api_data"},
+        {tgz_packages_dir, "/mz/mz_bench_api/packages"},
         {server_config, "/mz/mz_bench_api/mz_bench_server.config"}
     ]}
 ]}.
