@@ -37,17 +37,17 @@ To install the MZBench API server, perform the following commands:
     git clone https://github.com/machinezone/mzbench.git
     
     # Install additional Python packages
-    pip install -r mz-bench/requirements.txt
+    pip install -r mzbench/requirements.txt
     
     # Install the server
-    cd mz-bench
-    ./bin/mz-bench install_server
+    cd mzbench
+    ./bin/mzbench install_server
 
     # Start the server
-    ./bin/mz-bench start_server
+    ./bin/mzbench start_server
 
     # Stop the server
-    ./bin/mz-bench start_server
+    ./bin/mzbench start_server
 
 # Server configuration
 
@@ -130,8 +130,8 @@ By default, the dashboard listens on `4800`.
 This parameter is used to specify the interface for dashboard to listen (by default it is "127.0.0.1"),
 so the dashboard won't be available for any external connections. To open dashboard
  for everyone, specify "0.0.0.0"
- _Warning:_ mz-bench doesn't provide any authentication and opening it
-to everyone would bring additional vulnerability to your server, mz-bench dashboard should be protected with an external auth proxy like nginx.
+ _Warning:_ mzbench doesn't provide any authentication and opening it
+to everyone would bring additional vulnerability to your server, mzbench dashboard should be protected with an external auth proxy like nginx.
 
 ### `{mzbench_git, "<url>"}`
 

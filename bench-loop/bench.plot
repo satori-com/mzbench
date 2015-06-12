@@ -1,6 +1,6 @@
 #!/usr/bin/env gnuplot
 
-set title 'mz-bench interpreter loop performance limit (loop body only increments a counter)'
+set title 'mzbench interpreter loop performance limit (loop body only increments a counter)'
 set xlabel 'Expected RPS'
 set ylabel 'Actual RPS'
 set key bottom right

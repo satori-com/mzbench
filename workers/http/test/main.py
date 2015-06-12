@@ -24,7 +24,7 @@ def main():
             run_command = ['mz-bench-dev', 'run-local']
         else:
             run_command =\
-                ['mz-bench'
+                ['mzbench'
                 , 'run'
                 , '--user_repo=' + user 
                 , '--exclusive_node_usage=false'
