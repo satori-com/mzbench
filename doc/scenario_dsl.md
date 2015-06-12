@@ -251,7 +251,7 @@ Replace the hardcoded values by a `var` statement of the form: `{var, <name> [, 
 
 Then you can pass the actual values when you launch the benchmark using the `--env` command line parameter. For instance:
 
-    mz-bench run --env=<name1>=<value1> --env=<name2>=<value2> ...
+    mzbench run --env <name1>=<value1> --env <name2>=<value2> ...
 
 The `var` statement is substituted with the provided value at the script launch time. If no value was provided, it is substituted with `<default_value>`. If no default value was provided either, the benchmark will crash.
 

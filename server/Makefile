@@ -43,7 +43,7 @@ change-version:
 		exit 1; \
 	fi
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
-	git commit rel/reltool.config -m "Bump mz-bench-api version to $(new-version)"
+	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
 
 .make/deps-up-to-date: rebar.config
 	rm -rf deps && $(REBAR) get-deps compile

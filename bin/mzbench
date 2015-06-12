@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-"""mz-bench CLI interface
+"""mzbench CLI interface
 
 Usage:
-  mz-bench clean
-  mz-bench install_server
-  mz-bench start_server
-  mz-bench stop_server
-  mz-bench [--host=<host>] (start|run)
+  mzbench clean
+  mzbench install_server
+  mzbench start_server
+  mzbench stop_server
+  mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>]
     [(--email=<email> ...)]
     [(--package=<package> ...)]
@@ -17,21 +17,21 @@ Usage:
     [--dont_provision_nodes=<dont_provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
     <script_file>
-  mz-bench [--host=<host>] status [--wait] <bench_id>
-  mz-bench [--host=<host>] stop <bench_id>
-  mz-bench [--host=<host>] log <bench_id>
-  mz-bench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
-  mz-bench run_local <script> [--env=<name=value>...]
-  mz-bench validate <script> [--env=<name=value>...]
-  mz-bench list_templates
-  mz-bench new_worker [--template=<template>] <name>
-  mz-bench -h | --help
+  mzbench [--host=<host>] status [--wait] <bench_id>
+  mzbench [--host=<host>] stop <bench_id>
+  mzbench [--host=<host>] log <bench_id>
+  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
+  mzbench run_local <script> [--env=<name=value>...]
+  mzbench validate <script> [--env=<name=value>...]
+  mzbench list_templates
+  mzbench new_worker [--template=<template>] <name>
+  mzbench -h | --help
 
 Options:
     -h, --help       Show this help
     --skip_install   Skip stage with building and deploying RPMs
     --tests <tests>  Execute only the specified tests
-    --host <host>    Specify host providing mz-bench api. Alternatively,
+    --host <host>    Specify host providing mzbench api. Alternatively,
                      you can set environment variable MZ_BENCH_API_HOST.
     --nodes <nodes>  Specify either an amount of nodes to be allocated or a
                      comma-separated list of hostnames of preallocated nodes.
@@ -49,7 +49,7 @@ Options:
                      preallocated and provisioned nodes.
     --exclusive_node_usage <exclusive_node_usage>
                      Either "true" or "false". Default is "true".
-                     If set to true mz-bench will request exclusive physical
+                     If set to true mzbench will request exclusive physical
                      hosts for each worker node.
     --env <name=value>  
                      Pass a variable to script
@@ -112,7 +112,7 @@ def start_server():
         cmd('{0} start'.format(Server))
         time.sleep(5)
     else:
-        print("You have no mz_bench server installed, please install it using mz-bench install_server command")
+        print("You have no mz_bench server installed, please install it using mzbench install_server command")
         sys.exit(2)
 
 def stop_server():
@@ -120,7 +120,7 @@ def stop_server():
     if os.path.isfile(Server):
         cmd('{0} stop'.format(Server))
     else:
-        print("You have no mz_bench server installed, please install it using mz-bench install_server command")
+        print("You have no mz_bench server installed, please install it using mzbench install_server command")
         sys.exit(2)
 
 #=================================================================================================

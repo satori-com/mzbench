@@ -62,7 +62,7 @@ change-version:
 		exit 1; \
 	fi
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
-	git commit rel/reltool.config -m "Bump mz-bench version to $(new-version)"
+	git commit rel/reltool.config -m "Bump mzbench version to $(new-version)"
 
 .mz_bench.plt: .make/deps-up-to-date
 	- dialyzer --output_plt .mz_bench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
