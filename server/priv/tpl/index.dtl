@@ -65,15 +65,36 @@
                       var graphs = data ? '<a href="graphs?id=' + row[0] + '">graphs</a>' : "no graphs";
                       var logs = '<a href="logs?id=' + row[0] + '">logs</a>';
                       var metrics = '<a href="data?id=' + row[0] + '">metrics</a>';
-                      return [graphs, logs, metrics].join(" | ");
+                      var stop = '<a href="stop?id=' + row[0] + '" class="stop_link">stop</a>';
+
+                      var res = [graphs, logs, metrics];
+
+                      if (['stopped', 'complete', 'failed'].indexOf(row[3]) == -1) {
+                          res.push(stop);
+                      }
+                      return res.join(" | ");
                   },
                   "targets": 5
               },
           ]
         });
+
         setInterval( function () {
             table.ajax.reload( null, false ); // user paging is not reset on reload
         }, refreshInterval);
+
+        table.on('click', '.stop_link', function () {
+            $.ajax({
+                type: 'GET',
+                url: this.href,
+                contentType: 'application/json',
+                success: function () {
+                    table.ajax.reload(null, false);
+                }
+            });
+            return false;
+        });
+
     });
 </script>
 {% endblock %}
