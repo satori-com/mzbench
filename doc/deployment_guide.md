@@ -1,18 +1,22 @@
 # Introduction
 
-This document explains how to deploy and configure a MZBench API server on your own infrastructure.
+This document explains how to deploy and configure an MZBench API server on your own infrastructure.
+The scope includes installation and configuration of the API server. Installation
+and configuration of the Graphite host is not covered. The Graphite host is
+ optional, although you will certainly need it for any serious use.
+
 
 # MZBench architecture
 
 In its more general form, a complete MZBench installation consists of several separate hosts:
 
-   * An MZBench API server that accepts the client requests and provides the dashboard;
-   * A metric gathering host, usually Graphite, providing the graph plotting services;
-   * A set of hosts to use as a worker nodes.
+   * An MZBench API server that accepts the client requests and provides the dashboard
+   * A metric gathering host, usually Graphite, providing the graph plotting services
+   * A set of hosts to use as a worker nodes
 
-The API server and Graphite hosts are permanent, while the worker nodes can be dynamically allocated when needed, for example on Amazon.
+The API server and Graphite hosts are permanent, while the worker nodes can be dynamically
+allocated when needed, for example on Amazon.
 
-This document details the installation and configuration of the API server. Installation and configuration of the Graphite host is out of it scope. Moreover, the Graphite host is optional, although you will certainly need it for any serious use.
 
 # Server installation
 
@@ -20,10 +24,10 @@ This document details the installation and configuration of the API server. Inst
 
 To run an MZBench API server, you need to install the following packages:
 
-   * A C++ compiler;
-   * Erlang R17 distribution (http://www.erlang.org);
-   * Python v2.6 (https://www.python.org);
-   * PIP Python package manager (https://pip.pypa.io/en/stable/).
+   * A C++ compiler
+   * Erlang R17 distribution (http://www.erlang.org)
+   * Python v2.6 (https://www.python.org)
+   * PIP Python package manager (https://pip.pypa.io/en/stable/)
 
 ## Server installation
 
@@ -47,13 +51,16 @@ To install the MZBench API server, perform the following commands:
 
 # Server configuration
 
-To apply configuration changes you need to stop (if started) and start the server.
+To apply configuration changes you need to restart the server if it's running.
 
 ## Configuration file format
 
 The MZBench server parameters are set in `/mz/mz_bench_api/mz_bench_server.config` configuration file. 
 
-This file is essentially an Erlang term. At the top level, it is a list of tuples, terminated by the dot. Each tuple represent a configuration category. It first element is an atom identifying the category, its second element is a list of actual parameters. Each of parameters is a tuple by itself, containing the parameter name and the value.
+This file is essentially an Erlang term. At the top level, it is a list of tuples, terminated by the dot.
+ Each tuple represent a configuration category. Its first element is an atom identifying the
+ category, its second element is a list of actual parameters. Each of parameters is a tuple
+  by itself, containing the parameter name and the value.
 
 For the sake of clarity, let's see the following example configuration:
 
@@ -66,7 +73,9 @@ For the sake of clarity, let's see the following example configuration:
 
 It contains only one category: `mz_bench_api`. This category is used for the parameters of the server itself.
 
-Here, we specify two parameters: `graphite` and `listen_port`. `graphite` specify the IP address of the host containing the Graphite server to use (here `172.21.8.192`). `listen_port` specify on which port should be used to access the server dashboard (here `80`).
+Here, we specify two parameters: `graphite` and `listen_port`. `graphite` specifies the IP
+ address of the host containing the Graphite server to use (here `172.21.8.192`). `listen_port`
+ specifies which port should be used to access the server dashboard (here `80`).
 
 ## Server parameters (`mz_bench_api`)
 
@@ -81,7 +90,7 @@ Application should be a valid erlang application with its own configuration and 
 
 ### `{aws_config, [{key, value}]}` `{ec2_instance_spec, [{key, value}]}`
 
-AWS specific configuration, details could be found in erlcloud documentation.
+AWS specific configuration, for details, see [erlcloud documentation](https://github.com/gleber/erlcloud).
 AWS image tips: an image should contain Erlang R17, gcc, gcc-c++, git, sudo.
 sudo shoud be available for non-tty execution (put "Defaults !requiretty" to /etc/sudoers).
 It is also required to have ssh and tcp 4801/4802 ports connectivity between server and nodes for
@@ -92,13 +101,13 @@ with your AWS credentials.
 
 ### `{bench_data_dir, "<path>"}`
 
-This parameters specifies where to store the various benchmark generated data.
+This parameter specifies where to store the various benchmark generated data.
 
 By default `mz_bench_api_data` in the home directory of the user who started the server.
 
 ### `{graphite, "<hostname or ip>"}`
 
-This parameters specifies the host or IP address of the Graphite server to send the metrics to.
+This parameter specifies where to send the metrics, the host or IP address of the Graphite server.
 
 ### `{graphite_api_key, "<string>"}`
 
@@ -108,7 +117,7 @@ Hostedgraphite.com API key.
 
 Hostedgraphite.com URL, usually something like this: https://www.hostedgraphite.com/xxxxxxxx/graphite/
 
-By default, no metrics will be send. 
+By default, no metrics will be sent.
 
 ### `{listen_port, <port>}`
 
@@ -118,14 +127,15 @@ By default, the dashboard listens on `4800`.
 
 ### `{network_interface, "<ip address>"}`
 
-This parameter is used to specify the interface for dashboard to listen by default it is "127.0.0.1",
-it means that the dashboard wont be available for any external connections, specify "0.0.0.0"
-to open dashboard for everyone. _Warning:_ mz-bench doesn't provide any authentication and opening it
+This parameter is used to specify the interface for dashboard to listen (by default it is "127.0.0.1"),
+so the dashboard won't be available for any external connections. To open dashboard
+ for everyone, specify "0.0.0.0"
+ _Warning:_ mz-bench doesn't provide any authentication and opening it
 to everyone would bring additional vulnerability to your server, mz-bench dashboard should be protected with an external auth proxy like nginx.
 
 ### `{mzbench_git, "<url>"}`
 
-Specify the MZBench Git repository used to deploy the worker nodes.
+Specifies the MZBench Git repository used to deploy the worker nodes.
 
 By default, the MZBench source code will be taken from `https://github.com/machinezone/mzbench.git`.
 

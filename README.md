@@ -2,7 +2,7 @@
 
 MZBench is a robust load testing tool. Some key features:
 * Ability to generate workload in distributed mode.
-* Flexible DSL for running various workload scenarios.
+* Flexible Domain-specific Language (DSL) for running various workload scenarios.
 * Putting the results into common metrics-gathering systems like Graphite.
 
 ## Quickstart
@@ -31,14 +31,22 @@ To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
 
     # check dashboard at http://localhost:4800/ for the results
 
+## Deployment Guide
+
+To deploy and configure an MZBench API server on your own infrastructure, see the
+
 [Deployment guide](doc/deployment_guide.md)
 
-## Further reading
+## MZBench DSL Reference
 
-MZBench scenarios are DSL programs
+To write test scenarios using the MZBench language, see [DSL Reference](doc/scenario_dsl.md).
 
-[Examples](doc/examples.md)
+### DSL Code Examples
 
-[DSL description](doc/scenario_dsl.md)
+MZBench scenarios are DSL programs. To see some pre-coded examples using MZBench DSL
+language, see [DSL Code Examples](doc/examples.md).
 
-[How to write language extensions](doc/worker_howto.md)
+### Writing Language Extensions
+
+To learn how to write language extensions called "workers," to access a particular service
+or protocol, see [How to write language extensions](doc/worker_howto.md).
