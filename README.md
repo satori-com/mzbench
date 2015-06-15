@@ -1,4 +1,4 @@
-# MZBench
+# MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench)
 
 MZBench is a robust load testing tool. Some key features:
 * Ability to generate workload in distributed mode.
