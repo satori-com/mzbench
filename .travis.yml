@@ -1,0 +1,23 @@
+language: erlang
+
+otp_release:
+ - 17.4
+ - 17.3
+
+env:
+ - TASK=lint
+ - TASK=node
+ - TASK=server
+ - TASK=validate-examples
+
+matrix:
+ exclude:
+  - otp_release: 17.3
+    env: TASK=lint
+
+script:
+ - case "$TASK" in
+     lint) pip install --user pyflakes && $HOME/.local/bin/pyflakes ./**/*.py;;
+     validate-examples) sudo pip install -r requirements.txt && cd examples && for i in *.erl; do ../bin/mz-bench validate $i; done;;
+     *) cd $TASK && make check;;
+   esac
