@@ -31,6 +31,7 @@
 % Calling module_info once and storing the result would work too.
 is_std_function(t, _) -> true;
 is_std_function(loop, 2) -> true;
+is_std_function(ignore_failure, 1) -> true;
 is_std_function(wait, 1) -> true;
 is_std_function(choose, 1) -> true;
 is_std_function(choose, 2) -> true;
