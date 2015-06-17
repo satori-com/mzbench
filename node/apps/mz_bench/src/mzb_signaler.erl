@@ -5,7 +5,8 @@
          add_signal/2,
          check_signal/1,
          check_signal/2,
-         set_nodes/1]).
+         set_nodes/1,
+         get_all_signals/0]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -45,6 +46,9 @@ add_signal(Name, Count) when Count > 0, is_number(Count) ->
 set_nodes(Nodes) ->
     Expected = {[{N, {ok}} || N <- Nodes], []},
     Expected = gen_server:multi_call(Nodes, ?MODULE, {set_nodes, Nodes}).
+
+get_all_signals() ->
+    ets:foldl(fun(Signal, Acc) -> [Signal | Acc] end, [], ?MODULE).
 
 %%%===================================================================
 %%% gen_server callbacks
