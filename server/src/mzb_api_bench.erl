@@ -433,7 +433,7 @@ allocate_hosts(_User,  _Purpose, [HostsStr], _Descr, _Exclusive, Logger) when is
     if erlang:length(Hosts) >= 2 ->
             Deallocator =
                 fun () ->
-                    mzb_api_provision:remote_cmd("root", Hosts, "/mz/mz_bench/bin/mz_bench stop; true", [], Logger)
+                    mzb_api_provision:remote_cmd(UserName, Hosts, "/mz/mz_bench/bin/mz_bench stop; true", [], Logger)
                 end,
                 {Hosts, UserName, Deallocator};
         true -> 
