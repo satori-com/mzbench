@@ -19,7 +19,7 @@
 ]).
 
 -ifdef(TEST).
--export([allocate_hosts/6]).
+-export([allocate_hosts/2]).
 -endif.
 
 -define(DEALLOCATOR_MAX_TIME, 3*60*1000*1000). % in us
