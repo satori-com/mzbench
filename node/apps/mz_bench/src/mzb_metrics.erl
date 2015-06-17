@@ -185,6 +185,24 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
         timer:now_diff(os:timestamp(), Before) / 1000,
         gauge,
         []),
+    
+    lager:info("[ metrics ] Checking signals..."),
+    RawSignals = mzb_utility:pmap(
+        fun (N) ->
+            lager:info("[ metrics ] Reading signals from ~p...", [N]),
+            case rpc:call(N, mzb_signaler, get_all_signals, []) of
+                {badrpc, Reason} ->
+                    lager:error("[ metrics ] Failed to request signals from node ~p (~p)", [N, Reason]),
+                    [];
+                Res ->
+                    lager:info("[ metrics ] Received signals from ~p", [N]),
+                    Res
+            end
+        end, lists:usort([erlang:node()] ++ Nodes)),
+    GroupedSignals = groupby(lists:flatten(RawSignals)),
+    Signals = [{N, lists:max(Counts)} || {N, Counts} <- GroupedSignals],
+    lager:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
+    
     lager:info("[ metrics ] TICK finished~n~s", [format_global_metrics()]),
     NewState#s{last_tick_time = Now, asserts = NewAsserts}.
 
@@ -196,6 +214,14 @@ format_global_metrics() ->
             io_lib:format("~s = ~p", [Name, Value])
         end,
         Metrics),
+    string:join(Lines, "\n").
+
+format_signals_count(Signals) ->
+    Lines = lists:map(
+        fun({Name, Count}) ->
+            io_lib:format("~s = ~b", [Name, Count])
+        end,
+        Signals),
     string:join(Lines, "\n").
 
 get_metric_value(Metric) ->

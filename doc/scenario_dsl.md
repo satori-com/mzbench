@@ -347,16 +347,7 @@ Wait for some particular kind of `<term>` to be registered. If the optional `<co
 
 Executes the statement `<statement>`. Even if the `<statement>` fails, the benchmarking will continue it execution as if it succeeded.
 
-### `{timeout, <time_constant>, <statement>}`
-
-This command will attempt to execute the statement `<statement>`. If, passed the delay specified by `<time_constant>`, the `<statement>` haven't finished yet, the `timeout` statement will fail. Otherwise, it will return the result of `<statement>`.
-
-The `<time_constant>` can be specified as follow:
-
-   * `{N, h}` - wait for `N` hours;
-   * `{N, min}` - wait for `N` minutes;
-   * `{N, sec}` - wait for `N` seconds;
-   * `{N, ms}` - wait for `N` milliseconds.
+This statements returns the return value of the `<statement>` if it was successful and the failure reason otherwise.
 
 ## Randomization routines
 

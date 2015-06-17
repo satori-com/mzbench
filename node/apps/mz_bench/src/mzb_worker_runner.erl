@@ -75,10 +75,9 @@ eval_std_function(t, Args, _, State, Env, WorkerProvider) ->
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     {list_to_tuple(Params), NextState};
 eval_std_function(ignore_failure, Args, _, State, Env, WorkerProvider) ->
-    case catch eval_expr(Args, State, Env, WorkerProvider) of
-        {'EXIT', _} -> {nil, State};
-        {Result, NewState} -> {Result, NewState};
-        _ -> {nil, State}
+    try eval_expr(Args, State, Env, WorkerProvider)
+    catch
+        _:E -> {E, State}
     end;
 eval_std_function(Name, [], Meta, State, Env, _) ->
     apply(mzb_stdlib, Name, [State, Env, Meta]);
