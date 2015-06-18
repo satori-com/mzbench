@@ -17,7 +17,7 @@ matrix:
 
 script:
  - case "$TASK" in
-     lint) pip install --user pyflakes && $HOME/.local/bin/pyflakes ./**/*.py;;
+     lint) sudo pip install -r requirements.txt && sudo pip install pyflakes && ./bin/lint.py . ;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
      *) make -C $TASK check;;
    esac
