@@ -4,6 +4,7 @@
 -mode(compile).
 
 main([Script | Params]) ->
+    _ = os:cmd("epmd -daemon"),
     Args = parse_args(Params, []),
     Env = proplists:get_all_values(env, Args),
     Pa = proplists:get_all_values(pa, Args),
