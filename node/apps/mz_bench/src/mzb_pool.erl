@@ -60,12 +60,16 @@ handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
-handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, Self}, #s{workers = Tid} = State) ->
+handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers, Self}, #s{workers = Tid} = State) ->
     {P, Ref} = erlang:spawn_monitor(fun() ->
         mzb_worker_runner:run_worker_script(WorkerScript, Env, Worker, Self, false)
         end),
     ets:insert(Tid, {P, Ref}),
-    lager:info("Starting worker on ~p no ~p", [Node, WId]),
+    if
+        WId < 4 orelse WId =:= NumWorkers -> lager:info("Starting worker on ~p no ~p", [Node, WId]);
+        WId =:= 4 -> lager:info("Starting remaining workers...", []);
+        true -> ok
+    end,
     {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -149,7 +153,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
             lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes),
                             WId = N * NumNodes + Offset,
                             WorkerScript = mzb_ast:add_meta(Script, [{worker_id, WId}]),
-                            gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Self})
+                            gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2, Self})
                         end, Numbers)
         end),
     State#s{name = Name, worker_starter = WorkerStarter}.
