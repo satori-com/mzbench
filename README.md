@@ -13,7 +13,7 @@ To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
     git clone https://github.com/machinezone/mzbench.git
 
     # install python packages
-    pip install -r mzbench/requirements.txt
+    sudo pip install -r mzbench/requirements.txt
 
     cd mzbench
 
