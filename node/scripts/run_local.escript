@@ -61,6 +61,10 @@ parse_args(["--pa", P | T], Res) ->
     parse_args(T, [{pa, P}|Res]).
 
 validate(Script) ->
+    ok = application:start(inets),
+    {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
+    {ok, _} = ensure_all_started(mz_bench),
+
     case mzb_script:read_and_validate(filename:absname(Script), []) of
         {ok, _, _} ->
             terminate_node(0, "ok");
