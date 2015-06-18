@@ -18,6 +18,6 @@ matrix:
 script:
  - case "$TASK" in
      lint) pip install --user pyflakes && $HOME/.local/bin/pyflakes ./**/*.py;;
-     validate-examples) sudo pip install -r requirements.txt && cd examples && for i in *.erl; do ../bin/mz-bench validate $i; done;;
+     validate-examples) sudo pip install -r requirements.txt && cd examples && for i in *.erl; do ../bin/mzbench validate $i; done;;
      *) cd $TASK && make check;;
    esac
