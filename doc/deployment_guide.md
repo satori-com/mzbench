@@ -37,7 +37,7 @@ To install the MZBench API server, perform the following commands:
     git clone https://github.com/machinezone/mzbench.git
     
     # Install additional Python packages
-    pip install -r mzbench/requirements.txt
+    sudo pip install -r mzbench/requirements.txt
     
     # Install the server
     cd mzbench
