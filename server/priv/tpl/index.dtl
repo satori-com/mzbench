@@ -65,9 +65,10 @@
                       var graphs = data ? '<a href="graphs?id=' + row[0] + '">graphs</a>' : "no graphs";
                       var logs = '<a href="logs?id=' + row[0] + '">logs</a>';
                       var metrics = '<a href="data?id=' + row[0] + '">metrics</a>';
-                      var stop = '<a href="stop?id=' + row[0] + '" class="stop_link">stop</a>';
+                      var restart = '<a href="restart?id=' + row[0] + '" class="background_call" data-name="restart bench #' + row[0] + '">restart</a>';
+                      var stop = '<a href="stop?id=' + row[0] + '" class="background_call" data-name="stop bench #' + row[0] + '">stop</a>';
 
-                      var res = [graphs, logs, metrics];
+                      var res = [graphs, logs, metrics, restart];
 
                       if (['stopped', 'complete', 'failed'].indexOf(row[3]) == -1) {
                           res.push(stop);
@@ -83,15 +84,17 @@
             table.ajax.reload( null, false ); // user paging is not reset on reload
         }, refreshInterval);
 
-        table.on('click', '.stop_link', function () {
-            $.ajax({
-                type: 'GET',
-                url: this.href,
-                contentType: 'application/json',
-                success: function () {
-                    table.ajax.reload(null, false);
-                }
-            });
+        table.on('click', '.background_call', function () {
+            if (confirm('Are you sure want to ' + $(this).data('name') + '?')) {
+                $.ajax({
+                    type: 'GET',
+                    url: this.href,
+                    contentType: 'application/json',
+                    success: function () {
+                        table.ajax.reload(null, false);
+                    }
+                });
+            }
             return false;
         });
 
