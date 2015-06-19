@@ -297,6 +297,7 @@ stream_from_file(File, BenchId, Request) ->
             case mzb_api_server:status(BenchId) of
                 #{status:= failed} -> true;
                 #{status:= complete} -> true;
+                #{status:= stopped} -> true;
                 #{status:= _} -> false
             end
         end,
