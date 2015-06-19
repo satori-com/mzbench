@@ -16,7 +16,10 @@
 		 code_change/3
 		]).
 
--record(state, {}).
+-record(state, {
+    last_rx_bytes :: integer() | not_available,
+    last_tx_bytes :: integer() | not_available
+    }).
 
 interval() -> 10000. % ten seconds
 
@@ -28,7 +31,7 @@ start_link() ->
 metric_names(Nodes) ->
     [
        [{metric_name(T, N), gauge} || N <- Nodes]
-       || T <- ["la1", "cpu", "ram"]
+       || T <- ["la1", "cpu", "ram", "nettx", "netrx"]
     ].
 
 %% gen_server callbacks
@@ -36,7 +39,7 @@ metric_names(Nodes) ->
 init([]) ->
     lager:info("~p started on node ~p", [?MODULE, node()]),
     erlang:send_after(interval(), self(), trigger),
-    {ok, #state{}}.
+    {ok, #state{last_rx_bytes = not_available, last_tx_bytes = not_available}}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -45,7 +48,8 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(trigger, State) ->
+handle_info(trigger,
+    #state{last_rx_bytes = LastRXBytes, last_tx_bytes = LastTXBytes} = State) ->
 
     case cpu_sup:avg1() of
         {error, LAFailedReason} ->
@@ -69,9 +73,37 @@ handle_info(trigger, State) ->
         _ -> ok
     end,
 
+    NewState = try
+        NetStatsString = os:cmd(mzb_utility:expand_filename("~/mz/mz_bench/bin/report_network_usage.py")),
+        {ok, Tokens, _} = erl_scan:string(NetStatsString),
+        {ok, NetStats} = erl_parse:parse_term(Tokens),
+
+        lager:info("NetStatsString: ~p, NetStats: ~p", [NetStatsString, NetStats]),
+
+        CurrentTXBytes = lists:sum([maps:get(tx_bytes, Info) || Info <- NetStats]),
+        CurrentRXBytes = lists:sum([maps:get(rx_bytes, Info) || Info <- NetStats]),
+
+        case LastRXBytes of
+            not_available -> ok;
+            _ -> ok = mzb_metrics:notify({metric_name("netrx"), gauge},
+                    (CurrentRXBytes - LastRXBytes) / (interval() / 1000))
+        end,
+
+        case LastTXBytes of
+            not_available -> ok;
+            _ -> ok = mzb_metrics:notify({metric_name("nettx"), gauge},
+                    (CurrentTXBytes - LastTXBytes) / (interval() / 1000))
+        end,
+
+        #state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
+    catch
+        C:E -> lager:error("Exception while getting net stats: ~p", [{C,E}]),
+        State
+    end,
+
     %lager:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(interval(), self(), trigger),
-    {noreply, State};
+    {noreply, NewState};
 
 handle_info(_Info, State) ->
     {noreply, State}.
