@@ -49,7 +49,7 @@ init([Id, Params]) ->
     % {{_, M, D}, {H, Mi, S}} = calendar:now_to_universal_time(now()),
     % Purpose = lists:flatten(io_lib:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id])),
     Purpose = lists:flatten(io_lib:format("bench-~b-~b", [Id, StartTime])),
-    BenchDataDir = init_data_dir(Purpose),
+    BenchDataDir = init_data_dir(Id),
     RemoteBenchDir = filename:join(["/", "tmp", "mz", Purpose]),
     Includes = maps:get(includes, Params, []),
     Config = #{
@@ -452,8 +452,8 @@ seconds({N1, N2, _N3}) ->
 remote_path(RelPath, #{remote_dir:= Root}) -> filename:join(Root, RelPath).
 local_path(RelPath, #{local_dir:= Root}) -> filename:join(Root, RelPath).
 
-init_data_dir(Purpose) ->
-    BenchDataDir = filename:join([mzb_api_server:server_data_dir(), "benchmarks", Purpose]),
+init_data_dir(Id) ->
+    BenchDataDir = filename:join(mzb_api_server:server_data_dir(), integer_to_list(Id)),
     case filelib:is_file(BenchDataDir) of
         false -> ok;
         true  -> erlang:error({data_dir_already_exists, BenchDataDir})

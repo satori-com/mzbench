@@ -68,7 +68,7 @@ get_info() ->
 
 init([]) ->
     _ = ets:new(benchmarks, [named_table, set, protected]),
-    ServerDir = filename:join(server_data_dir(), "server"),
+    ServerDir = server_data_dir(),
     ok = filelib:ensure_dir(filename:join(ServerDir, ".")),
     MaxId = import_data(ServerDir),
     User = sys_username(),
@@ -83,7 +83,7 @@ init([]) ->
 server_data_dir() ->
     {ok, [HomeDir|_]} = init:get_argument(home),
     DataDir = application:get_env(mz_bench_api, bench_data_dir, undefined),
-    filename:absname(filename:join([HomeDir, "mz", DataDir])).
+    filename:absname(filename:join([HomeDir, "mz", DataDir, "data"])).
 
 handle_call({start_bench, Params}, _From, #{status:= active, next_id:= Id, monitors:= Mons, user:= User} = State) ->
     lager:info("[ SERVER ] Start bench #~b", [Id]),
@@ -192,9 +192,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 save_results(Id, Status, #{data_dir:= Dir}) ->
     try
-        {{Y, M, _}, {_, _, _}} = calendar:now_to_universal_time(os:timestamp()),
-        SubDir = lists:flatten(io_lib:format("~4.10.0B-~2.10.0B", [Y, M])),
-        Filename = filename:join([Dir, SubDir, erlang:integer_to_list(Id)]),
+        Filename = filename:join([Dir, erlang:integer_to_list(Id), "status"]),
         ok = filelib:ensure_dir(Filename),
         ok = file:write_file(Filename, io_lib:format("~p.", [Status])),
         true = ets:insert(benchmarks, {Id, Status})
@@ -204,31 +202,75 @@ save_results(Id, Status, #{data_dir:= Dir}) ->
     end.
 
 import_data(Dir) ->
+    bc_migrate_19_06_15(Dir),
+
     lager:info("Importing server data from ~s", [Dir]),
     Import = fun (File, Max) ->
         try
-            Id = erlang:list_to_integer(filename:basename(File)),
+            ["status", IdStr | _] = lists:reverse(filename:split(File)),
+            Id = erlang:list_to_integer(IdStr),
             {ok, [Status]} = file:consult(File),
+            #{status:= _, start_time := _, finish_time := _, config := #{}} = Status,
 
-            % BC 2015-04-01 avasenin: check metrics in the files and add them if they are absent
-            Metrics = maps:get(metrics, Status, #{}),
-            Status1 = Status#{metrics => Metrics},
-            % END BC
+            ets:insert(benchmarks, {Id, Status}),
 
-            #{status:= _, start_time := _, finish_time := _, config := #{}} = Status1,
-
-            ets:insert(benchmarks, {Id, Status1}),
-            case Id > Max of
-                true  -> Id;
-                false -> Max
-            end
+            max(Id, Max)
         catch
             _:Error ->
                 lager:error("Import from file ~s failed with reason: ~p", [File, Error]),
                 Max
         end
     end,
-    filelib:fold_files(Dir, "", true, Import, -1).
+    filelib:fold_files(Dir, "^status$", true, Import, -1).
+
+% BC code begin
+bc_migrate_19_06_15(Dir) ->
+    try
+        BenchmarkDir = filename:join([Dir, "..", "benchmarks"]),
+        lists:foreach(fun (BDir) ->
+            try
+                [_, IdStr, _] = string:tokens(filename:basename(BDir), "-"),
+                Files = filelib:wildcard(filename:join(BDir, "*")),
+                Target = filename:join([Dir, IdStr, "."]),
+                ok = filelib:ensure_dir(Target),
+                _ = [file:copy(F, filename:join(Target, filename:basename(F))) || F <- Files],
+                [file:delete(F) || F <- Files],
+                file:del_dir(BDir),
+                ok
+            catch
+                _:E ->
+                    lager:error("Server data migration error: ~s, ~p", [BDir, E]),
+                    ok
+            end
+        end, filelib:wildcard(filename:join(BenchmarkDir, "*"))),
+        file:del_dir(BenchmarkDir),
+
+        ServerDir = filename:join([Dir, "..", "server"]),
+        lists:foreach(fun (F) ->
+            try
+                IdStr = filename:basename(F),
+                Target = filename:join([Dir, IdStr, "status"]),
+                ok = filelib:ensure_dir(Target),
+                {ok, [Cfg]} = file:consult(F),
+                #{log_file := LogFile} = Cfg,
+                NewCfg = Cfg#{log_file => filename:join([Dir, IdStr, "log.txt"]),
+                              metrics_file => filename:join([Dir, IdStr, "metrics.txt"])},
+                file:write_file(Target, io_lib:format("~p.", [NewCfg])),
+                file:delete(F),
+                file:del_dir(filename:dirname(F))
+            catch
+                _:E ->
+                    lager:error("Server data migration error: ~s, ~p", [F, E]),
+                    ok
+            end
+        end, filelib:wildcard(filename:join([ServerDir, "*", "*"]))),
+        file:del_dir(ServerDir)
+    catch
+        _:Error ->
+            lager:error("Server data migration exception: ~p~n~p", [Error, erlang:get_stacktrace()])
+    end.
+
+% BC code end
 
 wait_processes(Pids, Callback) ->
     MonRefs = [erlang:monitor(process, P) || P <- Pids],
