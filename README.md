@@ -50,3 +50,7 @@ language, see [DSL Code Examples](doc/examples.md).
 
 To learn how to write language extensions called "workers," to access a particular service
 or protocol, see [How to write language extensions](doc/worker_howto.md).
+
+## Support
+
+Please report an issue on github.
