@@ -7,6 +7,7 @@
     start_link/0,
     deactivate/0,
     start_bench/1,
+    restart_bench/1,
     stop_bench/1,
     get_info/0,
     bench_finished/2,
@@ -35,6 +36,15 @@ start_bench(Params) ->
     case gen_server:call(?MODULE, {start_bench, Params}, infinity) of
         {ok, Resp} -> Resp;
         {error, {exception, {C,E,ST}}} -> erlang:raise(C,E,ST);
+        {error, Reason} -> erlang:error(Reason)
+    end.
+
+restart_bench(Id) ->
+    case gen_server:call(?MODULE, {restart_bench, Id}, infinity) of
+        {ok, Resp} -> Resp;
+        {error, {exception, {C,E,ST}}} -> erlang:raise(C,E,ST);
+        {error, not_found} ->
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
         {error, Reason} -> erlang:error(Reason)
     end.
 
@@ -85,19 +95,39 @@ server_data_dir() ->
     DataDir = application:get_env(mz_bench_api, bench_data_dir, undefined),
     filename:absname(filename:join([HomeDir, "mz", DataDir, "data"])).
 
-handle_call({start_bench, Params}, _From, #{status:= active, next_id:= Id, monitors:= Mons, user:= User} = State) ->
-    lager:info("[ SERVER ] Start bench #~b", [Id]),
-    case supervisor:start_child(benchmarks_sup, [Id, Params#{user => User}]) of
-        {ok, Pid} ->
-            Mon = erlang:monitor(process, Pid),
-            true = ets:insert_new(benchmarks, {Id, Pid}),
-            {reply, {ok, #{id => Id, status => <<"pending">>}}, State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)}};
+handle_call({start_bench, Params}, _From, #{status:= active} = State) ->
+    case start_bench_child(Params, State) of
+        {ok, Id, NewState} ->
+            {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
         {error, Reason} ->
             {reply, {error, Reason}, State}
     end;
 
 handle_call({start_bench, Params}, _From, #{status:= inactive} = State) ->
     lager:info("[ SERVER ] Start of bench failed because server is inactive ~p", [Params]),
+    {reply, {error, server_inactive}, State};
+
+handle_call({restart_bench, RestartId}, _From, #{status:= active, data_dir:= DataDir} = State) ->
+    lager:info("[ SERVER ] Restarting bench #~b", [RestartId]),
+    RestartIdStr = erlang:integer_to_list(RestartId),
+    ParamsFile = filename:join([DataDir, RestartIdStr, "params.bin"]),
+    case file:read_file(ParamsFile) of
+        {ok, Binary} ->
+            Params = erlang:binary_to_term(Binary),
+            case start_bench_child(Params, State) of
+                {ok, Id, NewState} ->
+                    {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
+                {error, Reason} ->
+                    {reply, {error, Reason}, State}
+            end;
+        {error, enoent} ->
+            {reply, {error, not_found}, State};
+        {error, Reason} ->
+            {reply, {error, Reason}, State}
+    end;
+
+handle_call({restart_bench, RestartId}, _From, #{status:= inactive} = State) ->
+    lager:info("[ SERVER ] Restart of bench failed because server is inactive #~p", [RestartId]),
     {reply, {error, server_inactive}, State};
 
 handle_call(deactivate, From, #{} = State) ->
@@ -189,6 +219,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State) ->
+    lager:info("[ SERVER ] Start bench #~b", [Id]),
+    case supervisor:start_child(benchmarks_sup, [Id, Params#{user => User}]) of
+        {ok, Pid} ->
+            Mon = erlang:monitor(process, Pid),
+            true = ets:insert_new(benchmarks, {Id, Pid}),
+            {ok, Id, State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)}};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 save_results(Id, Status, #{data_dir:= Dir}) ->
     try

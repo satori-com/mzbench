@@ -54,6 +54,12 @@ handle(<<"POST">>, <<"/start">>, Req) ->
             {ok, reply_json(200, Resp2, Req), #{}}
     end;
 
+handle(<<"GET">>, <<"/restart">>, Req) ->
+    with_bench_id(Req, fun (Id) ->
+        Resp = mzb_api_server:restart_bench(Id),
+        {ok, reply_json(200, Resp, Req), #{}}
+    end);
+
 handle(<<"GET">>, <<"/stop">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         ok = mzb_api_server:stop_bench(Id),
