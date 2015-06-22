@@ -130,18 +130,14 @@ handle_call({restart_bench, RestartId}, _From, #{status:= inactive} = State) ->
     lager:info("[ SERVER ] Restart of bench failed because server is inactive #~p", [RestartId]),
     {reply, {error, server_inactive}, State};
 
-handle_call(deactivate, From, #{} = State) ->
+handle_call(deactivate, _From, #{} = State) ->
     Unfinished = ets:foldl(
         fun ({_, Pid}, Acc) when is_pid(Pid) -> [Pid | Acc];
             (_, Acc) -> Acc
         end, [], benchmarks),
     lager:info("[ SERVER ] Stopping all benchmarks due to server stop: ~p", [Unfinished]),
     [ok = mzb_api_bench:interrupt_bench(P) || P <- Unfinished],
-    erlang:spawn_link(fun () ->
-        Callback = fun () -> gen_server:reply(From, ok) end,
-        wait_processes(Unfinished, Callback)
-    end),
-    {noreply, State#{status:= inactive}};
+    {reply, ok, State#{status:= inactive}};
 
 handle_call({stop_bench, Id}, _, #{} = State) ->
     lager:info("[ SERVER ] Stop bench #~b request received", [Id]),
@@ -176,9 +172,7 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({bench_finished, Id, Status}, State) ->
     lager:info("[ SERVER ] Bench #~b finished with status ~p", [Id, maps:get(status, Status)]),
-    [{_, Pid}] = ets:lookup(benchmarks, Id),
     save_results(Id, Status, State),
-    ok = mzb_api_bench:stop(Pid),
     {noreply, State};
 
 handle_cast(_Msg, State) ->
@@ -312,16 +306,6 @@ bc_migrate_19_06_15(Dir) ->
     end.
 
 % BC code end
-
-wait_processes(Pids, Callback) ->
-    MonRefs = [erlang:monitor(process, P) || P <- Pids],
-    lists:foreach(fun (Ref) ->
-        receive
-            {'DOWN', Ref, _, _, _} -> ok
-        end
-    end, MonRefs),
-    lager:info("[ SERVER ] All bechmarks have been stopped"),
-    Callback().
 
 sys_username() ->
     case os:getenv("REMOTE_USER") of

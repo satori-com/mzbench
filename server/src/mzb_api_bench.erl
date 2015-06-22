@@ -2,29 +2,17 @@
 
 -behaviour(gen_server).
 
-%% API
 -export([
     start_link/2,
     interrupt_bench/1,
-    stop/1,
     get_status/1,
-    start_deallocator/3,
-    seconds/0,
-    bench_data_link/2,
-    bench_log_link/2
+    seconds/0
 ]).
 
--export([
-    start_report_sender/1
-]).
 
 -ifdef(TEST).
 -export([allocate_hosts/2]).
 -endif.
-
--define(DEALLOCATOR_MAX_TIME, 3*60*1000*1000). % in us
--define(DEALLOCATE_RETRY_TIMEOUT, 10000). % in ms
--define(MAX_STOP_TIME, 3*60000). % in ms
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -33,14 +21,11 @@
 start_link(Id, Params) ->
     gen_server:start_link(?MODULE, [Id, Params], []).
 
-interrupt_bench(Pid) ->
-    gen_server:call(Pid, interrupt_bench).
-
-stop(Pid) ->
-    gen_server:call(Pid, stop, infinity).
-
 get_status(Pid) ->
     gen_server:call(Pid, status).
+
+interrupt_bench(Pid) ->
+    gen_server:call(Pid, {workflow, force_stop}).
 
 init([Id, Params]) ->
     Now = os:timestamp(),
@@ -63,8 +48,6 @@ init([Id, Params]) ->
         node_commit => maps:get(node_commit, Params),
         packages => maps:get(package, Params),
         emails => maps:get(email, Params),
-        statsd_host => undefined,
-        includes => [F || {F, _} <- Includes],
         env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         dont_provision_nodes => maps:get(dont_provision_nodes, Params),
@@ -81,7 +64,8 @@ init([Id, Params]) ->
 
     InputBin = erlang:term_to_binary(Params),
     ok = file:write_file(local_path("params.bin", Config), InputBin),
-    gen_server:cast(self(), start),
+    Ref = make_ref(),
+    gen_server:cast(self(), {workflow, start_phase, pipeline, Ref}),
     erlang:process_flag(trap_exit, true),
 
     LogFile = filename:join(BenchDataDir, get_env(bench_log_file)),
@@ -97,31 +81,192 @@ init([Id, Params]) ->
         status => init,
         config => Config,
         data => Data,
-        spawned_ref => undefined,
         log_file => LogFile,
         log_file_handler => LogHandler,
         metrics_file => MetricsFile,
         metrics_file_handler => MetricsHandler,
+        collectors => [],
         deallocator => undefined,
+        stage => undefined,
+        ref => Ref,
         metrics => #{}
     },
     info("Bench data dir: ~s", [BenchDataDir], State),
     {ok, State}.
 
-handle_call(interrupt_bench, _From, #{id:= Id, status:= Status} = State) ->
-    info("Interupting benchmark process, current status is ~p", [Status], State),
-    State1 = State#{finish_time => seconds(), interrupted => true},
-    mzb_api_server:bench_finished(Id, status(State1#{status => stopped})),
-    {reply, ok, State1};
+workflow_config() ->
+    [{pipeline, [ init,
+                  allocating_hosts,
+                  provisioning,
+                  uploading_script,
+                  uploading_includes,
+                  starting_collectors,
+                  gathering_metric_names,
+                  running
+                ]},
+     {finalize, [ saving_bench_results,
+                  sending_email_report,
+                  stopping_collectors,
+                  cleaning_nodes,
+                  deallocating_hosts,
+                  closing_log_files
+                ]}].
 
-handle_call(stop, _From, #{status:= Status, spawned_ref:= Ref} = State) when Ref == undefined; Status == running ->
-    info("Stopping benchmark process, current status is ~p", [Status], State),
-    {stop, normal, ok, State};
+handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State) ->
+    case maps:find(emulate_bench_crash, Config) of
+        {ok, true} -> exit(self(), {emulated_crash, nothing_to_see_here, please_move_along});
+        _ -> ok
+    end,
 
-handle_call(stop, _From, #{status:= Status} = State) ->
-    info("Stop request for benchmark process, current status is ~p", [Status], State),
-    timer:exit_after(?MAX_STOP_TIME, bench_stop_timed_out),
-    {reply, ok, State#{stop_requested => true}};
+    info("Starting benchmark at ~b ~p", [StartTime, Config], State);
+
+handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
+    {Hosts, UserName, Deallocator} = allocate_hosts(Config, logger_fun(State)),
+
+    info("Allocated hosts: [~p] @ ~p", [UserName, Hosts], State),
+
+    fun (S) ->
+        S#{config => Config#{
+                        user_name => UserName,
+                        director_host => hd(Hosts),
+                        worker_hosts => tl(Hosts) },
+           deallocator => Deallocator }
+    end;
+
+handle_stage(pipeline, provisioning, #{config:= Config} = State) ->
+    DirectorNode = mzb_api_provision:provision_nodes(Config, logger_fun(State)),
+    fun (S) -> S#{director_node => DirectorNode} end;
+
+handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
+    #{script:= Script,
+      director_host:= DirectorHost,
+      worker_hosts:= WorkerHosts,
+      env:= Env} = Config,
+
+    Environ = jiffy:encode({Env}),
+    mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Environ, "environ.txt", Config, logger_fun(State)),
+    case Script of
+        #{name := _Name, body := Body, filename := FileName} ->
+            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Body, FileName, Config, logger_fun(State));
+        _ -> ok
+    end;
+
+handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = State) ->
+    #{includes:= Includes} = Data,
+    #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
+    lists:foreach(
+        fun ({Name, Content}) ->
+            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, logger_fun(State))
+        end, Includes);
+
+handle_stage(pipeline, starting_collectors, #{config:= Config} = State) ->
+    #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
+    LogsCollectors = start_collectors(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port), maps:get(log_file_handler, State)),
+    MetricsCollectors = start_collectors(metrics, [DirectorHost], get_env(bench_metrics_port), maps:get(metrics_file_handler, State)),
+    fun (S) -> S#{collectors => LogsCollectors ++ MetricsCollectors} end;
+
+handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
+    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+    [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
+    MetricsMap = mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv),
+    fun (S) -> S#{metrics => MetricsMap} end;
+
+handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
+    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+    ScriptFilePath = script_path(Script),
+    _ = mzb_api_provision:remote_cmd(UserName, [DirectorHost],
+        "~/mz/mz_bench/bin/run.escript",
+        [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
+        logger_fun(State)),
+    fun (S) -> update_status(complete, S) end;
+
+handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
+    mzb_api_server:bench_finished(Id, status(State));
+
+handle_stage(finalize, sending_email_report, #{id:= Id, status:= Status, config:= Config, start_time:= StartTime, metrics:= MetricsMap} = State) ->
+    #{emails:= Emails} = Config,
+    BenchTime = seconds(os:timestamp()) - StartTime,
+    Links =
+        try
+            mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime)
+        catch
+            _:E ->
+                lager:error("Failed to get graphite image links: ~p", [E]),
+                []
+        end,
+    lager:info("Metrics links: ~p", [Links]),
+    AttachFiles = download_images("graphite_", Links, State),
+    {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
+    lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
+    Attachments = lists:map(
+        fun (F) ->
+            {ok, Bin} = file:read_file(local_path(F, Config)),
+            {list_to_binary(F), <<"image/png">>, Bin}
+        end, AttachFiles),
+    lists:foreach(
+        fun (Addr) ->
+            lager:info("Sending bench results to ~s", [Addr]),
+            BAddr = list_to_binary(Addr),
+            mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
+        end, Emails);
+
+handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost, worker_hosts:= WorkerHosts}})
+  when DirectorHost /= undefined, WorkerHosts /= [] ->
+    mzb_api_provision:clean_nodes(Config, undefined);
+handle_stage(finalize, cleaning_nodes, State) ->
+    info("Skip cleaning nodes. Unknown nodes", [], State);
+
+handle_stage(finalize, deallocating_hosts, #{deallocate_after_bench:= false} = State) ->
+    info("Skip deallocation. Deallocate after bench is true", [], State);
+handle_stage(finalize, deallocating_hosts, #{deallocator:= undefined} = State) ->
+    info("Skip deallocation. Undefined deallocator.", [], State);
+handle_stage(finalize, deallocating_hosts, #{deallocator:= Deallocator} = State) ->
+    DeallocWrapper = fun () ->
+        try
+            info("Deallocator has started", [], State),
+            Deallocator(),
+            ok
+        catch _C:E ->
+            ST = erlang:get_stacktrace(),
+            error("Deallocation has failed with reason: ~p~nStacktrace: ~p", [E, ST], State),
+            retry
+        end
+    end,
+    run_periodically(seconds(), 3 * 60, 10, DeallocWrapper);
+
+handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
+    lists:foreach(fun ({Pid, Socket, _, _}) ->
+                          monitor(process, Pid),
+                          gen_tcp:send(Socket, "close_me")
+                  end, Collectors),
+    lists:foreach(fun ({Pid, _, Purpose, Host}) ->
+                    receive
+                        {'DOWN', _Ref, process, Pid, _Info} -> ok
+                    after 30000 ->
+                        erlang:error({collector_close_timeout, Purpose, Host})
+                    end
+                  end, Collectors);
+
+handle_stage(finalize, closing_log_files, State) ->
+    file:close(maps:get(log_file_handler, State)),
+    file:close(maps:get(metrics_file_handler, State)).
+
+
+handle_call({workflow, force_stop}, _From, State = #{stage:= {Pid, pipeline, Stage}, ref:= Ref}) ->
+    info("Stage '~s - ~s': force stopped", [pipeline, Stage], State),
+    try
+        unlink(Pid),
+        exit(Pid, kill)
+    catch _C:E ->
+        ST = erlang:get_stacktrace(),
+        info("Killing pipeline stage is failed with reason ~p~nStacktrace: ~p", [E, ST], State)
+    end,
+    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
+    {reply, ok, update_status(stopped, State)};
+
+handle_call({workflow, force_stop}, _From, State = #{stage:= {_, Phase, Stage}}) ->
+    info("Stage '~s - ~s': force stopped", [Phase, Stage], State),
+    {noreply, update_status(stopped, State)};
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -130,116 +275,57 @@ handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
 
-handle_cast(start, #{start_time:= ST, config:= Config} = State) ->
-    info("Starting benchmark at ~b ~p", [ST, Config], State),
-    async(hosts_allocation, fun () ->
-        allocate_hosts(Config, logger_fun(State))
-    end, State);
+handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST} }, State = #{ref:= Ref}) ->
+    error("Stage '~s - ~s': failed", [Phase, Stage], State),
+    error("Got exception during ~p phase on stage: ~p~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
+    gen_server:cast(self(), {workflow, next, finalize, Stage, Ref}),
+    {noreply, State#{stage => undefined}};
 
-handle_cast({_, finished, Ref, _}, #{spawned_ref:= Ref, stop_requested:= true} = State) ->
-    info("Stopping benchmark process", [], State),
-    {stop, normal, State#{spawned_ref:= undefined}};
+handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, State = #{ref:= Ref}) ->
+    error("Stage '~s - ~s': failed", [Phase, Stage], State),
+    error("Got exception during ~p phase on stage: ~p~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
+    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
+    NewState = update_status(failed, State),
+    {noreply, NewState#{stage => undefined}};
 
-handle_cast({_, finished, Ref, _}, #{spawned_ref:= Ref, interrupted:= true} = State) ->
-    info("Benchmark process is waiting for stop", [], State),
-    {noreply, State#{spawned_ref:= undefined}};
+handle_cast({workflow, completed, Phase, Stage, Ref, Fn}, State = #{ref:= Ref}) ->
+    info("Stage '~s - ~s': finished", [Phase, Stage], State),
+    NewState = migrate_state(Fn, State),
+    gen_server:cast(self(), {workflow, next, Phase, Stage, Ref}),
+    {noreply, NewState#{stage => undefined}};
 
-handle_cast({hosts_allocation, finished, Ref, {Hosts, UserName, Deallocator}}, #{spawned_ref:= Ref, config:= Config} = State) ->
-    DirectorHost = hd(Hosts),
-    WorkerHosts = tl(Hosts),
-    info("Allocated director host: ~p,~nworker hosts: ~p", [DirectorHost, WorkerHosts], State),
-    Deallocator2 =
-        case maps:get(deallocate_after_bench, Config) of
-            false -> fun () -> info("Skip deallocation", [], State) end;
-            _ -> Deallocator
-        end,
-    Config2 = Config#{
-                user_name => UserName,
-                director_host => DirectorHost,
-                worker_hosts => WorkerHosts},
-    async(provisioning, fun () ->
-            mzb_api_provision:provision_nodes(Config2, logger_fun(State))
-        end, State#{config => Config2, deallocator => Deallocator2});
+handle_cast({workflow, start_phase, Phase, Ref}, State = #{ref:= Ref}) ->
+    handle_cast({workflow, next, Phase, undefined, Ref}, State);
 
-handle_cast({provisioning, finished, Ref, DirNode}, #{spawned_ref:= Ref, config:= Config} = State) ->
-    async(uploading_script, fun () ->
-        #{script:= Script, director_host:= DirectorHost, worker_hosts:= WorkerHosts, env:= Env} = Config,
+handle_cast({workflow, next, PrevPhase, PrevStage, Ref}, State = #{ref:= Ref}) ->
+    case next_stage(PrevPhase, PrevStage) of
+        none -> % completed all stages
+            {stop, normal, State};
+        {ok, NextPhase, NextStage} ->
+            gen_server:cast(self(), {workflow, start, NextPhase, NextStage, Ref}),
+            {noreply, State}
+    end;
 
-        Environ = jiffy:encode({Env}),
-        mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Environ, "environ.txt", Config, logger_fun(State)),
-        case Script of
-            #{name := _Name, body := Body, filename := FileName} ->
-                mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Body, FileName, Config, logger_fun(State));
-            _ -> ok
-        end,
-        ok
-        end, State#{director_node => DirNode});
+handle_cast({workflow, start, pipeline, Stage, Ref}, State = #{ref:= Ref, finish_time:= FTime}) when FTime /= undefined ->
+    info("Stage '~s - ~s': ignored, bench marked as finished", [pipeline, Stage], State),
+    {noreply, State};
 
-handle_cast({uploading_script, finished, Ref, ok}, #{spawned_ref:= Ref, config:= Config, data:= Data} = State) ->
-    #{includes:= Includes} = Data,
-    async(uploading_includes, fun () ->
-            #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
-            lists:foreach(
-                fun ({Name, Content}) ->
-                    mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, logger_fun(State))
-                end, Includes),
-            ok
-        end, State);
-
-handle_cast({uploading_includes, finished, Ref, ok}, #{spawned_ref:= Ref, config:= Config} = State) ->
-    #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
-    async(starting_collectors, fun() ->
-        start_collectors(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port), maps:get(log_file_handler, State)),
-        start_collectors(metrics, [DirectorHost], get_env(bench_metrics_port), maps:get(metrics_file_handler, State)),
-        ok
-    end, State);
-
-handle_cast({starting_collectors, finished, Ref, ok}, #{director_node:= DirNode, spawned_ref:= Ref, config:= Config} = State) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
-    async(gather_metric_names, fun () ->
-            [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
-            mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv)
-        end, State);
-
-handle_cast({gather_metric_names, finished, Ref, MetricsMap}, #{director_node:= DirNode, spawned_ref:= Ref, config:= Config} = State) ->
-    #{user_name:= UserName,
-      director_host:= DirectorHost,
-      script:= Script} = Config,
-    async(running, fun () ->
-            ScriptFilePath = script_path(Script),
-            _ = mzb_api_provision:remote_cmd(
-                UserName,
-                [DirectorHost],
-                "~/mz/mz_bench/bin/run.escript",
-                [DirNode] ++
-                [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
-                logger_fun(State)),
-            ok
-        end, State#{metrics => MetricsMap});
-
-handle_cast({running, finished, Ref, ok}, #{id:= Id, spawned_ref:= Ref, config:= Config} = State) ->
-    case maps:find(emulate_bench_crash, Config) of
-        {ok, true} -> erlang:error(
-            {emulated_crash, nothing_to_see_here, please_move_along});
-        _ -> ok
-    end,
-    State1 = State#{status => complete, finish_time => seconds(), spawned_ref => undefined},
-    mzb_api_server:bench_finished(Id, status(State1)),
-    {noreply, State1};
-
-handle_cast({_, exception, Ref, _}, #{spawned_ref:= Ref, stop_requested:= true} = State) ->
-    info("Stopping benchmark process", [], State),
-    {stop, normal, State#{spawned_ref:= undefined}};
-
-handle_cast({_, exception, Ref, _}, #{spawned_ref:= Ref, interrupted:= true} = State) ->
-    info("Benchmark process is waiting for stop", [], State),
-    {noreply, State#{spawned_ref:= undefined}};
-
-handle_cast({Op, exception, Ref, {_, E, Stack}}, #{id:= Id, spawned_ref:= Ref} = State) ->
-    error(format_error(Op, {E, Stack}), [], State),
-    State1 = State#{status => failed, finish_time => seconds(), spawned_ref => undefined},
-    mzb_api_server:bench_finished(Id, status(State1)),
-    {noreply, State1};
+handle_cast({workflow, start, Phase, Stage, Ref}, State = #{ref:= Ref}) ->
+    info("Stage '~s - ~s': started", [Phase, Stage], State),
+    Self = self(),
+    Pid = spawn_link(
+        fun () ->
+            try
+                StageResult = handle_stage(Phase, Stage, State),
+                gen_server:cast(Self, {workflow, completed, Phase, Stage, Ref, StageResult})
+            catch
+                C:E ->
+                    ST = erlang:get_stacktrace(),
+                    gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST}})
+            end
+        end),
+    NewState = update_status({Phase, Stage}, State),
+    {noreply, NewState#{stage => {Pid, Phase, Stage}}};
 
 handle_cast(_Msg, State) ->
     error("Unhandled cast: ~p", [_Msg], State),
@@ -248,7 +334,7 @@ handle_cast(_Msg, State) ->
 handle_info({'EXIT', _, normal}, State) ->
     {noreply, State};
 
-handle_info({'EXIT', P, Reason}, #{} = State) ->
+handle_info({'EXIT', P, Reason}, State) ->
     error("Benchmark received 'EXIT' from ~p with reason ~p, stopping", [P, Reason], State),
     {stop, Reason, State};
 
@@ -256,51 +342,36 @@ handle_info(_Info, State) ->
     error("Unhandled info: ~p", [_Info], State),
     {noreply, State}.
 
-terminate(_Reason, #{id:= Id, config:= Config, deallocator:= Deallocator} = State) ->
-    _ = start_report_sender_child(State),
-
-    file:close(maps:get(log_file_handler, State)),
-    file:close(maps:get(metrics_file_handler, State)),
-
-    CleanAndDeallocate = 
-        fun () ->
-            catch mzb_api_provision:clean_nodes(Config, undefined),
-            Deallocator == undefined orelse Deallocator()
-        end,
-
-    start_deallocator_child(Id, CleanAndDeallocate).
+terminate(_Reason, _State) -> ok.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-start_deallocator_child(Id, DeallocatorFun) ->
-    supervisor:start_child(deallocators_sup, [Id, DeallocatorFun, os:timestamp()]).
-
-start_deallocator(Id, Deallocator, StartTime) ->
-    Pid = erlang:spawn_link(fun () ->
-        try
-            lager:info("[ BENCH ] Started deallocator for benchmark #~b", [Id]),
-            Deallocator(),
-            lager:info("[ BENCH ] Deallocator for benchmark #~b has finished", [Id])
-        catch
-            C:E ->
-                ST = erlang:get_stacktrace(),
-                lager:error("[ BENCH ] Deallocation for benchmark #~b failed with reason ~p, retry later~nStacktrace: ~p", [Id, E, ST]),
-                TimeSinceStart = timer:now_diff(os:timestamp(), StartTime),
-                case TimeSinceStart > ?DEALLOCATOR_MAX_TIME of
-                    true  ->
-                        lager:error("[ BENCH ] Deallocator for benchmark #~b has finished due to time limit", [Id]);
-                    false ->
-                        timer:sleep(?DEALLOCATE_RETRY_TIMEOUT),
-                        erlang:raise(C, E, ST)
-                end
-        end
-    end),
-    {ok, Pid}.
-
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+status(State) ->
+    maps:with([status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
+
+update_status(A, S) when is_atom(A) -> S#{status => A, finish_time => seconds()};
+update_status({pipeline, Stage}, S) -> S#{status => Stage};
+update_status({finalize, _Stage}, S) -> S.
+
+migrate_state(Fn, State) when is_function(Fn) -> Fn(State);
+migrate_state(_, State) -> State.
+
+next_stage(Phase, undefined) ->
+    Stages = proplists:get_value(Phase, workflow_config(), []),
+    pick_stage(Phase, Stages);
+next_stage(Phase, CurrentStage) when CurrentStage /= undefined ->
+    Stages = proplists:get_value(Phase, workflow_config(), []),
+    [CurrentStage | RemainStages] = lists:dropwhile(fun(S) -> (S /= CurrentStage) end, Stages),
+    pick_stage(Phase, RemainStages).
+
+pick_stage(finalize, []) -> none;
+pick_stage(pipeline, []) -> next_stage(finalize, undefined);
+pick_stage(Phase, [NextStage | _Rest]) -> {ok, Phase, NextStage}.
 
 get_cloud_provider() ->
     {ok, {_Type, Name}} = application:get_env(mz_bench_api, cloud_plugin),
@@ -330,68 +401,19 @@ script_path(Script) ->
         Pkg -> "~/mz/mz_bench_workers/" ++ Pkg ++ "/default.erl"
     end.
 
-start_report_sender_child(State) ->
-    supervisor:start_child(reports_sup, [State]).
-
-start_report_sender(State) ->
-    Pid = erlang:spawn_link(fun () -> send_email_report(State) end),
-    {ok, Pid}.
-
-send_email_report(#{id:= Id, status:= Status, config:= Config, start_time:= StartTime, metrics:= MetricsMap} = State) ->
-    try
-        #{emails:= Emails} = Config,
-        BenchTime = seconds(os:timestamp()) - StartTime,
-        Links =
-            try
-                mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime)
-            catch
-                _:E ->
-                    lager:error("Failed to get graphite image links: ~p", [E]),
-                    []
-            end,
-        lager:info("Metrics links: ~p", [Links]),
-        AttachFiles = download_images("graphite_", Links, State),
-        {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
-        lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
-        Attachments = lists:map(
-            fun (F) ->
-                {ok, Bin} = file:read_file(local_path(F, Config)),
-                {list_to_binary(F), <<"image/png">>, Bin}
-            end, AttachFiles),
-        lists:foreach(
-            fun (Addr) ->
-                lager:info("Sending bench results to ~s", [Addr]),
-                BAddr = list_to_binary(Addr),
-                mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
-            end, Emails),
-        ok
-    catch
-        _:Error ->
-            lager:error("Sending email report failed: ~p~n~p", [Error, erlang:get_stacktrace()]),
-            {error, Error}
-    end.
-
-%% extract keys from state which will be persisted on disk
-status(State) ->
-    maps:with([status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
-
-async(Op, F, State) ->
-    info("Stage '~s': started", [Op], State),
-    Ref = erlang:make_ref(),
-    Self = self(),
-    _ = spawn_link(
-        fun () ->
-            try
-                Res = F(),
-                info("Stage '~s': finished", [Op], State),
-                gen_server:cast(Self, {Op, finished, Ref, Res})
-            catch
-                C:E ->
-                    error("Stage '~s': failed", [Op], State),
-                    gen_server:cast(Self, {Op, exception, Ref, {C,E,erlang:get_stacktrace()}})
+run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
+    case Fn() of 
+        ok -> ok;
+        retry ->
+            TimeSinceStart = seconds() -  StartTime,
+            case TimeSinceStart =< MaxTime of
+                true ->
+                    timer:sleep(RetryTimeout),
+                    run_periodically(StartTime, MaxTime, RetryTimeout, Fn);
+                _ ->
+                    erlang:raise(max_time_reached)
             end
-        end),
-    {noreply, State#{spawned_ref => Ref, status => Op}}.
+    end.
 
 allocate_hosts(#{nodes_arg:= N} = Config, _) when is_integer(N), N > 0 ->
     #{purpose:= Purpose,
@@ -413,7 +435,7 @@ allocate_hosts(#{nodes_arg:= N} = Config, _) when is_integer(N), N > 0 ->
     {Hosts, UserName, Deallocator};
 
 
-allocate_hosts(#{nodes_arg:= [HostsStr]}, Logger) when is_list(HostsStr) ->
+allocate_hosts(#{nodes_arg:= [HostsStr]}, _Logger) when is_list(HostsStr) ->
     URIs = string:tokens(HostsStr, ","),
 
     {Users, Hosts} = lists:foldr(fun (URI, {Users, Hosts}) ->
@@ -435,11 +457,7 @@ allocate_hosts(#{nodes_arg:= [HostsStr]}, Logger) when is_list(HostsStr) ->
     end,
 
     if erlang:length(Hosts) >= 2 ->
-            Deallocator =
-                fun () ->
-                    mzb_api_provision:remote_cmd(UserName, Hosts, "~/mz/mz_bench/bin/mz_bench stop; true", [], Logger)
-                end,
-                {Hosts, UserName, Deallocator};
+            {Hosts, UserName, undefined};
         true -> 
             erlang:error(not_enough_nodes)
     end.
@@ -470,7 +488,7 @@ start_collectors(Purpose, Hosts, Port, FileHandler) ->
             try gen_tcp:connect(Host, Port, [{active, false}, {packet, 4}]) of
                 {ok, Socket} ->
                     lager:info("Collector is started for ~p on ~s", [Purpose, Host]),
-                    Self ! {self(), connected},
+                    Self ! {self(), connected, Socket},
                     process_data(Purpose, Host, Socket, FileHandler);
                 {error, Reason} ->
                     Self ! {self(), failed, Reason}
@@ -482,13 +500,12 @@ start_collectors(Purpose, Hosts, Port, FileHandler) ->
         end),
         {Pid, Purpose, Host}
     end, Hosts),
-    wait_collectors(Pids),
-    Pids.
+    wait_collectors(Pids, []).
 
-wait_collectors([]) -> ok;
-wait_collectors([{Pid, Purpose, Host} | Tail]) ->
+wait_collectors([], Acc) -> Acc;
+wait_collectors([{Pid, Purpose, Host} | Tail], Acc) ->
     receive
-        {Pid, connected} -> wait_collectors(Tail);
+        {Pid, connected, Socket} -> wait_collectors(Tail, [{Pid, Socket, Purpose, Host} | Acc]);
         {Pid, failed, Reason} ->
             lager:error("Collector '~p' is failed to start on host ~s with reason ~p", [Purpose, Host, Reason]),
             erlang:error({catch_collector_connect_failed, Host, Reason})
