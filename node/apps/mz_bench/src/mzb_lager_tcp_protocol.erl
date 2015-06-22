@@ -37,6 +37,10 @@ handle_info({tcp_closed, _Socket}, State) ->
 handle_info(timeout, State) ->
     {stop, normal, State};
 
+handle_info({tcp, Socket, <<"close_me">>}, State = #state{socket = Socket, transport=Transport}) ->
+    Transport:close(Socket),
+    {stop, normal, State};
+
 handle_info({tcp_error, _, Reason}, State) ->
     lager:warning("~p was closed with reason: ~p", [?MODULE, Reason]),
     {stop, Reason, State};

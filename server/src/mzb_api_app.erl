@@ -36,8 +36,10 @@ start(_Type, _Args) ->
 
 prep_stop(State) ->
     lager:warning("Server is going to shutdown!"),
+    %% deactivate stops all benchmarks. we are waiting 120 secs 
+    %% to be sure that benchmark's finalize are finished
     mzb_api_server:deactivate(),
-    wait_deallocators_finish(_AttemptNum = 120),
+    wait_benchmarks_finish(_AttemptNum = 120),
     State.
 
 stop(_State) ->
@@ -45,17 +47,17 @@ stop(_State) ->
     cowboy:stop_listener(http),
     ok.
 
-wait_deallocators_finish(Attempts) when Attempts =< 0 -> ok;
-wait_deallocators_finish(Attempts) ->
-    Deallocators = supervisor:which_children(deallocators_sup),
-    DeallocatorsNum = length(Deallocators),
-    case DeallocatorsNum > 0 of
+wait_benchmarks_finish(Attempts) when Attempts =< 0 -> ok;
+wait_benchmarks_finish(Attempts) ->
+    Benchmarks = supervisor:which_children(benchmarks_sup),
+    BenchmarksNum = length(Benchmarks),
+    case BenchmarksNum > 0 of
         true  ->
-            lager:info("Waiting for: ~p", [Deallocators]),
+            lager:info("Waiting for: ~p", [Benchmarks]),
             timer:sleep(1000),
-            wait_deallocators_finish(Attempts - 1);
+            wait_benchmarks_finish(Attempts - 1);
         false ->
-            lager:info("All deallocators finished"),
+            lager:info("All benchmarks finished"),
             ok
     end.
 
