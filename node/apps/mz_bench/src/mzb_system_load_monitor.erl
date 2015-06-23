@@ -18,7 +18,8 @@
 
 -record(state, {
     last_rx_bytes :: integer() | not_available,
-    last_tx_bytes :: integer() | not_available
+    last_tx_bytes :: integer() | not_available,
+    last_trigger_timestamp :: erlang:timestamp() | not_available
     }).
 
 interval() -> 10000. % ten seconds
@@ -31,7 +32,7 @@ start_link() ->
 metric_names(Nodes) ->
     [
        [{metric_name(T, N), gauge} || N <- Nodes]
-       || T <- ["la1", "cpu", "ram", "nettx", "netrx"]
+       || T <- ["la1", "cpu", "ram", "nettx", "netrx", "interval"]
     ].
 
 %% gen_server callbacks
@@ -39,7 +40,9 @@ metric_names(Nodes) ->
 init([]) ->
     lager:info("~p started on node ~p", [?MODULE, node()]),
     erlang:send_after(interval(), self(), trigger),
-    {ok, #state{last_rx_bytes = not_available, last_tx_bytes = not_available}}.
+    {ok, #state{last_rx_bytes = not_available,
+        last_tx_bytes = not_available,
+        last_trigger_timestamp = not_available}}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -49,7 +52,17 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(trigger,
-    #state{last_rx_bytes = LastRXBytes, last_tx_bytes = LastTXBytes} = State) ->
+    #state{last_rx_bytes = LastRXBytes,
+        last_tx_bytes = LastTXBytes,
+        last_trigger_timestamp = LastTriggerTimestamp} = State) ->
+
+    Now = os:timestamp(),
+
+    LastIntervalDuration = case LastTriggerTimestamp of
+        not_available -> interval();
+        _ -> timer:now_diff(Now, LastTriggerTimestamp)
+    end,
+    ok = mzb_metrics:notify({metric_name("interval"), gauge}, LastIntervalDuration / 1000),
 
     case cpu_sup:avg1() of
         {error, LAFailedReason} ->
@@ -85,14 +98,16 @@ handle_info(trigger,
 
         case LastRXBytes of
             not_available -> ok;
-            _ -> ok = mzb_metrics:notify({metric_name("netrx"), gauge},
-                    (CurrentRXBytes - LastRXBytes) / (interval() / 1000))
+            _ ->
+                RXRate = (CurrentRXBytes - LastRXBytes) / (LastIntervalDuration / 1000),
+                ok = mzb_metrics:notify({metric_name("netrx"), gauge}, RXRate)
         end,
 
         case LastTXBytes of
             not_available -> ok;
-            _ -> ok = mzb_metrics:notify({metric_name("nettx"), gauge},
-                    (CurrentTXBytes - LastTXBytes) / (interval() / 1000))
+            _ ->
+                TXRate = (CurrentTXBytes - LastTXBytes) / (LastIntervalDuration / 1000),
+                ok = mzb_metrics:notify({metric_name("nettx"), gauge}, TXRate)
         end,
 
         #state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
@@ -103,7 +118,7 @@ handle_info(trigger,
 
     %lager:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(interval(), self(), trigger),
-    {noreply, NewState};
+    {noreply, NewState#state{last_trigger_timestamp = Now}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
