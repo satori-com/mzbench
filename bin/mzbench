@@ -69,6 +69,7 @@ import json
 import csv
 import re
 from shutil import copytree
+import subprocess
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
@@ -288,13 +289,21 @@ def run_or_validate(script, env, validate):
         cmd.append('--env')
         cmd.append(k + '=' + v)
     
-    check_call(cmd)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (out, err) = p.communicate()
+    if p.returncode != 0:
+        relevant_lines = (l for l in err.split('\n')
+            if not ('Erlang' in l or 'Broken pipe' in l))
+        print('\n'.join(relevant_lines))
+    else:
+        print('ok')
+    return p.returncode
 
 def run_local(script, env):
-    run_or_validate(script, env, False)
+    sys.exit(run_or_validate(script, env, validate=False))
     
 def validate(script, env):
-    run_or_validate(script, env, True)
+    sys.exit(run_or_validate(script, env, validate=True))
 
 #=================================================================================================
 # Worker creation
