@@ -70,7 +70,7 @@
 
                       var res = [graphs, logs, metrics, restart];
 
-                      if (['stopped', 'complete', 'failed'].indexOf(row[3]) == -1) {
+                      if (['stopped', 'complete', 'failed', 'crashed'].indexOf(row[3]) == -1) {
                           res.push(stop);
                       }
                       return res.join(" | ");
