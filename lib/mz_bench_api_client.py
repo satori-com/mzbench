@@ -59,7 +59,8 @@ def start(host, script_file=None, script_content=None,
     print >>sys.stderr, "Neither script file nor default scenario package provided."
     sys.exit(17)
 
-
+def restart(host, bench_id):
+    return assert_successful_get(host, '/restart', {'id': bench_id})
 
 def logs(host, bench_id):
     for x in stream_lines(host, '/logs', {'id': bench_id}):
