@@ -18,6 +18,7 @@ Usage:
     [--dont_provision_nodes=<dont_provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
     <script_file>
+  mzbench [--host=<host>] restart <bench_id>
   mzbench [--host=<host>] status [--wait] <bench_id>
   mzbench [--host=<host>] stop <bench_id>
   mzbench [--host=<host>] log <bench_id>
@@ -169,6 +170,10 @@ def start(host, script_file, script_content, email, package, node_commit, nodes,
     except erl_terms.ParseError as e:
         print('Syntax error: {0}'.format(e))
         sys.exit(7)
+
+def restart(host, bench_id):
+    response = api.restart(host, bench_id)
+    pretty_print(response)
 
 def status(host, bench_id, wait):
     if not wait:
