@@ -273,7 +273,9 @@ validate(Script) ->
             (#operation{name = F, args = A, meta = M}, Acc) ->
                 [lists:flatten(io_lib:format("~sUnknown function: ~p/~p",
                     [meta_to_location_string(M), F, erlang:length(A)]))|Acc];
-            (_, Acc) -> Acc
+            (T, Acc) ->
+                [lists:flatten(io_lib:format("Unexpected top-level term ~p",
+                    [T]))|Acc]
         end, [], Script2),
 
     case Errors of
