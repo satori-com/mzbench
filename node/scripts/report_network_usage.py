@@ -52,12 +52,23 @@ def main():
 def parse_netstat_section(s):
     if not s:
         return None
-    name = s.split(' ')[0]
-    rx_bytes = re.search(r'RX bytes:(\d+)', s).group(1)
-    tx_bytes = re.search(r'TX bytes:(\d+)', s).group(1)
-    return {'name': name,
-        'rx_bytes': int(rx_bytes),
-        'tx_bytes': int(tx_bytes)}
+
+    try:
+        name = s.split(' ')[0]
+        rx_bytes = re.search(r'RX bytes:(\d+)', s).group(1)
+        tx_bytes = re.search(r'TX bytes:(\d+)', s).group(1)
+        return {'name': name,
+            'rx_bytes': int(rx_bytes),
+            'tx_bytes': int(tx_bytes)}
+    except:
+        # Some interface sections don't have transmitted bytes info
+        # so we ignore them.
+        # Example from a travis-ci vm:
+        #
+        # venet0:0  Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00
+        #           inet addr:1.2.3.4  P-t-P:5.6.7.8  Bcast:0.0.0.0  Mask:255.255.255.255
+        #           UP BROADCAST POINTOPOINT RUNNING NOARP  MTU:1500  Metric:1
+        return None
 
 
 def format_value(value):
