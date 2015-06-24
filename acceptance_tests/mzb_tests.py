@@ -134,6 +134,10 @@ def data_endpoint_test():
     assert 'mzb.print.value' in\
         [metric['target'] for metric in json.loads(json_out)]
 
+def restart_test():
+    bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')
+    restarted_id = restart_bench(bench_id)
+    cmd(mz_bench_dir + 'bin/mzbench status --wait {0}'.format(restarted_id))
 
 def signal_deadlock_test():
     run_failing_bench(scripts_dir + 'signals_deadlock.erl')
@@ -272,3 +276,19 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         raise RuntimeError('BenchId {0} for test {1} unexpectedly {2}'.format(
                 bench_id, name, 'succeeded' if should_fail else 'failed'))
 
+
+def restart_bench(bench_id):
+    restart = subprocess.Popen(
+        [mz_bench_dir + 'bin/mzbench',
+            '--host=localhost:4800',
+            'restart',
+            str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    restart_out, restart_err = restart.communicate()
+
+    try:
+        return json.loads(restart_out)['id']
+    except Exception:
+        print 'mzbench restart returned invalid json:\nOutput: {0}\nStderr: {1}'.format(restart_out, restart_err)
+        raise
