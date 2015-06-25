@@ -1,6 +1,6 @@
 -module(mzb_api_bench).
 
--behaviour(gen_server).
+-behaviour(mzb_pipeline).
 
 -export([
     start_link/2,
@@ -14,18 +14,20 @@
 -export([allocate_hosts/2]).
 -endif.
 
-%% gen_server callbacks
+%% mzb_pipeline callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+         terminate/2, workflow_config/1, handle_stage/3,
+         get_logger/1,
+         handle_pipeline_status/2]).
 
 start_link(Id, Params) ->
-    gen_server:start_link(?MODULE, [Id, Params], []).
+    mzb_pipeline:start_link(?MODULE, [Id, Params], []).
 
 get_status(Pid) ->
-    gen_server:call(Pid, status).
+    mzb_pipeline:call(Pid, status).
 
 interrupt_bench(Pid) ->
-    gen_server:call(Pid, {workflow, force_stop}).
+    mzb_pipeline:stop(Pid).
 
 init([Id, Params]) ->
     Now = os:timestamp(),
@@ -64,8 +66,6 @@ init([Id, Params]) ->
 
     InputBin = erlang:term_to_binary(Params),
     ok = file:write_file(local_path("params.bin", Config), InputBin),
-    Ref = make_ref(),
-    gen_server:cast(self(), {workflow, start_phase, pipeline, Ref}),
     erlang:process_flag(trap_exit, true),
 
     LogFile = filename:join(BenchDataDir, get_env(bench_log_file)),
@@ -87,14 +87,12 @@ init([Id, Params]) ->
         metrics_file_handler => MetricsHandler,
         collectors => [],
         deallocator => undefined,
-        stage => undefined,
-        ref => Ref,
         metrics => #{}
     },
     info("Bench data dir: ~s", [BenchDataDir], State),
     {ok, State}.
 
-workflow_config() ->
+workflow_config(_State) ->
     [{pipeline, [ init,
                   allocating_hosts,
                   provisioning,
@@ -112,6 +110,8 @@ workflow_config() ->
                   closing_log_files
                 ]}].
 
+get_logger(State) -> fun (S, F, A) -> log(S, F, A, State) end.
+
 handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State) ->
     case maps:find(emulate_bench_crash, Config) of
         {ok, true} -> exit(self(), {emulated_crash, nothing_to_see_here, please_move_along});
@@ -121,7 +121,7 @@ handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State)
     info("Starting benchmark at ~b ~p", [StartTime, Config], State);
 
 handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
-    {Hosts, UserName, Deallocator} = allocate_hosts(Config, logger_fun(State)),
+    {Hosts, UserName, Deallocator} = allocate_hosts(Config, get_logger(State)),
 
     info("Allocated hosts: [~p] @ ~p", [UserName, Hosts], State),
 
@@ -134,7 +134,7 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     end;
 
 handle_stage(pipeline, provisioning, #{config:= Config} = State) ->
-    DirectorNode = mzb_api_provision:provision_nodes(Config, logger_fun(State)),
+    DirectorNode = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     fun (S) -> S#{director_node => DirectorNode} end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
@@ -144,10 +144,10 @@ handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
       env:= Env} = Config,
 
     Environ = jiffy:encode({Env}),
-    mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Environ, "environ.txt", Config, logger_fun(State)),
+    mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Environ, "environ.txt", Config, get_logger(State)),
     case Script of
         #{name := _Name, body := Body, filename := FileName} ->
-            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Body, FileName, Config, logger_fun(State));
+            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Body, FileName, Config, get_logger(State));
         _ -> ok
     end;
 
@@ -156,7 +156,7 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
     #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
     lists:foreach(
         fun ({Name, Content}) ->
-            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, logger_fun(State))
+            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
 handle_stage(pipeline, starting_collectors, #{config:= Config} = State) ->
@@ -177,8 +177,8 @@ handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = St
     _ = mzb_api_provision:remote_cmd(UserName, [DirectorHost],
         "~/mz/mz_bench/bin/run.escript",
         [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
-        logger_fun(State)),
-    fun (S) -> update_status(complete, S) end;
+        get_logger(State)),
+    ok;
 
 handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
     mzb_api_server:bench_finished(Id, status(State));
@@ -210,8 +210,8 @@ handle_stage(finalize, sending_email_report, #{id:= Id, status:= Status, config:
             mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
         end, Emails);
 
-handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost, worker_hosts:= WorkerHosts}})
-  when DirectorHost /= undefined, WorkerHosts /= [] ->
+handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost}})
+  when DirectorHost /= undefined ->
     mzb_api_provision:clean_nodes(Config, undefined);
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
@@ -240,33 +240,16 @@ handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
                           gen_tcp:send(Socket, "close_me")
                   end, Collectors),
     lists:foreach(fun ({Pid, _, Purpose, Host}) ->
-                    receive
-                        {'DOWN', _Ref, process, Pid, _Info} -> ok
-                    after 30000 ->
-                        erlang:error({collector_close_timeout, Purpose, Host})
-                    end
+                      receive
+                          {'DOWN', _Ref, process, Pid, _Info} -> ok
+                      after 30000 ->
+                          erlang:error({collector_close_timeout, Purpose, Host})
+                      end
                   end, Collectors);
 
 handle_stage(finalize, closing_log_files, State) ->
     file:close(maps:get(log_file_handler, State)),
     file:close(maps:get(metrics_file_handler, State)).
-
-
-handle_call({workflow, force_stop}, _From, State = #{stage:= {Pid, pipeline, Stage}, ref:= Ref}) ->
-    info("Stage '~s - ~s': force stopped", [pipeline, Stage], State),
-    try
-        unlink(Pid),
-        exit(Pid, kill)
-    catch _C:E ->
-        ST = erlang:get_stacktrace(),
-        info("Killing pipeline stage is failed with reason ~p~nStacktrace: ~p", [E, ST], State)
-    end,
-    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
-    {reply, ok, update_status(stopped, State)};
-
-handle_call({workflow, force_stop}, _From, State = #{stage:= {_, Phase, Stage}}) ->
-    info("Stage '~s - ~s': force stopped", [Phase, Stage], State),
-    {noreply, update_status(stopped, State)};
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -274,58 +257,6 @@ handle_call(status, _From, State) ->
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
-
-handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST} }, State = #{ref:= Ref}) ->
-    error("Stage '~s - ~s': failed", [Phase, Stage], State),
-    error("Got exception during ~p phase on stage: ~p~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
-    gen_server:cast(self(), {workflow, next, finalize, Stage, Ref}),
-    {noreply, State#{stage => undefined}};
-
-handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, State = #{ref:= Ref}) ->
-    error("Stage '~s - ~s': failed", [Phase, Stage], State),
-    error("Got exception during ~p phase on stage: ~p~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
-    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
-    NewState = update_status(failed, State),
-    {noreply, NewState#{stage => undefined}};
-
-handle_cast({workflow, completed, Phase, Stage, Ref, Fn}, State = #{ref:= Ref}) ->
-    info("Stage '~s - ~s': finished", [Phase, Stage], State),
-    NewState = migrate_state(Fn, State),
-    gen_server:cast(self(), {workflow, next, Phase, Stage, Ref}),
-    {noreply, NewState#{stage => undefined}};
-
-handle_cast({workflow, start_phase, Phase, Ref}, State = #{ref:= Ref}) ->
-    handle_cast({workflow, next, Phase, undefined, Ref}, State);
-
-handle_cast({workflow, next, PrevPhase, PrevStage, Ref}, State = #{ref:= Ref}) ->
-    case next_stage(PrevPhase, PrevStage) of
-        none -> % completed all stages
-            {stop, normal, State};
-        {ok, NextPhase, NextStage} ->
-            gen_server:cast(self(), {workflow, start, NextPhase, NextStage, Ref}),
-            {noreply, State}
-    end;
-
-handle_cast({workflow, start, pipeline, Stage, Ref}, State = #{ref:= Ref, finish_time:= FTime}) when FTime /= undefined ->
-    info("Stage '~s - ~s': ignored, bench marked as finished", [pipeline, Stage], State),
-    {noreply, State};
-
-handle_cast({workflow, start, Phase, Stage, Ref}, State = #{ref:= Ref}) ->
-    info("Stage '~s - ~s': started", [Phase, Stage], State),
-    Self = self(),
-    Pid = spawn_link(
-        fun () ->
-            try
-                StageResult = handle_stage(Phase, Stage, State),
-                gen_server:cast(Self, {workflow, completed, Phase, Stage, Ref, StageResult})
-            catch
-                C:E ->
-                    ST = erlang:get_stacktrace(),
-                    gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST}})
-            end
-        end),
-    NewState = update_status({Phase, Stage}, State),
-    {noreply, NewState#{stage => {Pid, Phase, Stage}}};
 
 handle_cast(_Msg, State) ->
     error("Unhandled cast: ~p", [_Msg], State),
@@ -344,8 +275,9 @@ handle_info(_Info, State) ->
 
 terminate(_Reason, _State) -> ok.
 
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+handle_pipeline_status(A, S) when is_atom(A) -> S#{status => A, finish_time => seconds()};
+handle_pipeline_status({pipeline, Stage}, S) -> S#{status => Stage};
+handle_pipeline_status({finalize, _Stage}, S) -> S.
 
 %%%===================================================================
 %%% Internal functions
@@ -353,25 +285,6 @@ code_change(_OldVsn, State, _Extra) ->
 
 status(State) ->
     maps:with([status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
-
-update_status(A, S) when is_atom(A) -> S#{status => A, finish_time => seconds()};
-update_status({pipeline, Stage}, S) -> S#{status => Stage};
-update_status({finalize, _Stage}, S) -> S.
-
-migrate_state(Fn, State) when is_function(Fn) -> Fn(State);
-migrate_state(_, State) -> State.
-
-next_stage(Phase, undefined) ->
-    Stages = proplists:get_value(Phase, workflow_config(), []),
-    pick_stage(Phase, Stages);
-next_stage(Phase, CurrentStage) when CurrentStage /= undefined ->
-    Stages = proplists:get_value(Phase, workflow_config(), []),
-    [CurrentStage | RemainStages] = lists:dropwhile(fun(S) -> (S /= CurrentStage) end, Stages),
-    pick_stage(Phase, RemainStages).
-
-pick_stage(finalize, []) -> none;
-pick_stage(pipeline, []) -> next_stage(finalize, undefined);
-pick_stage(Phase, [NextStage | _Rest]) -> {ok, Phase, NextStage}.
 
 get_cloud_provider() ->
     {ok, {_Type, Name}} = application:get_env(mz_bench_api, cloud_plugin),
@@ -585,7 +498,6 @@ download_images(Prefix, URLs, #{config:= Config} = State) ->
     end, {[], 1}, URLs),
     Files.
 
-logger_fun(State) -> fun (S, F, A) -> log(S, F, A, State) end.
 
 info(Format, Args, State) ->
     log(info, Format, Args, State).
@@ -611,11 +523,6 @@ format_log(Handler, Severity, Format, Args) ->
     file:write(Handler, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])).
 
 get_env(K) -> application:get_env(mz_bench_api, K, undefined).
-
-format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
-    io_lib:format("Command returned ~b:~n ~s~nCommand output: ~s", [Code, Cmd, Output]);
-format_error(Op, {E, Stack}) ->
-    io_lib:format("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Op, E, Stack]).
 
 generate_script_filename(#{name := _Name, body := Body} = Script) ->
     Script#{filename => lists:flatten(io_lib:format("~s.erl", [lists:flatten(lists:map(
