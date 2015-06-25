@@ -273,7 +273,31 @@ handle_info(_Info, State) ->
     error("Unhandled info: ~p", [_Info], State),
     {noreply, State}.
 
-terminate(_Reason, _State) -> ok.
+
+terminate(normal, _State) -> ok;
+% something is going wrong there. use special status for bench and run finalize stages again
+terminate(Reason, State) ->
+    error("Receive terminate while finalize is not completed: ~p", [Reason], State),
+    spawn(
+      fun() ->
+          Timer = timer:kill_after(5 * 60 * 1000),
+
+          Stages = proplists:get_value(finalize, workflow_config(State), []),
+          NewState = handle_pipeline_status(failed, State),
+
+          lists:foreach(fun (Stage) ->
+                            try
+                                handle_stage(finalize, Stage, NewState)
+                            catch
+                                _C:E ->
+                                    ST = erlang:get_stacktrace(),
+                                    error("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Stage, E, ST], NewState)
+                            end
+                        end, Stages),
+
+          timer:cancel(Timer)
+      end),
+    ok.
 
 handle_pipeline_status(A, S) when is_atom(A) -> S#{status => A, finish_time => seconds()};
 handle_pipeline_status({pipeline, Stage}, S) -> S#{status => Stage};
