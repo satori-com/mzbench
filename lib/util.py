@@ -94,3 +94,17 @@ def launch_server():
         yield
     finally:
         cmd('/mz/mz_bench_api/bin/mz_bench_api stop')
+
+@contextmanager
+def silent_stdout():
+
+    class Dummy(object):
+        def write(self, _):
+            pass
+
+    saved_stdout = sys.stdout
+    sys.stdout = Dummy()
+    try:
+        yield
+    finally:
+        sys.stdout = saved_stdout
