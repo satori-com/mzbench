@@ -263,7 +263,11 @@ def data_default(gen):
 # Local bench script execution
 #=================================================================================================
 def run_or_validate(script, env, validate):
-    compile_projects(NODE_PROJECTS)
+    if validate:
+        with util.silent_stdout():
+            compile_projects(NODE_PROJECTS)
+    else:
+        compile_projects(NODE_PROJECTS)
     
     escript_name = 'run_local.escript'
     escript_path = os.path.join(dirname, '../node/scripts')
