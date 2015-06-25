@@ -105,13 +105,6 @@ def clean():
 
 def install_server():
     install_projects(SERVER_PROJECTS)
-    execute_make(NODE_PROJECTS, 'generate_tgz')
-    util.cmd('mkdir -p /mz/mz_bench_api/packages')
-    
-    for subproject in NODE_PROJECTS:
-        with util.chdir(dirname=subproject):
-            node_revision = util.cmd("git rev-parse --short HEAD").rstrip()
-            util.cmd('cp node-%s.tgz /mz/mz_bench_api/packages' % node_revision)
 
 #=================================================================================================
 # API server startup and stop

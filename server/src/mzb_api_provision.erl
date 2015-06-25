@@ -33,8 +33,7 @@ provision_nodes(Config, Logger) ->
     
     case DontProvisionNodes of
         false ->
-            %git_install(UserName, UniqHosts, GitRepo, GitCommit, "node", Logger),
-            node_tgz_install(UserName, UniqHosts, RootDir, Logger),
+            node_install(UserName, UniqHosts, GitRepo, GitCommit, RootDir, Logger),
             ensure_worker_from_repo(UserName, UniqHosts, Script, Logger),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
@@ -152,19 +151,63 @@ git_install(UserName, Hosts, GitRepo, GitBranch, GitSubDir, Logger) ->
                                     [DeploymentDirectory, DeploymentDirectory, GitRepo, Branch, SubDir, DeploymentDirectory]),
     _ = remote_cmd(UserName, Hosts, ProvisionCmd, [], Logger).
 
-tgz_install(UserName, Hosts, RemoteRoot, PackageName, Logger) ->
-    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
-    LocalPkgName = PackagesDir ++ "/" ++ PackageName,
-    RemotePkgName = RemoteRoot ++ "/" ++ PackageName,
-    
-    ensure_file(UserName, Hosts, LocalPkgName, RemotePkgName, Logger),
-    InstallationCmd = io_lib:format("cd / && tar xzf ~s", [RemotePkgName]),
-    _ = remote_cmd(UserName, Hosts, InstallationCmd, [], Logger).
+get_host_os_id(UserName, Host, Logger) ->
+    mzb_api_provision:remote_cmd(UserName, [Host], "uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'", [], Logger).
 
-node_tgz_install(UserName, Hosts, RemoteRoot, Logger) ->
-    {ok, ShortGitRev} = application:get_key(mz_bench_api, vsn),
-    NodePkgName = io_lib:format("node-~s.tgz", [ShortGitRev]),
-    tgz_install(UserName, Hosts, RemoteRoot, NodePkgName, Logger).
+install_tgz_package(UserName, Host, RemoteRoot, PackageName, Logger) ->
+    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
+    LocalPkgName = filename:join(PackagesDir, PackageName),
+    RemotePkgName = filename:join(RemoteRoot, PackageName),
+    
+    ensure_file(UserName, [Host], LocalPkgName, RemotePkgName, Logger),
+    InstallationCmd = io_lib:format("cd && tar xzf ~s", [RemotePkgName]),
+    _ = remote_cmd(UserName, [Host], InstallationCmd, [], Logger).
+
+create_tgz_package(UserName, Host, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger) ->
+    DeploymentDirectory = tmp_filename(),
+    GenerationCmd = io_lib:format("mkdir ~s && cd ~s && git clone ~s deployment_code && "
+                                    "cd deployment_code && git checkout ~s && "
+                                    "cd ~s && make generate_tgz && mv *.tgz ~s",
+                                    [DeploymentDirectory, DeploymentDirectory, GitRepo, GitBranch, GitSubDir, DeploymentDirectory]),
+    _ = remote_cmd(UserName, [Host], GenerationCmd, [], Logger),
+    
+    RemotePackagePath = filename:join([DeploymentDirectory, PackageFileName]),
+    LocalTmpPackagesDir = filename:join(["/tmp", tmp_filename()]),
+    LocalPackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
+    
+    exec_format("mkdir -p ~s", [LocalTmpPackagesDir], [stderr_to_stdout], Logger),
+    case Host of
+        "localhost" -> exec_format("cp ~s ~s", [RemotePackagePath, LocalTmpPackagesDir], [stderr_to_stdout], Logger);
+        Host -> exec_format("scp -o StrictHostKeyChecking=no ~s@~s:~s ~s", 
+            [UserName, [Host], RemotePackagePath, LocalTmpPackagesDir], [stderr_to_stdout], Logger)
+    end,
+    exec_format("mv ~s ~s", [filename:join([LocalTmpPackagesDir, PackageFileName]), LocalPackagesDir], [stderr_to_stdout], Logger).
+
+package_install(UserName, Host, RemoteRoot, PackageName, PackageVersion, GitRepo, GitBranch, GitSubDir, Logger) ->
+    HostOSId = get_host_os_id(UserName, Host, Logger),
+    log(Logger, info, "[ mzb_api_provision ] Deploying package ~s version ~s on ~s (OS: ~s)", [PackageName, PackageVersion, Host, HostOSId]),
+    PackageFileName = lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, PackageVersion, HostOSId])),
+    
+    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
+    case filelib:is_file(filename:join(PackagesDir, PackageFileName)) of
+        false -> create_tgz_package(UserName, Host, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger);
+        _ -> ok
+    end,
+    
+    install_tgz_package(UserName, Host, RemoteRoot, PackageFileName, Logger).
+
+node_install(UserName, Hosts, GitRepo, GitBranch, RemoteRoot, Logger) ->
+    ShortGitRev = case GitBranch of
+        "master" ->
+            {ok, GitRev} = application:get_key(mz_bench_api, vsn),
+            GitRev;
+        Commit ->
+            lists:sublist(erlang:binary_to_list(Commit), 7)
+    end,
+    
+    pmap(fun(Host) ->
+        package_install(UserName, Host, RemoteRoot, "node", ShortGitRev, GitRepo, ShortGitRev, "node", Logger)
+    end, Hosts).
 
 remote_cmd(UserName, Hosts, Executable, Args, Logger) ->
     remote_cmd(UserName, Hosts, Executable, Args, Logger, [stderr_to_stdout]).
@@ -283,7 +326,8 @@ pmap_results([{Mon, Ref}|T], Res) ->
 
 tmp_filename() ->
     {N1,N2,N3} = os:timestamp(),
-    filename:join(["/", "tmp", io_lib:format("bench_~s_~b_~b_~b", [node(), N1, N2, N3])]).
+    SafeNodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
+    filename:join(["/", "tmp", io_lib:format("bench_~s_~b_~b_~b", [SafeNodeName, N1, N2, N3])]).
 
 log(undefined, debug, F, A) -> lager:debug(F, A);
 log(undefined, info, F, A)  -> lager:info(F, A);

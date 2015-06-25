@@ -601,7 +601,7 @@ format_error(Op, {E, Stack}) ->
     io_lib:format("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Op, E, Stack]).
 
 generate_script_filename(#{name := _Name, body := Body} = Script) ->
-    Script#{filename => io_lib:format("~s.erl", [lists:flatten(lists:map(
+    Script#{filename => lists:flatten(io_lib:format("~s.erl", [lists:flatten(lists:map(
         fun(Num) -> erlang:integer_to_list(Num, 16) end,
         erlang:binary_to_list(crypto:hash(sha, Body))
-    ))])}.
+    ))]))}.
