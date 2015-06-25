@@ -138,4 +138,4 @@ metric_name(GaugeName) ->
 metric_name(GaugeName, Node) when is_atom(Node) ->
     metric_name(GaugeName, atom_to_list(Node));
 metric_name(GaugeName, Node) ->
-    "systemload." ++ GaugeName ++ "." ++ string:join(string:tokens(Node, "@"), ".").
+    "systemload." ++ GaugeName ++ "." ++ string:join(string:tokens(Node, "@"), "_").
