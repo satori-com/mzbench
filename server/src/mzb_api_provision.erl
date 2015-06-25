@@ -311,27 +311,31 @@ pmap(Fun, List) ->
     Self = self(),
     Monitors = lists:map(fun (Element) ->
         Ref = erlang:make_ref(),
-        {_, Mon} = erlang:spawn_monitor(fun () ->
-            Res = try
-                {Ref, {ok, Fun(Element)}}
-            catch
-                C:E -> {Ref, {exception, {C,E,erlang:get_stacktrace()}}}
-            end,
-            Self ! Res
-        end),
-        {Mon, Ref}
+
+        Pid = erlang:spawn_link(fun () ->
+                  Res = try
+                      {Ref, {ok, Fun(Element)}}
+                  catch
+                      C:E -> {Ref, {exception, {C,E,erlang:get_stacktrace()}}}
+                  end,
+                  Self ! Res
+              end),
+
+        Mon = erlang:monitor(process, Pid),
+
+        {Mon, Pid, Ref}
     end, List),
     pmap_results(Monitors, []).
 
 pmap_results([], Res) -> lists:reverse(Res);
-pmap_results([{Mon, Ref}|T], Res) ->
+pmap_results([{Mon, Pid, Ref}|T], Res) ->
     receive
         {Ref, {ok, R}} ->
             erlang:demonitor(Ref, [flush]),
             pmap_results(T, [R|Res]);
         {Ref, {exception, {C,E,ST}}} ->
             erlang:raise(C, E, ST);
-        {'DOWN', Mon, process, _, Reason} ->
+        {'DOWN', Mon, process, Pid, Reason} ->
             erlang:error({pmap_crash_child, Reason})
     end.
 
