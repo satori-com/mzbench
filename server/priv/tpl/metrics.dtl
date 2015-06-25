@@ -48,20 +48,19 @@ $(document).ready(function() {
                 return $.isArray(m) ? m.join(".") : m; // Backward compatibility
             });
 
-            targets = $.fn.graphite.optimizeTargets(targets);
 
             var period = calculatePeriod(startTime, finishTime);
 
-            return $("<img class='graph'/>")
-                    .graphite({
-                        target: targets,
-                        url: graphiteUrl + "/render/",
-                        from: period.from,
-                        until: period.until,
-                        width: "555",
-                        height: "418"
-                    });
+            var graphiteOpts = $.fn.graphite.optimizeTargets({
+                target: targets,
+                url: graphiteUrl + "/render/",
+                from: period.from,
+                until: period.until,
+                width: "555",
+                height: "418"
+            });
 
+            return $("<img class='graph'/>").graphite(graphiteOpts);
         });
         $.each(partition(graphs, 2), function(index, pair) {
             var row = $("<div />", {class: "row"}).appendTo("#metrics-pane");
