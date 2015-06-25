@@ -55,7 +55,7 @@ install: generate
 generate_tgz: generate
 	mkdir -p tmp/$(SERVICE_PREFIX)
 	cp -rf rel/mz_bench tmp/$(SERVICE_PREFIX)
-	cd tmp && tar czf ../node-`git rev-parse --short HEAD`.tgz ./$(SERVICE_PREFIX) && cd ..
+	cd tmp && tar czf ../node-`git rev-parse --short HEAD`-`uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'`.tgz ./$(SERVICE_PREFIX) && cd ..
 	rm -rf tmp
 
 .PHONY: clean
