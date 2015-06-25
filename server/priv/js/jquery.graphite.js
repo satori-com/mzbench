@@ -1,6 +1,7 @@
 (function ($) {
     $.fn.graphite = function (options) {
         options = options || {};
+
         var settings = $.extend({}, $.fn.graphite.defaults, options);
 
         return this.each(function () {
@@ -95,26 +96,27 @@
      * 3. if we didn't find mask then we truncate targets
      * */
 
-    $.fn.graphite.optimizeTargets = function(targets, opts) {
+    $.fn.graphite.optimizeTargets = function(graphite, opts) {
         opts = $.extend({threshold: 3800, legendMax: 10}, opts);
-        targets = targets || [];
 
+        var targets = graphite.target || [];
 
         if (targets.length <= opts.legendMax) {
-            return targets;
+            return $.extend(graphite, {target: targets});
         };
 
         var mask = findMask(targets);
         if (null != mask) {
-            return [
+            targets = [
                 'alias(lineWidth('+mask+',0.5),"")',
                 'color(aliasSub(lineWidth(highestAverage('+mask+',1),3),"^(.*)$","\\1 -- high.avg."),"8e2800")',
                 'color(aliasSub(lineWidth(lowestAverage('+mask+',1),3),"^(.*)$","\\1 -- low.avg."),"35478c")',
                 'color(lineWidth(averageSeries('+mask+'),5),"ffb03b")'
             ];
+            return $.extend(graphite, {target: targets, hideLegend: "0"});
         }
 
-        return truncateTargets(targets, opts.threshold);
+        return $.extend(graphite, {target: targest});
     };
 
     // Default settings
@@ -122,7 +124,6 @@
         from: "-1hour",
         height: "300",
         until: "now",
-        hideLegend: "0",
         url: "/render/",
         width: "940"
     };
