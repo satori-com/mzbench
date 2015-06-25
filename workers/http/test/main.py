@@ -4,6 +4,7 @@ import os
 import server
 import socket
 import subprocess
+import requests
 import sys
 
 dirname = os.path.dirname(os.path.realpath(__file__))
@@ -14,19 +15,38 @@ hostname = socket.gethostname()
 
 import util
 
+def checkServer(): # 0 -- no server running, 1 -- server is running, -1 -- alien server is running
+    try:
+        r = requests.get("http://localhost:4800/report.json")
+        if r.status_code != 200:
+            return -1
+        return 1
+    except requests.ConnectionError:
+        return 0
+
+
 def main():
     user = os.environ['USER']
-    subprocess.check_call(
-        ['sudo', 'yum', 'install', '-y', 'mz_bench', 'mz_bench_dev'])
-    with util.chdir(os.path.join(dirname, '..')):
+
+    with util.chdir(os.path.join(dirname, '../')):
+        serverStatus = checkServer()
 
         if '--local' in sys.argv:
-            run_command = ['mz-bench-dev', 'run-local']
+            if serverStatus == 1:
+                print("Please stop MZBench server before running local mode")
+                sys.exit()
+            run_command = ['../../bin/mzbench', 'run_local']
         else:
+            if serverStatus == -1:
+                print("Non-MZBench server is listening on 4800")
+                sys.exit()
+            if serverStatus == 0:
+                subprocess.check_call(['../../bin/mzbench', 'install_server'])
+                subprocess.check_call(['../../bin/mzbench', 'start_server'])
+
             run_command =\
-                ['mzbench'
+                ['../../bin/mzbench'
                 , 'run'
-                , '--exclusive_node_usage=false'
                 ]
 
         with server.background_server():
@@ -46,6 +66,8 @@ def main():
                 , '--env=max_rps=2'
                 , '--env=endpoint=/index.html'
                 ])
+        if ('--local' not in sys.argv) and (serverStatus == 0):
+            subprocess.check_call(['../../bin/mzbench', 'stop_server'])
 
 if __name__ == '__main__':
     main()
