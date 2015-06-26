@@ -5,13 +5,7 @@ import shlex
 import subprocess
 import time
 import json
-import re
-from contextlib import contextmanager
-from binascii import hexlify
 from operator import xor
-
-import nose
-import nose.plugins.multiprocess
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
