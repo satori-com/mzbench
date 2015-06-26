@@ -23,7 +23,9 @@ def correct_test():
 
 
 def worker_from_git_test():
-    run_successful_bench(scripts_dir + 'worker_from_git.erl')
+    # worker is located in the same repo as node
+    worker_commit = os.environ.get('NODE_COMMIT', 'master'),
+    run_successful_bench(scripts_dir + 'worker_from_git.erl', env={'worker_branch': worker_commit})
 
 
 def emulate_crash_test():
