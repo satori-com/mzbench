@@ -18,7 +18,7 @@ check: $(MATCHES)
 	sed -e "s#SCRIPT_NAME#$(abspath $*.erl)#" $< > $@
 
 %.got_answer: %.erl
-	-@../bin/mzbench validate $< > $@ || true
+	-@../../bin/mzbench validate $< > $@ || true
 
 clean:
 	-@rm -rf data.* log.*

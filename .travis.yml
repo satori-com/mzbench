@@ -20,6 +20,6 @@ script:
  - case "$TASK" in
      lint) sudo pip install -r requirements.txt && sudo pip install pyflakes && ./bin/lint.py . ;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
-     error-messages) sudo pip install -r requirements.txt && make -C invalid_examples check;;
+     error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_examples check;;
      *) make -C $TASK check;;
    esac
