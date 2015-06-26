@@ -293,12 +293,10 @@ def run_or_validate(script, env, validate):
         cmd.append('--env')
         cmd.append(k + '=' + v)
     
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     (out, err) = p.communicate()
     if p.returncode != 0:
-        relevant_lines = (l for l in err.split('\n')
-            if not ('Erlang' in l or 'Broken pipe' in l))
-        print('\n'.join(relevant_lines))
+        print(err)
     else:
         print('ok')
     return p.returncode
