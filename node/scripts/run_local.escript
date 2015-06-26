@@ -34,6 +34,13 @@ main(_) ->
     usage().
 
 run_script(Script, Env) ->
+
+    % disable noisy "PROGRESS REPORT" messages
+    % lager logging should be enough
+    application:load(sasl),
+    application:set_env(sasl, sasl_error_logger, {file, "/dev/null"}),
+    application:start(sasl),
+
     ok = application:start(inets),
     {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
     {ok, _} = ensure_all_started(mz_bench),
