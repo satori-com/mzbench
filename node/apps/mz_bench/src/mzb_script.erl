@@ -38,9 +38,9 @@ read_and_validate(ScriptFileName, Env) ->
                 "Failed to read file ~s: ~s",
                 [File, file:format_error(E)]),
             {error, C, Error, erlang:get_stacktrace(), [lists:flatten(Message)]};
-        C:{error, {LineNumber, erl_parse, E}} = Error ->
+        C:{parse_error, {LineNumber, erl_parse, E}} = Error ->
             Message = io_lib:format(
-                "Failed to parse script ~s:~nAt line ~p: ~s~n",
+                "Failed to parse script ~s:~nline ~p: ~s",
                 [ScriptFileName, LineNumber, [E]]),
             {error, C, Error, erlang:get_stacktrace(), [lists:flatten(Message)]};
         C:{error, {validation, VM}} = Error when is_list(VM) ->
@@ -273,7 +273,9 @@ validate(Script) ->
             (#operation{name = F, args = A, meta = M}, Acc) ->
                 [lists:flatten(io_lib:format("~sUnknown function: ~p/~p",
                     [meta_to_location_string(M), F, erlang:length(A)]))|Acc];
-            (_, Acc) -> Acc
+            (T, Acc) ->
+                [lists:flatten(io_lib:format("Unexpected top-level term ~p",
+                    [T]))|Acc]
         end, [], Script2),
 
     case Errors of

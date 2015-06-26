@@ -70,6 +70,7 @@ import json
 import csv
 import re
 from shutil import copytree
+import subprocess
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
@@ -267,7 +268,11 @@ def data_default(gen):
 # Local bench script execution
 #=================================================================================================
 def run_or_validate(script, env, validate):
-    compile_projects(NODE_PROJECTS)
+    if validate:
+        with util.silent_stdout():
+            compile_projects(NODE_PROJECTS)
+    else:
+        compile_projects(NODE_PROJECTS)
     
     escript_name = 'run_local.escript'
     escript_path = os.path.join(dirname, '../node/scripts')
@@ -285,21 +290,29 @@ def run_or_validate(script, env, validate):
     for p in glob.glob(os.getcwd() + "/deps/*/ebin"):
         pa += ["--pa", p]
     cmd = [os.path.join(escript_path, escript_name), script, '--pa', os.getcwd() + "/ebin"] + pa
-    
-    if validate:
-        cmd.append('--validate')
-    
+
     for k, v in env.iteritems():
         cmd.append('--env')
         cmd.append(k + '=' + v)
-    
-    check_call(cmd)
+
+    if validate:
+        cmd.append('--validate')
+
+        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        (out, err) = p.communicate()
+        if p.returncode != 0:
+            print(err)
+        else:
+            print('ok')
+        return p.returncode
+    else:
+        return subprocess.call(cmd)
 
 def run_local(script, env):
-    run_or_validate(script, env, False)
+    sys.exit(run_or_validate(script, env, validate=False))
     
 def validate(script, env):
-    run_or_validate(script, env, True)
+    sys.exit(run_or_validate(script, env, validate=True))
 
 #=================================================================================================
 # Worker creation
