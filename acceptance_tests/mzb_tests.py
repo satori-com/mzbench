@@ -18,12 +18,12 @@ scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mz_bench_dir + 'bin/mzbench'
 
 
-def worker_from_git_test():
-    run_successful_bench(scripts_dir + 'worker_from_git.erl')
-
-
 def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
+
+
+def worker_from_git_test():
+    run_successful_bench(scripts_dir + 'worker_from_git.erl')
 
 
 def emulate_crash_test():
@@ -144,36 +144,6 @@ def nobody_sets_signal_test():
 
 def loop_without_rate_test():
     run_successful_bench(scripts_dir + 'superloop.erl')
-
-def devtool_run_local_tests():
-    cmd(mz_bench_dir + 'bin/mzbench validate loop_rate.erl')
-
-    cmd(mz_bench_dir + 'bin/mzbench run_local loop_rate.erl')
-
-    cmd(mz_bench_dir + 'bin/mzbench run_local data_script.erl')
-
-    try:
-        cmd(mz_bench_dir + 'bin/mzbench run_local syntax_error.erl')
-        assert False
-    except subprocess.CalledProcessError:
-        pass
-
-    try:
-        cmd(mz_bench_dir + 'bin/mzbench run_local semantic_error.erl')
-        assert False
-    except subprocess.CalledProcessError:
-        pass
-
-
-def devtool_list_templates_test():
-    templates = os.listdir(mz_bench_dir + 'worker-templates')
-    got_templates = filter(
-        lambda x: x,
-        cmd(mz_bench_dir + 'bin/mzbench list_templates').split('\n'))
-    if sorted(templates) != sorted(got_templates):
-        print sorted(templates)
-        print sorted(got_templates)
-        assert sorted(templates) == sorted(got_templates)
 
 
 def run_successful_bench(name, nodes=None, env={}, email=None,
