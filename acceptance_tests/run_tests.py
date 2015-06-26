@@ -35,6 +35,9 @@ def start_mzbench_server():
 
 
 def main():
+    if not nose.run(defaultTest='mzb_local_tests'):
+        raise RuntimeError("some tests failed")
+
     with start_mzbench_server():
         if not nose.run(defaultTest='mzb_tests'):
             raise RuntimeError("some tests failed")
