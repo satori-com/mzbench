@@ -12,7 +12,7 @@ compile:
 get-deps:
 	$(REBAR) get-deps
 
-install:
+install: get-deps compile
 	mkdir -p ~/mz/mz_bench_workers/${PKG_NAME}/ebin
 	cp ebin/* ~/mz/mz_bench_workers/${PKG_NAME}/ebin/
 	if [ -d "deps" ]; then cp -Rf deps ~/mz/mz_bench_workers/${PKG_NAME}; fi
