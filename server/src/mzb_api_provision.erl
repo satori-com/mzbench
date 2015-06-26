@@ -38,11 +38,13 @@ provision_nodes(Config, Logger) ->
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
-    
-    ensure_vm_args(DirectorHost, WorkerHosts, Config, Logger),
-    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench start", [RootDir]), [], Logger),
+
     [DirNode] = [nodename(director_sname(Config), H) || H <- get_hostnames(UserName, [DirectorHost], Logger)],
     WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
+
+    ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
+    _ = remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench start", [RootDir]), [], Logger),
+
     _ = remote_cmd(UserName, [DirectorHost], "~/mz/mz_bench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
     DirNode.
 
@@ -118,11 +120,11 @@ ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
     _ = remote_cmd(UserName, NotLocalhosts, "chmod", ["go-rwx", CookieFile], Logger),
     ok.
 
-ensure_vm_args(Director, Workers, Config, Logger) ->
-    DirVmArgs = vm_args_content(director_sname(Config)),
-    ensure_file_content([Director], DirVmArgs, "vm.args", Config, Logger),
-    WorkerVmArgs = vm_args_content(worker_sname(Config)),
-    ensure_file_content(Workers, WorkerVmArgs, "vm.args", Config, Logger).
+ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
+    pmap(
+        fun ({H, N}) ->
+            ensure_file_content([H], vm_args_content(N), "vm.args", Config, Logger)
+        end, lists:zip(Hosts, Nodenames)).
 
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
