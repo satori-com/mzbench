@@ -228,7 +228,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
     _ = pmap(
         fun ("localhost") ->
                 OrigPath = os:getenv("ORIG_PATH"),
-                exec_format("sh -c \"export PATH='~s'; source /etc/profile;~s ~s\"",
+                exec_format("bash -c \"export PATH='~s'; source /etc/profile;~s ~s\"",
                     [OrigPath, Executable, string:join(Args2, " ")], Opts, Logger);
             (Host) ->
                 exec_format("ssh -A -o StrictHostKeyChecking=no ~s@~s \"source /etc/profile; ~s ~s\"", 
