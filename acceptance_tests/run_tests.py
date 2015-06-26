@@ -2,13 +2,7 @@
 
 import os
 import sys
-import shlex
-import subprocess
-import time
-import json
-import re
 from contextlib import contextmanager
-from binascii import hexlify
 
 import nose
 import nose.plugins.multiprocess
@@ -19,8 +13,6 @@ os.chdir(dirname)
 sys.path.append("../lib")
 
 from util import cmd
-
-import mzb_tests
 
 _multiprocess_shared_ = True
 
