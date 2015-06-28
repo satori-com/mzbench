@@ -10,7 +10,10 @@ env:
  - TASK=server
  - TASK=validate-examples
  - TASK=error-messages
- - TASK=acceptance-tests
+ - TASK=acceptance-local-tests
+ - TASK=acceptance-basic-tests
+ - TASK=acceptance-signal-tests
+ - TASK=acceptance-negative-tests
 
 matrix:
  exclude:
@@ -22,11 +25,11 @@ script:
      lint) sudo pip install -r requirements.txt && sudo pip install pyflakes && ./bin/lint.py . ;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
      error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
-     acceptance-tests) sudo pip install -r requirements.txt &&
+     acceptance-*-tests) sudo pip install -r requirements.txt &&
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`git config --get remote.origin.url` &&
                        cd acceptance_tests &&
-                       make;;
+                       make ${TASK/acceptance-/};;
      *) make -C $TASK check;;
    esac
