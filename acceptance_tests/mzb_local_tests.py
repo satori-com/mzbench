@@ -1,7 +1,9 @@
+#!/usr/bin/env python
 
 import os
 import sys
 import subprocess
+import nose
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
@@ -42,3 +44,11 @@ def devtool_list_templates_test():
         print sorted(templates)
         print sorted(got_templates)
         assert sorted(templates) == sorted(got_templates)
+
+def main():
+    if not nose.run(defaultTest=__name__):
+        raise RuntimeError("some tests failed")
+
+if __name__ == '__main__':
+    main()
+
