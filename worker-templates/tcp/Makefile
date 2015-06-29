@@ -1,4 +1,4 @@
-.PHONY: all compile get-deps install clean pkgroot
+.PHONY: all compile get-deps generate_tgz clean pkgroot
 
 REBAR := $(abspath $(shell which ./rebar || which rebar))
 
@@ -12,11 +12,14 @@ compile:
 get-deps:
 	$(REBAR) get-deps
 
-install: get-deps compile
-	mkdir -p ~/mz/mz_bench_workers/${PKG_NAME}/ebin
-	cp ebin/* ~/mz/mz_bench_workers/${PKG_NAME}/ebin/
-	if [ -d "deps" ]; then cp -Rf deps ~/mz/mz_bench_workers/${PKG_NAME}; fi
-	if [ -f "sys.config" ]; then cp sys.config ~/mz/mz_bench_workers/${PKG_NAME}/; fi
+generate_tgz: get-deps compile
+	mkdir -p tmp/mz/mz_bench_workers/${PKG_NAME}/ebin
+	cp ebin/* tmp/mz/mz_bench_workers/${PKG_NAME}/ebin/
+	if [ -d "deps" ]; then cp -Rf deps tmp/mz/mz_bench_workers/${PKG_NAME}; fi
+	if [ -f "sys.config" ]; then cp sys.config tmp/mz/mz_bench_workers/${PKG_NAME}/; fi
+	
+	cd tmp && tar czf ../${PKG_NAME}.tgz ./mz && cd ..
+	rm -rf tmp
 
 clean:
 	rm -rf pkgroot
@@ -24,6 +27,8 @@ clean:
 	rm -rf log*
 	rm -rf data.*
 	rm -f *.rpm
+	rm -f *.tgz
 	$(REBAR) clean
 	rm -rf ebin
+	rm -rf tmp
 

@@ -34,7 +34,7 @@ provision_nodes(Config, Logger) ->
     case DontProvisionNodes of
         false ->
             node_install(UserName, UniqHosts, GitRepo, GitCommit, RootDir, Logger),
-            ensure_worker_from_repo(UserName, UniqHosts, Script, Logger),
+            ensure_workers(UserName, UniqHosts, RootDir, Script, Logger),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
@@ -81,24 +81,6 @@ get_hostnames(UserName, Hosts, Logger) ->
     log(Logger, info, "Shortnames for ~p are ~p", [Hosts, Res]),
     Res.
 
-ensure_worker_from_repo(UserName, Hosts, Script, Logger) ->
-   case Script of
-        #{ body := Body } ->
-            Items = parse_script(binary_to_list(Body)),
-            _ = [ git_install(
-                UserName,
-                Hosts,
-                case proplists:get_value(git, Opts) of
-                    undefined -> erlang:error({make_install_error, "Could't find 'git' atom"});
-                    Value -> Value
-                end,
-                proplists:get_value(branch, Opts, ""),
-                proplists:get_value(dir, Opts, ""), Logger)
-            || {make_install, Opts} <- Items],
-            ok;
-        _ -> ok
-    end.
-
 parse_script(Body) ->
     case erl_scan:string(Body) of
         {ok, [], _} -> [];
@@ -132,33 +114,15 @@ worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 vm_args_content(NodeName) ->
     io_lib:format("-sname ~s~n", [NodeName]).
 
-git_install(UserName, Hosts, GitRepo, GitBranch, GitSubDir, Logger) ->
-    Branch =
-        case GitBranch of
-            undefined -> "master";
-            "" -> "master"; % FIXME: default value should be master
-            _ -> GitBranch
-        end,
-    SubDir =
-        case GitSubDir of
-            undefined -> ".";
-            "" -> "."; % FIXME: default value should be "."
-            _ -> GitSubDir
-        end,
-    DeploymentDirectory = tmp_filename(),
-    ProvisionCmd = io_lib:format("mkdir ~s && cd ~s && git clone ~s deployment_code && "
-                                    "cd deployment_code && git checkout ~s && "
-                                    "cd ~s && make install && cd ../../.. && "
-                                    "rm -rf ~s",
-                                    [DeploymentDirectory, DeploymentDirectory, GitRepo, Branch, SubDir, DeploymentDirectory]),
-    _ = remote_cmd(UserName, Hosts, ProvisionCmd, [], Logger).
-
 get_git_sha1(GitRepo, GitRef, Logger) ->
     Commit = exec_format("git ls-remote ~s ~s | cut -f 1", [GitRepo, GitRef], [stderr_to_stdout], Logger),
     case string:len(Commit) of
         0 -> GitRef;
         _ -> Commit
     end.
+
+get_git_short_sha1(GitRepo, GitRef, Logger) ->
+    lists:sublist(get_git_sha1(GitRepo, GitRef, Logger), 7).
 
 get_host_os_id(UserName, Host, Logger) ->
     remote_cmd(UserName, [Host], "uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'", [], Logger, []).
@@ -172,12 +136,12 @@ install_tgz_package(UserName, Host, RemoteRoot, PackageName, Logger) ->
     InstallationCmd = io_lib:format("cd && tar xzf ~s", [RemotePkgName]),
     _ = remote_cmd(UserName, [Host], InstallationCmd, [], Logger).
 
-create_tgz_package(UserName, Host, PackageName, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger) ->
+create_tgz_package(UserName, Host, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger) ->
     DeploymentDirectory = tmp_filename(),
     GenerationCmd = io_lib:format("mkdir ~s && cd ~s && git clone ~s deployment_code && "
                                     "cd deployment_code && git checkout ~s && "
-                                    "cd ~s && make generate_tgz && mv ~s.tgz ~s",
-                                    [DeploymentDirectory, DeploymentDirectory, GitRepo, GitBranch, GitSubDir, PackageName, 
+                                    "cd ~s && make generate_tgz && mv *.tgz ~s",
+                                    [DeploymentDirectory, DeploymentDirectory, GitRepo, GitBranch, GitSubDir, 
                                         filename:join(DeploymentDirectory, PackageFileName)]),
     _ = remote_cmd(UserName, [Host], GenerationCmd, [], Logger),
     
@@ -200,7 +164,7 @@ package_install(UserName, Host, RemoteRoot, PackageName, PackageVersion, GitRepo
     
     PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
     case filelib:is_file(filename:join(PackagesDir, PackageFileName)) of
-        false -> create_tgz_package(UserName, Host, PackageName, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger);
+        false -> create_tgz_package(UserName, Host, PackageFileName, GitRepo, GitBranch, GitSubDir, Logger);
         _ -> ok
     end,
     
@@ -213,12 +177,46 @@ node_install(UserName, Hosts, GitRepo, GitBranch, RemoteRoot, Logger) ->
             {ok, GitRev} = application:get_key(mz_bench_api, vsn),
             lists:sublist(GitRev, 7);
         Commit ->
-            lists:sublist(get_git_sha1(GitRepo, erlang:binary_to_list(Commit), Logger), 7)
+            get_git_short_sha1(GitRepo, erlang:binary_to_list(Commit), Logger)
     end,
     
     pmap(fun(Host) ->
         package_install(UserName, Host, RemoteRoot, "node", ShortGitRev, GitRepo, ShortGitRev, "node", Logger)
     end, Hosts).
+
+get_worker_name(GitRepo, GitSubDir) ->
+    case GitSubDir of
+        "" -> filename:basename(GitRepo, ".git");
+        SubDir -> filename:basename(SubDir)
+    end.
+
+worker_install(UserName, Hosts, RemoteRoot, GitRepo, GitRev, GitSubDir, Logger) ->
+    WorkerName = get_worker_name(GitRepo, GitSubDir),
+    WorkerCommit = get_git_short_sha1(GitRepo, GitRev, Logger),
+    
+    pmap(fun(Host) ->
+        package_install(UserName, Host, RemoteRoot, WorkerName, WorkerCommit, GitRepo, GitRev, GitSubDir, Logger)
+    end, Hosts).
+
+ensure_workers(UserName, Hosts, RemoteRoot, Script, Logger) ->
+    case Script of
+         #{ body := Body } ->
+             Items = parse_script(binary_to_list(Body)),
+             _ = [ worker_install(
+                    UserName, 
+                    Hosts, 
+                    RemoteRoot,
+                    case proplists:get_value(git, Opts) of
+                        undefined -> erlang:error({make_install_error, "Could't find 'git' atom"});
+                        Value -> Value
+                    end,
+                    proplists:get_value(branch, Opts, "master"),
+                    proplists:get_value(dir, Opts, ""), 
+                    Logger)
+             || {make_install, Opts} <- Items],
+             ok;
+         _ -> ok
+     end.
 
 remote_cmd(UserName, Hosts, Executable, Args, Logger) ->
     remote_cmd(UserName, Hosts, Executable, Args, Logger, [stderr_to_stdout]).
