@@ -2,8 +2,7 @@
 
 -export([validate_worker_script/2, validate_time/1]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 -spec validate_worker_script([#operation{}], {module(), module()})
     -> script_validation_result().
@@ -25,20 +24,20 @@ validate_expr(#operation{} = Op, Worker) ->
             validate_expr(Exprs, Worker);
            (X) ->
             [lists:flatten(io_lib:format(
-                mzb_script:meta_to_location_string(Meta) ++ "Expected list of expressions but got ~p.",
+                mzbl_script:meta_to_location_string(Meta) ++ "Expected list of expressions but got ~p.",
                 [X]))]
         end,
     AddLocation =
         fun(Messages) ->
             lists:map(
-                fun(Msg) -> mzb_script:meta_to_location_string(Meta) ++ Msg end,
+                fun(Msg) -> mzbl_script:meta_to_location_string(Meta) ++ Msg end,
                 Messages)
         end,
     case Op of
         #operation{name = undefined} ->
             AddLocation(["Empty instruction."]);
         #operation{name = loop, args = [Spec, Body]} ->
-            validate_loopspec(Spec, mzb_script:meta_to_location_string(Meta)) ++
+            validate_loopspec(Spec, mzbl_script:meta_to_location_string(Meta)) ++
             ValidateList(Body);
         #operation{name = t, args = Args} ->
             validate_expr(Args, Worker);
@@ -46,7 +45,7 @@ validate_expr(#operation{} = Op, Worker) ->
             AddLocation(["Loop must have a spec and a body."]);
         #operation{name = Fn, args = Args} ->
             Arity = length(Args),
-            IsStdFun = mzb_stdlib:is_std_function(Fn, Arity),
+            IsStdFun = mzbl_stdlib_signatures:is_std_function(Fn, Arity),
             {Provider, WorkerName} = Worker,
             IsWorkerFun = Provider:validate_function(WorkerName, Fn, Arity),
             case {IsStdFun, IsWorkerFun} of
@@ -81,7 +80,7 @@ validate_loopspec(LoopSpec, LoopLocation) ->
         fun(#operation{name = Name, args = Args, meta = Meta}) ->
             lists:map(
                 fun(Message) ->
-                        mzb_script:meta_to_location_string(Meta) ++ Message
+                        mzbl_script:meta_to_location_string(Meta) ++ Message
                 end,
                 case {Name, Args} of
                     {time, [Value]} -> validate_time(Value);

@@ -2,8 +2,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include_lib("mz_bench/include/mzb_types.hrl").
--include_lib("mz_bench/include/mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 empty_script_test() ->
     ?assertEqual("", run("")).
@@ -137,7 +136,7 @@ run(Script, Meta) ->
 
 run(Script, Meta, Env) ->
     try
-        AST = mzb_ast:add_meta(mzb_script:parse(Script), Meta),
+        AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
         meck:new(exometer),
         meck:expect(exometer, update_or_create, fun(_,_,_,_) -> ok end),
         meck:new(mz_histogram),
