@@ -207,6 +207,7 @@ package_install(UserName, Host, RemoteRoot, PackageName, PackageVersion, GitRepo
     install_tgz_package(UserName, Host, RemoteRoot, PackageFileName, Logger).
 
 node_install(UserName, Hosts, GitRepo, GitBranch, RemoteRoot, Logger) ->
+    log(Logger, info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
     ShortGitRev = case GitBranch of
         "master" ->
             {ok, GitRev} = application:get_key(mz_bench_api, vsn),
