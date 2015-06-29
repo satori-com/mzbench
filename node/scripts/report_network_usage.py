@@ -30,8 +30,8 @@ def main():
                 name = fields[name_column_index]
                 if name not in yielded_names:
                     yield {'name': name,
-                        'rx_bytes': fields[rx_column_index],
-                        'tx_bytes': fields[tx_column_index]}
+                        'rx_bytes': int(fields[rx_column_index]),
+                        'tx_bytes': int(fields[tx_column_index])}
                     yielded_names.add(name)
 
         stats = list(data())
