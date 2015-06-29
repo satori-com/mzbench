@@ -86,7 +86,10 @@ change-version:
 	- dialyzer --output_plt .mz_bench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
 
 dialyzer.log: .mz_bench.plt compile
-	- dialyzer --plt .mz_bench.plt apps/mz_bench/ebin apps/mz_histogram/ebin -I apps/mz_bench/src -I deps -o dialyzer.log \
+	- dialyzer --plt .mz_bench.plt \
+		apps/mz_bench/ebin apps/mz_histogram/ebin apps/mz_bench_language/ebin \
+		-I apps/mz_bench/src -I apps/mz_bench_language/src \
+		-I deps -o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
 		-Werror_handling \

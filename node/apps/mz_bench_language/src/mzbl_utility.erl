@@ -1,4 +1,4 @@
--module(mzb_utility).
+-module(mzbl_utility).
 
 -export(
    [

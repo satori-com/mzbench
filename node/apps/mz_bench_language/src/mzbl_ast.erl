@@ -1,9 +1,8 @@
--module(mzb_ast).
+-module(mzbl_ast).
 
 -export([transform/1, add_meta/2, map_meta/2, fold/3]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include("mzbl_types.hrl").
 
 -spec add_meta(abstract_expr(), meta()) -> abstract_expr().
 add_meta(Expr, NewMeta) ->
@@ -15,6 +14,7 @@ map_meta(Fun, #operation{name = Name, meta = Meta, args = Args} = Op) ->
 map_meta(Fun, L) when is_list(L) -> lists:map(fun(X) -> map_meta(Fun, X) end, L);
 map_meta(_, C) -> C.
 
+-spec fold(fun((abstract_expr(), term()) -> term()), term(), abstract_expr()) -> term().
 fold(Fun, Acc, #operation{args = Args} = Op) ->
     fold(Fun, Fun(Op, Acc), Args);
 fold(Fun, Acc, L) when is_list(L) ->
@@ -53,7 +53,7 @@ records(T) when is_tuple(T) ->
                   to = records(To),
                   meta = Meta};
         [Name, Meta | Params] ->
-            IsStd = mzb_stdlib:is_std_function(Name, length(Params)),
+            IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
             #operation{
                 name = Name,
                 meta = Meta,

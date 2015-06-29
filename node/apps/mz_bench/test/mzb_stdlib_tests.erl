@@ -1,7 +1,6 @@
 -module(mzb_stdlib_tests).
 -include_lib("eunit/include/eunit.hrl").
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 -define(
   VAR(Fun, Expected, Env, Input),
