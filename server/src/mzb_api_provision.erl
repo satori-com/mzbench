@@ -159,7 +159,7 @@ get_git_sha1(GitRepo, GitRef, Logger) ->
     end.
 
 get_host_os_id(UserName, Host, Logger) ->
-    mzb_api_provision:remote_cmd(UserName, [Host], "uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'", [], Logger).
+    remote_cmd(UserName, [Host], "uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'", [], Logger, []).
 
 install_tgz_package(UserName, Host, RemoteRoot, PackageName, Logger) ->
     PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
