@@ -5,8 +5,12 @@ SOURCES := src/http_worker.erl src/http_worker.app.src
 .PHONY: compile
 compile: .make/compilation-up-to-date
 
-install: pkgroot
-	rsync -aW pkgroot/ ~/mz
+.PHONY: generate_tgz
+generate_tgz: pkgroot
+	mkdir -p tmp
+	rsync -aW pkgroot/ tmp/mz
+	cd tmp && tar czf ../http_worker.tgz ./mz && cd ..
+	rm -rf tmp
 
 .make/compilation-up-to-date: $(SOURCES) .make/deps-up-to-date
 	$(REBAR) compile skip_deps=true
@@ -19,6 +23,8 @@ install: pkgroot
 
 .PHONY: clean
 clean:
+	rm -f *.tgz
+	rm -rf tmp
 	rm -rf pkgroot
 	rm -rf .make
 	$(REBAR) clean
