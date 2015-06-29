@@ -239,9 +239,8 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
         end, Hosts).
 
 ensure_file_content(Hosts, Content, Filepath,
-                    #{user_name:= UserName, local_dir:= LocalRoot, remote_dir:= RemoteRoot}, Logger) ->
-    Filename = filename:basename(Filepath),
-    Localfile = filename:join(LocalRoot, Filename),
+                    #{user_name:= UserName, remote_dir:= RemoteRoot}, Logger) ->
+    Localfile = tmp_filename(),
     Remotefile =
         case Filepath of
             "~/" ++ _ -> Filepath;
@@ -249,7 +248,8 @@ ensure_file_content(Hosts, Content, Filepath,
         end,
     log(Logger, debug, "Ensure file content on hosts: ~p~nLocal filename: ~p~nContent: ~s~nRemote path: ~p", [Hosts, Localfile, Content, Remotefile]),
     ok = file:write_file(Localfile, Content),
-    ok = ensure_file(UserName, Hosts, Localfile, Remotefile, Logger).
+    ok = ensure_file(UserName, Hosts, Localfile, Remotefile, Logger),
+    ok = file:delete(Localfile).
 
 ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
     _ = pmap(
