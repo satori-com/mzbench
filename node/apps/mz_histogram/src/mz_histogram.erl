@@ -5,6 +5,7 @@
          create/2,
          notify/2,
          get_raw_data/0,
+         get_and_remove_raw_data/0,
          get_raw_data/1,
          get_bucket/2,
          merge_histograms/2]).
@@ -41,16 +42,20 @@ create(Nodes, Name) ->
     end.
 
 notify(Name, Value) when is_number(Value), Value >= 0 ->
+    notify_many(Name, Value, 1);
+notify(_Name, Value) ->
+    erlang:error({value_out_of_range, Value}).
+
+notify_many(Name, Value, Count) when is_number(Count) ->
     try
-        ets:update_counter(erlang:get({mz_hist_tid, Name}), get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), 1)
+        ets:update_counter(erlang:get({mz_hist_tid, Name}), get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), Count)
     catch
         _:_ ->
             Tid = ets:lookup_element(mz_histograms, Name, 2),
             erlang:put({mz_hist_tid, Name}, Tid),
-            ets:update_counter(Tid, get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), 1)
-    end;
-notify(_Name, Value) ->
-    erlang:error({value_out_of_range, Value}).
+            ets:update_counter(Tid, get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), Count)
+    end.
+
 
 -spec get_bucket(pos_integer(), integer()) -> integer().
 get_bucket(2, V)  -> get_bucket2(V);
@@ -95,6 +100,12 @@ get_raw_data() ->
         fun ({Name, _}, Acc) ->
             [{Name, get_raw_data(Name)} | Acc]
         end, [], mz_histograms).
+
+get_and_remove_raw_data() ->
+    Data = get_raw_data(),
+    lists:map(fun({Name, Datapoints}) ->
+        lists:map(fun({K, V}) -> notify_many(Name, K, -V) end, Datapoints) end, Data),
+    Data.
 
 get_raw_data(Name) ->
     case ets:lookup(mz_histograms, Name) of

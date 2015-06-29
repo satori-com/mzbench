@@ -287,7 +287,7 @@ get_local_values() ->
         end,
         Metrics),
     _ = [ ok = exometer:reset(N) || {N, counter, _} <- Metrics ],
-    Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_raw_data()],
+    Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data()],
     lager:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
 
