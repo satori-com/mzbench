@@ -18,7 +18,6 @@
                 module      = undefined,
                 ref         = undefined,
                 user_state  = undefined,
-                logger      = undefined,
                 active      = true}).
 
 -callback init(Args :: term()) ->
@@ -26,8 +25,6 @@
     {stop, Reason :: term()} | ignore.
 -callback workflow_config(State :: term()) ->
     [{pipeline | finalize, [Stage :: atom()]}].
--callback get_logger(State :: term()) -> 
-    fun ((Severity :: atom(), Format :: list(), Args :: list()) -> ok).
 -callback handle_stage(Pipeline :: atom(), Stage :: atom(), State :: term()) ->
     fun ((State :: term()) ->  NewState :: term()) | ok.
 -callback handle_pipeline_status(Status :: term(), State :: term()) ->
@@ -66,57 +63,50 @@ init([Module, UserArgs]) ->
     case Module:init(UserArgs) of
         {ok, UserState} ->
             ok = gen_server:cast(self(), {workflow, start_phase, pipeline, Ref}),
-            {ok, #state{module = Module, user_state = UserState, ref = Ref, logger = Module:get_logger(UserState)}};
+            {ok, #state{module = Module, user_state = UserState, ref = Ref}};
         {ok, UserState, Timeout} ->
             ok = gen_server:cast(self(), {workflow, start_phase, pipeline, Ref}),
-            {ok, #state{module = Module, user_state = UserState, ref = Ref, logger = Module:get_logger(UserState)}, Timeout};
+            {ok, #state{module = Module, user_state = UserState, ref = Ref}, Timeout};
         {stop, Reason} -> {stop, Reason};
         ignore -> ignore
     end.
 
-handle_call({workflow, stop}, _From, State = #state{active = false, stage = Stage}) ->
-    log(info, "Force stop ignored, bench marked as not active ~p", [Stage], State),
+handle_call({workflow, stop}, _From, State = #state{active = false}) ->
     {reply, ok, State};
 
 handle_call({workflow, stop}, _From, State = #state{stage = Stage}) ->
-    log(info, "Pipeline force stopped. Current stage ~p", [Stage], State),
     case Stage of
         {Pid, pipeline, _} ->
-            try
-                unlink(Pid),
-                exit(Pid, kill)
-            catch _C:E ->
-                ST = erlang:get_stacktrace(),
-                log(info, "Killing pipeline stage is failed with reason ~p~nStacktrace: ~p", [E, ST], State)
-            end;
+            unlink(Pid),
+            exit(Pid, kill);
         _ -> nothing
     end,
     NewRef = make_ref(),
     gen_server:cast(self(), {workflow, start_phase, finalize, NewRef}),
-    NewState = change_pipeline_status(stopped, State),
+    NewState = change_pipeline_status({final, stopped}, State),
     {reply, ok, NewState#state{ref = NewRef}};
 
 handle_call(Msg, From, #state{module = Module, user_state = UserState} = State) ->
     apply_user_state(Module:handle_call(Msg, From, UserState), State).
 
 handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST} }, State = #state{ref = Ref}) ->
-    log(error, "Stage '~s - ~s': failed~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
     gen_server:cast(self(), {workflow, next, finalize, Stage, Ref}),
-    {noreply, State#state{stage = undefined}};
+    NewState = change_pipeline_status({exception, Phase, Stage, E, ST}, State),
+    {noreply, NewState#state{stage = undefined}};
 
 handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, State = #state{ref = Ref}) ->
-    log(error, "Stage '~s - ~s': failed~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
     gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
-    NewState = change_pipeline_status(failed, State),
-    {noreply, NewState#state{stage = undefine}};
+    NewState = change_pipeline_status({exception, Phase, Stage, E, ST}, State),
+    NewState1 = change_pipeline_status({final, failed}, NewState),
+    {noreply, NewState1#state{stage = undefine}};
 
-handle_cast({workflow, completed, Phase, Stage, Ref, Fn}, State = #state{ref = Ref}) ->
-    log(info, "Stage '~s - ~s': finished", [Phase, Stage], State),
+handle_cast({workflow, complete, Phase, Stage, Ref, Fn}, State = #state{ref = Ref}) ->
+    change_pipeline_status({complete, Phase, Stage}, State),
+
     gen_server:cast(self(), {workflow, next, Phase, Stage, Ref}),
-
     NewState = case is_last_stage(Phase, Stage, State) of
         true when Phase == pipeline ->
-            change_pipeline_status(complete, State);
+            change_pipeline_status({final, complete}, State);
         _ -> State
     end,
     NewState1 = migrate_state(Fn, NewState),
@@ -136,25 +126,20 @@ handle_cast({workflow, next, PrevPhase, PrevStage, Ref}, State = #state{ref = Re
             {noreply, State}
     end;
 
-handle_cast({workflow, start, pipeline, Stage, Ref}, State = #state{ref = Ref, active = false}) ->
-    log(info, "Stage '~s - ~s': ignored, bench marked as finished", [pipeline, Stage], State),
-    {noreply, State};
-
 handle_cast({workflow, start, Phase, Stage, Ref}, State = #state{ref = Ref, module = Module, user_state = UserState}) ->
-    log(info, "Stage '~s - ~s': started", [Phase, Stage], State),
     Self = self(),
     Pid = spawn_link(
         fun () ->
             try
                 StageResult = Module:handle_stage(Phase, Stage, UserState),
-                gen_server:cast(Self, {workflow, completed, Phase, Stage, Ref, StageResult})
+                gen_server:cast(Self, {workflow, complete, Phase, Stage, Ref, StageResult})
             catch
                 C:E ->
                     ST = erlang:get_stacktrace(),
                     gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST}})
             end
         end),
-    NewState = change_pipeline_status({Phase, Stage}, State),
+    NewState = change_pipeline_status({start, Phase, Stage}, State),
     {noreply, NewState#state{stage = {Pid, Phase, Stage}}};
 
 handle_cast(Msg, #state{module = Module, user_state = UserState} = State) ->
@@ -175,7 +160,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 change_pipeline_status(Status, #state{module = Module, user_state = UserState} = State) ->
     NewState = case Status of
-                   {pipeline, _} -> State;
+                   {_, pipeline, _} -> State;
                    _ -> State#state{active = false}
                end,
     NewUserState = Module:handle_pipeline_status(Status, UserState),
@@ -210,11 +195,3 @@ pick_stage(Phase, [NextStage | _Rest], _) -> {ok, Phase, NextStage}.
 migrate_state(Fn, #state{user_state = UserState} = State) when is_function(Fn) ->
     State#state{user_state = Fn(UserState)};
 migrate_state(_, State) -> State.
-
-format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
-    io_lib:format("Command returned ~b:~n ~s~nCommand output: ~s", [Code, Cmd, Output]);
-format_error(Op, {E, Stack}) ->
-    io_lib:format("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Op, E, Stack]).
-
-log(Severity, Format, Args, #state{logger = Logger}) ->
-    Logger(Severity, Format, Args).

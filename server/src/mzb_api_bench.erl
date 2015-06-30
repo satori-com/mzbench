@@ -283,7 +283,7 @@ terminate(Reason, State) ->
           Timer = timer:kill_after(5 * 60 * 1000),
 
           Stages = proplists:get_value(finalize, workflow_config(State), []),
-          NewState = handle_pipeline_status(failed, State),
+          NewState = handle_pipeline_status({final, failed}, State),
 
           lists:foreach(fun (Stage) ->
                             try
@@ -291,7 +291,7 @@ terminate(Reason, State) ->
                             catch
                                 _C:E ->
                                     ST = erlang:get_stacktrace(),
-                                    error("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Stage, E, ST], NewState)
+                                    error("Stage 'finalize - ~s': failed~n~s", [Stage, format_error(Stage, {E, ST})], NewState)
                             end
                         end, Stages),
 
@@ -299,9 +299,21 @@ terminate(Reason, State) ->
       end),
     ok.
 
-handle_pipeline_status(A, S) when is_atom(A) -> S#{status => A, finish_time => seconds()};
-handle_pipeline_status({pipeline, Stage}, S) -> S#{status => Stage};
-handle_pipeline_status({finalize, _Stage}, S) -> S.
+handle_pipeline_status({start, Phase, Stage}, State) ->
+    info("Stage '~s - ~s': started", [Phase, Stage], State),
+    case Phase of
+        pipeline -> State#{status => Stage};
+        _ -> State
+    end;
+handle_pipeline_status({complete, Phase, Stage}, State) ->
+    info("Stage '~s - ~s': finished", [Phase, Stage], State),
+    State;
+handle_pipeline_status({exception, Phase, Stage, E, ST}, State) ->
+    error("Stage '~s - ~s': failed~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
+    State;
+handle_pipeline_status({final, Final}, State) ->
+    info("Bench final: ~s", [Final], State),
+    State#{status => Final, finish_time => seconds()}.
 
 %%%===================================================================
 %%% Internal functions
@@ -545,6 +557,11 @@ format_log(Handler, Severity, Format, Args) ->
     Now = {_, _, Ms} = os:timestamp(),
     {_, {H,M,S}} = calendar:now_to_universal_time(Now),
     file:write(Handler, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])).
+
+format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
+    io_lib:format("Command returned ~b:~n ~s~nCommand output: ~s", [Code, Cmd, Output]);
+format_error(Op, {E, Stack}) ->
+    io_lib:format("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Op, E, Stack]).
 
 get_env(K) -> application:get_env(mz_bench_api, K, undefined).
 
