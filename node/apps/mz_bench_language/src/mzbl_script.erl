@@ -14,7 +14,7 @@
 -include("mzbl_types.hrl").
 
 get_real_script_name(Env) ->
-    case lists:keyfind("mzbl_script_name", 1, Env) of
+    case lists:keyfind("mzb_script_name", 1, Env) of
         {_K, V} -> V;
         false -> erlang:error(no_real_script_name)
     end.
