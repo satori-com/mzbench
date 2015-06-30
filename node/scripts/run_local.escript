@@ -71,7 +71,7 @@ parse_args(["--pa", P | T], Res) ->
 validate(Script) ->
     application:load(mz_bench),
 
-    case mzb_script:read_and_validate(filename:absname(Script), []) of
+    case mzb_script_validator:read_and_validate(filename:absname(Script), []) of
         {ok, _, _} ->
             terminate_node(0, "ok");
         {error, _, _, _, Messages} ->

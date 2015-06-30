@@ -20,8 +20,7 @@ run_script(ScriptFileName, Env) ->
 run_script(ScriptFileName, Env, ReportFile) ->
     Nodes = retrieve_worker_nodes(),
     Env2 = normalize_env(Env),
-    {ok, WorkerDirs} = application:get_env(mz_bench, workers_dirs),
-    case mzb_script_validator:read_and_validate(ScriptFileName, Env2, WorkerDirs) of
+    case mzb_script_validator:read_and_validate(ScriptFileName, Env2) of
         {ok, Body, Env3} ->
             ok = case start_director(Body, Nodes, Env3, ReportFile) of
                 {ok, _, _} -> ok;
