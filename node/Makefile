@@ -87,8 +87,8 @@ change-version:
 
 dialyzer.log: .mz_bench.plt compile
 	- dialyzer --plt .mz_bench.plt \
-		apps/mz_bench/ebin apps/mz_histogram/ebin ../common_apps/mz_bench_language/ebin \
-		-I apps/mz_bench/src -I apps/mz_bench_language/src \
+		apps/mz_bench/ebin apps/mz_histogram/ebin \
+		-I apps/mz_bench/src \
 		-I deps -o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
@@ -106,7 +106,6 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
 .make/deps-up-to-date: rebar.config
-	$(MAKE) -C ../common_apps/mz_bench_language compile
 	rm -rf deps && $(REBAR) get-deps compile
 	mkdir -p .make && touch $@
 
