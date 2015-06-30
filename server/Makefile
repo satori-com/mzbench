@@ -4,7 +4,7 @@ SERVICE_PREFIX=/mz
 SERVICE_NAME=mz_bench_api
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 
-SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
+SOURCES := $(shell find ../common_apps src priv test -name .eunit -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date

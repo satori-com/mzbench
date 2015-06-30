@@ -10,7 +10,7 @@ SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 
 # all files not in ebin or .eunit
-SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
+SOURCES := $(shell find apps ../common_apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -87,7 +87,7 @@ change-version:
 
 dialyzer.log: .mz_bench.plt compile
 	- dialyzer --plt .mz_bench.plt \
-		apps/mz_bench/ebin apps/mz_histogram/ebin apps/mz_bench_language/ebin \
+		apps/mz_bench/ebin apps/mz_histogram/ebin ../common_apps/mz_bench_language/ebin \
 		-I apps/mz_bench/src -I apps/mz_bench_language/src \
 		-I deps -o dialyzer.log \
 		-Wno_undefined_callbacks \
@@ -106,6 +106,7 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
 .make/deps-up-to-date: rebar.config
+	$(MAKE) -C ../common_apps/mz_bench_language compile
 	rm -rf deps && $(REBAR) get-deps compile
 	mkdir -p .make && touch $@
 
