@@ -41,6 +41,10 @@ create(Nodes, Name) ->
         _ -> {error, Results}
     end.
 
+get_and_remove_raw_data() ->
+    {ok, Data} = gen_server:call(?MODULE, {get_and_remove_raw_data}),
+    Data.
+
 notify(Name, Value) when is_number(Value), Value >= 0 ->
     notify_many(Name, Value, 1);
 notify(_Name, Value) ->
@@ -101,12 +105,6 @@ get_raw_data() ->
             [{Name, get_raw_data(Name)} | Acc]
         end, [], mz_histograms).
 
-get_and_remove_raw_data() ->
-    Data = get_raw_data(),
-    lists:map(fun({Name, Datapoints}) ->
-        lists:map(fun({K, V}) -> notify_many(Name, K, -V) end, Datapoints) end, Data),
-    Data.
-
 get_raw_data(Name) ->
     case ets:lookup(mz_histograms, Name) of
         [] -> erlang:error({histogram_not_found, Name});
@@ -142,6 +140,12 @@ init([]) ->
 
 handle_call({create, Name}, _From, State) ->
     {reply, init_hist(Name), State};
+
+handle_call({get_and_remove_raw_data}, From, State) ->
+    Data = get_raw_data(),
+    gen_server:reply(From, {ok, Data}),
+    [notify_many(Hist, K, -V) || {Hist, HistData} <- Data, {K, V} <- HistData],
+    {noreply, State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
