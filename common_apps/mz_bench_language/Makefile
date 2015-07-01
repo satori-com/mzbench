@@ -19,6 +19,7 @@ clean:
 	rm -rf .make
 	rm -rf deps
 	rm -rf tmp
+	$(REBAR) clean
 
 .PHONY: distclean
 distclean: clean

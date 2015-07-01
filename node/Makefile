@@ -10,7 +10,8 @@ SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 
 # all files not in ebin or .eunit
-SOURCES := $(shell find apps ../common_apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
+SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
+MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -105,7 +106,7 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-.make/deps-up-to-date: rebar.config
+.make/deps-up-to-date: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
 	rm -rf deps && $(REBAR) get-deps compile
 	mkdir -p .make && touch $@
 
