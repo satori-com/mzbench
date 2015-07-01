@@ -7,7 +7,18 @@
 %% API.
 
 start(_Type, _Args) ->
-    load_config(application:get_env(mz_bench_api, server_config, undefined)),
+    case init:get_argument(config_file) of
+        {ok, [[Config]]} ->
+            load_config(Config);
+        _ ->
+            Config = application:get_env(mz_bench_api, server_config, undefined),
+            try
+                load_config(Config)
+            catch
+                _:{config_read_error, _, enoent} -> ok
+            end
+    end,
+
     ok = load_cloud_plugin(),
 
     Static = fun(Filetype) ->
@@ -68,8 +79,8 @@ load_config(File) ->
             lists:foreach(fun ({App, Env}) ->
                 [ application:set_env(App, Key, Val) || {Key, Val} <- Env]
             end, Config);
-        {error, enoent} ->
-            ok
+        {error, Reason} ->
+            erlang:error({config_read_error, File, Reason})
     end.
 
 load_cloud_plugin() ->
