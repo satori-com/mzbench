@@ -244,19 +244,24 @@ import_data(Dir) ->
         try
             ["status", IdStr | _] = lists:reverse(filename:split(File)),
             Id = erlang:list_to_integer(IdStr),
-            {ok, [Status]} = file:consult(File),
-            #{status:= _, start_time := _, finish_time := _, config := #{}} = Status,
-
-            ets:insert(benchmarks, {Id, Status}),
-
+            import_bench_status(Id, File),
             max(Id, Max)
         catch
             _:Error ->
-                lager:error("Import from file ~s failed with reason: ~p", [File, Error]),
+                lager:error("Parsing status filename ~s failed with reason: ~p", [File, Error]),
                 Max
         end
     end,
     filelib:fold_files(Dir, "^status$", true, Import, -1).
+
+import_bench_status(Id, File) ->
+    try
+        {ok, [Status]} = file:consult(File),
+        #{status:= _, start_time := _, finish_time := _, config := #{}} = Status,
+        ets:insert(benchmarks, {Id, Status})
+    catch _:E ->
+        lager:error("Import from file ~s failed with reason: ~p~n~p", [File, E, erlang:get_stacktrace()])
+    end.
 
 % BC code begin
 bc_migrate_19_06_15(Dir) ->
