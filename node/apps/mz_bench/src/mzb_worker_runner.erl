@@ -118,23 +118,28 @@ mknow() ->
 -spec time_of_next_iteration_in_ramp(number(), number(), number(), integer())
     -> number().
 time_of_next_iteration_in_ramp(StartRPS, FinishRPS, RampDuration, IterationNumber) ->
-  % This function solves the following equation for Elapsed:
-  %
-  % IterationNumber = Elapsed *
-  %   average(linear_interpolation(StartRPS, FinishRPS, Elapsed/RampDuration),
-  %           StartRPS)
-  %
-  % Expanding linear interpolation:
-  %
-  % IterationNumber = Elapsed *
-  %   (StartRPS * (RampDuration - Elapsed/2) + FinishRPS * Elapsed / 2) / RampDuration
-  %
+    % This function solves the following equation for Elapsed:
+    %
+    % Use linear interpolation for y0 = StartRPS, y1 = FinishRPS, x0 = 0, x1 = RampDuration
+    % f(x) = StartRPS + (FinishRPS - StartRPS) * x / Duration, where x - time from start, y - RPS at moment x
+    %
+    % IterationNumber = Elapsed * (StartRPS + f(Elapsed)) / 2
+    %
+    % Expanding linear interpolation:
+    %
+    % IterationNumber = (FinishRPS - StartRPS) * Elapsed ^ 2 / (2 * RampDuration) + StartRPS * Elapsed
+    %
+    % Solve quadratic equation and choose positive solution
+    %
+    % Elapsed = (sqrt((StartRPS * Time) ^ 2 + 2 * (FinishRPS - StartRPS) * IterationNumber * RampDuration) - StartRPS * RampDuration) / (FinishRPS - StartRPS)
+    %
+    % Please note that we could calculate time for the next iteration which could be out of boundary if FinishRPS < StartRPS.
+    % To avoid this we use discriminant = 0. Retured value will be higher then RampDuration in this case
+
     DRPS = FinishRPS - StartRPS,
     Time = RampDuration / 1000000,
-    1000000
-        * (math:sqrt(StartRPS * StartRPS * Time * Time
-               + 2 * (IterationNumber + 1) * DRPS * Time)
-        - StartRPS * Time)
+    Discriminant = max(0, StartRPS * StartRPS * Time * Time + 2 * IterationNumber * DRPS * Time),
+    1000000 * (math:sqrt(Discriminant) - StartRPS * Time)
         / DRPS.
 
 looprun(1, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
