@@ -114,17 +114,19 @@ vm_args_content(NodeName) ->
 get_git_sha1(GitRepo, GitRef, Logger) when is_binary(GitRef) ->
     get_git_sha1(GitRepo, erlang:binary_to_list(GitRef), Logger);
 get_git_sha1(GitRepo, GitRef, Logger) ->
-    Commit = exec_format("git ls-remote ~s ~s | cut -f 1", [GitRepo, GitRef], [stderr_to_stdout], Logger),
-    case string:len(Commit) of
-        0 -> GitRef;
-        _ -> Commit
+    case string:tokens(lists:flatten(exec_format("git ls-remote ~s ~s", [GitRepo, GitRef], [stderr_to_stdout], Logger)), "\t") of
+        [Commit | _] -> Commit;
+        _ -> GitRef
     end.
+
+substitute(String, OldSubStr, NewSubStr) ->
+    string:join(string:tokens(String, OldSubStr), NewSubStr).
 
 get_git_short_sha1({GitRepo, GitRef, _}, Logger) ->
     lists:sublist(get_git_sha1(GitRepo, GitRef, Logger), 7).
 
 get_host_os_id(UserName, Host, Logger) ->
-    remote_cmd(UserName, [Host], "uname -sr | perl -pe 's/\ /-/g' | perl -nle 'print lc'", [], Logger, []).
+    string:to_lower(substitute(lists:flatten(remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), " ", "-")).
 
 ensure_tgz_package(User, Host, LocalTarballName, {GitRepo, GitBranch, GitSubDir}, Logger) ->
     case filelib:is_file(LocalTarballName) of
@@ -170,7 +172,7 @@ install_node(Hosts, Config, Logger) ->
     #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
     log(Logger, info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
     Branch = case GitBranch of
-        "master" ->
+        <<"master">> ->
             {ok, GitRev} = application:get_key(mz_bench_api, vsn),
             GitRev;
         _ -> GitBranch
