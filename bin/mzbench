@@ -301,7 +301,8 @@ def run_or_validate(script, env, validate):
         p = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         (out, err) = p.communicate()
         if p.returncode != 0:
-            print(out)
+            if out:
+                print(out)
             print(err)
         else:
             print('ok')
