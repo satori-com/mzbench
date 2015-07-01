@@ -9,6 +9,7 @@
          meta_to_location_string/1,
          substitute/2,
          extract_pools_and_env/2,
+         extract_install_specs/1,
          enumerate_pools/1,
          extract_worker/1]).
 
@@ -245,3 +246,11 @@ cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
     list_to_binary(Value);
 cast_to_type(Value, _) -> Value.
 
+extract_install_specs(AST) ->
+    Convert = fun(#operation{args = [Args]}) ->
+        [Repo] = mzbl_operation_lists:get_value(git, Args, [""]),
+        [Branch] = mzbl_operation_lists:get_value(branch, Args, [""]),
+        [Subdir] = mzbl_operation_lists:get_value(dir, Args, [""]),
+        #install_spec{repo = Repo, branch = Branch, dir = Subdir}
+    end,
+    [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].

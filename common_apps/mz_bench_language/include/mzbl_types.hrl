@@ -13,12 +13,14 @@
         args = [] :: abstract_expr(),
         meta = [] :: meta()
         }).
+-type operation() :: #operation{}.
 
 -record(constant, {
         value = undefined :: term(),
         units = undefined :: atom(),
         meta = [] :: meta()
         }).
+-type constant() :: #constant{}.
 
 -record(ramp, {
         curve_type = linear :: linear,
@@ -26,3 +28,11 @@
         to :: #constant{},
         meta = [] :: meta()
         }).
+-type ramp() :: #ramp{}.
+
+-record(install_spec, {
+        repo :: string(),
+        branch :: string(),
+        dir :: string()
+        }).
+-type install_spec() :: #install_spec{}.
