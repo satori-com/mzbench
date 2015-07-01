@@ -4,6 +4,7 @@
          hostname/1,
          get_real_script_name/1,
          read/2,
+         read_from_string/2,
          get_benchname/1,
          meta_to_location_string/1,
          substitute/2,
@@ -82,14 +83,24 @@ substitute(L, Env, Iterators) when is_list(L) ->
     lists:map(fun(X) -> substitute(X, Env, Iterators) end, L);
 substitute(S, _, _) -> S.
 
-read(Path, Env) ->
+read_from_string(String, Env) ->
     try
-        mzbl_literals:convert(substitute(parse(read_file(Path)), Env))
+        mzbl_literals:convert(substitute(parse(String), Env))
     catch
         C:{parse_error, {_, Module, ErrorInfo}} = E ->
             ST = erlang:get_stacktrace(),
             lager:error("Parsing script file failed: ~s", [Module:format_error(ErrorInfo)]),
             erlang:raise(C,E,ST);
+        C:E ->
+            ST = erlang:get_stacktrace(),
+            lager:error("Failed to read script '~p' 'cause of ~p~nStacktrace: ~p", [String, E, ST]),
+            erlang:raise(C,E,ST)
+    end.
+
+read(Path, Env) ->
+    try
+        read_from_string(read_file(Path), Env)
+    catch
         C:E ->
             ST = erlang:get_stacktrace(),
             lager:error("Failed to read script: ~p 'cause of ~p~nStacktrace: ~p", [Path, E, ST]),

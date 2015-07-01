@@ -10,6 +10,8 @@
     exec_format/7
 ]).
 
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
+
 provision_nodes(Config, Logger) ->
     #{
         dont_provision_nodes := DontProvisionNodes,
@@ -19,7 +21,8 @@ provision_nodes(Config, Logger) ->
         remote_dir := RootDir,
         node_git := GitRepo,
         node_commit := GitCommit,
-        script := Script
+        script := Script,
+        env := Env
     } = Config,
     
     UniqHosts = lists:usort([DirectorHost|WorkerHosts]),
@@ -34,7 +37,7 @@ provision_nodes(Config, Logger) ->
     case DontProvisionNodes of
         false ->
             node_install(UserName, UniqHosts, GitRepo, GitCommit, RootDir, Logger),
-            ensure_worker_from_repo(UserName, UniqHosts, Script, Logger),
+            ensure_worker_from_repo(UserName, UniqHosts, Script, Logger, Env),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
@@ -81,10 +84,22 @@ get_hostnames(UserName, Hosts, Logger) ->
     log(Logger, info, "Shortnames for ~p are ~p", [Hosts, Res]),
     Res.
 
-ensure_worker_from_repo(UserName, Hosts, Script, Logger) ->
-   case Script of
+ensure_worker_from_repo(UserName, Hosts, Script, Logger, Env) ->
+    % AutoEnv here has dummy values, but they are sufficient
+    % for parsing the script and extracting make_install specs.
+    AutoEnv = [{"nodes_num", length(Hosts)},
+               {"bench_hosts", []},
+               {"bench_script_dir", ""},
+               {"bench_workers_dir", []}],
+    DeepBinaryToString =
+        fun Recur(L) when is_list(L) -> lists:map(Recur, L);
+            Recur({Key, Value}) -> {Recur(Key), Recur(Value)};
+            Recur(B) when is_binary(B) -> binary_to_list(B);
+            Recur(X) -> X
+        end,
+    case Script of
         #{ body := Body } ->
-            Items = parse_script(binary_to_list(Body)),
+            Items = mzbl_script:read_from_string(binary_to_list(Body), AutoEnv ++ DeepBinaryToString(Env)),
             _ = [ git_install(
                 UserName,
                 Hosts,
@@ -94,23 +109,9 @@ ensure_worker_from_repo(UserName, Hosts, Script, Logger) ->
                 end,
                 proplists:get_value(branch, Opts, ""),
                 proplists:get_value(dir, Opts, ""), Logger)
-            || {make_install, Opts} <- Items],
+            || #operation{name = make_install, args = [Opts]} <- Items],
             ok;
         _ -> ok
-    end.
-
-parse_script(Body) ->
-    case erl_scan:string(Body) of
-        {ok, [], _} -> [];
-        {ok, Tokens, _} ->
-            case erl_parse:parse_term(Tokens) of
-                {ok, Term} ->
-                    Term;
-                {error, Error} ->
-                    erlang:error({parse_error, Error})
-            end;
-        {error, Error, _} ->
-            erlang:error({parse_error, Error})
     end.
 
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
