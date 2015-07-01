@@ -99,17 +99,15 @@ ensure_worker_from_repo(UserName, Hosts, Script, Logger, Env) ->
         end,
     case Script of
         #{ body := Body } ->
-            Items = mzbl_script:read_from_string(binary_to_list(Body), AutoEnv ++ DeepBinaryToString(Env)),
+            AST = mzbl_script:read_from_string(binary_to_list(Body), AutoEnv ++ DeepBinaryToString(Env)),
             _ = [ git_install(
                 UserName,
                 Hosts,
-                case proplists:get_value(git, Opts) of
-                    undefined -> erlang:error({make_install_error, "Could't find 'git' atom"});
-                    Value -> Value
-                end,
-                proplists:get_value(branch, Opts, ""),
-                proplists:get_value(dir, Opts, ""), Logger)
-            || #operation{name = make_install, args = [Opts]} <- Items],
+                IS#install_spec.repo,
+                IS#install_spec.branch,
+                IS#install_spec.dir,
+                Logger)
+            || IS <- mzbl_script:extract_install_specs(AST)],
             ok;
         _ -> ok
     end.
