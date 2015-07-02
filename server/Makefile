@@ -1,6 +1,5 @@
 
 REBAR := $(abspath $(shell which ../bin/rebar || which rebar))
-SERVICE_PREFIX=/mz
 SERVICE_NAME=mz_bench_api
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
@@ -14,14 +13,6 @@ compile: .make/compilation-up-to-date
 .PHONY: console
 console: generate
 	rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME) console
-
-.PHONY: install
-install: generate
-	sudo mkdir -p $(SERVICE_PREFIX)
-	sudo cp -r rel/$(SERVICE_NAME) $(SERVICE_PREFIX)
-	sudo mkdir -p $(SERVICE_PREFIX)/$(SERVICE_NAME)/packages
-	sudo chmod -R go+rwx $(SERVICE_PREFIX)/$(SERVICE_NAME)/packages
-	sudo chmod -R go+rwx $(SERVICE_PREFIX)/$(SERVICE_NAME)/log
 
 .PHONY: test-unit
 test-unit: compile

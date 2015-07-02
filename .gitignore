@@ -16,3 +16,6 @@ pkgroot
 dialyzer.log
 *.pyc
 .DS_Store
+server/mz_bench_server.config
+server/data
+acceptance_tests/test_server.config

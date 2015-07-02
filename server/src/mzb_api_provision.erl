@@ -143,10 +143,11 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
 install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
     ShortCommit = get_git_short_sha1(InstallSpec, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
+    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, undefined),
+    _ = exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
     _ = pmap(fun (Host) ->
         HostOSId = get_host_os_id(User, Host, Logger),
         log(Logger, info, "[ mzb_api_provision ] Deploying package: ~s~nfrom: ~p~non: ~s (OS: ~s)", [PackageName, InstallSpec, Host, HostOSId]),
-        PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
         PackageFileName = lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, ShortCommit, HostOSId])),
         PackageFilePath = filename:join(PackagesDir, PackageFileName),
         RemoteFilePath = filename:join(RemoteRoot, PackageFileName),

@@ -49,8 +49,8 @@
         {node_deployment_path, "~/mz"},
         {worker_deployment_path, "~/mz/mz_bench_workers"},
 
-        {bench_data_dir, "./mz_bench_api_data"},
-        {tgz_packages_dir, "/mz/mz_bench_api/packages"},
-        {server_config, "/mz/mz_bench_api/mz_bench_server.config"}
+        {bench_data_dir, "../../data"},
+        {tgz_packages_dir, "../../packages"},
+        {server_config, "../../mz_bench_server.config"}
     ]}
 ]}.

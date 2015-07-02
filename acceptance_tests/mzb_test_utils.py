@@ -13,7 +13,7 @@ sys.path.append("../lib")
 
 from util import cmd
 
-mz_bench_dir = os.path.dirname(os.path.realpath(__file__)) + '/../'
+mz_bench_dir = dirname + '/../'
 scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mz_bench_dir + 'bin/mzbench'
 
@@ -24,14 +24,14 @@ def start_mzbench_server():
     else:
         mzbench_git_param = ''
 
-    with open("/mz/mz_bench_api/mz_bench_server.config", "w") as config:
+    with open(dirname + "/test_server.config", "w") as config:
         config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
 
-    cmd('/mz/mz_bench_api/bin/mz_bench_api start')
+    cmd('{0} start_server --config {1}/test_server.config'.format(mzbench_script, dirname))
     try:
         yield
     finally:
-        cmd('/mz/mz_bench_api/bin/mz_bench_api stop')
+        cmd('{0} stop_server'.format(mzbench_script))
 
 def run_successful_bench(name, nodes=None, env={}, email=None,
         exclusive_node_usage=False):

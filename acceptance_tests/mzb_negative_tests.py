@@ -10,7 +10,7 @@ sys.path.append("../lib")
 
 from mzb_test_utils import run_failing_bench, start_mzbench_server
 
-mz_bench_dir = os.path.dirname(os.path.realpath(__file__)) + '/../'
+mz_bench_dir = dirname + '/../'
 scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mz_bench_dir + 'bin/mzbench'
 
