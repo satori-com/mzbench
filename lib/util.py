@@ -87,15 +87,6 @@ def chdir(dirname=None):
         os.chdir(curdir)
 
 @contextmanager
-def launch_server():
-    cmd('/mz/mz_bench_api/bin/mz_bench_api start')
-    time.sleep(5)
-    try:
-        yield
-    finally:
-        cmd('/mz/mz_bench_api/bin/mz_bench_api stop')
-
-@contextmanager
 def silent_stdout():
 
     class Dummy(object):

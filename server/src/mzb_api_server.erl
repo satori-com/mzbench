@@ -91,9 +91,8 @@ init([]) ->
            localhost_allocated => false}}.
 
 server_data_dir() ->
-    {ok, [HomeDir|_]} = init:get_argument(home),
     DataDir = application:get_env(mz_bench_api, bench_data_dir, undefined),
-    filename:absname(filename:join([HomeDir, "mz", DataDir, "data"])).
+    filename:absname(DataDir).
 
 handle_call({start_bench, Params}, _From, #{status:= active} = State) ->
     case start_bench_child(Params, State) of

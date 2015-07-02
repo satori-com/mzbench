@@ -11,7 +11,7 @@ sys.path.append("../lib")
 
 from util import cmd
 
-mz_bench_dir = os.path.dirname(os.path.realpath(__file__)) + '/../'
+mz_bench_dir = dirname + '/../'
 scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mz_bench_dir + 'bin/mzbench'
 

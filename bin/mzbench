@@ -3,10 +3,9 @@
 
 Usage:
   mzbench clean
-  mzbench install_server
-  mzbench start_server
+  mzbench start_server [--config=<config>]
   mzbench stop_server
-  mzbench restart_server
+  mzbench restart_server [--config=<config>]
   mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>]
     [(--email=<email> ...)]
@@ -58,6 +57,8 @@ Options:
                      Pass a variable to script
     --template <template> 
                      Choose a template for new worker, default is 'empty'
+    --config <config>
+                     Configuation file to use
 """
 
 from __future__ import print_function
@@ -90,6 +91,7 @@ except ImportError:
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
 sys.dont_write_bytecode = True
+server_rel_dir = dirname + "/../server/rel/mz_bench_api/"
 
 import util
 from subprocess import check_call
@@ -129,37 +131,25 @@ def install_projects(projects):
 def clean():
     clean_projects(NODE_PROJECTS + SERVER_PROJECTS)
 
-def install_server():
-    require('escript')
-    require('c++')
-    install_projects(SERVER_PROJECTS)
-
 #=================================================================================================
 # API server startup and stop
 #=================================================================================================
-def start_server():
+def start_server(config):
     require('escript')
-    Server = "/mz/mz_bench_api/bin/mz_bench_api"
-    if os.path.isfile(Server):
-        cmd('{0} start'.format(Server))
-        time.sleep(5)
+    execute_make(SERVER_PROJECTS, 'generate')
+    if config is not None:
+        config_arg = '-config_file {0}'.format(os.path.abspath(config))
     else:
-        print("You have no mz_bench server installed, please install it using mzbench install_server command")
-        sys.exit(2)
+        config_arg = ''
+    cmd(server_rel_dir + 'bin/mz_bench_api start {0}'.format(config_arg))
 
 def stop_server():
     require('escript')
-    Server = "/mz/mz_bench_api/bin/mz_bench_api"
-    if os.path.isfile(Server):
-        cmd('{0} stop'.format(Server))
-    else:
-        print("You have no mz_bench server installed, please install it using mzbench install_server command")
-        sys.exit(2)
+    cmd(server_rel_dir + 'bin/mz_bench_api stop')
 
-def restart_server():
-    require('escript')
+def restart_server(config):
     stop_server()
-    start_server()
+    start_server(config)
 
 #=================================================================================================
 # Communication with the API server
@@ -431,7 +421,6 @@ def apply_args(fun, kwargs):
 
 def main():
     args = docopt.docopt(__doc__, version='0.1.0')
-    
     augment_args(args)
     
     known_commands = [k for k in args
