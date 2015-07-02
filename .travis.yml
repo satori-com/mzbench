@@ -31,7 +31,6 @@ script:
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`git config --get remote.origin.url` &&
-                       export MZBENCH_BRANCH="$TRAVIS_BRANCH" &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
      *) make -C $TASK check;;
