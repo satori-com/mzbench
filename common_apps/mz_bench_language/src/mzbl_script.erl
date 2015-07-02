@@ -33,7 +33,7 @@ substitute(Tree, Env) -> substitute(Tree, Env, []).
 substitute(#operation{name = loop, args = [Spec, Body]} = Op, Env, Iterators) ->
     NewSpec = substitute(Spec, Env, Iterators),
     NewIterators =
-        case mzbl_operation_lists:get_value(iterator, NewSpec, [undefined]) of
+        case mzbl_ast:find_operation_and_extract_args(iterator, NewSpec, [undefined]) of
             [undefined] -> Iterators;
             [IterName] ->
                 case lists:member(IterName, Iterators) of
@@ -220,7 +220,7 @@ get_benchname(ScriptName) ->
     re:replace(Name, "[^a-zA-Z0-9]", "_", [{return, list}, global]).
 
 extract_worker(PoolOpts) ->
-    case mzbl_operation_lists:get_value(worker_type, PoolOpts, [undefined]) of
+    case mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]) of
         [WorkerName] -> {mzb_erl_worker, WorkerName};
         [WorkerName, erlang] -> {mzb_erl_worker, WorkerName};
         [WorkerName, lua] -> {mzb_lua_worker, WorkerName}
@@ -248,9 +248,9 @@ cast_to_type(Value, _) -> Value.
 
 extract_install_specs(AST) ->
     Convert = fun(#operation{args = [Args]}) ->
-        [Repo] = mzbl_operation_lists:get_value(git, Args, [""]),
-        [Branch] = mzbl_operation_lists:get_value(branch, Args, [""]),
-        [Subdir] = mzbl_operation_lists:get_value(dir, Args, [""]),
+        [Repo] = mzbl_ast:find_operation_and_extract_args(git, Args, [""]),
+        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
+        [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
         #install_spec{repo = Repo, branch = Branch, dir = Subdir}
     end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].

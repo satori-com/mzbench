@@ -91,12 +91,12 @@ eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     -> {script_value(), worker_state()}.
 eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
     [#constant{value = Time, units = ms}] =
-        mzbl_literals:convert(mzbl_operation_lists:get_value(time, LoopSpec, [#constant{value = undefined, units = ms}])),
-    [Iterator] = mzbl_operation_lists:get_value(iterator, LoopSpec, [undefined]),
-    [ProcNum] = mzbl_operation_lists:get_value(parallel, LoopSpec, [1]),
-    [Spawn] = mzbl_operation_lists:get_value(spawn, LoopSpec, [false]),
+        mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(time, LoopSpec, [#constant{value = undefined, units = ms}])),
+    [Iterator] = mzbl_ast:find_operation_and_extract_args(iterator, LoopSpec, [undefined]),
+    [ProcNum] = mzbl_ast:find_operation_and_extract_args(parallel, LoopSpec, [1]),
+    [Spawn] = mzbl_ast:find_operation_and_extract_args(spawn, LoopSpec, [false]),
 
-    case mzbl_literals:convert(mzbl_operation_lists:get_value(rate, LoopSpec, 
+    case mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, 
                                         [#constant{value = undefined, units = rps}])) of
         [#constant{value = 0, units = rps}] -> {nil, State};
         [#constant{value = Rps, units = rps}] ->
