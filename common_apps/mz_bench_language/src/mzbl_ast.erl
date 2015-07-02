@@ -1,6 +1,12 @@
 -module(mzbl_ast).
 
--export([transform/1, add_meta/2, map_meta/2, fold/3]).
+-export([
+    transform/1,
+    add_meta/2,
+    map_meta/2,
+    fold/3,
+    find_operation_and_extract_args/2,
+    find_operation_and_extract_args/3]).
 
 -include("mzbl_types.hrl").
 
@@ -67,3 +73,10 @@ records(S) -> S.
 transform(AST) ->
     records(erl_parse:normalise(markup(AST))).
 
+-spec find_operation_and_extract_args(term(), [tuple()]) -> term().
+find_operation_and_extract_args(Key, L) -> find_operation_and_extract_args(Key, L, undefined).
+
+-spec find_operation_and_extract_args(term(), [tuple()], term()) -> term().
+find_operation_and_extract_args(_, [], Default) -> Default;
+find_operation_and_extract_args(Key, [#operation{name = Key} = Op | _], _) -> Op#operation.args;
+find_operation_and_extract_args(Key, [_ | T], Default) -> find_operation_and_extract_args(Key, T, Default).
