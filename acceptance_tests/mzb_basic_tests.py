@@ -24,8 +24,14 @@ def correct_test():
 
 def worker_from_git_test():
     # worker is located in the same repo as node
-    worker_commit = os.environ.get('NODE_COMMIT', 'master'),
-    run_successful_bench(scripts_dir + 'worker_from_git.erl', env={'worker_branch': worker_commit})
+    worker_commit = os.environ.get('NODE_COMMIT', 'master')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    mzbench_branch = os.environ.get('MZBENCH_BRANCH', 'master')
+    run_successful_bench(
+        scripts_dir + 'worker_from_git.erl',
+        env={'worker_branch': worker_commit,
+            'mzbench_repo': mzbench_repo,
+            'mzbench_branch': mzbench_branch})
 
 def env_test():
     run_successful_bench(scripts_dir + 'env.erl', env={

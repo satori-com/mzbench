@@ -13,8 +13,7 @@
          code_change/3
         ]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 -record(state, {
     super_pid  = undefined,
@@ -45,7 +44,7 @@ attach(DirectorPid) ->
 
 init([SuperPid, BenchName, Script, Nodes, Env, ReportFile]) ->
     lager:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
-    {Pools, Env2} = mzb_script:extract_pools_and_env(Script, Env),
+    {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     _ = mzb_signaler:set_nodes(Nodes),
     gen_server:cast(self(), {start_pools, Pools, Env2, Nodes}),
     {ok, #state{
@@ -122,11 +121,11 @@ start_pools([], _, _, Acc) ->
     Acc;
 start_pools([Pool | Pools], Env, Nodes, Acc) ->
     #operation{args = [PoolOpts, _]} = Pool,
-    [SizeU] = mzb_mproplists:get_value(size, PoolOpts, [undefined]),
-    Size = mzb_utility:to_integer_with_default(SizeU, undefined),
+    [SizeU] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    Size = mzbl_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
     Self = self(),
-    Results = mzb_utility:pmap(fun({Num, Node}) ->
+    Results = mzbl_utility:pmap(fun({Num, Node}) ->
             rpc:call(Node, mzb_bench_sup, start_pool, 
                 [[Self, Pool, Env, length(Nodes), Num]])
         end, NumberedNodes),
@@ -184,7 +183,7 @@ report_file(#state{reportfile = File, succeed = Ok, failed = NOk}) ->
     file:write_file(File, io_lib:fwrite("~p/~p", [Ok, NOk])).
 
 get_metric_names(Pools, Nodes) ->
-    mzb_script:script_metrics(Pools, Nodes)
+    mzb_script_metrics:script_metrics(Pools, Nodes)
     ++ case lists:member(erlang:node(), Nodes) of
         true -> [];
         false -> mzb_system_load_monitor:metric_names([erlang:node()])

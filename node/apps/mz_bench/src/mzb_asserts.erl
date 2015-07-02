@@ -7,8 +7,7 @@
     get_failed/2
 ]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 validate(#operation{name = assert, args = [always, Expression], meta = M}) ->
     validate_assert_expr(Expression, M);
@@ -21,7 +20,7 @@ validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) when is_list
 validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) when is_list(Op2), is_number(Op1) ->
     validate_assert_op(Name, M);
 validate_assert_expr(_Invalid, M) ->
-    [lists:flatten(io_lib:format("~sInvalid assert expression", [mzb_script:meta_to_location_string(M)]))].
+    [lists:flatten(io_lib:format("~sInvalid assert expression", [mzbl_script:meta_to_location_string(M)]))].
 
 validate_assert_op(gt, _) -> [];
 validate_assert_op(lt, _) -> [];
@@ -29,7 +28,7 @@ validate_assert_op(gte, _) -> [];
 validate_assert_op(lte, _) -> [];
 validate_assert_op(Name, M) ->
     lists:flatten(io_lib:format("~sInvalid assert operation: ~p",
-        [mzb_script:meta_to_location_string(M), Name])).
+        [mzbl_script:meta_to_location_string(M), Name])).
 
 get_failed(BenchTime, State) ->
     Failed = lists:filter(

@@ -5,8 +5,7 @@
 -behaviour(supervisor).
 -export([init/1]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 %%%===================================================================
 %%% API
@@ -21,8 +20,8 @@ run_script(ScriptFileName, Env) ->
 run_script(ScriptFileName, Env, ReportFile) ->
     Nodes = retrieve_worker_nodes(),
     Env2 = normalize_env(Env),
-    case mzb_script:read_and_validate(ScriptFileName, Env2) of
-        {ok, Body, Env3} -> 
+    case mzb_script_validator:read_and_validate(ScriptFileName, Env2) of
+        {ok, Body, Env3} ->
             ok = case start_director(Body, Nodes, Env3, ReportFile) of
                 {ok, _, _} -> ok;
                 {ok, _} -> ok;
@@ -84,7 +83,7 @@ child_spec(Name, Module, Args, Restart) ->
     {Name, {Module, start_link, Args}, Restart, 5000, worker, [Module]}.
 
 start_director(Body, Nodes, Env, ReportFile) ->
-    BenchName = mzb_script:get_benchname(mzb_script:get_real_script_name(Env)),
+    BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
     lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
     supervisor:start_child(?MODULE, 
                             child_spec(director, mzb_director, 

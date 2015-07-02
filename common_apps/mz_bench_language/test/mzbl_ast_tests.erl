@@ -1,10 +1,9 @@
--module(mzb_ast_tests).
+-module(mzbl_ast_tests).
 -include_lib("eunit/include/eunit.hrl").
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include("mzbl_types.hrl").
 
 transform_test() ->
-  ?assertEqual([], mzb_ast:transform({nil,1})).
+  ?assertEqual([], mzbl_ast:transform({nil,1})).
 
 transform2_test() ->
   Input = {cons,1,
@@ -16,7 +15,7 @@ transform2_test() ->
              {nil,2}}},
   Output = [#operation{name = size, args = [3], meta = [{line, 1}], is_std = false},
             #operation{name = worker_type, args = [dummy_worker], meta = [{line, 2}], is_std = false}],
-  ?assertEqual(Output, mzb_ast:transform(Input)).
+  ?assertEqual(Output, mzbl_ast:transform(Input)).
 
 transform_ramp_test() ->
   Input = {cons,1,
@@ -29,4 +28,4 @@ transform_ramp_test() ->
                   from = #constant{value = 0.5, units = rps},
                   to = #constant{value = 2, units = rps},
                   meta = [{line, 2}]}],
-  ?assertEqual(Output, mzb_literals:convert(mzb_ast:transform(Input))).
+  ?assertEqual(Output, mzbl_literals:convert(mzbl_ast:transform(Input))).

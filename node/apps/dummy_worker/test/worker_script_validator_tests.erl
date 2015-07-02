@@ -1,8 +1,7 @@
 -module(worker_script_validator_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("mz_bench/include/mzb_types.hrl").
--include_lib("mz_bench/include/mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 validation_ok_simple_test() ->
     ?assertEqual(check("[{print, \"NaNNaNNaNNaNNaNNaN\"},
@@ -88,4 +87,4 @@ check(S) ->
 string_to_script(S) ->
     {ok, Tokens, _} = erl_scan:string(S),
     {ok, [Expr]} = erl_parse:parse_exprs(Tokens),
-    mzb_literals:convert(mzb_ast:transform(Expr)).
+    mzbl_literals:convert(mzbl_ast:transform(Expr)).

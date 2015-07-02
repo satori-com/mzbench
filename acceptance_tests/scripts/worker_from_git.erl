@@ -1,6 +1,7 @@
 [ 
   {make_install, [
-    {git, "https://github.com/machinezone/mzbench.git"},
+    {git, {var, "mzbench_repo"}},
+    {branch, {var, "mzbench_branch"}},
     {dir, "workers/exec"}]},
   {pool, [{size, 2}, {worker_type, exec_worker}],
     [{execute, "sleep 5"}]}

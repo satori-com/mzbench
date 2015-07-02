@@ -10,13 +10,16 @@
     exec_format/7
 ]).
 
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
+
 provision_nodes(Config, Logger) ->
     #{
         dont_provision_nodes := DontProvisionNodes,
         director_host := DirectorHost,
         worker_hosts := WorkerHosts,
         user_name := UserName,
-        remote_dir := RootDir
+        remote_dir := RootDir,
+        env := Env
     } = Config,
 
     UniqHosts = lists:usort([DirectorHost|WorkerHosts]),
@@ -31,7 +34,7 @@ provision_nodes(Config, Logger) ->
     case DontProvisionNodes of
         false ->
             install_node(UniqHosts, Config, Logger),
-            install_workers(UniqHosts, Config, Logger),
+            install_workers(UniqHosts, Config, Logger, Env),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
@@ -67,7 +70,6 @@ ntp_check(UserName, Hosts, Logger) ->
         _ -> erlang:error({ntp_check_failed, TimeDiff})
     end.
 
-
 nodename(Name, Host) ->
     Name ++ "@" ++ Host.
 
@@ -77,20 +79,6 @@ get_hostnames(UserName, Hosts, Logger) ->
     Res = [ hd(string:tokens(FName, ".")) || FName <- Hostnames],
     log(Logger, info, "Shortnames for ~p are ~p", [Hosts, Res]),
     Res.
-
-parse_script(Body) ->
-    case erl_scan:string(Body) of
-        {ok, [], _} -> [];
-        {ok, Tokens, _} ->
-            case erl_parse:parse_term(Tokens) of
-                {ok, Term} ->
-                    Term;
-                {error, Error} ->
-                    erlang:error({parse_error, Error})
-            end;
-        {error, Error, _} ->
-            erlang:error({parse_error, Error})
-    end.
 
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
     CookieFile = "~/.erlang.cookie",
@@ -122,13 +110,13 @@ get_git_sha1(GitRepo, GitRef, Logger) ->
 substitute(String, OldSubStr, NewSubStr) ->
     string:join(string:tokens(String, OldSubStr), NewSubStr).
 
-get_git_short_sha1({GitRepo, GitRef, _}, Logger) ->
+get_git_short_sha1(#install_spec{repo = GitRepo, branch = GitRef}, Logger) ->
     lists:sublist(get_git_sha1(GitRepo, GitRef, Logger), 7).
 
 get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(substitute(lists:flatten(remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), " ", "-")).
 
-ensure_tgz_package(User, Host, LocalTarballName, {GitRepo, GitBranch, GitSubDir}, Logger) ->
+ensure_tgz_package(User, Host, LocalTarballName, #install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir}, Logger) ->
     case filelib:is_file(LocalTarballName) of
         false ->
             DeploymentDirectory = tmp_filename(),
@@ -152,18 +140,18 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
     end,
     exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger).
 
-install_package(Hosts, PackageName, GitSpec, InstallationDir, Config, Logger) ->
-    ShortCommit = get_git_short_sha1(GitSpec, Logger),
+install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
+    ShortCommit = get_git_short_sha1(InstallSpec, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
     pmap(fun (Host) ->
         HostOSId = get_host_os_id(User, Host, Logger),
-        log(Logger, info, "[ mzb_api_provision ] Deploying package: ~s~nfrom: ~p~non: ~s (OS: ~s)", [PackageName, GitSpec, Host, HostOSId]),
+        log(Logger, info, "[ mzb_api_provision ] Deploying package: ~s~nfrom: ~p~non: ~s (OS: ~s)", [PackageName, InstallSpec, Host, HostOSId]),
         PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
         PackageFileName = lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, ShortCommit, HostOSId])),
         PackageFilePath = filename:join(PackagesDir, PackageFileName),
         RemoteFilePath = filename:join(RemoteRoot, PackageFileName),
 
-        ensure_tgz_package(User, Host, PackageFilePath, GitSpec, Logger),
+        ensure_tgz_package(User, Host, PackageFilePath, InstallSpec, Logger),
         ensure_file(User, [Host], PackageFilePath, RemoteFilePath, Logger),
         InstallationCmd = lists:flatten(io_lib:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteFilePath])),
         _ = remote_cmd(User, [Host], InstallationCmd, [], Logger)
@@ -179,23 +167,38 @@ install_node(Hosts, Config, Logger) ->
         _ -> GitBranch
     end,
 
-    install_package(Hosts, "node", {GitRepo, Branch, "node"}, application:get_env(mz_bench_api, node_deployment_path, ""), Config, Logger).
+    install_package(
+        Hosts,
+        "node",
+        #install_spec{repo = GitRepo, branch = Branch, dir = "node"},
+        application:get_env(mz_bench_api, node_deployment_path, ""),
+        Config,
+        Logger).
 
-get_worker_name({GitRepo, _, ""}) -> filename:basename(GitRepo, ".git");
-get_worker_name({_, _, GitSubDir}) -> filename:basename(GitSubDir).
+get_worker_name(#install_spec{repo = GitRepo, dir = ""}) -> filename:basename(GitRepo, ".git");
+get_worker_name(#install_spec{dir = GitSubDir}) -> filename:basename(GitSubDir).
 
-install_worker(Hosts, GitSpec, Config, Logger) ->
-    WorkerName = get_worker_name(GitSpec),
-    install_package(Hosts, WorkerName, GitSpec, application:get_env(mz_bench_api, worker_deployment_path, ""), Config, Logger).
+install_worker(Hosts, InstallSpec, Config, Logger) ->
+    WorkerName = get_worker_name(InstallSpec),
+    install_package(Hosts, WorkerName, InstallSpec, application:get_env(mz_bench_api, worker_deployment_path, ""), Config, Logger).
 
-install_workers(Hosts, #{script:= Script} = Config,  Logger) ->
+install_workers(Hosts, #{script:= Script} = Config, Logger, Env) ->
     #{ body := Body } = Script,
-    Items = parse_script(binary_to_list(Body)),
-    WorkerGitSpecs = 
-        [{proplists:get_value(git, Opts),
-          proplists:get_value(branch, Opts, "master"),
-          proplists:get_value(dir, Opts, "")} || {make_install, Opts} <- Items],
-    [install_worker(Hosts, Spec, Config, Logger) || Spec <- WorkerGitSpecs],
+
+    % AutoEnv here has dummy values, but they are sufficient
+    % for parsing the script and extracting make_install specs.
+    AutoEnv = [{"nodes_num", length(Hosts)},
+               {"bench_hosts", []},
+               {"bench_script_dir", ""},
+               {"bench_workers_dir", []}],
+    DeepBinaryToString =
+        fun Recur(L) when is_list(L) -> lists:map(Recur, L);
+            Recur({Key, Value}) -> {Recur(Key), Recur(Value)};
+            Recur(B) when is_binary(B) -> binary_to_list(B);
+            Recur(X) -> X
+        end,
+    AST = mzbl_script:read_from_string(binary_to_list(Body), AutoEnv ++ DeepBinaryToString(Env)),
+    _ = [install_worker(Hosts, IS, Config, Logger) || IS <- mzbl_script:extract_install_specs(AST)],
     ok.
 
 remote_cmd(UserName, Hosts, Executable, Args, Logger) ->

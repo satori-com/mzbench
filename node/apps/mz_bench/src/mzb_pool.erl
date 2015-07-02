@@ -13,8 +13,7 @@
          code_change/3
         ]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 -record(s, {
     director = undefined,
@@ -123,10 +122,10 @@ code_change(_OldVsn, State, _Extra) ->
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
     Name = proplists:get_value(pool_name, Meta),
-    [Size] = mzb_mproplists:get_value(size, PoolOpts, [undefined]),
-    [PerNode] = mzb_mproplists:get_value(per_node, PoolOpts, [undefined]),
-    [StartDelay] = mzb_mproplists:get_value(worker_start, PoolOpts, [undefined]),
-    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
+    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
+    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
+    Size2 = case [mzbl_utility:to_integer_with_default(Size, undefined), mzbl_utility:to_integer_with_default(PerNode, undefined)] of
                         [undefined, undefined] -> 1;
                         [undefined, PN] -> PN * NumNodes;
                         [S, undefined] -> S;
@@ -134,17 +133,17 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
                         [S, PN] when NumNodes * PN >= S -> S;
                         [S, PN] ->
                             lager:error("Need more nodes, required = ~p, actual = ~p", 
-                                [mzb_utility:int_ceil(S/PN), NumNodes]),
+                                [mzbl_utility:int_ceil(S/PN), NumNodes]),
                             erlang:error({not_enough_nodes})
                     end,
     lager:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
         [Size, PerNode, Size2, Offset, NumNodes]),
-    Worker = mzb_script:extract_worker(PoolOpts),
+    Worker = mzbl_script:extract_worker(PoolOpts),
     Self = self(),
 
     load_worker(Worker),
 
-    Numbers = lists:seq(0, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
+    Numbers = lists:seq(0, mzbl_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
     lager:info("Worker offsets: ~p", [Numbers]),
 
     WorkerStarter =
@@ -152,7 +151,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
             Node = node(),
             lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes),
                             WId = N * NumNodes + Offset,
-                            WorkerScript = mzb_ast:add_meta(Script, [{worker_id, WId}]),
+                            WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}]),
                             gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2, Self})
                         end, Numbers)
         end),
