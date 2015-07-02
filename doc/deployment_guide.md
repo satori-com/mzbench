@@ -35,19 +35,15 @@ To install the MZBench API server, perform the following commands:
 
     # Clone the current MZBench source code
     git clone https://github.com/machinezone/mzbench.git
-    
+
     # Install additional Python packages
     sudo pip install -r mzbench/requirements.txt
-    
-    # Install the server
-    cd mzbench
-    ./bin/mzbench install_server
 
     # Start the server
-    ./bin/mzbench start_server
+    ./mzbench/bin/mzbench start_server
 
     # Stop the server
-    ./bin/mzbench start_server
+    ./mzbench/bin/mzbench stop_server
 
 # Server configuration
 
@@ -55,7 +51,7 @@ To apply configuration changes you need to restart the server if it's running.
 
 ## Configuration file format
 
-The MZBench server parameters are set in `/mz/mz_bench_api/mz_bench_server.config` configuration file. 
+The MZBench server parameters are set in `./server/mz_bench_server.config` configuration file.
 
 This file is essentially an Erlang term. At the top level, it is a list of tuples, terminated by the dot.
  Each tuple represent a configuration category. Its first element is an atom identifying the
