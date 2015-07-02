@@ -11,6 +11,7 @@ RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
+MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -86,7 +87,10 @@ change-version:
 	- dialyzer --output_plt .mz_bench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
 
 dialyzer.log: .mz_bench.plt compile
-	- dialyzer --plt .mz_bench.plt apps/mz_bench/ebin apps/mz_histogram/ebin -I apps/mz_bench/src -I deps -o dialyzer.log \
+	- dialyzer --plt .mz_bench.plt \
+		apps/mz_bench/ebin apps/mz_histogram/ebin \
+		-I apps/mz_bench/src \
+		-I deps -o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
 		-Werror_handling \
@@ -102,7 +106,7 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-.make/deps-up-to-date: rebar.config
+.make/deps-up-to-date: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
 	rm -rf deps && $(REBAR) get-deps compile
 	mkdir -p .make && touch $@
 

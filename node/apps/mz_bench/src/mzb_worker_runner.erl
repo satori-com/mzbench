@@ -5,8 +5,8 @@
 % For Common and EUnit tests
 -export([eval_expr/4, time_of_next_iteration_in_ramp/4, mknow/0]).
 
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 -include("mzb_types.hrl").
--include("mzb_ast.hrl").
 
 -spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), Suspended :: boolean())
     -> ok.
@@ -91,12 +91,12 @@ eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     -> {script_value(), worker_state()}.
 eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
     [#constant{value = Time, units = ms}] =
-        mzb_literals:convert(mzb_mproplists:get_value(time, LoopSpec, [#constant{value = undefined, units = ms}])),
-    [Iterator] = mzb_mproplists:get_value(iterator, LoopSpec, [undefined]),
-    [ProcNum] = mzb_mproplists:get_value(parallel, LoopSpec, [1]),
-    [Spawn] = mzb_mproplists:get_value(spawn, LoopSpec, [false]),
+        mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(time, LoopSpec, [#constant{value = undefined, units = ms}])),
+    [Iterator] = mzbl_ast:find_operation_and_extract_args(iterator, LoopSpec, [undefined]),
+    [ProcNum] = mzbl_ast:find_operation_and_extract_args(parallel, LoopSpec, [1]),
+    [Spawn] = mzbl_ast:find_operation_and_extract_args(spawn, LoopSpec, [false]),
 
-    case mzb_literals:convert(mzb_mproplists:get_value(rate, LoopSpec, 
+    case mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, 
                                         [#constant{value = undefined, units = rps}])) of
         [#constant{value = 0, units = rps}] -> {nil, State};
         [#constant{value = Rps, units = rps}] ->
@@ -140,7 +140,7 @@ time_of_next_iteration_in_ramp(StartRPS, FinishRPS, RampDuration, IterationNumbe
 looprun(1, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
     timerun(mknow(), 1, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, 0);
 looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
-    _ = mzb_utility:pmap(fun (I) ->
+    _ = mzbl_utility:pmap(fun (I) ->
         timerun(mknow(), N, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, I)
     end, lists:seq(0, N - 1)),
     {nil, State}.

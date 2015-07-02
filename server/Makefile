@@ -5,6 +5,7 @@ SERVICE_NAME=mz_bench_api
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
+MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -47,7 +48,7 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
 
-.make/deps-up-to-date: rebar.config
+.make/deps-up-to-date: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
 	rm -rf deps && $(REBAR) get-deps compile
 	mkdir -p .make && touch $@
 

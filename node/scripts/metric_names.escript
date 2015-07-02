@@ -14,9 +14,9 @@ main([NodeStr, Path, EnvFile]) ->
     Node = erlang:list_to_atom(NodeStr),
     mzb_escript_shared:start_and_connect(Node),
     Env = mzb_escript_shared:read_env(EnvFile),
-    case rpc:call(Node, mzb_script, read_and_validate, [filename:absname(Path), Env]) of
+    case rpc:call(Node, mzb_script_validator, read_and_validate, [filename:absname(Path), Env]) of
         {ok, _, Env2} ->
-            Data = case rpc:call(Node, mzb_script, metrics, [Path, Env2]) of
+            Data = case rpc:call(Node, mzb_script_metrics, metrics, [Path, Env2]) of
                 {badrpc, Reason} ->
                     io:format("rpc failed with reason ~p~n", [Reason]),
                     erlang:halt(1);

@@ -69,9 +69,12 @@ parse_args(["--pa", P | T], Res) ->
     parse_args(T, [{pa, P}|Res]).
 
 validate(Script) ->
-    application:load(mz_bench),
+    ok = application:load(lager),
+    ok = application:set_env(lager, handlers, []),
+    {ok, _} = application:ensure_all_started(lager),
+    ok = application:load(mz_bench),
 
-    case mzb_script:read_and_validate(filename:absname(Script), []) of
+    case mzb_script_validator:read_and_validate(filename:absname(Script), []) of
         {ok, _, _} ->
             terminate_node(0, "ok");
         {error, _, _, _, Messages} ->

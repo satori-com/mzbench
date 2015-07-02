@@ -2,8 +2,7 @@
 
 -export([validate/1]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
 
 validate(Script) ->
     Graph = signals_to_graph(Script),
@@ -27,7 +26,7 @@ signals_to_graph(Script) ->
     Pools = [P || P = #operation{name = pool} <- Script],
     G = digraph:new(),
     lists:foreach(fun (Pool) ->
-        mzb_ast:fold(fun populate_graph/2, {undefined, G}, Pool)
+        mzbl_ast:fold(fun populate_graph/2, {undefined, G}, Pool)
     end, Pools),
     _ = add_cross_pool_vertices(G, digraph:vertices(G)),
     G.

@@ -13,6 +13,7 @@
                   sasl,
                   ranch,
                   mz_histogram,
+                  mz_bench_language,
                   os_mon
                  ]},
   {mod, { mzb_app, []}},

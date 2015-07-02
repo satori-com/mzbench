@@ -6,6 +6,7 @@ otp_release:
 
 env:
  - TASK=lint
+ - TASK=mz_bench_language
  - TASK=node
  - TASK=server
  - TASK=validate-examples
@@ -23,12 +24,14 @@ matrix:
 script:
  - case "$TASK" in
      lint) sudo pip install -r requirements.txt && sudo pip install pyflakes && ./bin/lint.py . ;;
+     mz_bench_language) make -C common_apps/mz_bench_language check;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
      error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      acceptance-*-tests) sudo pip install -r requirements.txt &&
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`git config --get remote.origin.url` &&
+                       export MZBENCH_BRANCH="$TRAVIS_BRANCH" &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
      *) make -C $TASK check;;

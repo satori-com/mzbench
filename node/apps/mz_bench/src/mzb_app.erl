@@ -11,7 +11,7 @@ start(_, _) ->
         [filename:join([D, "*", "ebin"])              || D <- WorkerDirs] ++
         [filename:join([D, "*", "deps", "*", "ebin"]) || D <- WorkerDirs],
 
-    CodePaths = [File || WC <- CodeWildcards, File <- mzb_utility:wildcard(WC)],
+    CodePaths = [File || WC <- CodeWildcards, File <- mzbl_utility:wildcard(WC)],
 
     lager:info("Add worker paths: ~p", [CodePaths]),
 

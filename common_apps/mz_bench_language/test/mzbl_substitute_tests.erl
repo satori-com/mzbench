@@ -1,7 +1,6 @@
--module(mzb_substitute_tests).
+-module(mzbl_substitute_tests).
 -include_lib("eunit/include/eunit.hrl").
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include("mzbl_types.hrl").
 
 id_test() ->
   Simple = "[{pool, [{size, 1}], []}].",
@@ -59,8 +58,8 @@ missing_var_is_a_failure_test() ->
   ?assertError(
       % {substitution_error, "foo", not_found_in_env, _},
       _,
-      mzb_script:substitute(
-          mzb_script:parse("{print, {var, \"foo\"}}."),
+      mzbl_script:substitute(
+          mzbl_script:parse("{print, {var, \"foo\"}}."),
           [])
       ).
 
@@ -104,7 +103,7 @@ using_var_in_poolspec_test() ->
 
 check(Input, Env, Output) ->
   ?assertEqual(
-      mzb_script:parse(Output),
-      mzb_script:substitute(
-          mzb_script:parse(Input),
+      mzbl_script:parse(Output),
+      mzbl_script:substitute(
+          mzbl_script:parse(Input),
           Env)).

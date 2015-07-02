@@ -1,9 +1,8 @@
--module(mzb_literals).
+-module(mzbl_literals).
 
 -export([convert/1]).
 
--include("mzb_types.hrl").
--include("mzb_ast.hrl").
+-include("mzbl_types.hrl").
 
 -spec convert(term()) -> term().
 convert(#constant{value = #operation{} = Op} = C) -> C#constant{value = convert(Op)};

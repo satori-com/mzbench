@@ -11,6 +11,7 @@
         jiffy,
         inets,
         erlcloud,
+        mz_bench_language,
         gen_smtp
     ]},
     {mod, {mzb_api_app, []}},
