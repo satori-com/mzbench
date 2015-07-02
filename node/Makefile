@@ -8,6 +8,7 @@ SERVICE_PREFIX=/mz
 SERVICE_NAME=mz_bench
 SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
+GIT_HEAD := $(shell git rev-parse HEAD)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
@@ -100,7 +101,7 @@ dialyzer.log: .mz_bench.plt compile
 	-@ cat dialyzer.log
 	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
 
-rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
+rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
 	rm -rf rel/$(SERVICE_NAME)
 	cd rel && $(REBAR) generate -f target_dir=$(SERVICE_NAME)
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
@@ -115,6 +116,11 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 	$(REBAR) compile
 	mkdir -p .make && touch $@
 
-.make/compilation-up-to-date: .make/deps-compiled $(SOURCES)
+.make/compilation-up-to-date: .make/deps-compiled $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile skip_deps=true
 	mkdir -p .make && touch $@
+
+.make/git-rev-$(GIT_HEAD):
+	rm -rf .make/git-rev-*
+	mkdir -p .make && touch $@
+

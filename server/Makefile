@@ -3,6 +3,7 @@ REBAR := $(abspath $(shell which ../bin/rebar || which rebar))
 SERVICE_PREFIX=/mz
 SERVICE_NAME=mz_bench_api
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
+GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
 MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
@@ -58,11 +59,15 @@ change-version:
 	$(REBAR) compile
 	mkdir -p .make && touch $@
 
-.make/compilation-up-to-date: .make/deps-compiled $(SOURCES)
+.make/compilation-up-to-date: .make/deps-compiled $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile skip_deps=true
 	mkdir -p .make && touch $@
 
-rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
+.make/git-rev-$(GIT_HEAD):
+	rm -rf .make/git-rev-*
+	mkdir -p .make && touch $@
+
+rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
 	rm -rf rel/$(SERVICE_NAME)
 	cd rel && $(REBAR) generate -f target_dir=$(SERVICE_NAME)
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
