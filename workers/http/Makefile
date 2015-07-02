@@ -7,10 +7,10 @@ compile: .make/compilation-up-to-date
 
 .PHONY: generate_tgz
 generate_tgz: pkgroot
-	mkdir -p tmp
-	rsync -aW pkgroot/ tmp/mz
-	cd tmp && tar czf ../http_worker.tgz ./mz && cd ..
-	rm -rf tmp
+	mkdir -p pkgroot
+	rsync -aW pkgroot/ pkgroot
+	cd pkgroot && tar czf ../http_worker.tgz ./${PKG_NAME} && cd ..
+	rm -rf pkgroot
 
 .make/compilation-up-to-date: $(SOURCES) .make/deps-up-to-date
 	$(REBAR) compile skip_deps=true
@@ -24,7 +24,7 @@ generate_tgz: pkgroot
 .PHONY: clean
 clean:
 	rm -f *.tgz
-	rm -rf tmp
+	rm -rf pkgroot
 	rm -rf pkgroot
 	rm -rf .make
 	$(REBAR) clean
@@ -42,8 +42,8 @@ PKG_NAME = http_worker
 .PHONY: pkgroot
 pkgroot: .make/compilation-up-to-date
 	rm -rf pkgroot
-	mkdir -p pkgroot/mz_bench_workers/${PKG_NAME}/ebin
-	cp ebin/* pkgroot/mz_bench_workers/${PKG_NAME}/ebin/
-	if [ -d "deps" ]; then cp -Rf deps pkgroot/mz_bench_workers/${PKG_NAME}; fi
-	if [ -d "examples" ]; then cp -Rf examples pkgroot/mz_bench_workers/${PKG_NAME}; fi
-	if [ -d "resources" ]; then cp -Rf resources pkgroot/mz_bench_workers/${PKG_NAME}; fi
+	mkdir -p pkgroot/${PKG_NAME}/ebin
+	cp ebin/* pkgroot/${PKG_NAME}/ebin/
+	if [ -d "deps" ]; then cp -Rf deps pkgroot/${PKG_NAME}; fi
+	if [ -d "examples" ]; then cp -Rf examples pkgroot/${PKG_NAME}; fi
+	if [ -d "resources" ]; then cp -Rf resources pkgroot/${PKG_NAME}; fi

@@ -152,7 +152,7 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
     end,
     exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger).
 
-install_package(Hosts, PackageName, GitSpec, Config, Logger) ->
+install_package(Hosts, PackageName, GitSpec, InstallationDir, Config, Logger) ->
     ShortCommit = get_git_short_sha1(GitSpec, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
     pmap(fun (Host) ->
@@ -165,7 +165,8 @@ install_package(Hosts, PackageName, GitSpec, Config, Logger) ->
 
         ensure_tgz_package(User, Host, PackageFilePath, GitSpec, Logger),
         ensure_file(User, [Host], PackageFilePath, RemoteFilePath, Logger),
-        _ = remote_cmd(User, [Host], "cd && tar xzf " ++ RemoteFilePath, [], Logger)
+        InstallationCmd = lists:flatten(io_lib:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteFilePath])),
+        _ = remote_cmd(User, [Host], InstallationCmd, [], Logger)
     end, Hosts).
 
 install_node(Hosts, Config, Logger) ->
@@ -178,14 +179,14 @@ install_node(Hosts, Config, Logger) ->
         _ -> GitBranch
     end,
 
-    install_package(Hosts, "node", {GitRepo, Branch, "node"}, Config, Logger).
+    install_package(Hosts, "node", {GitRepo, Branch, "node"}, application:get_env(mz_bench_api, node_deployment_path, ""), Config, Logger).
 
 get_worker_name({GitRepo, _, ""}) -> filename:basename(GitRepo, ".git");
 get_worker_name({_, _, GitSubDir}) -> filename:basename(GitSubDir).
 
 install_worker(Hosts, GitSpec, Config, Logger) ->
     WorkerName = get_worker_name(GitSpec),
-    install_package(Hosts, WorkerName, GitSpec, Config, Logger).
+    install_package(Hosts, WorkerName, GitSpec, application:get_env(mz_bench_api, worker_deployment_path, ""), Config, Logger).
 
 install_workers(Hosts, #{script:= Script} = Config,  Logger) ->
     #{ body := Body } = Script,
