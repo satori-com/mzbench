@@ -48,10 +48,7 @@ handle(<<"POST">>, <<"/start">>, Req) ->
                             req_host => RequestedHost}),
             {ok, reply_json(200, Resp, Req2), #{}};
         _ ->
-            Resp2 = mzb_api_server:start_bench(
-                    Params#{script => maps:get(default_scenario_package, Params),
-                            req_host => RequestedHost}),
-            {ok, reply_json(200, Resp2, Req), #{}}
+            erlang:error({badarg, "Missing script file"})
     end;
 
 handle(<<"GET">>, <<"/restart">>, Req) ->
@@ -247,8 +244,7 @@ parse_start_params(Req) ->
             {{K, V}, proplists:delete(K1, Acc)}
         end,
         cowboy_req:parse_qs(Req),
-        [package, default_scenario_package,
-            node_commit, nodes, email, deallocate_after_bench,
+        [node_commit, nodes, email, deallocate_after_bench,
             dont_provision_nodes, exclusive_node_usage, 
             emulate_bench_crash]),
 
