@@ -1,6 +1,6 @@
 -module(mzbl_ast_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include("mzbl_types.hrl").
 
 transform_test() ->
   ?assertEqual([], mzbl_ast:transform({nil,1})).
