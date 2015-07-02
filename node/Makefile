@@ -53,10 +53,10 @@ install: generate
 
 .PHONY: generate_tgz
 generate_tgz: generate
-	mkdir -p tmp/$(SERVICE_PREFIX)
-	cp -rf rel/mz_bench tmp/$(SERVICE_PREFIX)
-	cd tmp && tar czf ../node.tgz ./$(SERVICE_PREFIX) && cd ..
-	rm -rf tmp
+	mkdir -p pkgroot
+	cp -rf rel/mz_bench pkgroot/
+	cd pkgroot && tar czf ../node.tgz ./mz_bench && cd ..
+	rm -rf pkgroot
 
 .PHONY: clean
 clean:
@@ -66,7 +66,7 @@ clean:
 	rm -rf *.tgz
 	rm -rf rel/$(SERVICE_NAME)
 	rm -rf deps
-	rm -rf tmp
+	rm -rf pkgroot
 
 .PHONY: distclean
 distclean: clean
