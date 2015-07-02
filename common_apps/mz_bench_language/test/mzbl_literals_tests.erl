@@ -1,6 +1,6 @@
 -module(mzbl_literals_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include("mzbl_types.hrl").
 
 bytes_test() ->
     ?assertEqual(#constant{value = 921, units = b}, mzbl_literals:convert(#constant{value = 921, units = b})),

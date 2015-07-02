@@ -1,6 +1,6 @@
 -module(mzbl_substitute_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include("mzbl_types.hrl").
 
 id_test() ->
   Simple = "[{pool, [{size, 1}], []}].",

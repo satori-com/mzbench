@@ -2,7 +2,7 @@
 
 -export([get_value/2, get_value/3]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include("mzbl_types.hrl").
 
 -spec get_value(term(), [tuple()]) -> term().
 get_value(Key, L) -> get_value(Key, L, undefined).
