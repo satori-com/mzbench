@@ -240,19 +240,23 @@ import_data(Dir) ->
     bc_migrate_19_06_15(Dir),
 
     lager:info("Importing server data from ~s", [Dir]),
-    Import = fun (File, Max) ->
+
+    Items = filelib:wildcard(filename:join(Dir, "*")),
+
+    Import = fun (BenchFolder, Max) ->
+        File = filename:join([BenchFolder, "status"]),
         try
-            ["status", IdStr | _] = lists:reverse(filename:split(File)),
+            IdStr = filename:basename(BenchFolder),
             Id = erlang:list_to_integer(IdStr),
             import_bench_status(Id, File),
             max(Id, Max)
         catch
             _:Error ->
-                lager:error("Parsing status filename ~s failed with reason: ~p", [File, Error]),
+                lager:error("Parsing status filename ~s failed with reason: ~p~n~p", [File, Error, erlang:get_stacktrace()]),
                 Max
         end
     end,
-    filelib:fold_files(Dir, "^status$", true, Import, -1).
+    lists:foldl(Import, -1, Items).
 
 import_bench_status(Id, File) ->
     try
