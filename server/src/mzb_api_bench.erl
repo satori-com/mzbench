@@ -51,7 +51,7 @@ init([Id, Params]) ->
         emails => maps:get(email, Params),
         env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
-        dont_provision_nodes => maps:get(dont_provision_nodes, Params),
+        provision_nodes => maps:get(provision_nodes, Params),
         exclusive_node_usage => maps:get(exclusive_node_usage, Params),
         req_host => maps:get(req_host, Params),
         initial_user => maps:get(user, Params),

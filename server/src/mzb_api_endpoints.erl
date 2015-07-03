@@ -245,7 +245,7 @@ parse_start_params(Req) ->
         end,
         cowboy_req:parse_qs(Req),
         [node_commit, nodes, email, deallocate_after_bench,
-            dont_provision_nodes, exclusive_node_usage, 
+            provision_nodes, exclusive_node_usage, 
             emulate_bench_crash]),
 
     Params2 = lists:map(
@@ -262,12 +262,12 @@ parse_start_params(Req) ->
                 {deallocate_after_bench, true};
             ({deallocate_after_bench, [<<"false">>|_]}) ->
                 {deallocate_after_bench, false};
-            ({dont_provision_nodes, [<<"true">>|_]}) ->
-                {dont_provision_nodes, true};
-            ({dont_provision_nodes, [<<"false">>|_]}) ->
-                {dont_provision_nodes, false};
-            ({dont_provision_nodes, []}) ->
-                {dont_provision_nodes, false};
+            ({provision_nodes, [<<"true">>|_]}) ->
+                {provision_nodes, true};
+            ({provision_nodes, [<<"false">>|_]}) ->
+                {provision_nodes, false};
+            ({provision_nodes, []}) ->
+                {provision_nodes, true};
             ({deallocate_after_bench, []}) ->
                 {deallocate_after_bench, true};
             ({exclusive_node_usage, [<<"false">>|_]}) ->
