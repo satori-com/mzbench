@@ -156,11 +156,11 @@ run(Script, Meta, Env) ->
 ramp_solver_test() ->
     ?assertEqual(
         3000000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 6, 3000000, 11))),
+        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 6, 3000000, 12))),
     ?assertEqual(
-        430501,
+        0,
         round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000000, 0))),
     ?assertEqual(
         4000000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000000, 19))).
+        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000000, 20))).
 
