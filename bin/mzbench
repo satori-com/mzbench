@@ -14,7 +14,7 @@ Usage:
     [--node_commit=<commit>]
     [--verbose=<verbose>]
     [--deallocate_after_bench=<deallocate_after_bench>]
-    [--dont_provision_nodes=<dont_provision_nodes>]
+    [--provision_nodes=<provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
     <script_file>
   mzbench [--host=<host>] restart <bench_id>
@@ -45,9 +45,9 @@ Options:
                      this to "false" results in worker nodes still being
                      alive and accessible after bench finishes. Can be useful
                      for debugging purposes.
-    --dont_provision_nodes <dont_provision_nodes>
-                     Don't perform nodes provision. Useful when reusing already
-                     preallocated and provisioned nodes.
+    --provision_nodes <provision_nodes>
+                     Wherever to perform nodes provision. Disabling it is useful 
+                     when reusing already preallocated and provisioned nodes.
     --exclusive_node_usage <exclusive_node_usage>
                      Either "true" or "false". Default is "true".
                      If set to true mzbench will request exclusive physical
@@ -166,16 +166,16 @@ def pretty_print(data):
     json.dump(data, sys.stdout, indent=4)
 
 def run(host, script_file, script_content, email, nodes,
-        node_commit, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
+        node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage, env):
     bench_id = start(host, script_file, script_content, email, node_commit,
-        nodes, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env)
+        nodes, deallocate_after_bench, provision_nodes, exclusive_node_usage, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
         sys.exit(3)
 
 def start(host, script_file, script_content, email, node_commit, nodes,
-        deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
+        deallocate_after_bench, provision_nodes, exclusive_node_usage, env):
     import erl_utils
     import erl_terms
         
@@ -189,7 +189,7 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             node_commit=node_commit if node_commit else 'master',
             includes=include,
             deallocate_after_bench=deallocate_after_bench,
-            dont_provision_nodes=dont_provision_nodes,
+            provision_nodes=provision_nodes,
             exclusive_node_usage=exclusive_node_usage,
             env=env,
             nodes=nodes)
@@ -397,11 +397,11 @@ def augment_args(args):
                 args['--deallocate_after_bench']))
         sys.exit(4)
     
-    if args['--dont_provision_nodes'] is None:
-        args['--dont_provision_nodes'] = 'false'
-    elif args['--dont_provision_nodes'] not in ['true', 'false']:
-        print("invalid value for --dont_provision_nodes: {0}".format(
-                args['--dont_provision_nodes']))
+    if args['--provision_nodes'] is None:
+        args['--provision_nodes'] = 'true'
+    elif args['--provision_nodes'] not in ['true', 'false']:
+        print("invalid value for --provision_nodes: {0}".format(
+                args['--provision_nodes']))
         sys.exit(4)
 
     if args['--exclusive_node_usage'] is None:

@@ -14,7 +14,7 @@
 
 provision_nodes(Config, Logger) ->
     #{
-        dont_provision_nodes := DontProvisionNodes,
+        provision_nodes := ProvisionNodes,
         director_host := DirectorHost,
         worker_hosts := WorkerHosts,
         user_name := UserName,
@@ -31,8 +31,8 @@ provision_nodes(Config, Logger) ->
 
     catch remote_cmd(UserName, UniqHosts, "~/mz/mz_bench/bin/mz_bench stop; true", [], Logger),
 
-    case DontProvisionNodes of
-        false ->
+    case ProvisionNodes of
+        true ->
             install_node(UniqHosts, Config, Logger),
             install_workers(UniqHosts, Config, Logger, Env),
             ensure_cookie(UserName, UniqHosts, Config, Logger);

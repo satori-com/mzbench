@@ -10,7 +10,7 @@ import multipart
 
 def start(host, script_file, script_content,
         emails=[], node_commit='master',
-        nodes=1, deallocate_after_bench='true', dont_provision_nodes='false', exclusive_node_usage='true', 
+        nodes=1, deallocate_after_bench='true', provision_nodes='true', exclusive_node_usage='true', 
         includes=[], env={}):
 
     if isinstance(nodes, int):
@@ -19,7 +19,7 @@ def start(host, script_file, script_content,
         params = [('nodes', ','.join(nodes))]
 
     params += [('deallocate_after_bench', deallocate_after_bench)]
-    params += [('dont_provision_nodes', dont_provision_nodes)]
+    params += [('provision_nodes', provision_nodes)]
     params += [('exclusive_node_usage', exclusive_node_usage)]
     params += [('email', email) for email in emails]
     params += [('node_commit', node_commit)]
