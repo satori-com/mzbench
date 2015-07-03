@@ -279,7 +279,7 @@ terminate(Reason, State) ->
     error("Receive terminate while finalize is not completed: ~p", [Reason], State),
     spawn(
       fun() ->
-          Timer = timer:kill_after(5 * 60 * 1000),
+          {ok, Timer} = timer:kill_after(5 * 60 * 1000),
 
           Stages = proplists:get_value(finalize, workflow_config(State), []),
           NewState = handle_pipeline_status({final, failed}, State),
@@ -359,7 +359,7 @@ run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
                     timer:sleep(RetryTimeout),
                     run_periodically(StartTime, MaxTime, RetryTimeout, Fn);
                 _ ->
-                    erlang:raise(max_time_reached)
+                    erlang:error(max_time_reached)
             end
     end.
 

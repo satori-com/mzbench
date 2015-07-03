@@ -101,18 +101,18 @@ handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, S
     {noreply, NewState1#state{stage = undefine}};
 
 handle_cast({workflow, complete, Phase, Stage, Ref, Fn}, State = #state{ref = Ref}) ->
-    change_pipeline_status({complete, Phase, Stage}, State),
+    NewState0 = migrate_state(Fn, State),
+    NewState1 = change_pipeline_status({complete, Phase, Stage}, NewState0),
 
     gen_server:cast(self(), {workflow, next, Phase, Stage, Ref}),
-    NewState = case is_last_stage(Phase, Stage, State) of
+    NewState2 = case is_last_stage(Phase, Stage, NewState1) of
         true when Phase == pipeline ->
-            change_pipeline_status({final, complete}, State);
-        _ -> State
+            change_pipeline_status({final, complete}, NewState1);
+        _ -> NewState1
     end,
-    NewState1 = migrate_state(Fn, NewState),
-    NewState2 = NewState1#state{stage = undefined},
+    NewState3 = NewState2#state{stage = undefined},
 
-    {noreply, NewState2};
+    {noreply, NewState3};
 
 handle_cast({workflow, start_phase, Phase, Ref}, State = #state{ref = Ref}) ->
     handle_cast({workflow, next, Phase, undefined, Ref}, State);
