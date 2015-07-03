@@ -108,7 +108,7 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): compile rel/reltool.config
 
 .make/deps-cloned: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
 	rm -rf deps && $(REBAR) get-deps
-	make -C deps/mz_bench_language clean
+	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_language clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned
