@@ -50,7 +50,8 @@ change-version:
 
 .make/deps-cloned: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
 	rm -rf deps && $(REBAR) get-deps
-	rm -rf deps/mz_bench_language/deps
+	make -C deps/mz_bench_language clean
+	perl -pe 's/ERLC_FLAGS=$$/ERLC_FLAGS=+debug_info/' -i deps/merl/Makefile
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned
