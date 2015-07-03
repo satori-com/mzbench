@@ -45,10 +45,9 @@
 %        {graphite_api_key, ""}, % only for hostedgraphite
 %        {graphite_url, ""}, % only for hostedgraphite
         {mzbench_git, "https://github.com/machinezone/mzbench.git"},
-
         {node_deployment_path, "~/mz"},
         {worker_deployment_path, "~/mz/mz_bench_workers"},
-
+        {plugins_dir, "../../plugins"},
         {bench_data_dir, "../../data"},
         {tgz_packages_dir, "../../packages"},
         {server_config, "../../mz_bench_server.config"}

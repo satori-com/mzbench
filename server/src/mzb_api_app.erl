@@ -84,6 +84,11 @@ load_config(File) ->
     end.
 
 load_cloud_plugin() ->
+    {ok, Dir} = application:get_env(mz_bench_api, plugins_dir),
+    ok = filelib:ensure_dir(filename:join(Dir, ".")),
+    PluginPaths = mzbl_utility:wildcard(filename:join([Dir, "*", "ebin"])),
+    ok = code:add_pathsa(PluginPaths),
+    lager:info("PATHS: ~p", [code:get_path()]),
     case application:get_env(cloud_plugin) of
         {ok, {application, Name}} ->
             lager:info("Loading cloud plugin: ~p...", [Name]),
