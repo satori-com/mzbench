@@ -48,11 +48,15 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
 
-.make/deps-up-to-date: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
-	rm -rf deps && $(REBAR) get-deps compile
+.make/deps-cloned: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
+	rm -rf deps && $(REBAR) get-deps
 	mkdir -p .make && touch $@
 
-.make/compilation-up-to-date: .make/deps-up-to-date $(SOURCES)
+.make/deps-compiled: .make/deps-cloned
+	$(REBAR) compile
+	mkdir -p .make && touch $@
+
+.make/compilation-up-to-date: .make/deps-compiled $(SOURCES)
 	$(REBAR) compile skip_deps=true
 	mkdir -p .make && touch $@
 

@@ -25,7 +25,7 @@ clean:
 distclean: clean
 	rm .mz_bench_language.plt
 
-.mz_bench_language.plt: .make/deps-up-to-date
+.mz_bench_language.plt: .make/deps-compiled
 	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto -r deps
 
 dialyzer.log: .mz_bench_language.plt compile
@@ -42,10 +42,14 @@ dialyzer.log: .mz_bench_language.plt compile
 	-@cat dialyzer.log
 	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
 
-.make/deps-up-to-date: rebar.config
-	rm -rf deps && $(REBAR) get-deps compile
+.make/deps-cloned: rebar.config
+	rm -rf deps && $(REBAR) get-deps
 	mkdir -p .make && touch $@
 
-.make/compilation-up-to-date: .make/deps-up-to-date $(SOURCES)
+.make/deps-compiled: .make/deps-cloned
+	$(REBAR) compile
+	mkdir -p .make && touch $@
+
+.make/compilation-up-to-date: .make/deps-compiled $(SOURCES)
 	$(REBAR) compile skip_deps=true
 	mkdir -p .make && touch $@
