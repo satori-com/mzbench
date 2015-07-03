@@ -13,7 +13,7 @@
 % Public API
 % ===========================================================
 
--spec create_cluster(Name :: string(), NumNodes :: pos_integer(), Config :: #{}) -> {ok, [string()], [string()]}.
+-spec create_cluster(Name :: string(), NumNodes :: pos_integer(), Config :: #{}) -> {ok, [string()], [string()], [string()]}.
 create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes), NumNodes > 0 ->
 
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes), get_config()),
@@ -31,11 +31,13 @@ create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes)
 destroy_cluster(Ids) ->
     R = erlcloud_ec2:terminate_instances(Ids, get_config()),
     lager:info("Deallocating ids: ~p, result: ~p", [Ids, R]),
-    {ok, _} = R.
+    {ok, _} = R,
+    ok.
 
 update_hostfiles(UserName, Hosts) ->
-    lists:map(fun (H) -> mzb_api_provision:remote_cmd(UserName, Hosts,
-        lists:flatten(io_lib:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")])), [], undefined) end, Hosts).
+    _ = lists:map(fun (H) -> mzb_api_provision:remote_cmd(UserName, Hosts,
+        lists:flatten(io_lib:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")])), [], undefined) end, Hosts),
+    ok.
 
 wait_nodes_ssh(_, C) when C < 0 -> erlang:error({ec2_error, cluster_ssh_start_timed_out});
 wait_nodes_ssh([], _) -> ok;
@@ -64,7 +66,11 @@ wait_nodes_start([H | T], C) ->
 instance_spec(NumNodes) ->
     {ok, Ec2AppConfig} = application:get_env(mz_bench_api, ec2_instance_spec),
     lists:foldr(fun({Name, Value}, A) -> set_record_element(A, Name, Value) end,
-        #ec2_instance_spec{min_count = NumNodes, max_count = NumNodes}, Ec2AppConfig).
+        #ec2_instance_spec{
+            min_count = NumNodes,
+            max_count = NumNodes,
+            iam_instance_profile_name = "undefined"},
+        Ec2AppConfig).
 
 get_config() ->
     {ok, AppConfig} = application:get_env(mz_bench_api, aws_config),

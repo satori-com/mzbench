@@ -28,7 +28,7 @@ test-unit: compile
 	$(REBAR) eunit skip_deps=true
 
 .PHONY: check
-check: test-unit
+check: test-unit dialyzer.log
 
 .PHONY: clean
 clean:
@@ -75,13 +75,13 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 
 
 .mz_bench_server.plt: .make/deps-compiled
-	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto -r deps
+	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto inets deps/cowboy -pa deps/*/ebin
 
 dialyzer.log: .mz_bench_server.plt .make/compilation-up-to-date
 	- dialyzer --plt $< \
 		ebin \
 		-I src \
-		-I deps -o dialyzer.log \
+		-o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
 		-Werror_handling \
