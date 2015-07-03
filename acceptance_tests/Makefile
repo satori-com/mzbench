@@ -1,7 +1,6 @@
 
 .PHONY: check
-check:
-	./run_tests.py -v
+check: local-tests basic-tests negative-tests signal-tests
 
 .PHONY: local-tests
 local-tests:

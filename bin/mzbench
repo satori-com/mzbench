@@ -25,6 +25,7 @@ Usage:
   mzbench validate <script> [--env=<name=value>...]
   mzbench list_templates
   mzbench new_worker [--template=<template>] <name>
+  mzbench selfcheck
   mzbench -h | --help
 
 Options:
@@ -114,10 +115,14 @@ def require(executable):
 #=================================================================================================
 NODE_PROJECTS = [dirname + "/../node"]
 SERVER_PROJECTS = [dirname + "/../server"]
+CHECK_PROJECTS = NODE_PROJECTS + SERVER_PROJECTS + \
+    [dirname + '/../common_apps/mz_bench_language',
+     dirname + '/../examples',
+     dirname + '/../acceptance_tests/invalid_scripts']
 
 def execute_make(projects, target):
     for subproject in projects:
-        util.cmd('make -C ' + subproject + ' ' + target)
+        cmd('make -C ' + subproject + ' ' + target)
 
 def compile_projects(projects):
     execute_make(projects, 'compile')
@@ -150,6 +155,15 @@ def stop_server():
 def restart_server(config):
     stop_server()
     start_server(config)
+
+#=================================================================================================
+# Testing
+#=================================================================================================
+
+def selfcheck():
+    cmd('{0}/lint.py {0}/../'.format(dirname))
+    execute_make(CHECK_PROJECTS, 'check')
+    subprocess.call(['make', '-C', dirname + '/../acceptance_tests'])
 
 #=================================================================================================
 # Communication with the API server
