@@ -8,8 +8,8 @@ import requests
 
 import multipart
 
-def start(host, script_file=None, script_content=None,
-        emails=[], packages=[], worker_package_with_default_scenario=None, node_commit='master',
+def start(host, script_file, script_content,
+        emails=[], node_commit='master',
         nodes=1, deallocate_after_bench='true', dont_provision_nodes='false', exclusive_node_usage='true', 
         includes=[], env={}):
 
@@ -21,46 +21,36 @@ def start(host, script_file=None, script_content=None,
     params += [('deallocate_after_bench', deallocate_after_bench)]
     params += [('dont_provision_nodes', dont_provision_nodes)]
     params += [('exclusive_node_usage', exclusive_node_usage)]
-    params += [('package', p) for p in packages]
     params += [('email', email) for email in emails]
     params += [('node_commit', node_commit)]
     params += [(k, v) for k, v in env.iteritems()]
 
-    if script_file and script_content:
-        files = [('bench',
-            {'filename': os.path.basename(script_file),
-             'content': script_content})]
+    files = [('bench',
+        {'filename': os.path.basename(script_file),
+         'content': script_content})]
 
-        for inc in includes:
-            script_dir = os.path.dirname(script_file)
-            filename = os.path.join(script_dir, inc)
-            try:
-                with open(filename) as fi:
-                    files.append(
-                        ('include', {'filename': inc, 'content': fi.read()}))
-            except IOError:
-                print "Warning: resource file '%s' is not found on the local machine" % filename
+    for inc in includes:
+        script_dir = os.path.dirname(script_file)
+        filename = os.path.join(script_dir, inc)
+        try:
+            with open(filename) as fi:
+                files.append(
+                    ('include', {'filename': inc, 'content': fi.read()}))
+        except IOError:
+            print "Warning: resource file '%s' is not found on the local machine" % filename
 
-        body, headers = multipart.encode_multipart({}, files)
+    body, headers = multipart.encode_multipart({}, files)
 
-        return assert_successful_post(
-            host,
-            '/start',
-            params,
-            data=body, headers=headers)
-    elif worker_package_with_default_scenario:
-        params += [('default_scenario_package', worker_package_with_default_scenario)]
+    return assert_successful_post(
+        host,
+        '/start',
+        params,
+        data=body, headers=headers)
 
-        return assert_successful_post(
-            host,
-            '/start',
-            params)
-
-    print >>sys.stderr, "Neither script file nor default scenario package provided."
-    sys.exit(17)
 
 def restart(host, bench_id):
     return assert_successful_get(host, '/restart', {'id': bench_id})
+
 
 def logs(host, bench_id):
     for x in stream_lines(host, '/logs', {'id': bench_id}):

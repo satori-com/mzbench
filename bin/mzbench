@@ -10,7 +10,6 @@ Usage:
   mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>]
     [(--email=<email> ...)]
-    [(--package=<package> ...)]
     [(--env=<name=value>...)]
     [--node_commit=<commit>]
     [--verbose=<verbose>]
@@ -136,16 +135,16 @@ def restart_server():
 def pretty_print(data):
     json.dump(data, sys.stdout, indent=4)
 
-def run(host, script_file, script_content, email, package, nodes,
+def run(host, script_file, script_content, email, nodes,
         node_commit, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
-    bench_id = start(host, script_file, script_content, email, package, node_commit,
+    bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
         sys.exit(3)
 
-def start(host, script_file, script_content, email, package, node_commit, nodes,
+def start(host, script_file, script_content, email, node_commit, nodes,
         deallocate_after_bench, dont_provision_nodes, exclusive_node_usage, env):
     import erl_utils
     import erl_terms
@@ -153,12 +152,10 @@ def start(host, script_file, script_content, email, package, node_commit, nodes,
     try:
         script_terms = erl_utils.convert(script_content, env)
         include = erl_utils.get_includes(script_terms)
-        package += erl_utils.get_packages(script_terms)
         response = api.start(host,
             script_file,
             script_content,
             emails=email,
-            packages=package,
             node_commit=node_commit if node_commit else 'master',
             includes=include,
             deallocate_after_bench=deallocate_after_bench,

@@ -48,7 +48,6 @@ init([Id, Params]) ->
         purpose => Purpose,
         node_git => application:get_env(mz_bench_api, mzbench_git, undefined),
         node_commit => maps:get(node_commit, Params),
-        packages => maps:get(package, Params),
         emails => maps:get(email, Params),
         env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
@@ -475,26 +474,17 @@ process_data(Purpose, Host, Socket, FileHandler) ->
     end.
 
 generate_mail_body(Id, Status, Links, Config) ->
-    #{packages:= Packages,
-      env:= Env,
-      script:= Script
-      } = Config,
-    {ScriptName, ScriptBody} = case Script of
-       #{name := Name, body := Body} -> {Name, Body};
-       Package ->
-            {Package ++ " / default scenario", "Default scenario for " ++ Package}
-    end,
+    #{env:= Env, script:= Script} = Config,
+    #{name := ScriptName, body := ScriptBody} = Script,
     Subject = io_lib:format("Bench report for ~s (~s)", [ScriptName, Status]),
     Chars = io_lib:format(
         "Status: ~s~n~n"
-        "Packages:~n~s~n~n"
         "Environment:~n~s~n~n"
         "Script body:~n~s~n~n"
         "Benchmark logs:~n  ~s~n~n"
         "Metrics data:~n  ~s~n~n"
         "Graphite links for reference:~n~s~n",
         [Status,
-         indent(string:join(Packages, "\n"), 2, "(no packages)"),
          indent(string:join([io_lib:format("~s = ~s", [K,V]) || {K,V} <- Env], "\n"), 2, "(no env variables)"),
          indent(ScriptBody, 2),
          bench_log_link(Id, Config),
