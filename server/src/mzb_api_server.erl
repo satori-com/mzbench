@@ -237,8 +237,6 @@ save_results(Id, Status, #{data_dir:= Dir}) ->
     end.
 
 import_data(Dir) ->
-    bc_migrate_19_06_15(Dir),
-
     lager:info("Importing server data from ~s", [Dir]),
 
     Items = mzbl_utility:wildcard(filename:join(Dir, "*")),
@@ -266,55 +264,6 @@ import_bench_status(Id, File) ->
     catch _:E ->
         lager:error("Import from file ~s failed with reason: ~p~n~p", [File, E, erlang:get_stacktrace()])
     end.
-
-% BC code begin
-bc_migrate_19_06_15(Dir) ->
-    try
-        BenchmarkDir = filename:join([Dir, "..", "benchmarks"]),
-        lists:foreach(fun (BDir) ->
-            try
-                [_, IdStr, _] = string:tokens(filename:basename(BDir), "-"),
-                Files = filelib:wildcard(filename:join(BDir, "*")),
-                Target = filename:join([Dir, IdStr, "."]),
-                ok = filelib:ensure_dir(Target),
-                _ = [file:copy(F, filename:join(Target, filename:basename(F))) || F <- Files],
-                [file:delete(F) || F <- Files],
-                file:del_dir(BDir),
-                ok
-            catch
-                _:E ->
-                    lager:error("Server data migration error: ~s, ~p", [BDir, E]),
-                    ok
-            end
-        end, filelib:wildcard(filename:join(BenchmarkDir, "*"))),
-        file:del_dir(BenchmarkDir),
-
-        ServerDir = filename:join([Dir, "..", "server"]),
-        lists:foreach(fun (F) ->
-            try
-                IdStr = filename:basename(F),
-                Target = filename:join([Dir, IdStr, "status"]),
-                ok = filelib:ensure_dir(Target),
-                {ok, [Cfg]} = file:consult(F),
-                #{log_file := LogFile} = Cfg,
-                NewCfg = Cfg#{log_file => filename:join([Dir, IdStr, "log.txt"]),
-                              metrics_file => filename:join([Dir, IdStr, "metrics.txt"])},
-                file:write_file(Target, io_lib:format("~p.", [NewCfg])),
-                file:delete(F),
-                file:del_dir(filename:dirname(F))
-            catch
-                _:E ->
-                    lager:error("Server data migration error: ~s, ~p", [F, E]),
-                    ok
-            end
-        end, filelib:wildcard(filename:join([ServerDir, "*", "*"]))),
-        file:del_dir(ServerDir)
-    catch
-        _:Error ->
-            lager:error("Server data migration exception: ~p~n~p", [Error, erlang:get_stacktrace()])
-    end.
-
-% BC code end
 
 sys_username() ->
     case os:getenv("REMOTE_USER") of

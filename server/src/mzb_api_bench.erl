@@ -215,10 +215,10 @@ handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= Dir
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
-handle_stage(finalize, deallocating_hosts, #{config:= #{deallocate_after_bench:= false}} = State) ->
-    info("Skip deallocation due to the bench config.", [], State);
+handle_stage(finalize, deallocating_hosts, #{deallocate_after_bench:= false} = State) ->
+    info("Skip deallocation. Deallocate after bench is true", [], State);
 handle_stage(finalize, deallocating_hosts, #{deallocator:= undefined} = State) ->
-    info("Skip deallocation. Unknown deallocator.", [], State);
+    info("Skip deallocation. Undefined deallocator.", [], State);
 handle_stage(finalize, deallocating_hosts, #{deallocator:= Deallocator} = State) ->
     DeallocWrapper = fun () ->
         try
@@ -247,8 +247,8 @@ handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
                   end, Collectors);
 
 handle_stage(finalize, closing_log_files, State) ->
-    file:close(maps:get(log_file_handler, State)),
-    file:close(maps:get(metrics_file_handler, State)).
+    ok = file:close(maps:get(log_file_handler, State)),
+    ok = file:close(maps:get(metrics_file_handler, State)).
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -465,7 +465,7 @@ wait_collectors([{Pid, Purpose, Host} | Tail], Acc) ->
 process_data(Purpose, Host, Socket, FileHandler) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Data} ->
-            file:write(FileHandler, Data),
+            ok = file:write(FileHandler, Data),
             process_data(Purpose, Host, Socket, FileHandler);
         {error, closed} ->
             lager:info("Collector '~p' is closed on host ~s", [Purpose, Host]);
@@ -546,7 +546,7 @@ format_log(_Handler, debug, _Format, _Args) -> ok;
 format_log(Handler, Severity, Format, Args) ->
     Now = {_, _, Ms} = os:timestamp(),
     {_, {H,M,S}} = calendar:now_to_universal_time(Now),
-    file:write(Handler, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])).
+    ok = file:write(Handler, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])).
 
 format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
     io_lib:format("Command returned ~b:~n ~s~nCommand output: ~s", [Code, Cmd, Output]);

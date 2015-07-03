@@ -88,10 +88,11 @@ ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
     ok.
 
 ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
-    pmap(
+    _ = pmap(
         fun ({H, N}) ->
             ensure_file_content([H], vm_args_content(N), "vm.args", Config, Logger)
-        end, lists:zip(Hosts, Nodenames)).
+        end, lists:zip(Hosts, Nodenames)),
+    ok.
 
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
@@ -99,8 +100,6 @@ worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 vm_args_content(NodeName) ->
     io_lib:format("-sname ~s~n", [NodeName]).
 
-get_git_sha1(GitRepo, GitRef, Logger) when is_binary(GitRef) ->
-    get_git_sha1(GitRepo, erlang:binary_to_list(GitRef), Logger);
 get_git_sha1(GitRepo, GitRef, Logger) ->
     case string:tokens(lists:flatten(exec_format("git ls-remote ~s ~s", [GitRepo, GitRef], [stderr_to_stdout], Logger)), "\t") of
         [Commit | _] -> Commit;
@@ -133,17 +132,18 @@ ensure_tgz_package(User, Host, LocalTarballName, #install_spec{repo = GitRepo, b
 
 download_file(User, Host, FromFile, ToFile, Logger) ->
     TmpFile = tmp_filename(),
-    case Host of
+    _ = case Host of
         "localhost" -> exec_format("cp ~s ~s", [FromFile, TmpFile], [stderr_to_stdout], Logger);
-        Host -> exec_format("scp -o StrictHostKeyChecking=no ~s@~s:~s ~s",
+        _ -> exec_format("scp -o StrictHostKeyChecking=no ~s@~s:~s ~s",
             [User, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger)
     end,
-    exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger).
+    _ = exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger),
+    ok.
 
 install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
     ShortCommit = get_git_short_sha1(InstallSpec, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
-    pmap(fun (Host) ->
+    _ = pmap(fun (Host) ->
         HostOSId = get_host_os_id(User, Host, Logger),
         log(Logger, info, "[ mzb_api_provision ] Deploying package: ~s~nfrom: ~p~non: ~s (OS: ~s)", [PackageName, InstallSpec, Host, HostOSId]),
         PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, "."),
@@ -155,7 +155,8 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
         ensure_file(User, [Host], PackageFilePath, RemoteFilePath, Logger),
         InstallationCmd = lists:flatten(io_lib:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteFilePath])),
         _ = remote_cmd(User, [Host], InstallationCmd, [], Logger)
-    end, Hosts).
+    end, Hosts),
+    ok.
 
 install_node(Hosts, Config, Logger) ->
     #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
@@ -170,7 +171,10 @@ install_node(Hosts, Config, Logger) ->
     install_package(
         Hosts,
         "node",
-        #install_spec{repo = GitRepo, branch = Branch, dir = "node"},
+        #install_spec{
+            repo = GitRepo,
+            branch = binary_to_list(Branch),
+            dir = "node"},
         application:get_env(mz_bench_api, node_deployment_path, ""),
         Config,
         Logger).

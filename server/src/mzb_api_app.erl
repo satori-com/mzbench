@@ -8,7 +8,7 @@
 
 start(_Type, _Args) ->
     load_config(application:get_env(mz_bench_api, server_config, undefined)),
-    load_cloud_plugin(),
+    ok = load_cloud_plugin(),
 
     Static = fun(Filetype) ->
                  {lists:append(["/", Filetype, "/[...]"]), cowboy_static,
@@ -44,7 +44,7 @@ prep_stop(State) ->
 
 stop(_State) ->
     lager:warning("Server is stopping..."),
-    cowboy:stop_listener(http),
+    ok = cowboy:stop_listener(http),
     ok.
 
 wait_benchmarks_finish(Attempts) when Attempts =< 0 -> ok;
@@ -74,8 +74,10 @@ load_config(File) ->
 
 load_cloud_plugin() ->
     case application:get_env(cloud_plugin) of
-        {ok, {application, Name}} -> lager:info("Loading cloud plugin: ~p...", [Name]),
-                                     {ok, _} = application:ensure_all_started(Name);
+        {ok, {application, Name}} ->
+            lager:info("Loading cloud plugin: ~p...", [Name]),
+            {ok, _} = application:ensure_all_started(Name),
+            ok;
         {ok, {module, _}} -> ok;
         undefined ->
             lager:error("A cloud plugin must be specified in the \"cloud_plugin\" environment variable!"),
