@@ -215,10 +215,10 @@ handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= Dir
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
-handle_stage(finalize, deallocating_hosts, #{deallocate_after_bench:= false} = State) ->
-    info("Skip deallocation. Deallocate after bench is true", [], State);
+handle_stage(finalize, deallocating_hosts, #{config:= #{deallocate_after_bench:= false}} = State) ->
+    info("Skip deallocation due to the bench config.", [], State);
 handle_stage(finalize, deallocating_hosts, #{deallocator:= undefined} = State) ->
-    info("Skip deallocation. Undefined deallocator.", [], State);
+    info("Skip deallocation. Unknown deallocator.", [], State);
 handle_stage(finalize, deallocating_hosts, #{deallocator:= Deallocator} = State) ->
     DeallocWrapper = fun () ->
         try
