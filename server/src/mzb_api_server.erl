@@ -241,7 +241,7 @@ import_data(Dir) ->
 
     lager:info("Importing server data from ~s", [Dir]),
 
-    Items = filelib:wildcard(filename:join(Dir, "*")),
+    Items = mzbl_utility:wildcard(filename:join(Dir, "*")),
 
     Import = fun (BenchFolder, Max) ->
         File = filename:join([BenchFolder, "status"]),
