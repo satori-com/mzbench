@@ -60,16 +60,30 @@ Options:
 
 from __future__ import print_function
 
-import glob
-import os
-import sys
-import docopt
-import time
-import json
-import csv
-import re
 from shutil import copytree
+import csv
+import glob
+import json
+import os
+import re
 import subprocess
+import sys
+import time
+
+try:
+    import docopt
+    import requests
+
+    # Pyflakes would complain about unused requests, so we have to trick it
+    assert requests
+except ImportError:
+    print('mzbench requires docopt and requests')
+    print()
+    print('These packages can be installed using your preferred package manager')
+    print('or using pip, typically:')
+    print()
+    print(' sudo pip install -r requirements.txt')
+    sys.exit(1)
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
@@ -79,6 +93,17 @@ import util
 from subprocess import check_call
 
 import mz_bench_api_client as api
+
+
+def require(executable):
+    descriptions = {'escript': 'Erlang distribution (17.0 or newer)', 'c++': 'C++ compiler'}
+    from distutils.spawn import find_executable
+    if not find_executable(executable):
+        print('This command requires {0}.'.format(
+            descriptions.get(executable, executable)))
+        print('It can be installed using your preferred package manager.')
+        sys.exit(1)
+
 
 #=================================================================================================
 # Installation and cleanup
@@ -103,12 +128,15 @@ def clean():
     clean_projects(NODE_PROJECTS + SERVER_PROJECTS)
 
 def install_server():
+    require('escript')
+    require('c++')
     install_projects(SERVER_PROJECTS)
 
 #=================================================================================================
 # API server startup and stop
 #=================================================================================================
 def start_server():
+    require('escript')
     Server = "/mz/mz_bench_api/bin/mz_bench_api"
     if os.path.isfile(Server):
         cmd('{0} start'.format(Server))
@@ -118,6 +146,7 @@ def start_server():
         sys.exit(2)
 
 def stop_server():
+    require('escript')
     Server = "/mz/mz_bench_api/bin/mz_bench_api"
     if os.path.isfile(Server):
         cmd('{0} stop'.format(Server))
@@ -126,6 +155,7 @@ def stop_server():
         sys.exit(2)
 
 def restart_server():
+    require('escript')
     stop_server()
     start_server()
 
@@ -308,9 +338,11 @@ def run_or_validate(script, env, validate):
         return subprocess.call(cmd)
 
 def run_local(script, env):
+    require('escript')
     sys.exit(run_or_validate(script, env, validate=False))
     
 def validate(script, env):
+    require('escript')
     sys.exit(run_or_validate(script, env, validate=True))
 
 #=================================================================================================
