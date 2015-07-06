@@ -236,6 +236,9 @@ iso_8601_fmt(Seconds) ->
     io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0BZ",
         [Year, Month, Day, Hour, Min, Sec]).
 
+binary_to_bool(<<"true">>) -> true;
+binary_to_bool(<<"false">>) -> false.
+
 parse_start_params(Req) ->
     {Params, Env} = lists:mapfoldl(
         fun (K, Acc) ->
@@ -253,27 +256,23 @@ parse_start_params(Req) ->
                 {true, V2} = check_nodes(V),
                 {nodes, V2};
             ({node_commit, [Commit|_]}) ->
-                {node_commit, Commit};
-            ({emulate_bench_crash, [<<"true">>|_]}) ->
-                {emulate_bench_crash, true};
-            ({emulate_bench_crash, [<<"false">>|_]}) ->
+                {node_commit, erlang:binary_to_list(Commit)};
+            ({node_commit, []}) ->
+                {node_commit, undefined};
+            ({emulate_bench_crash, [Value|_]}) ->
+                {emulate_bench_crash, binary_to_bool(Value)};
+            ({emulate_bench_crash, []}) ->
                 {emulate_bench_crash, false};
-            ({deallocate_after_bench, [<<"true">>|_]}) ->
-                {deallocate_after_bench, true};
-            ({deallocate_after_bench, [<<"false">>|_]}) ->
-                {deallocate_after_bench, false};
-            ({provision_nodes, [<<"true">>|_]}) ->
-                {provision_nodes, true};
-            ({provision_nodes, [<<"false">>|_]}) ->
-                {provision_nodes, false};
-            ({provision_nodes, []}) ->
-                {provision_nodes, true};
+            ({deallocate_after_bench, [Value|_]}) ->
+                {deallocate_after_bench, binary_to_bool(Value)};
             ({deallocate_after_bench, []}) ->
                 {deallocate_after_bench, true};
-            ({exclusive_node_usage, [<<"false">>|_]}) ->
-                {exclusive_node_usage, false};
-            ({exclusive_node_usage, [<<"true">>|_]}) ->
-                {exclusive_node_usage, true};
+            ({provision_nodes, [Value|_]}) ->
+                {provision_nodes, binary_to_bool(Value)};
+            ({provision_nodes, []}) ->
+                {provision_nodes, true};
+            ({exclusive_node_usage, [Value|_]}) ->
+                {exclusive_node_usage, binary_to_bool(Value)};
             ({exclusive_node_usage, []}) ->
                 {exclusive_node_usage, true};
             ({K, V}) ->

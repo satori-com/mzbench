@@ -162,7 +162,7 @@ install_node(Hosts, Config, Logger) ->
     #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
     log(Logger, info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
     Branch = case GitBranch of
-        <<"master">> ->
+        undefined ->
             {ok, GitRev} = application:get_key(mz_bench_api, vsn),
             GitRev;
         _ -> GitBranch
