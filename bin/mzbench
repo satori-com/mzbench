@@ -46,8 +46,10 @@ Options:
                      alive and accessible after bench finishes. Can be useful
                      for debugging purposes.
     --provision_nodes <provision_nodes>
-                     Wherever to perform nodes provision. Disabling it is useful 
-                     when reusing already preallocated and provisioned nodes.
+                     Either "true" or "false". Default is "true". Setting this 
+                     to "true" indicates to perform nodes provision. Disabling 
+                     it is useful when reusing already preallocated and 
+                     provisioned nodes.
     --exclusive_node_usage <exclusive_node_usage>
                      Either "true" or "false". Default is "true".
                      If set to true mzbench will request exclusive physical
@@ -384,10 +386,11 @@ def augment_args(args):
     if not args['--host']:
         args['--host'] = os.environ.get('MZ_BENCH_API_HOST') or 'localhost:4800'
 
-    try:
-        args['--nodes'] = int(args['--nodes'] or 1)
-    except ValueError:
-        args['--nodes'] = args['--nodes'].split(',')
+    if args['--nodes'] is not None:
+        try:
+            args['--nodes'] = int(args['--nodes'])
+        except ValueError:
+            args['--nodes'] = args['--nodes'].split(',')
     
     args['--env'] = dict(map(lambda x: x.split("=", 2), args['--env']))
 

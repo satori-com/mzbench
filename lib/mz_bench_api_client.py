@@ -13,18 +13,21 @@ def start(host, script_file, script_content,
          exclusive_node_usage, emails=[], includes=[], env={}
         ):
 
-    if isinstance(nodes, int):
-        params = [('nodes', nodes)]
+    if nodes is not None:
+        if isinstance(nodes, int):
+            params = [('nodes', nodes)]
+        else:
+            params = [('nodes', ','.join(nodes))]
     else:
-        params = [('nodes', ','.join(nodes))]
+        params = []
 
-    if deallocate_after_bench:
+    if deallocate_after_bench is not None:
         params += [('deallocate_after_bench', deallocate_after_bench)]
-    if provision_nodes:
+    if provision_nodes is not None:
         params += [('provision_nodes', provision_nodes)]
-    if exclusive_node_usage:
+    if exclusive_node_usage is not None:
         params += [('exclusive_node_usage', exclusive_node_usage)]
-    if node_commit:
+    if node_commit is not None:
         params += [('node_commit', node_commit)]
     
     params += [('email', email) for email in emails]
