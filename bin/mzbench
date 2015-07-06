@@ -186,7 +186,7 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             script_file,
             script_content,
             emails=email,
-            node_commit=node_commit if node_commit else 'master',
+            node_commit=node_commit,
             includes=include,
             deallocate_after_bench=deallocate_after_bench,
             provision_nodes=provision_nodes,
@@ -388,25 +388,20 @@ def augment_args(args):
         args['--nodes'] = int(args['--nodes'] or 1)
     except ValueError:
         args['--nodes'] = args['--nodes'].split(',')
+    
     args['--env'] = dict(map(lambda x: x.split("=", 2), args['--env']))
 
-    if args['--deallocate_after_bench'] is None:
-        args['--deallocate_after_bench'] = 'true'
-    elif args['--deallocate_after_bench'] not in ['true', 'false']:
+    if args['--deallocate_after_bench'] not in [None, 'true', 'false']:
         print("invalid value for --deallocate_after_bench: {0}".format(
                 args['--deallocate_after_bench']))
         sys.exit(4)
     
-    if args['--provision_nodes'] is None:
-        args['--provision_nodes'] = 'true'
-    elif args['--provision_nodes'] not in ['true', 'false']:
+    if args['--provision_nodes'] not in [None, 'true', 'false']:
         print("invalid value for --provision_nodes: {0}".format(
                 args['--provision_nodes']))
         sys.exit(4)
 
-    if args['--exclusive_node_usage'] is None:
-        args['--exclusive_node_usage'] = 'true'
-    elif args['--exclusive_node_usage'] not in ['true', 'false']:
+    if args['--exclusive_node_usage'] not in [None, 'true', 'false']:
         print("invalid value for --exclusive_node_usage: {0}".format(
                 args['--exclusive_node_usage']))
         sys.exit(4)

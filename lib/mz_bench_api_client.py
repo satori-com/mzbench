@@ -9,20 +9,25 @@ import requests
 import multipart
 
 def start(host, script_file, script_content,
-        emails=[], node_commit='master',
-        nodes=1, deallocate_after_bench='true', provision_nodes='true', exclusive_node_usage='true', 
-        includes=[], env={}):
+         node_commit, nodes, deallocate_after_bench, provision_nodes, 
+         exclusive_node_usage, emails=[], includes=[], env={}
+        ):
 
     if isinstance(nodes, int):
         params = [('nodes', nodes)]
     else:
         params = [('nodes', ','.join(nodes))]
 
-    params += [('deallocate_after_bench', deallocate_after_bench)]
-    params += [('provision_nodes', provision_nodes)]
-    params += [('exclusive_node_usage', exclusive_node_usage)]
+    if deallocate_after_bench:
+        params += [('deallocate_after_bench', deallocate_after_bench)]
+    if provision_nodes:
+        params += [('provision_nodes', provision_nodes)]
+    if exclusive_node_usage:
+        params += [('exclusive_node_usage', exclusive_node_usage)]
+    if node_commit:
+        params += [('node_commit', node_commit)]
+    
     params += [('email', email) for email in emails]
-    params += [('node_commit', node_commit)]
     params += [(k, v) for k, v in env.iteritems()]
 
     files = [('bench',
