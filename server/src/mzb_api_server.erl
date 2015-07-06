@@ -82,13 +82,15 @@ init([]) ->
     ok = filelib:ensure_dir(filename:join(ServerDir, ".")),
     MaxId = import_data(ServerDir),
     User = sys_username(),
+    {ok, MaxBenchNum} = application:get_env(mz_bench_api, max_bench_num),
     lager:info("Server username: ~p", [User]),
-    {ok, #{next_id => MaxId + 1,
+    {ok, check_max_bench_num(#{next_id => MaxId + 1,
            monitors => #{},
            status => active,
            data_dir => ServerDir,
            user => User,
-           localhost_allocated => false}}.
+           localhost_allocated => false,
+           max_bench_num => MaxBenchNum})}.
 
 server_data_dir() ->
     DataDir = application:get_env(mz_bench_api, bench_data_dir, undefined),
@@ -219,10 +221,27 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
         {ok, Pid} ->
             Mon = erlang:monitor(process, Pid),
             true = ets:insert_new(benchmarks, {Id, Pid}),
-            {ok, Id, State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)}};
+            NewState = State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)},
+            {ok, Id, check_max_bench_num(NewState)};
         {error, Reason} ->
             {error, Reason}
     end.
+
+check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} = State) ->
+    MinId = (NextId - MaxNum),
+    ets:foldl(
+        fun ({_Id, Pid}, _) when is_pid(Pid) -> ok;
+            ({Id, _Status}, _) when Id >= MinId -> ok;
+            ({Id, _Status}, _) ->
+                BenchDir = filename:join(Dir, erlang:integer_to_list(Id)),
+                lager:info("Deleting bench #~b", [Id]),
+                case mzbl_utility:del_dir(BenchDir) of
+                    ok -> ets:delete(benchmarks, Id);
+                    {error, Reason} ->
+                        lager:error("Delete directory ~p failed: ~p", [BenchDir, Reason])
+                end
+        end, [], benchmarks),
+    State.
 
 save_results(Id, Status, #{data_dir:= Dir}) ->
     try

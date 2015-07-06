@@ -15,7 +15,8 @@
     any_to_num/1,
     expand_filename/1,
     wildcard/1,
-    make_install_spec/3
+    make_install_spec/3,
+    del_dir/1
    ]).
 
 -include("mzbl_types.hrl").
@@ -133,3 +134,18 @@ make_install_spec(Repo, Branch, Dir) ->
         repo = ToString(Repo),
         branch = ToString(Branch),
         dir = ToString(Dir)}.
+
+del_dir(Dir) ->
+    Files = [Dir|mzbl_utility:wildcard(filename:join(Dir, "**"))],
+    RegularFiles = [F || F <- Files, filelib:is_regular(F)],
+    Dirs = [F || F <- Files, filelib:is_dir(F)],
+    SortedDirs = lists:usort(fun (S1, S2) -> length(S1) >= length(S2) end, Dirs),
+    try
+        [{_, ok} = {F, file:delete(F)} || F <- RegularFiles],
+        [{_, ok} = {D, file:del_dir(D)} || D <- SortedDirs],
+        ok
+    catch
+        error:{badmatch, Reason} ->
+            {error, Reason}
+    end.
+
