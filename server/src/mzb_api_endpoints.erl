@@ -240,45 +240,53 @@ binary_to_bool(<<"true">>) -> true;
 binary_to_bool(<<"false">>) -> false.
 
 parse_start_params(Req) ->
+    % List of parameters definition format:
+    %   {ParamName,                 single_value,   binary_to_value conversion function,                        DefaultValue},
+    %   {ParamName,                 list,           list_of_binaries_to_value conversion function,              DefaultValue}
+    ParamsDefs = [
+        {nodes,                     list,           fun(List) -> 
+                                                        {true, List2} = check_nodes(List), 
+                                                        List2 
+                                                    end,                                                        1},
+        {email,                     list,           fun(List) -> 
+                                                        {true, List2} = check_string_multi_param(List),
+                                                        List2
+                                                    end,                                                        []},
+        {node_commit,               single_value,   fun erlang:binary_to_list/1,                                undefined},
+        {emulate_bench_crash,       single_value,   fun binary_to_bool/1,                                       false},
+        {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},
+        {provision_nodes,           single_value,   fun binary_to_bool/1,                                       true},
+        {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true}
+    ],
+    
     {Params, Env} = lists:mapfoldl(
         fun (K, Acc) ->
             K1 = erlang:atom_to_binary(K, latin1),
             V = proplists:get_all_values(K1, Acc),
             {{K, V}, proplists:delete(K1, Acc)}
         end,
-        cowboy_req:parse_qs(Req),
-        [node_commit, nodes, email, deallocate_after_bench,
-            provision_nodes, exclusive_node_usage, 
-            emulate_bench_crash]),
+        cowboy_req:parse_qs(Req), 
+        [ParamName || {ParamName, _, _, _} <- ParamsDefs]),
 
     Params2 = lists:map(
-        fun ({nodes, V}) ->
-                {true, V2} = check_nodes(V),
-                {nodes, V2};
-            ({node_commit, [Commit|_]}) ->
-                {node_commit, erlang:binary_to_list(Commit)};
-            ({node_commit, []}) ->
-                {node_commit, undefined};
-            ({emulate_bench_crash, [Value|_]}) ->
-                {emulate_bench_crash, binary_to_bool(Value)};
-            ({emulate_bench_crash, []}) ->
-                {emulate_bench_crash, false};
-            ({deallocate_after_bench, [Value|_]}) ->
-                {deallocate_after_bench, binary_to_bool(Value)};
-            ({deallocate_after_bench, []}) ->
-                {deallocate_after_bench, true};
-            ({provision_nodes, [Value|_]}) ->
-                {provision_nodes, binary_to_bool(Value)};
-            ({provision_nodes, []}) ->
-                {provision_nodes, true};
-            ({exclusive_node_usage, [Value|_]}) ->
-                {exclusive_node_usage, binary_to_bool(Value)};
-            ({exclusive_node_usage, []}) ->
-                {exclusive_node_usage, true};
-            ({K, V}) ->
-                {true, V2} = check_string_multi_param(V),
-                {K, V2}
-        end, Params),
+        fun({ParamName, ValuesList}) ->
+            {ParamName, 
+                case lists:keyfind(ParamName, 1, ParamsDefs) of
+                    {_, single_value, BinaryToValueFun, DefaultValue} ->
+                        case ValuesList of
+                            [Value|_] -> BinaryToValueFun(Value);
+                            [] -> DefaultValue
+                        end;
+                
+                    {_, list, ListOfBinariesToValueFun, DefaultValue} ->
+                        case  ValuesList of
+                            [] -> DefaultValue;
+                            L -> ListOfBinariesToValueFun(L)
+                        end
+                end
+            }
+        end,
+        Params),
 
     Env2 = lists:usort(fun ({K1, _}, {K2, _}) -> K1 =< K2 end, Env),
 
