@@ -14,8 +14,11 @@
     pmap/2,
     any_to_num/1,
     expand_filename/1,
-    wildcard/1
+    wildcard/1,
+    make_install_spec/3
    ]).
+
+-include("mzbl_types.hrl").
 
 taken(L, N) ->
      Len = length(L),
@@ -120,3 +123,13 @@ expand_filename(Filename) -> Filename.
 wildcard(Wildcard) ->
     filelib:wildcard(expand_filename(Wildcard)).
 
+make_install_spec(Repo, Branch, Dir) ->
+    ToString = fun
+        (X) when is_binary(X) -> binary_to_list(X);
+        (X) when is_list(X) -> X;
+        (Y) -> erlang:error({not_a_stringy_thing_in_install_spec, Y})
+    end,
+    #install_spec{
+        repo = ToString(Repo),
+        branch = ToString(Branch),
+        dir = ToString(Dir)}.

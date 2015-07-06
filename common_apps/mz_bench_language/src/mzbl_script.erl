@@ -247,18 +247,10 @@ cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
 cast_to_type(Value, _) -> Value.
 
 extract_install_specs(AST) ->
-    ToString = fun
-        (X) when is_binary(X) -> binary_to_list(X);
-        (X) when is_list(X) -> X;
-        (Y) -> erlang:error({not_a_stringy_thing_in_install_spec, Y})
-    end,
     Convert = fun(#operation{args = [Args]}) ->
         [Repo] = mzbl_ast:find_operation_and_extract_args(git, Args, [""]),
         [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
         [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
-        #install_spec{
-            repo = ToString(Repo),
-            branch = ToString(Branch),
-            dir = ToString(Subdir)}
+        mzbl_utility:make_install_spec(Repo, Branch, Subdir)
     end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].

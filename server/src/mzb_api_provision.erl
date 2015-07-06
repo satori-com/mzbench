@@ -171,10 +171,7 @@ install_node(Hosts, Config, Logger) ->
     install_package(
         Hosts,
         "node",
-        #install_spec{
-            repo = GitRepo,
-            branch = binary_to_list(Branch),
-            dir = "node"},
+        mzbl_utility:make_install_spec(GitRepo, Branch, "node"),
         application:get_env(mz_bench_api, node_deployment_path, ""),
         Config,
         Logger).
