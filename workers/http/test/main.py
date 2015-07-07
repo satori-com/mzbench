@@ -26,7 +26,8 @@ def checkServer(): # 0 -- no server running, 1 -- server is running, -1 -- alien
 
 
 def main():
-    user = os.environ['USER']
+    worker_commit = os.environ.get('NODE_COMMIT', 'master')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
 
     with util.chdir(os.path.join(dirname, '../')):
         serverStatus = checkServer()
@@ -47,6 +48,8 @@ def main():
             run_command =\
                 ['../../bin/mzbench'
                 , 'run'
+                , '--env=worker_branch=' + worker_commit
+                , '--env=mzbench_repo=' + mzbench_repo
                 ]
 
         with server.background_server():
