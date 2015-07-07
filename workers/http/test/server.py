@@ -7,8 +7,9 @@ from multiprocessing import Process
 import SimpleHTTPServer
 import SocketServer
 import sys
+import random
 
-port = 8777
+port = random.randint(8777, 8888)
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
