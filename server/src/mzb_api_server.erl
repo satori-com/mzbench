@@ -13,7 +13,8 @@
     bench_finished/2,
     status/1,
     server_data_dir/0,
-    ensure_started/0
+    ensure_started/0,
+    request_report/2
 ]).
 
 %% gen_server callbacks
@@ -75,6 +76,13 @@ get_info() ->
             ({Id, Status}, Acc) ->
                 [{Id, Status}|Acc]
         end, [], benchmarks).
+
+request_report(Id, Emails) ->
+    case gen_server:call(?MODULE, {request_report, Id, Emails}) of
+        ok -> ok;
+        {error, not_found} ->
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
 
 init([]) ->
     _ = ets:new(benchmarks, [named_table, set, protected]),
@@ -154,6 +162,26 @@ handle_call({stop_bench, Id}, _, #{} = State) ->
             ok = mzb_api_bench:interrupt_bench(BenchPid),
             {reply, ok, State};
         [{_, _}] ->
+            {reply, ok, State};
+        [] ->
+            {reply, {error, not_found}, State}
+    end;
+
+handle_call({request_report, Id, Emails}, _, #{} = State) ->
+    lager:info("[ SERVER ] Report req for #~b received for emails: ~p", [Id, Emails]),
+    case ets:lookup(benchmarks, Id) of
+        [{_, BenchPid}] when is_pid(BenchPid) ->
+            ok = mzb_api_bench:request_report(BenchPid, Emails),
+            {reply, ok, State};
+        [{_, Status}] ->
+            _ = spawn_link(fun () ->
+                case mzb_api_bench:send_email_report(Emails, Status) of
+                    ok -> ok;
+                    {error, {Error, Stacktrace}} ->
+                        lager:error("Send report to ~p failed with reason: ~p~n~p",
+                                    [Emails, Error, Stacktrace])
+                end
+            end),
             {reply, ok, State};
         [] ->
             {reply, {error, not_found}, State}
