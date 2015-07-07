@@ -121,6 +121,8 @@ def assertions_succ_test():
 def assertions_fail_test():
     run_failing_bench(mz_bench_dir + 'examples/assertions_fail.erl', env={})
 
+def ignore_failure_test():
+    run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
 
 def main():
     with start_mzbench_server():

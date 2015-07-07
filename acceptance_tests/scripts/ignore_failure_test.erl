@@ -1,0 +1,9 @@
+[
+    {pool, [
+        {size, 1},
+        {worker_type, dummy_worker}
+    ],
+    [
+        {ignore_failure, {error, fail}}
+    ]}
+].
