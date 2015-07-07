@@ -6,7 +6,9 @@
     start_link/2,
     interrupt_bench/1,
     get_status/1,
-    seconds/0
+    seconds/0,
+    send_email_report/2,
+    request_report/2
 ]).
 
 
@@ -29,6 +31,9 @@ get_status(Pid) ->
 interrupt_bench(Pid) ->
     mzb_pipeline:stop(Pid).
 
+request_report(Pid, Emails) ->
+    mzb_pipeline:call(Pid, {request_report, Emails}).
+
 init([Id, Params]) ->
     Now = os:timestamp(),
     StartTime = seconds(Now),
@@ -48,7 +53,6 @@ init([Id, Params]) ->
         purpose => Purpose,
         node_git => application:get_env(mz_bench_api, mzbench_git, undefined),
         node_commit => maps:get(node_commit, Params),
-        emails => maps:get(email, Params),
         env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
@@ -86,7 +90,8 @@ init([Id, Params]) ->
         metrics_file_handler => MetricsHandler,
         collectors => [],
         deallocator => undefined,
-        metrics => #{}
+        metrics => #{},
+        emails => maps:get(email, Params)
     },
     info("Bench data dir: ~s", [BenchDataDir], State),
     {ok, State}.
@@ -182,32 +187,12 @@ handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = St
 handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
     mzb_api_server:bench_finished(Id, status(State));
 
-handle_stage(finalize, sending_email_report, #{id:= Id, status:= Status, config:= Config, start_time:= StartTime, metrics:= MetricsMap} = State) ->
-    #{emails:= Emails} = Config,
-    BenchTime = seconds(os:timestamp()) - StartTime,
-    Links =
-        try
-            mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime)
-        catch
-            _:E ->
-                lager:error("Failed to get graphite image links: ~p", [E]),
-                []
-        end,
-    lager:info("Metrics links: ~p", [Links]),
-    AttachFiles = download_images("graphite_", Links, State),
-    {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
-    lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
-    Attachments = lists:map(
-        fun (F) ->
-            {ok, Bin} = file:read_file(local_path(F, Config)),
-            {list_to_binary(F), <<"image/png">>, Bin}
-        end, AttachFiles),
-    lists:foreach(
-        fun (Addr) ->
-            lager:info("Sending bench results to ~s", [Addr]),
-            BAddr = list_to_binary(Addr),
-            mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
-        end, Emails);
+handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
+    case send_email_report(Emails, status(State)) of
+        ok -> ok;
+        {error, {Error, Stacktrace}} ->
+            error("Send report to ~p failed with reason: ~p~n~p", [Emails, Error, Stacktrace], State)
+    end;
 
 handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost}})
   when DirectorHost /= undefined ->
@@ -252,6 +237,9 @@ handle_stage(finalize, closing_log_files, State) ->
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
+
+handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
+    {reply, ok, State#{emails:= OldEmails ++ Emails}};
 
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
@@ -318,8 +306,47 @@ handle_pipeline_status({final, Final}, State) ->
 %%% Internal functions
 %%%===================================================================
 
+send_email_report(Emails, #{id:= Id,
+                            status:= Status,
+                            config:= Config,
+                            start_time:= StartTime,
+                            finish_time:= FinishTime,
+                            metrics:= MetricsMap}) ->
+    try
+        BenchTime = FinishTime - StartTime,
+        Links =
+            try
+                mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime)
+            catch
+                _:E ->
+                    lager:error("Failed to get graphite image links: ~p", [E]),
+                    []
+            end,
+        lager:info("Metrics links: ~p", [Links]),
+        AttachFiles = download_images("graphite_", Links, Config),
+        {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
+        lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
+        Attachments = lists:map(
+            fun (F) ->
+                {ok, Bin} = file:read_file(local_path(F, Config)),
+                {list_to_binary(F), <<"image/png">>, Bin}
+            end, AttachFiles),
+        lists:foreach(
+            fun (Addr) ->
+                lager:info("Sending bench results to ~s", [Addr]),
+                BAddr = list_to_binary(Addr),
+                mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
+            end, Emails),
+        ok
+    catch
+        _:Error ->
+            {error, {Error, erlang:get_stacktrace()}}
+    end;
+send_email_report(_Emails, Status) ->
+    {error, {badarg, Status}}.
+
 status(State) ->
-    maps:with([status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
+    maps:with([id, status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
 
 get_cloud_provider() ->
     {ok, {_Type, Name}} = application:get_env(mz_bench_api, cloud_plugin),
@@ -508,17 +535,17 @@ indent(Str, N) ->
     Spaces = [$\s || _ <- lists:seq(1, N)],
     string:join([Spaces ++ Line || Line <- string:tokens(Str, "\n")], "\n").
 
-download_images(Prefix, URLs, #{config:= Config} = State) ->
+download_images(Prefix, URLs, Config) ->
     {Files, _} = lists:foldl(fun (URL, {Acc, N}) ->
         case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
             {ok, {_, _, Data}} ->
                 FileName = Prefix ++ integer_to_list(N) ++ ".png",
                 FullPath = local_path(FileName, Config),
                 ok = file:write_file(FullPath, Data),
-                info("Downloaded: ~s -> ~s", [URL, FileName], State),
+                lager:info("Downloaded: ~s -> ~s", [URL, FileName]),
                 {[FileName|Acc], N + 1};
             {error, Reason} ->
-                error("Download failed: ~s with reason: ~p", [URL, Reason], State),
+                lager:error("Download failed: ~s with reason: ~p", [URL, Reason]),
                 {Acc, N}
         end
     end, {[], 1}, URLs),
