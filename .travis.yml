@@ -28,6 +28,11 @@ script:
      mz_bench_language) make -C common_apps/mz_bench_language check;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
      error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
+     http-worker-tests) sudo pip install -r requirements.txt &&
+                       export NODE_COMMIT=`git rev-parse HEAD` &&
+                       export MZBENCH_REPO=`git config --get remote.origin.url` &&
+                       cd workers/http &&
+                       make && make check-local && sudo -E make check;;
      acceptance-*-tests) sudo pip install -r requirements.txt &&
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
@@ -35,9 +40,4 @@ script:
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
      *) make -C $TASK check;;
-     http-worker-tests) sudo pip install -r requirements.txt &&
-                       export NODE_COMMIT=`git rev-parse HEAD` &&
-                       export MZBENCH_REPO=`git config --get remote.origin.url` &&
-                       cd workers/http &&
-                       make && make check-local && sudo -E make check;;
    esac
