@@ -32,7 +32,7 @@ script:
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`git config --get remote.origin.url` &&
                        cd workers/http &&
-                       make && make check-local && sudo -E make check;;
+                       make && make check-local;;
      acceptance-*-tests) sudo pip install -r requirements.txt &&
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
