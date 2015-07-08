@@ -163,7 +163,7 @@ case "$1" in
                 HEART_OPTION="start_boot"
                 ;;
         esac
-        RUN_PARAM=$(printf "\'%s\' " "$@")
+        RUN_PARAM=$(printf "'%s' " "$@")
         HEART_COMMAND="$RUNNER_BASE_DIR/bin/$SCRIPT $HEART_OPTION $RUN_PARAM"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
