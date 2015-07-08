@@ -27,9 +27,19 @@ def start_mzbench_server():
     with open(dirname + "/test_server.config", "w") as config:
         config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
 
+    with open('{0}/test_server.config'.format(dirname), 'r') as f:
+        print(f.read())
+
     cmd('{0} start_server --config {1}/test_server.config'.format(mzbench_script, dirname))
     try:
         yield
+    except:
+        print ''
+        print '-------------------- >> begin server logs << ---------------------'
+        print cmd('cat ' + mz_bench_dir + '/server/log/console.log').replace('\\n', '\n')
+        print '-------------------- >> end server logs   << ---------------------'
+        print ''
+        raise
     finally:
         cmd('{0} stop_server'.format(mzbench_script))
 
