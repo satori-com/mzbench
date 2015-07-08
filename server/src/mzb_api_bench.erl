@@ -71,10 +71,10 @@ init([Id, Params]) ->
     ok = file:write_file(local_path("params.bin", Config), InputBin),
     erlang:process_flag(trap_exit, true),
 
-    LogFile = filename:join(BenchDataDir, get_env(bench_log_file)),
+    LogFile = local_path(get_env(bench_log_file), Config),
     {ok, LogHandler} = file:open(LogFile, [write]),
 
-    MetricsFile = filename:join(BenchDataDir, get_env(bench_metrics_file)),
+    MetricsFile = local_path(get_env(bench_metrics_file), Config),
     {ok, MetricsHandler} = file:open(MetricsFile, [write]),
 
     State = #{
@@ -311,7 +311,8 @@ send_email_report(Emails, #{id:= Id,
                             config:= Config,
                             start_time:= StartTime,
                             finish_time:= FinishTime,
-                            metrics:= MetricsMap}) ->
+                            metrics:= MetricsMap,
+                            metrics_file:= MetricsFile}) ->
     try
         BenchTime = FinishTime - StartTime,
         Links =
@@ -330,7 +331,7 @@ send_email_report(Emails, #{id:= Id,
             fun (F) ->
                 {ok, Bin} = file:read_file(local_path(F, Config)),
                 {list_to_binary(F), <<"image/png">>, Bin}
-            end, AttachFiles),
+            end, [MetricsFile|AttachFiles]),
         lists:foreach(
             fun (Addr) ->
                 lager:info("Sending bench results to ~s", [Addr]),
