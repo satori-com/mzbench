@@ -12,8 +12,11 @@
     ]).
 
 validate(Name) ->
-    Files = [filename:absname(filename:join(P, worker_filename(Name))) || P <- search_paths(Name)],
-    lists:any(fun filelib:is_regular/1, Files).
+    SearchPaths = search_paths(Name),
+    lager:info(SearchPaths),
+    Files = [filename:absname(filename:join(P, worker_filename(Name))) || P <- SearchPaths],
+    lists:any(fun filelib:is_regular/1, Files),
+    [].
 
 % TODO: Validator for lua functions
 validate_function(_Name, _Fn, _Arity) -> ok.
@@ -35,7 +38,7 @@ terminate(Res, State) ->
 % TODO: Metrics support
 metric_names(_Module, _Name, _Meta, _Args) ->
     [].
-metrics(_Module) -> {ok, []}.
+metrics(_Module) -> [].
 
 search_paths(Name) ->
     [filename:join(P, Name) || P <- get_env(mz_bench, workers_dirs, [])].

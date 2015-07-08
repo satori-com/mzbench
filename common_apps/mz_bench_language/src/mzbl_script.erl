@@ -219,6 +219,7 @@ get_benchname(ScriptName) ->
     Name = filename:basename(ScriptName, ".erl"),
     re:replace(Name, "[^a-zA-Z0-9]", "_", [{return, list}, global]).
 
+-spec extract_worker([operation()]) -> {worker_provider(), worker_name()}.
 extract_worker(PoolOpts) ->
     case mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]) of
         [WorkerName] -> {mzb_erl_worker, WorkerName};
