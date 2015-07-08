@@ -85,7 +85,7 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
     lists:map(
       fun(Msg) -> Name ++ ": " ++ Msg end,
       case Provider:validate(Worker) of
-          true ->
+          [] ->
               case Size of
                 #operation{name = N, args = A} ->
                     lists:flatten(io_lib:format(
@@ -100,7 +100,7 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
                   {invalid_script, Errors} -> Errors
               end ++
               validate_worker_start_type(WorkerStartType);
-          false -> [lists:flatten(io_lib:format("unknown worker type: ~p", [Worker]))]
+          Messages -> Messages
       end).
 
 validate_worker_start_type(undefined) -> [];

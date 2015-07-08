@@ -45,6 +45,7 @@ attach(DirectorPid) ->
 init([SuperPid, BenchName, Script, Nodes, Env, ReportFile]) ->
     lager:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
+    lager:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
     _ = mzb_signaler:set_nodes(Nodes),
     gen_server:cast(self(), {start_pools, Pools, Env2, Nodes}),
     {ok, #state{
