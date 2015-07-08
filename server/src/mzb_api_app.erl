@@ -75,7 +75,7 @@ wait_benchmarks_finish(Attempts) ->
 load_config(File) ->
     case file:consult(File) of
         {ok, [Config]} ->
-            lager:info("Reading configuration from ~s", [File]),
+            lager:info("Reading configuration from ~s~n~p", [File, Config]),
             lists:foreach(fun ({App, Env}) ->
                 [ application:set_env(App, Key, Val) || {Key, Val} <- Env]
             end, Config);

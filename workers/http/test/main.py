@@ -40,20 +40,17 @@ def main():
                 print("Non-MZBench server is listening on 4800")
                 sys.exit()
             if serverStatus == 0:
-                subprocess.check_call(['../../bin/mzbench', 'install_server'])
-
                 if 'MZBENCH_REPO' in  os.environ:
                     mzbench_git_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
+                else:
+                    mzbench_git_param = ''
 
-                    with open("/mz/mz_bench_api/mz_bench_server.config", "w") as config:
-                        config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
+                with open(dirname + '/mz_bench_server.config', 'w') as config:
+                    config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
 
-                subprocess.check_call(['../../bin/mzbench', 'start_server'])
+                subprocess.check_call(['../../bin/mzbench', 'start_server', '--config', dirname + '/mz_bench_server.config'])
 
-            run_command =\
-                ['../../bin/mzbench'
-                , 'run'
-                ]
+            run_command = ['../../bin/mzbench', 'run']
 
         with server.background_server():
             subprocess.check_call(
