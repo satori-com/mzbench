@@ -330,7 +330,8 @@ send_email_report(Emails, #{id:= Id,
         Attachments = lists:map(
             fun (F) ->
                 {ok, Bin} = file:read_file(local_path(F, Config)),
-                {list_to_binary(F), <<"image/png">>, Bin}
+                Filename = filename:basename(F),
+                {list_to_binary(Filename), <<"image/png">>, Bin}
             end, [MetricsFile|AttachFiles]),
         lists:foreach(
             fun (Addr) ->
