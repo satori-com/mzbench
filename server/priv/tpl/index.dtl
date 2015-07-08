@@ -67,12 +67,14 @@
                       var metrics = '<a href="data?id=' + row[0] + '">metrics</a>';
                       var restart = '<a href="restart?id=' + row[0] + '" class="background_call" data-name="restart bench #' + row[0] + '">restart</a>';
                       var stop = '<a href="stop?id=' + row[0] + '" class="background_call" data-name="stop bench #' + row[0] + '">stop</a>';
+                      var report = '<a href="email_report?id=' + row[0] + '" class="background_prompt_call" data-info="Email address" data-prompt-param="addr">email</a>'
 
-                      var res = [graphs, logs, metrics, restart];
+                      var res = [graphs, logs, metrics, report, restart];
 
                       if (['stopped', 'complete', 'failed', 'crashed'].indexOf(row[3]) == -1) {
                           res.push(stop);
                       }
+
                       return res.join(" | ");
                   },
                   "targets": 5
@@ -89,6 +91,22 @@
                 $.ajax({
                     type: 'GET',
                     url: this.href,
+                    contentType: 'application/json',
+                    success: function () {
+                        table.ajax.reload(null, false);
+                    }
+                });
+            }
+            return false;
+        });
+
+        table.on('click', '.background_prompt_call', function () {
+            var email = prompt($(this).data('info'));
+            var param_name = $(this).data('prompt-param');
+            if (email) {
+                $.ajax({
+                    type: 'GET',
+                    url: this.href + '&' + param_name + '=' + email,
                     contentType: 'application/json',
                     success: function () {
                         table.ajax.reload(null, false);
