@@ -141,8 +141,8 @@ del_dir(Dir) ->
     Dirs = [F || F <- Files, filelib:is_dir(F)],
     SortedDirs = lists:usort(fun (S1, S2) -> length(S1) >= length(S2) end, Dirs),
     try
-        [{_, ok} = {F, file:delete(F)} || F <- RegularFiles],
-        [{_, ok} = {D, file:del_dir(D)} || D <- SortedDirs],
+        _ = [{_, ok} = {F, file:delete(F)} || F <- RegularFiles],
+        _ = [{_, ok} = {D, file:del_dir(D)} || D <- SortedDirs],
         ok
     catch
         error:{badmatch, Reason} ->
