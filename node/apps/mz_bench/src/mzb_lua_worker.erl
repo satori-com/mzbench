@@ -1,15 +1,16 @@
 -module(mzb_lua_worker).
 
 -export([
-    load/1,
     init/1,
+    load/1,
     apply/4,
     metrics/1,
     terminate/2,
-    metric_names/4,
     validate/1,
     validate_function/3
     ]).
+
+load(_) -> ok.
 
 validate(Name) ->
     SearchPaths = search_paths(Name),
@@ -18,45 +19,85 @@ validate(Name) ->
     lists:any(fun filelib:is_regular/1, Files),
     [].
 
-% TODO: Validator for lua functions
-validate_function(_Name, _Fn, _Arity) -> ok.
+validate_function(_, main, 0) -> ok;
+validate_function(_, main, _) -> bad_arity;
+validate_function(_, _, _) -> false.
 
-load(_Name) -> ok.
+notify(<<"counter">>, Name, MaybeFloatValue) ->
+    IntValue = case is_float(MaybeFloatValue) of
+        true -> round(MaybeFloatValue);
+        false -> MaybeFloatValue
+    end,
+    mzb_metrics:notify({binary_to_list(Name), counter}, IntValue);
+notify(Type, Name, Value) ->
+    mzb_metrics:notify({binary_to_list(Name), binary_to_atom(Type, latin1)}, Value).
+
+stdlib() ->
+    [{"notify", fun notify/3}].
+
+inject({FunName, Fun}, LuaState) ->
+    FunPath = [<<"mzbench">>, list_to_binary(FunName)],
+    lager:info("FunPath: ~p", [FunPath]),
+    luerl:set_table(
+        FunPath,
+        fun(Args, State) ->
+            case apply(Fun, Args) of
+                ok -> {[], State};
+                Result -> {[Result], State}
+            end
+        end,
+        LuaState).
 
 init(Name) ->
-    State0 = luerl:init(),
-    {ok, Chunk, State1} = luerl:loadfile(search_worker_file(Name), State0),
-    {_Ret, State2} = luerl:do(Chunk, State1),
-    State2.
+    SearchPaths = search_paths(Name),
+    case search_worker_file(Name, SearchPaths) of
+        {error, not_found} ->
+            lager:error("worker file ~p not found in ~p", [worker_filename(Name), SearchPaths]),
+            {error, worker_file_not_found};
+        {ok, Filename} ->
+            {T0, L1} = luerl_emul:alloc_table(luerl:init()),
+            L2 = luerl_emul:set_global_key(<<"mzbench">>, T0, L1),
+            LuaWithStdlib = lists:foldl(fun inject/2, L2, stdlib()),
+            {[], LuaWithUserCode} = luerl:dofile(Filename, LuaWithStdlib),
+            LuaWithUserCode
+    end.
 
-apply(F, Args, State, _Meta) ->
-    luerl:call_function([F], Args, State).
+apply(F, Args, LuaWithUserCode, _Meta) ->
+    luerl:call_function([F], Args, LuaWithUserCode).
 
 terminate(Res, State) ->
     catch luerl:call_function([terminate], [Res], State).
 
-% TODO: Metrics support
-metric_names(_Module, _Name, _Meta, _Args) ->
-    [].
-metrics(_Module) -> [].
+-spec metrics(atom()) -> [{string(), gauge | histogram | counter}].
+metrics(WorkerName) ->
+    lager:info("trying to get metrics from module ~p", [WorkerName]),
+    SearchPaths = search_paths(WorkerName),
+    {ok, Filename} = search_worker_file(WorkerName, SearchPaths),
+    {[], LuaWithUserCode} = luerl:dofile(Filename),
+    {[Metrics], _} = luerl:call_function([metrics], [], LuaWithUserCode),
+    lists:map(
+        fun({BinName, BinType}) ->
+            {binary_to_list(BinName),
+                case BinType of
+                    <<"counter">> -> counter;
+                    <<"gauge">> -> gauge;
+                    <<"histogram">> -> histogram;
+                    T -> erlang:error({unknown_metric_type, T})
+                end}
+        end,
+        Metrics).
 
 search_paths(Name) ->
-    [filename:join(P, Name) || P <- get_env(mz_bench, workers_dirs, [])].
+    [mzbl_utility:expand_filename(filename:join(P, Name))
+    || P <- application:get_env(mz_bench, workers_dirs, [])].
 
-worker_filename(Name) -> io_lib:format("~s_worker.lua", [Name]).
+worker_filename(Name) -> lists:flatten(io_lib:format("~s_worker.lua", [Name])).
 
-search_worker_file(Name) -> search_worker_file(Name, search_paths(Name)).
-search_worker_file(_Name, []) -> not_found;
+-spec search_worker_file(atom(), [string()]) -> {ok, string()} | {error, not_found, string()}.
+search_worker_file(Name, []) -> {error, not_found, Name};
 search_worker_file(Name, [Path|T]) ->
     FullPath = filename:join(Path, worker_filename(Name)),
     case filelib:is_regular(FullPath) of
-        true -> FullPath;
+        true -> {ok, FullPath};
         false -> search_worker_file(Name, T)
-    end.
-
-% Theree is no gen_env/3 function in R15
-get_env(App, Env, Default) ->
-    case application:get_env(App, Env) of
-        undefined -> Default;
-        {ok, Val} -> Val
     end.
