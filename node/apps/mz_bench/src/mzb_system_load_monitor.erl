@@ -60,7 +60,7 @@ handle_info(trigger,
 
     LastIntervalDuration = case LastTriggerTimestamp of
         not_available -> interval();
-        _ -> timer:now_diff(Now, LastTriggerTimestamp)
+        _ -> timer:now_diff(Now, LastTriggerTimestamp) / 1000
     end,
     ok = mzb_metrics:notify({metric_name("interval"), gauge}, LastIntervalDuration / 1000),
 
