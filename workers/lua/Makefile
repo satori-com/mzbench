@@ -1,6 +1,6 @@
 
-NAME = lua_worker
-SOURCES := lua_worker.lua
+NAME = lua
+SOURCES := $(NAME)_worker.lua
 
 $(NAME).tgz: $(SOURCES)
 	rm -rf $(NAME)

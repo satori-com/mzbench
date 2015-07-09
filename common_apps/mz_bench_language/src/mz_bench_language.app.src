@@ -3,5 +3,5 @@
   {description, ""},
   {vsn, git},
   {registered, []},
-  {applications, [kernel, stdlib, lager, sasl]}
+  {applications, [kernel, stdlib, lager, sasl, pretty_errors]}
  ]}.
