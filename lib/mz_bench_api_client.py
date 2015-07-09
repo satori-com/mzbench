@@ -119,7 +119,7 @@ def assert_successful_request(perform_request):
                     print response.text
                 sys.exit(2)
         except requests.exceptions.ConnectionError as e:
-            print 'Connection failure: {0}'.format(e)
+            print 'Connect to "{0}" failed with message: {1}'.format(args[0], e)
             sys.exit(4)
     return wrapped
 
