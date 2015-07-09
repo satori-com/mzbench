@@ -7,17 +7,7 @@
 %% API.
 
 start(_Type, _Args) ->
-    case init:get_argument(config_file) of
-        {ok, [[Config]]} ->
-            load_config(Config);
-        _ ->
-            Config = application:get_env(mz_bench_api, server_config, undefined),
-            try
-                load_config(Config)
-            catch
-                _:{config_read_error, _, enoent} -> ok
-            end
-    end,
+    ok = load_config(mz_bench_api),
 
     ok = load_cloud_plugin(),
 
@@ -72,13 +62,32 @@ wait_benchmarks_finish(Attempts) ->
             ok
     end.
 
-load_config(File) ->
-    case file:consult(File) of
+load_config(AppName) ->
+    case init:get_argument(config_file) of
+        {ok, [[Config]]} ->
+            load_config(Config, AppName);
+        _ ->
+            {ok, Configs} = application:get_env(mz_bench_api, server_configs),
+            _ = lists:dropwhile(
+                fun (Cfg) ->
+                    try
+                        load_config(Cfg, AppName),
+                        false
+                    catch
+                        _:{config_read_error, _, enoent} -> true
+                    end
+                end, Configs),
+            ok
+    end.
+
+load_config(File, AppName) ->
+    case file:consult(mzbl_utility:expand_filename(File)) of
         {ok, [Config]} ->
             lager:info("Reading configuration from ~s~n~p", [File, Config]),
-            lists:foreach(fun ({App, Env}) ->
-                [ application:set_env(App, Key, Val) || {Key, Val} <- Env]
-            end, Config);
+            lists:foreach(fun ({App, Env}) when App == AppName ->
+                                [ application:set_env(App, Key, Val) || {Key, Val} <- Env]
+                          end, Config),
+            ok;
         {error, Reason} ->
             erlang:error({config_read_error, File, Reason})
     end.
@@ -99,3 +108,4 @@ load_cloud_plugin() ->
             lager:error("A cloud plugin must be specified in the \"cloud_plugin\" environment variable!"),
             erlang:error(no_cloud_plugin)
     end.
+
