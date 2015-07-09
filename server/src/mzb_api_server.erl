@@ -100,8 +100,8 @@ handle_call({start_bench, Params}, _From, #{status:= active} = State) ->
     case start_bench_child(Params, State) of
         {ok, Id, NewState} ->
             {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
-        {error, Reason} ->
-            {reply, {error, Reason}, State}
+        {error, Reason, NewState} ->
+            {reply, {error, Reason}, NewState}
     end;
 
 handle_call({start_bench, Params}, _From, #{status:= inactive} = State) ->
@@ -118,8 +118,8 @@ handle_call({restart_bench, RestartId}, _From, #{status:= active, data_dir:= Dat
             case start_bench_child(Params, State) of
                 {ok, Id, NewState} ->
                     {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
-                {error, Reason} ->
-                    {reply, {error, Reason}, State}
+                {error, Reason, NewState} ->
+                    {reply, {error, Reason}, NewState}
             end;
         {error, enoent} ->
             {reply, {error, not_found}, State};
@@ -224,7 +224,7 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
             NewState = State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)},
             {ok, Id, check_max_bench_num(NewState)};
         {error, Reason} ->
-            {error, Reason}
+            {error, Reason, State#{next_id => Id + 1}}
     end.
 
 check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} = State) ->
