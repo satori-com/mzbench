@@ -1,6 +1,5 @@
 [ {make_install,
-    [ {git, "file:///home/divanov/mz-bench"},
-      {branch, "lua-metrics"},
+    [ {git, {var, "mzbench_repo", "git://github.com/machinezone/mzbench"}},
       {dir, "workers/lua"}]},
   {pool,
     [{size, 3},

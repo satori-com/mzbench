@@ -107,9 +107,6 @@ read(Path, Env) ->
         C:E ->
             ST = erlang:get_stacktrace(),
             lager:error(
-                "Failed to read script: ~p 'cause of ~p~nStacktrace: ~p",
-                [Path, E, ST]),
-            lager:error(
                 "Failed to read script: ~p 'cause of ~p~nStacktrace: ~s",
                 [Path, E, pretty_errors:stacktrace(ST)]),
             erlang:raise(C,E,ST)
