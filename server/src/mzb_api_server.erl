@@ -114,7 +114,14 @@ handle_call({restart_bench, RestartId}, _From, #{status:= active, data_dir:= Dat
     ParamsFile = filename:join([DataDir, RestartIdStr, "params.bin"]),
     case file:read_file(ParamsFile) of
         {ok, Binary} ->
-            Params = erlang:binary_to_term(Binary),
+
+            Params =
+                % BC code: migration of data, convert dont_provision_nodes to provistion_nodes
+                case erlang:binary_to_term(Binary) of
+                    #{dont_provision_nodes:= V} = P -> P#{provision_nodes => not V};
+                    P -> P
+                end,
+
             case start_bench_child(Params, State) of
                 {ok, Id, NewState} ->
                     {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
