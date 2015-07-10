@@ -13,5 +13,6 @@ generate_tgz: $(NAME).tgz
 
 .PHONY: clean
 clean:
-	rm -f *.tgz
-	rm -rf $(NAME)
+	-@rm -f *.tgz
+	-@rm -rf data.* log.*
+	-@rm -rf $(NAME)

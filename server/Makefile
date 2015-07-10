@@ -18,7 +18,7 @@ console: generate
 .PHONY: install
 install: generate
 	sudo mkdir -p $(SERVICE_PREFIX)
-	sudo cp -r rel/$(SERVICE_NAME) $(SERVICE_PREFIX)
+	sudo cp -rf rel/$(SERVICE_NAME) $(SERVICE_PREFIX)
 	sudo mkdir -p $(SERVICE_PREFIX)/$(SERVICE_NAME)/packages
 	sudo chmod -R go+rwx $(SERVICE_PREFIX)/$(SERVICE_NAME)/packages
 	sudo chmod -R go+rwx $(SERVICE_PREFIX)/$(SERVICE_NAME)/log

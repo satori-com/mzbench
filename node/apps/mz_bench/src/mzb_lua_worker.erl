@@ -51,8 +51,8 @@ inject({FunName, Fun}, LuaState) ->
 init(Name) ->
     SearchPaths = search_paths(Name),
     case search_worker_file(Name, SearchPaths) of
-        {error, not_found} ->
-            lager:error("worker file ~p not found in ~p", [worker_filename(Name), SearchPaths]),
+        {error, not_found, Filename} ->
+            lager:error("worker file ~p not found in ~p", [Filename, SearchPaths]),
             {error, worker_file_not_found};
         {ok, Filename} ->
             {T0, L1} = luerl_emul:alloc_table(luerl:init()),

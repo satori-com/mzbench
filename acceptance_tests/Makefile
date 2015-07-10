@@ -25,3 +25,7 @@ server:
 	# we need it until we get rid of server installation procedure
 	sudo chmod go+wx /mz/mz_bench_api
 
+.PHONY: clean
+clean:
+	-@rm -rf data.*
+	-@rm -rf log.*
