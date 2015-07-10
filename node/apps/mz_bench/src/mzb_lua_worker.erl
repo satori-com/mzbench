@@ -10,8 +10,13 @@
     validate_function/3
     ]).
 
+-include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("luerl/src/luerl.hrl").
+
+-spec load(worker_name()) -> ok.
 load(_) -> ok.
 
+-spec validate(worker_name()) -> [].
 validate(Name) ->
     SearchPaths = search_paths(Name),
     lager:info(SearchPaths),
@@ -19,10 +24,12 @@ validate(Name) ->
     lists:any(fun filelib:is_regular/1, Files),
     [].
 
+-spec validate_function(worker_name(), atom(), integer()) -> ok | false | bad_arity.
 validate_function(_, main, 0) -> ok;
 validate_function(_, main, _) -> bad_arity;
 validate_function(_, _, _) -> false.
 
+-spec notify(binary(), binary(), integer() | float()) -> ok.
 notify(<<"counter">>, Name, MaybeFloatValue) ->
     IntValue = case is_float(MaybeFloatValue) of
         true -> round(MaybeFloatValue);
@@ -32,9 +39,11 @@ notify(<<"counter">>, Name, MaybeFloatValue) ->
 notify(Type, Name, Value) ->
     mzb_metrics:notify({binary_to_list(Name), binary_to_atom(Type, latin1)}, Value).
 
+-spec stdlib() -> [{string(), fun()}].
 stdlib() ->
     [{"notify", fun notify/3}].
 
+-spec inject({string(), fun()}, #luerl{}) -> #luerl{}.
 inject({FunName, Fun}, LuaState) ->
     FunPath = [<<"mzbench">>, list_to_binary(FunName)],
     lager:info("FunPath: ~p", [FunPath]),
@@ -48,6 +57,7 @@ inject({FunName, Fun}, LuaState) ->
         end,
         LuaState).
 
+-spec init(worker_name()) -> #luerl{}.
 init(Name) ->
     SearchPaths = search_paths(Name),
     case search_worker_file(Name, SearchPaths) of
@@ -62,13 +72,15 @@ init(Name) ->
             LuaWithUserCode
     end.
 
+-spec apply(atom(), [term()], #luerl{}, term()) -> term().
 apply(F, Args, LuaWithUserCode, _Meta) ->
     luerl:call_function([F], Args, LuaWithUserCode).
 
+-spec terminate(term(), #luerl{}) -> ok.
 terminate(Res, State) ->
     catch luerl:call_function([terminate], [Res], State).
 
--spec metrics(atom()) -> [{string(), gauge | histogram | counter}].
+-spec metrics(worker_name()) -> [{string(), gauge | histogram | counter}].
 metrics(WorkerName) ->
     lager:info("trying to get metrics from module ~p", [WorkerName]),
     SearchPaths = search_paths(WorkerName),
@@ -87,13 +99,15 @@ metrics(WorkerName) ->
         end,
         Metrics).
 
+-spec search_paths(worker_name()) -> [string()].
 search_paths(Name) ->
     [mzbl_utility:expand_filename(filename:join(P, Name))
     || P <- application:get_env(mz_bench, workers_dirs, [])].
 
+-spec worker_filename(worker_name()) -> string().
 worker_filename(Name) -> lists:flatten(io_lib:format("~s_worker.lua", [Name])).
 
--spec search_worker_file(atom(), [string()]) -> {ok, string()} | {error, not_found, string()}.
+-spec search_worker_file(worker_name(), [string()]) -> {ok, string()} | {error, not_found, worker_name()}.
 search_worker_file(Name, []) -> {error, not_found, Name};
 search_worker_file(Name, [Path|T]) ->
     FullPath = filename:join(Path, worker_filename(Name)),
