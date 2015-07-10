@@ -13,7 +13,7 @@
 % Public API
 % ===========================================================
 
--spec create_cluster(Name :: string(), NumNodes :: pos_integer(), Config :: #{}) -> {ok, [string()], [string()], [string()]}.
+-spec create_cluster(Name :: string(), NumNodes :: pos_integer(), Config :: #{}) -> {ok, term(), string(), [string()]}.
 create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes), NumNodes > 0 ->
 
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes), get_config()),
@@ -27,7 +27,7 @@ create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes)
     update_hostfiles(UserName, Hosts),
     {ok, Ids, UserName, Hosts}.
 
--spec destroy_cluster([string()]) -> ok.
+-spec destroy_cluster(term()) -> ok.
 destroy_cluster(Ids) ->
     R = erlcloud_ec2:terminate_instances(Ids, get_config()),
     lager:info("Deallocating ids: ~p, result: ~p", [Ids, R]),

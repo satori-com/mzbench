@@ -48,6 +48,11 @@ language, see [DSL Code Examples](doc/examples.md).
 To learn how to write language extensions called "workers," to access a particular service
 or protocol, see [How to write language extensions](doc/worker_howto.md).
 
+### Writing Cloud Connectors
+
+Current MZBench version is shipped with AWS EC2 cloud and local execution plugins,
+but other clouds are welcome, please refer to [Cloud plugin creation guide](doc/cloud_plugin.md).
+
 ## Support
 
 Please report an issue on github.

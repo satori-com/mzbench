@@ -36,6 +36,10 @@ Inside your _worker_ source code directory (the root one, not the `src`), execut
 
 You can, of course, pass the environment variables using the `--env` option. But, please note that all `make_install` top-level statements will be ignored in this execution mode.
 
+## Worker execution
+
+After you have done with debugging, you need to execute your worker in a cloud. To do that, you need to specify worker git address at your benchmark script with `{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`, [http worker example](../workers/simple_http/examples/simple_http.erl).
+
 # General worker structure
 
 An MZBench _worker_ provides a set of DSL statements (i.e. sub-routines) and a set of metrics. The different sub-routines need not to be independent as the worker can have internal state.
