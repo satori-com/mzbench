@@ -85,7 +85,8 @@ load_config(File, AppName) ->
         {ok, [Config]} ->
             lager:info("Reading configuration from ~s~n~p", [File, Config]),
             lists:foreach(fun ({App, Env}) when App == AppName ->
-                                [ application:set_env(App, Key, Val) || {Key, Val} <- Env]
+                                [ application:set_env(App, Key, Val) || {Key, Val} <- Env];
+                              (_) -> ok
                           end, Config),
             ok;
         {error, Reason} ->
@@ -101,6 +102,8 @@ load_cloud_plugin() ->
     case application:get_env(cloud_plugin) of
         {ok, {application, Name}} ->
             lager:info("Loading cloud plugin: ~p...", [Name]),
+            ok = application:load(Name),
+            ok = load_config(Name),
             {ok, _} = application:ensure_all_started(Name),
             ok;
         {ok, {module, _}} -> ok;
