@@ -215,7 +215,7 @@ benchmark(N, P) ->
     Time.
 
 prun(N, P, F) ->
-    mzbl_utility:pmap(
+    mzb_utility:pmap(
         fun (_) ->
             run(0, N div P, F)
         end, lists:seq(1, P)).

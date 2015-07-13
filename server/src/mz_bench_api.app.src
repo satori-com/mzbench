@@ -12,6 +12,7 @@
         inets,
         erlcloud,
         mz_bench_language,
+        mz_bench_utils,
         gen_smtp
     ]},
     {mod, {mzb_api_app, []}},

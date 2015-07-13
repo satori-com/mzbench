@@ -11,7 +11,8 @@
          extract_pools_and_env/2,
          extract_install_specs/1,
          enumerate_pools/1,
-         extract_worker/1]).
+         extract_worker/1,
+         make_install_spec/3]).
 
 -include("mzbl_types.hrl").
 
@@ -56,12 +57,12 @@ substitute(#operation{name = OpName, args = Args, meta = Meta} = Op, Env, Iterat
                 at_location, meta_to_location_string(Meta)});
         {Value, false, []} ->
             case OpName of
-                numvar -> mzbl_utility:any_to_num(Value);
+                numvar -> mzb_utility:any_to_num(Value);
                 var -> Value
             end;
         {Value, false, [DefaultValue]} ->
             case OpName of
-                numvar -> mzbl_utility:any_to_num(Value);
+                numvar -> mzb_utility:any_to_num(Value);
                 var -> cast_to_type(Value, DefaultValue)
             end;
         {undefined, true, []} -> Op#operation{args = [VarName]};
@@ -163,7 +164,7 @@ import_resource(Env, File, Type) ->
     catch
         error:{read_file_error, _, enoent} = E ->
             Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
-            case lists:append([mzbl_utility:wildcard(M) || M <- Masks])  of
+            case lists:append([mzb_utility:wildcard(M) || M <- Masks])  of
                 [] -> erlang:error(E);
                 [Path|_] -> import_resource(Path, Type)
             end
@@ -256,6 +257,18 @@ extract_install_specs(AST) ->
         [Repo] = mzbl_ast:find_operation_and_extract_args(git, Args, [""]),
         [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
         [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
-        mzbl_utility:make_install_spec(Repo, Branch, Subdir)
+        make_install_spec(Repo, Branch, Subdir)
     end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].
+
+make_install_spec(Repo, Branch, Dir) ->
+    ToString = fun
+        (X) when is_binary(X) -> binary_to_list(X);
+        (X) when is_list(X) -> X;
+        (Y) -> erlang:error({not_a_stringy_thing_in_install_spec, Y})
+    end,
+    #install_spec{
+        repo = ToString(Repo),
+        branch = ToString(Branch),
+        dir = ToString(Dir)}.
+

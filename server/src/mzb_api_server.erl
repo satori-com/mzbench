@@ -270,7 +270,7 @@ check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} 
             ({Id, _Status}, _) ->
                 BenchDir = filename:join(Dir, erlang:integer_to_list(Id)),
                 lager:info("Deleting bench #~b", [Id]),
-                case mzbl_utility:del_dir(BenchDir) of
+                case mzb_utility:del_dir(BenchDir) of
                     ok -> ets:delete(benchmarks, Id);
                     {error, Reason} ->
                         lager:error("Delete directory ~p failed: ~p", [BenchDir, Reason])
@@ -292,7 +292,7 @@ save_results(Id, Status, #{data_dir:= Dir}) ->
 import_data(Dir) ->
     lager:info("Importing server data from ~s", [Dir]),
 
-    Items = mzbl_utility:wildcard(filename:join(Dir, "*")),
+    Items = mzb_utility:wildcard(filename:join(Dir, "*")),
 
     Import = fun (BenchFolder, Max) ->
         File = filename:join([BenchFolder, "status"]),

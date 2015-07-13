@@ -92,8 +92,8 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
                     "can't use operation ~p with args ~p as pool size.", [N, A]));
                 _ -> [lists:flatten(io_lib:format(
                           "size option: expected something integer-like but got ~p.", [Size]))
-                          || mzbl_utility:to_integer_with_default(Size, fail) == fail] ++
-                      ["zero size is not allowed." || mzbl_utility:to_integer_with_default(Size, fail) == 0]
+                          || mzb_utility:to_integer_with_default(Size, fail) == fail] ++
+                      ["zero size is not allowed." || mzb_utility:to_integer_with_default(Size, fail) == 0]
               end ++
               case mzb_worker_script_validator:validate_worker_script(Script, {Provider, Worker}) of
                   ok -> [];

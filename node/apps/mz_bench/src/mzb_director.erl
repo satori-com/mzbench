@@ -123,10 +123,10 @@ start_pools([], _, _, Acc) ->
 start_pools([Pool | Pools], Env, Nodes, Acc) ->
     #operation{args = [PoolOpts, _]} = Pool,
     [SizeU] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
-    Size = mzbl_utility:to_integer_with_default(SizeU, undefined),
+    Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
     Self = self(),
-    Results = mzbl_utility:pmap(fun({Num, Node}) ->
+    Results = mzb_utility:pmap(fun({Num, Node}) ->
             rpc:call(Node, mzb_bench_sup, start_pool, 
                 [[Self, Pool, Env, length(Nodes), Num]])
         end, NumberedNodes),

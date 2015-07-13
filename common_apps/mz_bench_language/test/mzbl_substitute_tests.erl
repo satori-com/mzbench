@@ -104,6 +104,6 @@ using_var_in_poolspec_test() ->
 check(Input, Env, Output) ->
   ?assertEqual(
       mzbl_script:parse(Output),
-      mzbl_script:substitute(
+      catch mzbl_script:substitute(
           mzbl_script:parse(Input),
           Env)).

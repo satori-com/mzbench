@@ -30,10 +30,10 @@ wait(State, _Env, _Meta, C) ->
     {nil, State}.
 
 choose(State, _Env, _Meta, N, List) ->
-    {mzbl_utility:choose(N, List), State}.
+    {mzb_utility:choose(N, List), State}.
 
 choose(State, _Env, _Meta, List) ->
-    {mzbl_utility:choose(List), State}.
+    {mzb_utility:choose(List), State}.
 
 -spec error(any(), [proplists:property()], meta(), term()) -> no_return().
 error(_State, _Env, _Meta, Reason) ->
@@ -44,23 +44,23 @@ term_to_binary(State, _Env, _Meta, Term) ->
     {erlang:term_to_binary(Term), State}.
 
 random_binary(State, _Env, _Meta, N) ->
-    {mzbl_utility:random_binary(N), State}.
+    {mzb_utility:random_binary(N), State}.
 
 random_list(State, _Env, _Meta, N) ->
-    {mzbl_utility:random_list(N), State}.
+    {mzb_utility:random_list(N), State}.
 
 random_number(State, _Env, _Meta, N) ->
-    {mzbl_utility:random_number(N), State}.
+    {mzb_utility:random_number(N), State}.
 
 random_number(State, _Env, _Meta, N, M) ->
-    {mzbl_utility:random_number(N, M), State}.
+    {mzb_utility:random_number(N, M), State}.
 
 sprintf(State, _Env, _Meta, Str, Vars) ->
     {lists:flatten(io_lib:format(Str, Vars)), State}.
 
 numvar(State, Env, Meta, Name) ->
     {Value, NewState} = var(State, Env, Meta, Name),
-    {mzbl_utility:any_to_num(Value), NewState}.
+    {mzb_utility:any_to_num(Value), NewState}.
 
 var(State, Env, _Meta, Name) ->
     case proplists:is_defined(Name, Env) of

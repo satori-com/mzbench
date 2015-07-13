@@ -2,7 +2,7 @@
 REBAR := $(abspath $(shell which ../../bin/rebar || which rebar))
 
 # all files not in ebin or .eunit
-SOURCES := $(shell find src include test -name .eunit -prune -o -name ebin -prune -o -type f -print)
+SOURCES := $(shell find src test -name .eunit -prune -o -name ebin -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -23,16 +23,16 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm .mz_bench_language.plt
+	rm .mz_bench_utils.plt
 
-.mz_bench_language.plt: .make/deps-compiled
-	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto -r deps
+.mz_bench_utils.plt: .make/deps-compiled
+	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto
 
-dialyzer.log: .mz_bench_language.plt compile
+dialyzer.log: .mz_bench_utils.plt compile
 	- dialyzer --plt $< \
 		ebin \
 		-I src \
-		-I deps -o dialyzer.log \
+		-o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
 		-Werror_handling \
@@ -44,7 +44,6 @@ dialyzer.log: .mz_bench_language.plt compile
 
 .make/deps-cloned: rebar.config
 	rm -rf deps && $(REBAR) get-deps
-	make -C deps/mz_bench_utils clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned
