@@ -7,7 +7,8 @@
     remote_cmd/6,
     ensure_file_content/5,
     exec_format/4,
-    exec_format/7
+    exec_format/7,
+    tmp_filename/0
 ]).
 
 -include_lib("mz_bench_language/include/mzbl_types.hrl").
