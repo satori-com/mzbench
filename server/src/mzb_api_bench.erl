@@ -315,14 +315,7 @@ send_email_report(Emails, #{id:= Id,
                             metrics_file:= MetricsFile}) ->
     try
         BenchTime = FinishTime - StartTime,
-        Links =
-            try
-                mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime)
-            catch
-                _:E ->
-                    lager:error("Failed to get graphite image links: ~p", [E]),
-                    []
-            end,
+        Links = mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime),
         lager:info("Metrics links: ~p", [Links]),
         AttachFiles = download_images("graphite_", Links, Config),
         {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
@@ -538,21 +531,30 @@ indent(Str, N) ->
     string:join([Spaces ++ Line || Line <- string:tokens(Str, "\n")], "\n").
 
 download_images(Prefix, URLs, Config) ->
-    {Files, _} = lists:foldl(fun (URL, {Acc, N}) ->
-        case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
-            {ok, {_, _, Data}} ->
-                FileName = Prefix ++ integer_to_list(N) ++ ".png",
-                FullPath = local_path(FileName, Config),
-                ok = file:write_file(FullPath, Data),
-                lager:info("Downloaded: ~s -> ~s", [URL, FileName]),
-                {[FileName|Acc], N + 1};
-            {error, Reason} ->
-                lager:error("Download failed: ~s with reason: ~p", [URL, Reason]),
-                {Acc, N}
-        end
-    end, {[], 1}, URLs),
-    Files.
+    Files = mzbl_utility:pmap(fun ({N, URL}) ->
+        FileName = Prefix ++ integer_to_list(N) ++ ".png",
+        FullPath = local_path(FileName, Config),
+        _ = ensure_URL_dowloaded(URL, FullPath),
+        FileName
+    end, mzbl_utility:enumerate(URLs)),
+    [F || F <- Files, filelib:is_file(local_path(F, Config))].
 
+ensure_URL_dowloaded(URL, ToFile) ->
+    case filelib:is_file(ToFile) of
+        false ->
+            case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
+                {ok, {_, _, Data}} ->
+                    ok = file:write_file(ToFile, Data),
+                    lager:info("Downloaded: ~s -> ~s", [URL, ToFile]),
+                    ok;
+                {error, Reason} ->
+                    lager:error("Download failed: ~s with reason: ~p", [URL, Reason]),
+                    {error, Reason}
+            end;
+        true ->
+            lager:info("File ~s is already downloaded", [ToFile]),
+            ok
+    end.
 
 info(Format, Args, State) ->
     log(info, Format, Args, State).

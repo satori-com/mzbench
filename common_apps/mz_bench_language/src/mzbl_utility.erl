@@ -16,7 +16,8 @@
     expand_filename/1,
     wildcard/1,
     make_install_spec/3,
-    del_dir/1
+    del_dir/1,
+    enumerate/1
    ]).
 
 -include("mzbl_types.hrl").
@@ -148,4 +149,7 @@ del_dir(Dir) ->
         error:{badmatch, Reason} ->
             {error, Reason}
     end.
+
+enumerate(List) when is_list(List) ->
+    lists:zip(lists:seq(0, length(List) - 1), List).
 
