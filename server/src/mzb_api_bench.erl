@@ -544,7 +544,9 @@ ensure_URL_dowloaded(URL, ToFile) ->
         false ->
             case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
                 {ok, {_, _, Data}} ->
-                    ok = file:write_file(ToFile, Data),
+                    TmpFile = mzb_api_provision:tmp_filename(),
+                    ok = file:write_file(TmpFile, Data),
+                    ok = file:rename(TmpFile, ToFile),
                     lager:info("Downloaded: ~s -> ~s", [URL, ToFile]),
                     ok;
                 {error, Reason} ->
