@@ -74,12 +74,22 @@ import subprocess
 import sys
 import time
 
+def check_module_version(module, required_version):
+    import distutils.version
+    return distutils.version.StrictVersion(module.__version__) >= distutils.version.StrictVersion(required_version)
+
+
 try:
     import docopt
     import requests
-
-    # Pyflakes would complain about unused requests, so we have to trick it
-    assert requests
+    
+    if not check_module_version(requests, '1.1.0'):
+        print('mzbench requires the module requests to be version 1.1.0 or higher,')
+        print('but version {0} is installed.'.format(requests.__version__))
+        print()
+        print('Please update your installation and try again.')
+        sys.exit(1)
+    
 except ImportError:
     print('mzbench requires docopt and requests')
     print()
