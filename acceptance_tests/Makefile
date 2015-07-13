@@ -19,3 +19,7 @@ signal-tests:
 	./mzb_signal_tests.py -v
 
 
+.PHONY: clean
+clean:
+	-@rm -rf data.*
+	-@rm -rf log.*
