@@ -12,7 +12,7 @@ GIT_HEAD := $(shell git rev-parse HEAD)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
-MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
+MZ_BENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -107,9 +107,10 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-.make/deps-cloned: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
+.make/deps-cloned: rebar.config $(MZ_BENCH_COMMON_SOURCES)
 	rm -rf deps && $(REBAR) get-deps
 	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_language clean
+	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_utils clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned

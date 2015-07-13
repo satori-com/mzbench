@@ -125,7 +125,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
     [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
     [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
-    Size2 = case [mzbl_utility:to_integer_with_default(Size, undefined), mzbl_utility:to_integer_with_default(PerNode, undefined)] of
+    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
                         [undefined, undefined] -> 1;
                         [undefined, PN] -> PN * NumNodes;
                         [S, undefined] -> S;
@@ -133,7 +133,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
                         [S, PN] when NumNodes * PN >= S -> S;
                         [S, PN] ->
                             lager:error("Need more nodes, required = ~p, actual = ~p", 
-                                [mzbl_utility:int_ceil(S/PN), NumNodes]),
+                                [mzb_utility:int_ceil(S/PN), NumNodes]),
                             erlang:error({not_enough_nodes})
                     end,
     lager:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
@@ -143,7 +143,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
 
     load_worker(Worker),
 
-    Numbers = lists:seq(0, mzbl_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
+    Numbers = lists:seq(0, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
     lager:info("Worker offsets: ~p", [Numbers]),
 
     WorkerStarter =

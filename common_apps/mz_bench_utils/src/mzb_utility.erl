@@ -1,4 +1,4 @@
--module(mzbl_utility).
+-module(mzb_utility).
 
 -export(
    [
@@ -15,12 +15,9 @@
     any_to_num/1,
     expand_filename/1,
     wildcard/1,
-    make_install_spec/3,
     del_dir/1,
     enumerate/1
    ]).
-
--include("mzbl_types.hrl").
 
 taken(L, N) ->
      Len = length(L),
@@ -117,7 +114,6 @@ expand_filename("~/" ++ Filename) ->
         {ok, [[HomeDir|_]|_]} ->
             filename:join(HomeDir, Filename);
         Error ->
-            lager:error("Can't get home directory: ~p", [Error]),
             erlang:error({get_homedir_error, Error})
     end;
 expand_filename(Filename) -> Filename.
@@ -125,19 +121,8 @@ expand_filename(Filename) -> Filename.
 wildcard(Wildcard) ->
     filelib:wildcard(expand_filename(Wildcard)).
 
-make_install_spec(Repo, Branch, Dir) ->
-    ToString = fun
-        (X) when is_binary(X) -> binary_to_list(X);
-        (X) when is_list(X) -> X;
-        (Y) -> erlang:error({not_a_stringy_thing_in_install_spec, Y})
-    end,
-    #install_spec{
-        repo = ToString(Repo),
-        branch = ToString(Branch),
-        dir = ToString(Dir)}.
-
 del_dir(Dir) ->
-    Files = [Dir|mzbl_utility:wildcard(filename:join(Dir, "**"))],
+    Files = [Dir|wildcard(filename:join(Dir, "**"))],
     RegularFiles = [F || F <- Files, filelib:is_regular(F)],
     Dirs = [F || F <- Files, filelib:is_dir(F)],
     SortedDirs = lists:usort(fun (S1, S2) -> length(S1) >= length(S2) end, Dirs),

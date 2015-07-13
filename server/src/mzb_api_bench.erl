@@ -531,12 +531,12 @@ indent(Str, N) ->
     string:join([Spaces ++ Line || Line <- string:tokens(Str, "\n")], "\n").
 
 download_images(Prefix, URLs, Config) ->
-    Files = mzbl_utility:pmap(fun ({N, URL}) ->
+    Files = mzb_utility:pmap(fun ({N, URL}) ->
         FileName = Prefix ++ integer_to_list(N) ++ ".png",
         FullPath = local_path(FileName, Config),
         _ = ensure_URL_dowloaded(URL, FullPath),
         FileName
-    end, mzbl_utility:enumerate(URLs)),
+    end, mzb_utility:enumerate(URLs)),
     [F || F <- Files, filelib:is_file(local_path(F, Config))].
 
 ensure_URL_dowloaded(URL, ToFile) ->

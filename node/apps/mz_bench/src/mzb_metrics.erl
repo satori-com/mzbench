@@ -147,7 +147,7 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
 
     Before = os:timestamp(),
 
-    Values = mzbl_utility:pmap(
+    Values = mzb_utility:pmap(
         fun (N) ->
             lager:info("[ metrics ] Waiting for metrics from ~p...", [N]),
             case rpc:call(N, mzb_metrics, get_local_values, []) of
@@ -187,7 +187,7 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
         []),
     
     lager:info("[ metrics ] Checking signals..."),
-    RawSignals = mzbl_utility:pmap(
+    RawSignals = mzb_utility:pmap(
         fun (N) ->
             lager:info("[ metrics ] Reading signals from ~p...", [N]),
             case rpc:call(N, mzb_signaler, get_all_signals, []) of

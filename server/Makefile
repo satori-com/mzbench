@@ -5,7 +5,7 @@ RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
-MZ_BENCH_LANGUAGE_SOURCES := $(shell find ../common_apps/mz_bench_language -name .eunit -prune -o -type f -print)
+MZ_BENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -40,9 +40,10 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
 
-.make/deps-cloned: rebar.config $(MZ_BENCH_LANGUAGE_SOURCES)
+.make/deps-cloned: rebar.config $(MZ_BENCH_COMMON_SOURCES)
 	rm -rf deps && $(REBAR) get-deps
 	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_language clean
+	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_utils clean
 	perl -pe 's/ERLC_FLAGS=$$/ERLC_FLAGS=+debug_info/' -i deps/merl/Makefile
 	mkdir -p .make && touch $@
 

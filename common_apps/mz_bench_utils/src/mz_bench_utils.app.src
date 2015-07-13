@@ -1,0 +1,7 @@
+{application, mz_bench_utils,
+ [
+  {description, ""},
+  {vsn, git},
+  {registered, []},
+  {applications, [kernel, stdlib]}
+ ]}.

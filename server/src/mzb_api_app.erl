@@ -81,7 +81,7 @@ load_config(AppName) ->
     end.
 
 load_config(File, AppName) ->
-    case file:consult(mzbl_utility:expand_filename(File)) of
+    case file:consult(mzb_utility:expand_filename(File)) of
         {ok, [Config]} ->
             lager:info("Reading configuration from ~s~n~p", [File, Config]),
             lists:foreach(fun ({App, Env}) when App == AppName ->
@@ -96,7 +96,7 @@ load_config(File, AppName) ->
 load_cloud_plugin() ->
     {ok, Dir} = application:get_env(mz_bench_api, plugins_dir),
     ok = filelib:ensure_dir(filename:join(Dir, ".")),
-    PluginPaths = mzbl_utility:wildcard(filename:join([Dir, "*", "ebin"])),
+    PluginPaths = mzb_utility:wildcard(filename:join([Dir, "*", "ebin"])),
     ok = code:add_pathsa(PluginPaths),
     lager:info("PATHS: ~p", [code:get_path()]),
     case application:get_env(cloud_plugin) of

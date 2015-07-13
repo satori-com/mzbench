@@ -127,6 +127,7 @@ NODE_PROJECTS = [dirname + "/../node"]
 SERVER_PROJECTS = [dirname + "/../server"]
 CHECK_PROJECTS = NODE_PROJECTS + SERVER_PROJECTS + \
     [dirname + '/../common_apps/mz_bench_language',
+     dirname + '/../common_apps/mz_bench_utils',
      dirname + '/../examples',
      dirname + '/../acceptance_tests/invalid_scripts']
 
