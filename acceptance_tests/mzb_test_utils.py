@@ -1,5 +1,6 @@
 
 import os
+import re
 import sys
 import shlex
 import subprocess
@@ -44,22 +45,24 @@ def start_mzbench_server():
         cmd('{0} stop_server'.format(mzbench_script))
 
 def run_successful_bench(name, nodes=None, env={}, email=None,
-        exclusive_node_usage=False):
+        exclusive_node_usage=False, expected_log_message_regex=None):
     return run_bench(name, should_fail=False,
         nodes=nodes, env=env, email=email,
-        exclusive_node_usage=exclusive_node_usage)
+        exclusive_node_usage=exclusive_node_usage,
+        expected_log_message_regex=expected_log_message_regex)
 
 
 def run_failing_bench(name, nodes=None, env={}, email=None,
-        exclusive_node_usage=False):
+        exclusive_node_usage=False, expected_log_message_regex=None):
     return run_bench(name, should_fail=True,
         nodes=nodes, env=env,
-        exclusive_node_usage=exclusive_node_usage)
+        exclusive_node_usage=exclusive_node_usage,
+        expected_log_message_regex=expected_log_message_regex)
 
 
 def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         env={}, email=None, should_fail=False, max_retries=2,
-        exclusive_node_usage=False):
+        exclusive_node_usage=False, expected_log_message_regex=None):
 
     email_option = ('--email=' + email) if email else ''
 
@@ -121,6 +124,19 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             bench_id, success = (None, False)
 
         if xor(success, should_fail):
+            if expected_log_message_regex:
+                log_cmd = mz_bench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
+                log = cmd(log_cmd)
+                if isinstance(expected_log_message_regex, str):
+                    regex = re.compile(expected_log_message_regex) 
+                else:
+                    regex = expected_log_message_regex
+                if not regex.search(log):
+                    print
+                    print "Log doesn't contain expected log message '{0}':".format(regex.pattern)
+                    print
+                    print log
+                    raise RuntimeError
             return bench_id
 
         print 'Attempt #{0} for bench-id {1} unexpectedly {2}, retrying.'.format(attempt, bench_id, 'succeeded' if should_fail else 'failed')

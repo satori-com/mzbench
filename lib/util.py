@@ -99,3 +99,8 @@ def silent_stdout():
         yield
     finally:
         sys.stdout = saved_stdout
+
+def multiline_strip(s):
+    '''Returns a copy of s with empty lines and
+    leading and trailing spaces removed'''
+    '\n'.join((x.strip() for x in s.split('\n') if x))
