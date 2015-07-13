@@ -173,8 +173,13 @@ case "$1" in
         while true; do
             RES=`ping_node`
             if [ "$RES" != "pong" ]; then
-                echo "Node start failed"
-                exit 1
+                if [ $attempts -lt 1 ]; then
+                    echo "Node start failed"
+                    exit 1;
+                fi
+                attempts=$[$attempts-1]
+                sleep 1
+                break
             fi
             RES=`$NODETOOL rpcterms mzb_api_server ensure_started ''`
             EC=$?
