@@ -23,12 +23,12 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm .mz_bench_utils.plt
+	rm .mzbench_utils.plt
 
-.mz_bench_utils.plt: .make/deps-compiled
+.mzbench_utils.plt: .make/deps-compiled
 	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto
 
-dialyzer.log: .mz_bench_utils.plt compile
+dialyzer.log: .mzbench_utils.plt compile
 	- dialyzer --plt $< \
 		ebin \
 		-I src \

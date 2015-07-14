@@ -23,7 +23,7 @@ create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes)
     lager:info("AWS ids: ~p, hosts: ~p", [Ids, Hosts]),
     wait_nodes_start(Ids, ?MAX_POLL_COUNT),
     wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
-    {ok, UserName} = application:get_env(mz_bench_api, ec2_instance_user),
+    {ok, UserName} = application:get_env(mzbench_api, ec2_instance_user),
     update_hostfiles(UserName, Hosts),
     {ok, Ids, UserName, Hosts}.
 
@@ -65,7 +65,7 @@ wait_nodes_start([H | T], C) ->
     end.
 
 instance_spec(NumNodes) ->
-    {ok, Ec2AppConfig} = application:get_env(mz_bench_api, ec2_instance_spec),
+    {ok, Ec2AppConfig} = application:get_env(mzbench_api, ec2_instance_spec),
     lists:foldr(fun({Name, Value}, A) -> set_record_element(A, Name, Value) end,
         #ec2_instance_spec{
             min_count = NumNodes,
@@ -74,7 +74,7 @@ instance_spec(NumNodes) ->
         Ec2AppConfig).
 
 get_config() ->
-    {ok, AppConfig} = application:get_env(mz_bench_api, aws_config),
+    {ok, AppConfig} = application:get_env(mzbench_api, aws_config),
     lists:foldr(fun({Name, Value}, A) -> set_record_element(A, Name, Value) end,
         #aws_config{}, AppConfig).
 

@@ -13,7 +13,7 @@
          code_change/3
         ]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 -record(s, {
     director = undefined,

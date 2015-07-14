@@ -43,7 +43,7 @@ run_script(Script, Env) ->
 
     ok = application:start(inets),
     {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
-    {ok, _} = ensure_all_started(mz_bench),
+    {ok, _} = ensure_all_started(mzbench),
     
     Env2 = [{"mzb_script_name", Script} | Env],
 
@@ -72,7 +72,7 @@ validate(Script) ->
     ok = application:load(lager),
     ok = application:set_env(lager, handlers, []),
     {ok, _} = application:ensure_all_started(lager),
-    ok = application:load(mz_bench),
+    ok = application:load(mzbench),
 
     case mzb_script_validator:read_and_validate(filename:absname(Script), []) of
         {ok, _, _} ->

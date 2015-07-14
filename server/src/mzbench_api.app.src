@@ -1,4 +1,4 @@
-{application, mz_bench_api, [
+{application, mzbench_api, [
     {description, "MZ Bench API server"},
     {vsn, git},
     {modules, []},
@@ -11,8 +11,8 @@
         jiffy,
         inets,
         erlcloud,
-        mz_bench_language,
-        mz_bench_utils,
+        mzbench_language,
+        mzbench_utils,
         gen_smtp
     ]},
     {mod, {mzb_api_app, []}},
@@ -47,7 +47,7 @@
 %        {graphite_url, ""}, % only for hostedgraphite
         {mzbench_git, "https://github.com/machinezone/mzbench.git"},
         {node_deployment_path, "~/mz"},
-        {worker_deployment_path, "~/mz/mz_bench_workers"},
+        {worker_deployment_path, "~/mz/mzbench_workers"},
         {plugins_dir, "../../plugins"},
         {bench_data_dir, "../../data"},
         {tgz_packages_dir, "../../packages"},

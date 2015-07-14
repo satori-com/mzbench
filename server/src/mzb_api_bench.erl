@@ -50,7 +50,7 @@ init([Id, Params]) ->
         nodes_arg => maps:get(nodes, Params),
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
-        node_git => application:get_env(mz_bench_api, mzbench_git, undefined),
+        node_git => application:get_env(mzbench_api, mzbench_git, undefined),
         node_commit => maps:get(node_commit, Params),
         env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
@@ -178,7 +178,7 @@ handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = St
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
     ScriptFilePath = script_path(Script),
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost],
-        "~/mz/mz_bench/bin/run.escript",
+        "~/mz/mzbench/bin/run.escript",
         [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
         get_logger(State)),
     ok;
@@ -329,7 +329,7 @@ send_email_report(Emails, #{id:= Id,
             fun (Addr) ->
                 lager:info("Sending bench results to ~s", [Addr]),
                 BAddr = list_to_binary(Addr),
-                mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mz_bench_api, mail, []))
+                mzb_api_mail:send(BAddr, Subj, Body, Attachments, application:get_env(mzbench_api, mail, []))
             end, Emails),
         ok
     catch
@@ -343,7 +343,7 @@ status(State) ->
     maps:with([id, status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
 
 get_cloud_provider() ->
-    {ok, {_Type, Name}} = application:get_env(mz_bench_api, cloud_plugin),
+    {ok, {_Type, Name}} = application:get_env(mzbench_api, cloud_plugin),
     Name.
 
 add_env([], Env) -> Env;
@@ -367,7 +367,7 @@ generate_bench_env(Params) ->
 script_path(Script) ->
     case Script of
         #{filename := FileName} -> FileName;
-        Pkg -> "~/mz/mz_bench_workers/" ++ Pkg ++ "/default.erl"
+        Pkg -> "~/mz/mzbench_workers/" ++ Pkg ++ "/default.erl"
     end.
 
 run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
@@ -582,7 +582,7 @@ format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
 format_error(Op, {E, Stack}) ->
     io_lib:format("Benchmark has failed on ~p with reason:~n~p~n~nStacktrace: ~p", [Op, E, Stack]).
 
-get_env(K) -> application:get_env(mz_bench_api, K, undefined).
+get_env(K) -> application:get_env(mzbench_api, K, undefined).
 
 generate_script_filename(#{name := _Name, body := Body} = Script) ->
     Script#{filename => lists:flatten(io_lib:format("~s.erl", [lists:flatten(lists:map(

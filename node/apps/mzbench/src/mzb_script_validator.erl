@@ -2,11 +2,11 @@
 
 -export([validate/1, read_and_validate/2]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 read_and_validate(ScriptFileName, Env) ->
     try
-        {ok, WorkerDirs} = application:get_env(mz_bench, workers_dirs),
+        {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
         Nodes = [node()|nodes()],
         AutoEnv = [{"nodes_num", length(Nodes)},
                    {"bench_hosts", [mzbl_script:hostname(N) || N <- Nodes]},

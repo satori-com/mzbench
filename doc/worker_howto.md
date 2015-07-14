@@ -12,19 +12,19 @@ MZBench distribution provide some command line utilities to assist you during yo
 
 ## New worker generation
 
-First of all, you can generate an empty _worker_ application using the following command (here and later `<MZ_BENCH_SRC>` means the path to the MZBench source code):
+First of all, you can generate an empty _worker_ application using the following command (here and later `<MZBENCH_SRC>` means the path to the MZBench source code):
 
-    <MZ_BENCH_SRC>/bin/mzbench new_worker <worker_name>
+    <MZBENCH_SRC>/bin/mzbench new_worker <worker_name>
 
 This will create a new directory `<worker_name>` containing a minimalistic, but fully functional MZBench _worker_ named `<worker_name>`. Particularly interesting generated files are `src/<worker_name>.erl` containing the _worker_ source code and `examples/<worker_name>.erl` containing a simple MZBench scenario using it.
 
 If the service you want to access is based on some well known protocol, such as TCP, the `new_worker` command can generate your a more elaborate _worker_ already containing the usual boilerplate code for this type of service. You can obtain a list of available protocols by executing:
 
-    <MZ_BENCH_SRC>/bin/mzbench list_templates
+    <MZBENCH_SRC>/bin/mzbench list_templates
 
 Then generate your _worker_ by adding an additional parameter to the `new_worker` command:
 
-    <MZ_BENCH_SRC>/bin/mzbench new_worker --template <protocol> <worker_name>
+    <MZBENCH_SRC>/bin/mzbench new_worker --template <protocol> <worker_name>
 
 ## Worker compilation and debugging
 
@@ -32,7 +32,7 @@ During any serious development, you will certainly need a to do a lot of debuggi
 
 Inside your _worker_ source code directory (the root one, not the `src`), execute the following command replacing `<script>` by the path to the benchmarking scenario you want to run:
 
-    <MZ_BENCH_SRC>/bin/mzbench run_local <script>
+    <MZBENCH_SRC>/bin/mzbench run_local <script>
 
 You can, of course, pass the environment variables using the `--env` option. But, please note that all `make_install` top-level statements will be ignored in this execution mode.
 

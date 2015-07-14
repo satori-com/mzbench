@@ -69,21 +69,21 @@ The configuraion file is essentially an Erlang term. At the top level, it is a l
 For the sake of clarity, let's see the following example configuration:
 
     [
-        {mz_bench_api, [
+        {mzbench_api, [
             {graphite, "172.21.8.192"},
             {listen_port, 80}
         ]}
     ].
 
-It contains only one category: `mz_bench_api`. This category is used for the parameters of the server itself.
+It contains only one category: `mzbench_api`. This category is used for the parameters of the server itself.
 
 Here, we specify two parameters: `graphite` and `listen_port`. `graphite` specifies the IP
  address of the host containing the Graphite server to use (here `172.21.8.192`). `listen_port`
  specifies which port should be used to access the server dashboard (here `80`).
 
-## Server parameters (`mz_bench_api`)
+## Server parameters (`mzbench_api`)
 
-These parameters are going to the `mz_bench_api` category.
+These parameters are going to the `mzbench_api` category.
 
 ### `{cloud_plugin, {module, <name>} | {application, <name>}}`
 
@@ -107,7 +107,7 @@ with your AWS credentials.
 
 This parameter specifies where to store the various benchmark generated data.
 
-By default `mz_bench_api_data` in the home directory of the user who started the server.
+By default `mzbench_api_data` in the home directory of the user who started the server.
 
 ### `{graphite, "<hostname or ip>"}`
 

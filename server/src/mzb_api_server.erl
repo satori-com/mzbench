@@ -90,7 +90,7 @@ init([]) ->
     ok = filelib:ensure_dir(filename:join(ServerDir, ".")),
     MaxId = import_data(ServerDir),
     User = sys_username(),
-    {ok, MaxBenchNum} = application:get_env(mz_bench_api, max_bench_num),
+    {ok, MaxBenchNum} = application:get_env(mzbench_api, max_bench_num),
     lager:info("Server username: ~p", [User]),
     {ok, check_max_bench_num(#{next_id => MaxId + 1,
            monitors => #{},
@@ -101,7 +101,7 @@ init([]) ->
            max_bench_num => MaxBenchNum})}.
 
 server_data_dir() ->
-    DataDir = application:get_env(mz_bench_api, bench_data_dir, undefined),
+    DataDir = application:get_env(mzbench_api, bench_data_dir, undefined),
     filename:absname(DataDir).
 
 handle_call({start_bench, Params}, _From, #{status:= active} = State) ->

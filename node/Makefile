@@ -5,14 +5,14 @@ SECOND_ARG := $(wordlist 2,2,$(MAKECMDGOALS))
 
 REBAR := $(abspath $(shell which ../bin/rebar || which rebar))
 SERVICE_PREFIX=/mz
-SERVICE_NAME=mz_bench
+SERVICE_NAME=mzbench
 SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
-MZ_BENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
+MZBENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -51,13 +51,13 @@ check: test-unit test-network-usage-script dialyzer.log
 .PHONY: install
 install: generate
 	mkdir -p ~/mz
-	cp -rf rel/mz_bench ~/mz
+	cp -rf rel/mzbench ~/mz
 
 .PHONY: generate_tgz
 generate_tgz: generate
 	mkdir -p pkgroot
-	cp -rf rel/mz_bench pkgroot/
-	cd pkgroot && tar czf ../node.tgz ./mz_bench && cd ..
+	cp -rf rel/mzbench pkgroot/
+	cd pkgroot && tar czf ../node.tgz ./mzbench && cd ..
 	rm -rf pkgroot
 
 .PHONY: clean
@@ -89,8 +89,8 @@ change-version:
 
 dialyzer.log: .mzbench.plt compile
 	- dialyzer -nn --plt .mzbench.plt \
-		apps/mz_bench/ebin apps/mz_histogram/ebin \
-		-I apps/mz_bench/src \
+		apps/mzbench/ebin apps/mz_histogram/ebin \
+		-I apps/mzbench/src \
 		-I deps -o dialyzer.log \
 		-Wno_undefined_callbacks \
 		-Wunmatched_returns \
@@ -107,10 +107,10 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-.make/deps-cloned: rebar.config $(MZ_BENCH_COMMON_SOURCES)
+.make/deps-cloned: rebar.config $(MZBENCH_COMMON_SOURCES)
 	rm -rf deps && $(REBAR) get-deps
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_language clean
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mz_bench_utils clean
+	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_language clean
+	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_utils clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned

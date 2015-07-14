@@ -18,10 +18,10 @@ Cloud plugin is responsible for cluster allocation and deallocation, it is requi
 
 ## Using a cloud plugin
 
-Once you have a plugin, it should be specified at MZBench config file inside mz_bench_api section:
+Once you have a plugin, it should be specified at MZBench config file inside mzbench_api section:
 
     [
-      {mz_bench_api, [
+      {mzbench_api, [
         {cloud_plugin, {application, privatecloud_plugin}},
         {plugins_dir, "../../plugins"}
         ]},

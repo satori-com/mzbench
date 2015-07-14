@@ -1,7 +1,0 @@
-{application, mz_bench_language,
- [
-  {description, ""},
-  {vsn, git},
-  {registered, []},
-  {applications, [kernel, stdlib, lager, sasl, pretty_errors, mz_bench_utils]}
- ]}.

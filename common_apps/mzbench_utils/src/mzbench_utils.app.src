@@ -1,4 +1,4 @@
-{application, mz_bench_utils,
+{application, mzbench_utils,
  [
   {description, ""},
   {vsn, git},

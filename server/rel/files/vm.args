@@ -1,8 +1,8 @@
 ## Name of the node
--sname mz_bench_api
+-sname mzbench_api
 
 ## Cookie for distributed erlang
--setcookie mz_bench_api
+-setcookie mzbench_api
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

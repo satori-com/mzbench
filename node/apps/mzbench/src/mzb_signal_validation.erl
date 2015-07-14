@@ -2,7 +2,7 @@
 
 -export([validate/1]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 validate(Script) ->
     Graph = signals_to_graph(Script),

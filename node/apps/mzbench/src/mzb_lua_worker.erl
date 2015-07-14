@@ -10,7 +10,7 @@
     validate_function/3
     ]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 -include_lib("luerl/src/luerl.hrl").
 
 -spec load(worker_name()) -> ok.
@@ -102,7 +102,7 @@ metrics(WorkerName) ->
 -spec search_paths(worker_name()) -> [string()].
 search_paths(Name) ->
     [mzb_file:expand_filename(filename:join(P, Name))
-    || P <- application:get_env(mz_bench, workers_dirs, [])].
+    || P <- application:get_env(mzbench, workers_dirs, [])].
 
 -spec worker_filename(worker_name()) -> string().
 worker_filename(Name) -> lists:flatten(io_lib:format("~s_worker.lua", [Name])).

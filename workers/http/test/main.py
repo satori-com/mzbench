@@ -45,10 +45,10 @@ def main():
                 else:
                     mzbench_git_param = ''
 
-                with open(dirname + '/mz_bench_server.config', 'w') as config:
-                    config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
+                with open(dirname + '/mzbench_server.config', 'w') as config:
+                    config.write('[{{mzbench_api, [{0}]}}].'.format(mzbench_git_param))
 
-                subprocess.check_call(['../../bin/mzbench', 'start_server', '--config', dirname + '/mz_bench_server.config'])
+                subprocess.check_call(['../../bin/mzbench', 'start_server', '--config', dirname + '/mzbench_server.config'])
 
             run_command = ['../../bin/mzbench', 'run']
 

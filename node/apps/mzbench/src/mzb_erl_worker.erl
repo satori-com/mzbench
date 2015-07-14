@@ -29,7 +29,7 @@ validate_function(Module, Fn, Arity) ->
     end.
 
 load(Worker) ->
-    ok = load_config(Worker, application:get_env(mz_bench, workers_dirs, [])),
+    ok = load_config(Worker, application:get_env(mzbench, workers_dirs, [])),
     {ok, _} = ensure_all_started(Worker),
     ok.
 

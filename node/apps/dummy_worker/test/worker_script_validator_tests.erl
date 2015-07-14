@@ -1,7 +1,7 @@
 -module(worker_script_validator_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 validation_ok_simple_test() ->
     ?assertEqual(check("[{print, \"NaNNaNNaNNaNNaNNaN\"},
