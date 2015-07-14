@@ -2,7 +2,7 @@
 -behaviour(application).
 
 %% API.
--export([start/2, prep_stop/1, stop/1]).
+-export([start/2, prep_stop/1, stop/1, default_logger/0]).
 
 %% API.
 
@@ -110,5 +110,12 @@ load_cloud_plugin() ->
         undefined ->
             lager:error("A cloud plugin must be specified in the \"cloud_plugin\" environment variable!"),
             erlang:error(no_cloud_plugin)
+    end.
+
+% We can't call lager:Severity(...) because lager uses parse_transform
+default_logger() ->
+    fun (debug, F, A) -> lager:debug(F, A);
+        (info, F, A) -> lager:info(F, A);
+        (error, F, A) -> lager:error(F, A)
     end.
 

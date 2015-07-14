@@ -14,10 +14,9 @@ send(To, Subject, Body, Attachments, Config) ->
     smtp_or_sendmail(FromAddr, ToAddr, EncodedBody, SmtpOptions).
 
 smtp_or_sendmail(_, ToAddr, EncodedBody, undefined) ->
-    _ = mzb_api_provision:exec_format(
+    _ = exec_with_input(
         "sendmail ~s", [ToAddr], [stderr_to_stdout],
-        fun (_, S) -> S end, [],
-        EncodedBody, undefined);
+        EncodedBody, mzb_api_app:default_logger());
 smtp_or_sendmail(FromAddr, ToAddr, EncodedBody, SmtpOptions) ->
   <<"Ok", _/binary>> = gen_smtp_client:send_blocking({FromAddr, [ToAddr], EncodedBody}, SmtpOptions).
 
@@ -51,4 +50,14 @@ attachment({Name, MimeType, Body}) ->
 extract_addr_rfc822(Rfc822) ->
     {ok, [{_, Addr}]} = smtp_util:parse_rfc822_addresses(Rfc822),
     list_to_binary(Addr).
+
+exec_with_input(Format, Args, Opts, Input, Logger) ->
+    File = mzb_file:tmp_filename(),
+    ok = file:write_file(File, Input),
+    try
+        % Ports don't send eof to a programm but 'cat' does it
+        mzb_subprocess:exec_format("cat ~s | " ++ Format, [File | Args], Opts, Logger)
+    after
+        file:delete(File)
+    end.
 
