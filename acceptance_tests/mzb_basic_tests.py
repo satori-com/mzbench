@@ -15,9 +15,9 @@ from util import cmd
 
 from mzb_test_utils import run_successful_bench, restart_bench, run_failing_bench, start_mzbench_server
 
-mz_bench_dir = dirname + '/../'
-scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
-mzbench_script = mz_bench_dir + 'bin/mzbench'
+mzbench_dir = dirname + '/../'
+scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
@@ -115,7 +115,7 @@ def data_endpoint_test():
 def restart_test():
     bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')
     restarted_id = restart_bench(bench_id)
-    cmd(mz_bench_dir + 'bin/mzbench status --wait {0}'.format(restarted_id))
+    cmd(mzbench_dir + 'bin/mzbench status --wait {0}'.format(restarted_id))
 
 
 def loop_without_rate_test():
@@ -123,11 +123,11 @@ def loop_without_rate_test():
 
 
 def assertions_succ_test():
-    run_successful_bench(mz_bench_dir + 'examples/assertions.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples/assertions.erl', env={})
 
 
 def assertions_fail_test():
-    run_failing_bench(mz_bench_dir + 'examples/assertions_fail.erl', env={})
+    run_failing_bench(mzbench_dir + 'examples/assertions_fail.erl', env={})
 
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')

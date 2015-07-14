@@ -72,7 +72,7 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm .mz_bench.plt
+	rm .mzbench.plt
 
 # RPM creation
 .PHONY: change-version
@@ -84,11 +84,11 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench version to $(new-version)"
 
-.mz_bench.plt: .make/deps-compiled
-	- dialyzer --output_plt .mz_bench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
+.mzbench.plt: .make/deps-compiled
+	- dialyzer --output_plt .mzbench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
 
-dialyzer.log: .mz_bench.plt compile
-	- dialyzer -nn --plt .mz_bench.plt \
+dialyzer.log: .mzbench.plt compile
+	- dialyzer -nn --plt .mzbench.plt \
 		apps/mz_bench/ebin apps/mz_histogram/ebin \
 		-I apps/mz_bench/src \
 		-I deps -o dialyzer.log \

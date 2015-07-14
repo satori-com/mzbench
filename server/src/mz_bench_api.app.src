@@ -51,7 +51,7 @@
         {plugins_dir, "../../plugins"},
         {bench_data_dir, "../../data"},
         {tgz_packages_dir, "../../packages"},
-        {server_configs, ["~/.config/mz_bench/server.config", "/etc/mz_bench/server.config"]},
+        {server_configs, ["~/.config/mzbench/server.config", "/etc/mzbench/server.config"]},
         {max_bench_num, 1000}
     ]}
 ]}.

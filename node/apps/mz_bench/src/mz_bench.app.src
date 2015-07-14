@@ -19,7 +19,7 @@
                  ]},
   {mod, { mzb_app, []}},
   {env, [
-    {workers_dirs, ["~/mz/mz_bench_workers", "../workers"]},
+    {workers_dirs, ["~/mz/mzbench_workers", "../workers"]},
     {bench_log_port, 4801},
     {bench_metrics_port, 4802}
   ]}

@@ -58,8 +58,8 @@ For example: bin/mzbench start_server --config ./server.config
 
 By default, the server tries to load configuration from the following places:
 
-~/.config/mz_bench/server.config
-/etc/mz_bench/server.config
+~/.config/mzbench/server.config
+/etc/mzbench/server.config
 
 The configuraion file is essentially an Erlang term. At the top level, it is a list of tuples, terminated by the dot.
  Each tuple represent a configuration category. Its first element is an atom identifying the
