@@ -30,7 +30,7 @@ Once you have a plugin, it should be specified at MZBench config file inside mz_
         {name2, value2}
       ]}].
 
-This file is normally located at "/etc/mz_bench/server.config" or "~/.config/mz_bench/server.config".
+This file is normally located at "/etc/mzbench/server.config" or "~/.config/mzbench/server.config".
 
 Plugin-specific config could be specified at the same file inside corresponding section like at the example above. This config is optional.
 

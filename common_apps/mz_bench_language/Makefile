@@ -23,12 +23,12 @@ clean:
 
 .PHONY: distclean
 distclean: clean
-	rm .mz_bench_language.plt
+	rm .mzbench_language.plt
 
-.mz_bench_language.plt: .make/deps-compiled
+.mzbench_language.plt: .make/deps-compiled
 	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto -r deps
 
-dialyzer.log: .mz_bench_language.plt compile
+dialyzer.log: .mzbench_language.plt compile
 	- dialyzer --plt $< \
 		ebin \
 		-I src \

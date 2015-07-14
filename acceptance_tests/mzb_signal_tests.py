@@ -10,16 +10,16 @@ sys.path.append("../lib")
 
 from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbench_server
 
-mz_bench_dir = dirname + '/../'
-scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
-mzbench_script = mz_bench_dir + 'bin/mzbench'
+mzbench_dir = dirname + '/../'
+scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def signal_test():
-    run_successful_bench(mz_bench_dir + 'examples/signal.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples/signal.erl', env={})
 
 
 def signal_count_test():
-    run_successful_bench(mz_bench_dir + 'examples/signal_count.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples/signal_count.erl', env={})
 
 
 def signal_deadlock_test():

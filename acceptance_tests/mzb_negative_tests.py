@@ -10,9 +10,9 @@ sys.path.append("../lib")
 
 from mzb_test_utils import run_failing_bench, start_mzbench_server
 
-mz_bench_dir = dirname + '/../'
-scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
-mzbench_script = mz_bench_dir + 'bin/mzbench'
+mzbench_dir = dirname + '/../'
+scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def emulate_crash_test():
     run_failing_bench(scripts_dir + 'correct_script.erl', env={'emulate_bench_crash': 'true'})

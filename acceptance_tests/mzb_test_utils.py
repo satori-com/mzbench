@@ -13,9 +13,9 @@ sys.path.append("../lib")
 
 from util import cmd
 
-mz_bench_dir = dirname + '/../'
-scripts_dir = mz_bench_dir + 'acceptance_tests/scripts/'
-mzbench_script = mz_bench_dir + 'bin/mzbench'
+mzbench_dir = dirname + '/../'
+scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+mzbench_script = mzbench_dir + 'bin/mzbench'
 
 @contextmanager
 def start_mzbench_server():
@@ -25,7 +25,7 @@ def start_mzbench_server():
         mzbench_git_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mz_bench_api, [{0}]}}].'.format(mzbench_git_param))
+        config.write('[{{mzbench_api, [{0}]}}].'.format(mzbench_git_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
         print(f.read())
@@ -36,7 +36,7 @@ def start_mzbench_server():
     except:
         print ''
         print '-------------------- >> begin server logs << ---------------------'
-        print cmd('cat ' + mz_bench_dir + '/server/log/console.log').replace('\\n', '\n')
+        print cmd('cat ' + mzbench_dir + '/server/log/console.log').replace('\\n', '\n')
         print '-------------------- >> end server logs   << ---------------------'
         print ''
         raise
@@ -83,9 +83,9 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             email_option])
 
         if name is not None:
-            invocation = mz_bench_dir + 'bin/mzbench ' + flags + ' start ' + name
+            invocation = mzbench_dir + 'bin/mzbench ' + flags + ' start ' + name
         elif worker_package_with_default_scenario is not None:
-            invocation = mz_bench_dir + 'bin/mzbench ' + flags + ' start_default_scenario_of_worker ' + worker_package_with_default_scenario
+            invocation = mzbench_dir + 'bin/mzbench ' + flags + ' start_default_scenario_of_worker ' + worker_package_with_default_scenario
         else:
             raise RuntimeError('Neither script filename nor default scenario package provided.')
 
@@ -101,7 +101,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             raise
 
         wait = subprocess.Popen(shlex.split(
-            mz_bench_dir + 'bin/mzbench --host=localhost:4800 status --wait {0}'.format(bench_id)),
+            mzbench_dir + 'bin/mzbench --host=localhost:4800 status --wait {0}'.format(bench_id)),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
         wait.communicate()
@@ -131,7 +131,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         print('Log of the last attempt (bench {0}):'.format(bench_id))
 
         if bench_id is not None:
-            log_cmd = mz_bench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
+            log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
             print cmd(log_cmd).replace('\\n', '\n')
 
         raise RuntimeError('BenchId {0} for test {1} unexpectedly {2}'.format(
@@ -140,7 +140,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
 
 def restart_bench(bench_id):
     restart = subprocess.Popen(
-        [mz_bench_dir + 'bin/mzbench',
+        [mzbench_dir + 'bin/mzbench',
             '--host=localhost:4800',
             'restart',
             str(bench_id)],

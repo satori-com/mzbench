@@ -107,7 +107,7 @@ server_rel_dir = dirname + "/../server/rel/mz_bench_api/"
 import util
 from subprocess import check_call
 
-import mz_bench_api_client as api
+import mzbench_api_client as api
 
 
 def require(executable):
