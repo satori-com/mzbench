@@ -319,15 +319,16 @@ import_bench_status(Id, File) ->
     end.
 
 sys_username() ->
+    Logger = mzb_api_app:default_logger(),
     case os:getenv("REMOTE_USER") of
         false ->
             case os:getenv("USER") of
                 false ->
-                    try mzb_api_provision:exec_format("who am i | awk '{print $1}'", [], [], undefined) of
-                        "" -> mzb_api_provision:exec_format("whoami", [], [], undefined);
+                    try mzb_subprocess:exec_format("who am i | awk '{print $1}'", [], [], Logger) of
+                        "" -> mzb_subprocess:exec_format("whoami", [], [], Logger);
                         User -> User
                     catch
-                        _:_ -> mzb_api_provision:exec_format("whoami", [], [], undefined)
+                        _:_ -> mzb_subprocess:exec_format("whoami", [], [], Logger)
                     end;
                 User -> User
             end;

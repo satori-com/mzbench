@@ -19,7 +19,6 @@
 %% mzb_pipeline callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, workflow_config/1, handle_stage/3,
-         get_logger/1,
          handle_pipeline_status/2]).
 
 start_link(Id, Params) ->
@@ -178,7 +177,7 @@ handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config
 handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
     ScriptFilePath = script_path(Script),
-    _ = mzb_api_provision:remote_cmd(UserName, [DirectorHost],
+    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost],
         "~/mz/mz_bench/bin/run.escript",
         [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
         get_logger(State)),
@@ -196,7 +195,7 @@ handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
 
 handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost}})
   when DirectorHost /= undefined ->
-    mzb_api_provision:clean_nodes(Config, undefined);
+    mzb_api_provision:clean_nodes(Config, mzb_api_app:default_logger());
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
@@ -544,7 +543,7 @@ ensure_URL_dowloaded(URL, ToFile) ->
         false ->
             case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
                 {ok, {_, _, Data}} ->
-                    TmpFile = mzb_api_provision:tmp_filename(),
+                    TmpFile = mzb_file:tmp_filename(),
                     ok = file:write_file(TmpFile, Data),
                     ok = file:rename(TmpFile, ToFile),
                     lager:info("Downloaded: ~s -> ~s", [URL, ToFile]),
@@ -567,12 +566,8 @@ error(Format, Args, State) ->
 log(Severity, Format, Args, #{log_file_handler:= H, id:= Id}) ->
     Format2 = "[ BENCH #~b ] " ++ Format,
     Args2 = [Id|Args],
-    % We can't call lager:Severity(...) because lager uses parse_transform
-    case Severity of
-        debug -> lager:debug(Format2, Args2);
-        info  -> lager:info(Format2, Args2);
-        error -> lager:error(Format2, Args2)
-    end,
+    DefaultLogger = mzb_api_app:default_logger(),
+    DefaultLogger(Severity, Format2, Args2),
     format_log(H, Severity, Format, Args).
 
 format_log(_Handler, debug, _Format, _Args) -> ok;

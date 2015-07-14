@@ -6,11 +6,11 @@
 -define(DEVIATION_DATAPOINTS, ["50", "75", "90", "95", "99", "999"]).
 
 get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
-    [Res] = mzb_api_provision:remote_cmd(
+    [Res] = mzb_subprocess:remote_cmd(
               UserName,
               [Host],
               "~/mz/mz_bench/bin/metric_names.escript",
-              [DirNode, RemoteScriptPath, RemoteEnvPath], undefined, []),
+              [DirNode, RemoteScriptPath, RemoteEnvPath], mzb_api_app:default_logger(), []),
     try
         jiffy:decode(Res, [return_maps])
     catch

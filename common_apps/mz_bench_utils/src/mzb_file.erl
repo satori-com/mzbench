@@ -4,7 +4,8 @@
    [
     expand_filename/1,
     wildcard/1,
-    del_dir/1
+    del_dir/1,
+    tmp_filename/0
    ]).
 
 expand_filename("~/" ++ Filename) ->
@@ -32,3 +33,8 @@ del_dir(Dir) ->
         error:{badmatch, Reason} ->
             {error, Reason}
     end.
+
+tmp_filename() ->
+    {N1,N2,N3} = os:timestamp(),
+    SafeNodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
+    filename:join(["/", "tmp", io_lib:format("bench_~s_~b_~b_~b", [SafeNodeName, N1, N2, N3])]).
