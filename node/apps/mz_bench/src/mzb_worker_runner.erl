@@ -145,7 +145,7 @@ time_of_next_iteration_in_ramp(StartRPS, FinishRPS, RampDuration, IterationNumbe
 looprun(1, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
     timerun(mknow(), 1, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, 0);
 looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
-    _ = mzb_utility:pmap(fun (I) ->
+    _ = mzb_lists:pmap(fun (I) ->
         timerun(mknow(), N, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, I)
     end, lists:seq(0, N - 1)),
     {nil, State}.

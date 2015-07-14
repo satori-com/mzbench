@@ -164,7 +164,7 @@ import_resource(Env, File, Type) ->
     catch
         error:{read_file_error, _, enoent} = E ->
             Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
-            case lists:append([mzb_utility:wildcard(M) || M <- Masks])  of
+            case lists:append([mzb_file:wildcard(M) || M <- Masks])  of
                 [] -> erlang:error(E);
                 [Path|_] -> import_resource(Path, Type)
             end

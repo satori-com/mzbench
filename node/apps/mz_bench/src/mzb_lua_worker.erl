@@ -101,7 +101,7 @@ metrics(WorkerName) ->
 
 -spec search_paths(worker_name()) -> [string()].
 search_paths(Name) ->
-    [mzbl_utility:expand_filename(filename:join(P, Name))
+    [mzb_file:expand_filename(filename:join(P, Name))
     || P <- application:get_env(mz_bench, workers_dirs, [])].
 
 -spec worker_filename(worker_name()) -> string().

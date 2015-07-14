@@ -30,10 +30,10 @@ wait(State, _Env, _Meta, C) ->
     {nil, State}.
 
 choose(State, _Env, _Meta, N, List) ->
-    {mzb_utility:choose(N, List), State}.
+    {mzb_lists:choose(N, List), State}.
 
 choose(State, _Env, _Meta, List) ->
-    {mzb_utility:choose(List), State}.
+    {mzb_lists:choose(List), State}.
 
 -spec error(any(), [proplists:property()], meta(), term()) -> no_return().
 error(_State, _Env, _Meta, Reason) ->
