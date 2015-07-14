@@ -44,7 +44,7 @@ dialyzer.log: .mz_bench_language.plt compile
 
 .make/deps-cloned: rebar.config
 	rm -rf deps && $(REBAR) get-deps
-	make -C deps/mz_bench_utils clean
+	PATH="$$PWD/../../bin:$$PATH" make -C deps/mz_bench_utils clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned
