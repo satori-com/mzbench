@@ -27,9 +27,9 @@ taken(Ps, N, Len, L) ->
 
 pmap(Fun, List) ->
     Self = self(),
-    Monitors = lists:map(fun (Element) ->
+    Refs = lists:map(fun (Element) ->
         Ref = erlang:make_ref(),
-        {_, Mon} = erlang:spawn_monitor(fun () ->
+        _ = erlang:spawn_link(fun () ->
             Res = try
                 {Ref, {ok, Fun(Element)}}
             catch
@@ -37,20 +37,17 @@ pmap(Fun, List) ->
             end,
             Self ! Res
         end),
-        {Mon, Ref}
+        Ref
     end, List),
-    pmap_results(Monitors, []).
+    pmap_results(Refs, []).
 
 pmap_results([], Res) -> lists:reverse(Res);
-pmap_results([{Mon, Ref}|T], Res) ->
+pmap_results([Ref|T], Res) ->
     receive
         {Ref, {ok, R}} ->
-            erlang:demonitor(Mon, [flush]),
             pmap_results(T, [R|Res]);
         {Ref, {exception, {C,E,ST}}} ->
-            erlang:raise(C, E, ST);
-        {'DOWN', Mon, process, _, Reason} ->
-            erlang:error({pmap_crash_child, Reason})
+            erlang:raise(C, E, ST)
     end.
 
 enumerate(List) when is_list(List) ->
