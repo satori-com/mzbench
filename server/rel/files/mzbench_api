@@ -2,8 +2,8 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-# we should use epmd from local erlang installation (not from mz_bench_api release)
-# because else we are experiencing problems with mz_bench_api reinstalling
+# we should use epmd from local erlang installation (not from mzbench_api release)
+# because else we are experiencing problems with mzbench_api reinstalling
 epmd -daemon
 
 # /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.

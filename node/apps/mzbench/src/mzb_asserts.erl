@@ -7,7 +7,7 @@
     get_failed/2
 ]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 validate(#operation{name = assert, args = [always, Expression], meta = M}) ->
     validate_assert_expr(Expression, M);

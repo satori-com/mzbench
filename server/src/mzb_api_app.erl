@@ -7,13 +7,13 @@
 %% API.
 
 start(_Type, _Args) ->
-    ok = load_config(mz_bench_api),
+    ok = load_config(mzbench_api),
 
     ok = load_cloud_plugin(),
 
     Static = fun(Filetype) ->
                  {lists:append(["/", Filetype, "/[...]"]), cowboy_static,
-                     {priv_dir, mz_bench_api, [Filetype], [{mimetypes, cow_mimetypes, web}]}}
+                     {priv_dir, mzbench_api, [Filetype], [{mimetypes, cow_mimetypes, web}]}}
              end,
 
     Dispatch = cowboy_router:compile([
@@ -25,9 +25,9 @@ start(_Type, _Args) ->
             {'_', mzb_api_endpoints, []}
         ]}
     ]),
-    {ok, CowboyInterfaceStr} = application:get_env(mz_bench_api, network_interface),
+    {ok, CowboyInterfaceStr} = application:get_env(mzbench_api, network_interface),
     {ok, CowboyInterface} = inet_parse:address(CowboyInterfaceStr),
-    {ok, CowboyPort} = application:get_env(mz_bench_api, listen_port),
+    {ok, CowboyPort} = application:get_env(mzbench_api, listen_port),
     lager:info("Starting cowboy listener on ~p:~p", [CowboyInterface, CowboyPort]),
     {ok, _} = cowboy:start_http(http, 100,
         [{port, CowboyPort}, {ip, CowboyInterface}],
@@ -67,7 +67,7 @@ load_config(AppName) ->
         {ok, [[Config]]} ->
             load_config(Config, AppName);
         _ ->
-            {ok, Configs} = application:get_env(mz_bench_api, server_configs),
+            {ok, Configs} = application:get_env(mzbench_api, server_configs),
             _ = lists:dropwhile(
                 fun (Cfg) ->
                     try
@@ -83,8 +83,8 @@ load_config(AppName) ->
 load_config(File, AppName) ->
     case file:consult(mzb_file:expand_filename(File)) of
         {ok, [Config]} ->
-            lager:info("Reading configuration from ~s~n~p", [File, Config]),
             lists:foreach(fun ({App, Env}) when App == AppName ->
+                                lager:info("Reading configuration from ~s for ~s~n~p", [File, AppName, Env]),
                                 [ application:set_env(App, Key, Val) || {Key, Val} <- Env];
                               (_) -> ok
                           end, Config),
@@ -94,7 +94,7 @@ load_config(File, AppName) ->
     end.
 
 load_cloud_plugin() ->
-    {ok, Dir} = application:get_env(mz_bench_api, plugins_dir),
+    {ok, Dir} = application:get_env(mzbench_api, plugins_dir),
     ok = filelib:ensure_dir(filename:join(Dir, ".")),
     PluginPaths = mzb_file:wildcard(filename:join([Dir, "*", "ebin"])),
     ok = code:add_pathsa(PluginPaths),

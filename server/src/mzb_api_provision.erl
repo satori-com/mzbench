@@ -6,7 +6,7 @@
     ensure_file_content/5
 ]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 provision_nodes(Config, Logger) ->
     #{
@@ -25,7 +25,7 @@ provision_nodes(Config, Logger) ->
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
     Logger(info, "NTP check result: ~p", [CheckResult]),
 
-    catch mzb_subprocess:remote_cmd(UserName, UniqHosts, "~/mz/mz_bench/bin/mz_bench stop; true", [], Logger),
+    catch mzb_subprocess:remote_cmd(UserName, UniqHosts, "~/mz/mzbench/bin/mzbench stop; true", [], Logger),
 
     case ProvisionNodes of
         true ->
@@ -39,9 +39,9 @@ provision_nodes(Config, Logger) ->
     WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
 
     ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench start", [RootDir]), [], Logger),
+    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench start", [RootDir]), [], Logger),
 
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mz_bench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
+    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mzbench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
     DirNode.
 
 clean_nodes(Config, Logger) ->
@@ -50,7 +50,7 @@ clean_nodes(Config, Logger) ->
         remote_dir:= RootDir,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mz_bench/bin/mz_bench stop", [RootDir]), [], Logger),
+    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]), [], Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger).
 
 ntp_check(UserName, Hosts, Logger) ->
@@ -61,7 +61,7 @@ ntp_check(UserName, Hosts, Logger) ->
         mzb_subprocess:remote_cmd(UserName, Hosts, "ntpdate -q pool.ntp.org", [], Logger)),
     TimeDiff = lists:max(Offsets) - lists:min(Offsets),
     Logger(info, "NTP time diffs are: ~p, max distance is ~p", [Offsets, TimeDiff]),
-    case TimeDiff < application:get_env(mz_bench_api, ntp_max_timediff, 0.1) of
+    case TimeDiff < application:get_env(mzbench_api, ntp_max_timediff, 0.1) of
         true -> ok;
         _ -> erlang:error({ntp_check_failed, TimeDiff})
     end.
@@ -161,7 +161,7 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
 install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
     ShortCommit = get_git_short_sha1(InstallSpec, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
-    PackagesDir = application:get_env(mz_bench_api, tgz_packages_dir, undefined),
+    PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
     _ = mzb_lists:pmap(fun (Host) ->
         HostOSId = get_host_os_id(User, Host, Logger),
@@ -182,7 +182,7 @@ install_node(Hosts, Config, Logger) ->
     Logger(info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
     Branch = case GitBranch of
         undefined ->
-            {ok, GitRev} = application:get_key(mz_bench_api, vsn),
+            {ok, GitRev} = application:get_key(mzbench_api, vsn),
             GitRev;
         _ -> GitBranch
     end,
@@ -191,7 +191,7 @@ install_node(Hosts, Config, Logger) ->
         Hosts,
         "node",
         mzbl_script:make_install_spec(GitRepo, Branch, "node"),
-        application:get_env(mz_bench_api, node_deployment_path, ""),
+        application:get_env(mzbench_api, node_deployment_path, ""),
         Config,
         Logger).
 
@@ -200,7 +200,7 @@ get_worker_name(#install_spec{dir = GitSubDir}) -> filename:basename(GitSubDir).
 
 install_worker(Hosts, InstallSpec, Config, Logger) ->
     WorkerName = get_worker_name(InstallSpec),
-    install_package(Hosts, WorkerName, InstallSpec, application:get_env(mz_bench_api, worker_deployment_path, ""), Config, Logger).
+    install_package(Hosts, WorkerName, InstallSpec, application:get_env(mzbench_api, worker_deployment_path, ""), Config, Logger).
 
 install_workers(Hosts, #{script:= Script} = Config, Logger, Env) ->
     #{ body := Body } = Script,

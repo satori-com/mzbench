@@ -1,5 +1,5 @@
 [
-  {mz_bench_api, [
+  {mzbench_api, [
     {listen_port, 4800},
     {network_interface, "127.0.0.1"}
   ]}

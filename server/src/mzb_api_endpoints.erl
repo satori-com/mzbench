@@ -318,10 +318,10 @@ stream_from_file(File, BenchId, Request) ->
             end
         end,
     Streamer = fun (Bin) -> cowboy_req:chunk(Bin, Request) end,
-    ReadAtOnce = application:get_env(mz_bench_api, bench_read_at_once, undefined),
+    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
     {ok, H} = file:open(File, [raw, read, binary, {read_ahead, ReadAtOnce}]),
     try
-        PollTimeout = application:get_env(mz_bench_api, bench_poll_timeout, undefined),
+        PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
         stream_from_file(H, Streamer, IsFinished, PollTimeout, <<>>)
     after
         file:close(H)

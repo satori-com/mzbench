@@ -3,8 +3,8 @@
 
 add_libs() ->
     BinDir = filename:dirname(escript:script_name()),
-    CodePaths = [filename:join(BinDir, "../apps/mz_bench/ebin/")] ++
-                 filelib:wildcard(filename:join(BinDir, "../lib/mz_bench-*/ebin/")) ++
+    CodePaths = [filename:join(BinDir, "../apps/mzbench/ebin/")] ++
+                 filelib:wildcard(filename:join(BinDir, "../lib/mzbench-*/ebin/")) ++
                  filelib:wildcard(filename:join(BinDir, "../lib/jiffy-*/ebin/")),
     code:add_pathsz(CodePaths).
 

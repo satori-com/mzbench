@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 cloud_plugin_test() ->
-    application:set_env(mz_bench_api, cloud_plugin, {module, dummy_plugin}),
+    application:set_env(mzbench_api, cloud_plugin, {module, dummy_plugin}),
     ok = meck:new(dummy_plugin, [non_strict]),
     try
         ok = meck:expect(dummy_plugin, create_cluster, fun ("purpose", 2, ConfigMap) ->

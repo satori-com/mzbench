@@ -87,7 +87,7 @@ handle_info(trigger,
     end,
 
     NewState = try
-        NetStatsString = os:cmd(mzb_file:expand_filename("~/mz/mz_bench/bin/report_network_usage.py")),
+        NetStatsString = os:cmd(mzb_file:expand_filename("~/mz/mzbench/bin/report_network_usage.py")),
         {ok, Tokens, _} = erl_scan:string(NetStatsString),
         {ok, NetStats} = erl_parse:parse_term(Tokens),
 

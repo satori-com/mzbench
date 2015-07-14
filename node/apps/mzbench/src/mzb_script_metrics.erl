@@ -2,7 +2,7 @@
 
 -export([script_metrics/2, pool_metrics/1, metrics/2]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 script_metrics(Pools, Nodes) ->
     Metrics = lists:usort(lists:flatmap(fun pool_metrics/1, Pools)),

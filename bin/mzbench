@@ -33,7 +33,7 @@ Options:
     --skip_install   Skip stage with building and deploying RPMs
     --tests <tests>  Execute only the specified tests
     --host <host>    Specify host providing mzbench api. Alternatively,
-                     you can set environment variable MZ_BENCH_API_HOST.
+                     you can set environment variable MZBENCH_API_HOST.
     --nodes <nodes>  Specify either an amount of nodes to be allocated or a
                      comma-separated list of hostnames of preallocated nodes.
                      Beware that one additional node will be allocated for
@@ -102,7 +102,7 @@ except ImportError:
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
 sys.dont_write_bytecode = True
-server_rel_dir = dirname + "/../server/rel/mz_bench_api/"
+server_rel_dir = dirname + "/../server/rel/mzbench_api/"
 
 import util
 from subprocess import check_call
@@ -126,8 +126,8 @@ def require(executable):
 NODE_PROJECTS = [dirname + "/../node"]
 SERVER_PROJECTS = [dirname + "/../server"]
 CHECK_PROJECTS = NODE_PROJECTS + SERVER_PROJECTS + \
-    [dirname + '/../common_apps/mz_bench_language',
-     dirname + '/../common_apps/mz_bench_utils',
+    [dirname + '/../common_apps/mzbench_language',
+     dirname + '/../common_apps/mzbench_utils',
      dirname + '/../examples',
      dirname + '/../acceptance_tests/invalid_scripts']
 
@@ -157,11 +157,11 @@ def start_server(config):
         config_arg = '-config_file {0}'.format(os.path.abspath(config))
     else:
         config_arg = ''
-    cmd(server_rel_dir + 'bin/mz_bench_api start {0}'.format(config_arg))
+    cmd(server_rel_dir + 'bin/mzbench_api start {0}'.format(config_arg))
 
 def stop_server():
     require('escript')
-    cmd(server_rel_dir + 'bin/mz_bench_api stop')
+    cmd(server_rel_dir + 'bin/mzbench_api stop')
 
 def restart_server(config):
     stop_server()
@@ -399,7 +399,7 @@ def new_worker(template, name):
 #=================================================================================================
 def augment_args(args):
     if not args['--host']:
-        args['--host'] = os.environ.get('MZ_BENCH_API_HOST') or 'localhost:4800'
+        args['--host'] = os.environ.get('MZBENCH_API_HOST') or 'localhost:4800'
 
     if args['--nodes'] is not None:
         try:

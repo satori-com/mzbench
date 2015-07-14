@@ -5,8 +5,8 @@ deps
 *.plt
 erl_crash.dump
 ebin
-node/rel/mz_bench
-server/rel/mz_bench_api
+node/rel/mzbench
+server/rel/mzbench_api
 .make
 .rebar
 log
@@ -16,7 +16,6 @@ pkgroot
 dialyzer.log
 *.pyc
 .DS_Store
-server/mz_bench_server.config
 server/data
 server/plugins
 acceptance_tests/test_server.config

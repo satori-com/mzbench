@@ -9,7 +9,7 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
     [Res] = mzb_subprocess:remote_cmd(
               UserName,
               [Host],
-              "~/mz/mz_bench/bin/metric_names.escript",
+              "~/mz/mzbench/bin/metric_names.escript",
               [DirNode, RemoteScriptPath, RemoteEnvPath], mzb_api_app:default_logger(), []),
     try
         jiffy:decode(Res, [return_maps])

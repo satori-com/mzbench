@@ -5,7 +5,7 @@
 -export([start/2, stop/1]).
 
 start(_, _) ->
-    {ok, WorkerDirs} = application:get_env(mz_bench, workers_dirs),
+    {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
 
     CodeWildcards =
         [filename:join([D, "*", "ebin"])              || D <- WorkerDirs] ++

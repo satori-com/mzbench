@@ -5,7 +5,7 @@
 -behaviour(supervisor).
 -export([init/1]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 %%%===================================================================
 %%% API
@@ -34,7 +34,7 @@ run_script(ScriptFileName, Env, ReportFile) ->
 is_ready() ->
     try
         Apps = application:which_applications(),
-        false =/= lists:keyfind(mz_bench, 1, Apps)
+        false =/= lists:keyfind(mzbench, 1, Apps)
     catch
         _:Error ->
             lager:error("is_ready exception: ~p~nStacktrace: ~p", [Error, erlang:get_stacktrace()]),

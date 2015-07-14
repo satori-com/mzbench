@@ -2,7 +2,7 @@
 """Run python linter on mz-bench
 
 Usage:
-    lint.py <MZ_BENCH_PATH>
+    lint.py <MZBENCH_PATH>
 
 Options:
     -h, --help       Show this help
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         os.environ['PATH']))
     pyflakes = find_executable('pyflakes')
 
-    root = args['<MZ_BENCH_PATH>'] or os.curdir
+    root = args['<MZBENCH_PATH>'] or os.curdir
 
     python_files = [os.path.join(root, 'bin/mzbench')] + glob.glob(root + '/**/*.py')
     sys.exit(subprocess.call([pyflakes] + python_files))

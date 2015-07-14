@@ -22,7 +22,7 @@
          dump/4
          ]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 wait(State, _Env, _Meta, C) ->
     #constant{value = Time, units = ms} = mzbl_literals:convert(C),

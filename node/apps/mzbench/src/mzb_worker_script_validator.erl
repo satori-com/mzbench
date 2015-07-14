@@ -2,7 +2,7 @@
 
 -export([validate_worker_script/2, validate_time/1]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 
 -spec validate_worker_script([#operation{}], {module(), module()})
     -> script_validation_result().

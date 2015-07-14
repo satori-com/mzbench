@@ -6,8 +6,8 @@ otp_release:
 
 env:
  - TASK=lint
- - TASK=common_apps/mz_bench_language
- - TASK=common_apps/mz_bench_utils
+ - TASK=common_apps/mzbench_language
+ - TASK=common_apps/mzbench_utils
  - TASK=node
  - TASK=server
  - TASK=validate-examples

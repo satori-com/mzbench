@@ -5,7 +5,7 @@
 % For Common and EUnit tests
 -export([eval_expr/4, time_of_next_iteration_in_ramp/4, mknow/0]).
 
--include_lib("mz_bench_language/include/mzbl_types.hrl").
+-include_lib("mzbench_language/include/mzbl_types.hrl").
 -include("mzb_types.hrl").
 
 -spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), Suspended :: boolean())

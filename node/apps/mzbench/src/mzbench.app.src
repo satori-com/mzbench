@@ -1,4 +1,4 @@
-{application, mz_bench,
+{application, mzbench,
  [
   {description, ""},
   {vsn, git},
@@ -13,8 +13,8 @@
                   sasl,
                   ranch,
                   mz_histogram,
-                  mz_bench_language,
-                  mz_bench_utils,
+                  mzbench_language,
+                  mzbench_utils,
                   os_mon
                  ]},
   {mod, { mzb_app, []}},
