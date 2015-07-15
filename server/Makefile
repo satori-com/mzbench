@@ -5,7 +5,7 @@ RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
-MZBENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
+MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -65,20 +65,5 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-
-.mzbench_server.plt: .make/deps-compiled
-	- dialyzer --output_plt $@ --build_plt --apps erts kernel stdlib eunit crypto inets deps/cowboy -pa deps/*/ebin
-
-dialyzer.log: .mzbench_server.plt .make/compilation-up-to-date
-	- dialyzer --plt $< \
-		ebin \
-		-I src \
-		-o dialyzer.log \
-		-Wno_undefined_callbacks \
-		-Wunmatched_returns \
-		-Werror_handling \
-		-Wrace_conditions
-	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
-	-@perl -ne "print if not /The pattern {'error', UtilFailedReason} can never match the type float()/" -i dialyzer.log
-	-@cat dialyzer.log
-	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
+BUILD_PLT_FLAGS := --apps deps/cowboy
+-include ../lib/dialyzer-with-deps.mk

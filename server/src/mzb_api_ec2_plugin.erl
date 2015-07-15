@@ -52,7 +52,7 @@ wait_nodes_ssh([H | T], C) ->
 wait_nodes_start(_, C) when C < 0 -> erlang:error({ec2_error, cluster_start_timed_out});
 wait_nodes_start([], _) -> ok;
 wait_nodes_start([H | T], C) ->
-    {ok, Res} = erlcloud_ec2:describe_instance_status([{"InstanceId", H}], none, get_config()),
+    {ok, Res} = erlcloud_ec2:describe_instance_status([{"InstanceId", H}], [], get_config()),
     lager:info("Waiting nodes result: ~p", [Res]),
     Status = case Res of
         [P | _] -> proplists:get_value(instance_state_name, P);
