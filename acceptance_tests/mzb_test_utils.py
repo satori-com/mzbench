@@ -125,7 +125,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
 
         if xor(success, should_fail):
             if expected_log_message_regex:
-                log_cmd = mz_bench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
+                log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
                 log = cmd(log_cmd)
                 if isinstance(expected_log_message_regex, str):
                     regex = re.compile(expected_log_message_regex) 
