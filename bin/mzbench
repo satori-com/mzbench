@@ -11,7 +11,6 @@ Usage:
     [(--email=<email> ...)]
     [(--env=<name=value>...)]
     [--node_commit=<commit>]
-    [--verbose=<verbose>]
     [--deallocate_after_bench=<deallocate_after_bench>]
     [--provision_nodes=<provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
@@ -177,7 +176,13 @@ def selfcheck():
     require('escript')
     cmd('{0}/lint.py {0}/../'.format(dirname))
     execute_make(CHECK_PROJECTS, 'check')
-    subprocess.call(['make', '-C', dirname + '/../acceptance_tests'])
+    try:
+        tests_environ = os.environ
+        tests_environ['MZBENCH_REPO'] = dirname + '/../'
+        subprocess.check_call(['make', '-C', dirname + '/../acceptance_tests'], env=tests_environ)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
 
 #=================================================================================================
 # Communication with the API server
