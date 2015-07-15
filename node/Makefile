@@ -12,7 +12,7 @@ GIT_HEAD := $(shell git rev-parse HEAD)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
-MZBENCH_COMMON_SOURCES := $(shell find ../common_apps -name .eunit -prune -o -name deps -prune -o -type f -print)
+MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
@@ -70,10 +70,6 @@ clean:
 	rm -rf deps
 	rm -rf pkgroot
 
-.PHONY: distclean
-distclean: clean
-	rm .mzbench.plt
-
 # RPM creation
 .PHONY: change-version
 change-version:
@@ -84,22 +80,8 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench version to $(new-version)"
 
-.mzbench.plt: .make/deps-compiled
-	- dialyzer --output_plt .mzbench.plt --build_plt --apps erts kernel stdlib eunit crypto os_mon -r deps
-
-dialyzer.log: .mzbench.plt compile
-	- dialyzer -nn --plt .mzbench.plt \
-		apps/mzbench/ebin apps/mz_histogram/ebin \
-		-I apps/mzbench/src \
-		-I deps -o dialyzer.log \
-		-Wno_undefined_callbacks \
-		-Wunmatched_returns \
-		-Werror_handling \
-		-Wrace_conditions
-	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
-	-@perl -ne "print if not /The pattern {'error', UtilFailedReason} can never match the type float()/" -i dialyzer.log
-	-@ cat dialyzer.log
-	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
+DIALYZABLE_EBINS := apps/*/ebin
+-include ../lib/dialyzer-with-deps.mk
 
 rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
 	rm -rf rel/$(SERVICE_NAME)
@@ -108,13 +90,13 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
 .make/deps-cloned: rebar.config $(MZBENCH_COMMON_SOURCES)
-	rm -rf deps && $(REBAR) get-deps
+	rm -rf deps && $(REBAR) --quiet get-deps
 	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_language clean
 	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_utils clean
 	mkdir -p .make && touch $@
 
 .make/deps-compiled: .make/deps-cloned
-	$(REBAR) compile
+	$(REBAR) --quiet compile
 	mkdir -p .make && touch $@
 
 .make/compilation-up-to-date: .make/deps-compiled $(SOURCES) .make/git-rev-$(GIT_HEAD)
