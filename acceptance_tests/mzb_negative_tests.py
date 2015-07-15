@@ -29,10 +29,8 @@ def syntax_error_test():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     (out, err) = p.communicate()
-    assert p.returncode
-    expected_out = '''Syntax error: Rule 'entry' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '{pool, [],
-        [}.
-        ' (line 1, column 1).'''
+    assert p.returncode != 0
+    expected_out = '''Syntax error: Rule 'entry' matched in its entirety, but it didn't consume all the text. The non-matching portion of the text begins with '{pool, [],\n[}.\n' (line 1, column 1).'''
     assert util.multiline_strip(out) == util.multiline_strip(expected_out)
 
 
