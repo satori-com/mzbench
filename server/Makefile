@@ -66,4 +66,4 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
 BUILD_PLT_FLAGS := --apps deps/cowboy
--include ../lib/dialyzer-with-deps.mk
+-include ../lib/dialyzer.mk

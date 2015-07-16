@@ -81,7 +81,7 @@ change-version:
 	git commit rel/reltool.config -m "Bump mzbench version to $(new-version)"
 
 DIALYZABLE_EBINS := apps/*/ebin
--include ../lib/dialyzer-with-deps.mk
+-include ../lib/dialyzer.mk
 
 rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
 	rm -rf rel/$(SERVICE_NAME)
