@@ -34,4 +34,4 @@ clean:
 	$(REBAR) compile skip_deps=true
 	mkdir -p .make && touch $@
 
--include ../../lib/dialyzer-with-deps.mk
+-include ../../lib/dialyzer.mk
