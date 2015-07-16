@@ -172,6 +172,9 @@ def restart_server(config):
 #=================================================================================================
 
 def selfcheck():
+    require('nosetests')
+    require('pyflakes')
+    require('escript')
     cmd('{0}/lint.py {0}/../'.format(dirname))
     execute_make(CHECK_PROJECTS, 'check')
     subprocess.call(['make', '-C', dirname + '/../acceptance_tests'])
