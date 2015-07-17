@@ -53,7 +53,7 @@ handle_call(stop, _From, #s{workers = Tid, name = Name} = State) ->
             Acc
         end, [], Tid),
     ets:delete_all_objects(Tid),
-    {stop, normal, ok, State = #s{}};
+    {stop, normal, ok, State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
