@@ -132,11 +132,18 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts = Asserts} = State) ->
+tick(#s{last_tick_time = LastTick} = State) ->
+    Now = os:timestamp(),
+    TimeSinceTick = timer:now_diff(Now, LastTick),
+    State1 = aggregate_metrics(State),
+    State2 = check_assertions(TimeSinceTick, State1),
+    State3 = check_signals(State2),
+    State3#s{last_tick_time = Now}.
 
-    lager:info("[ metrics ] TICK"),
+aggregate_metrics(#s{nodes = Nodes} = State) ->
+    lager:info("[ metrics ] METRIC AGGREGATION:"),
 
-    Before = os:timestamp(),
+    StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
         fun (N) ->
@@ -151,10 +158,9 @@ tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts
             end
         end, lists:usort([erlang:node()] ++ Nodes)),
 
-    lager:info("[ metrics ] Metric aggregation..."),
-    Aggregated = aggregate_metrics_data(Values),
+    Aggregated = merge_metrics_data(Values),
 
-    lager:info("[ metrics ] Updating values in exometer..."),
+    lager:info("[ metrics ] Updating metric values in exometer..."),
     lists:foreach(
         fun ({N, V, counter}) ->
                 exometer:update_or_create([?GLOBALPREFIX, N], V, counter, []);
@@ -162,14 +168,24 @@ tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts
                 exometer:update_or_create([?GLOBALPREFIX, N], V, gauge, [])
         end, Aggregated),
 
-    Now = os:timestamp(),
-    TimeSinceTick = timer:now_diff(Now, LastTick),
-
     lager:info("[ metrics ] Evaluating rates..."),
-    NewState = eval_rps(State, Now),
+    NewState = eval_rps(State),
 
-    lager:info("[ metrics ] Checking assertions..."),
-    NewAsserts = mzb_asserts:update_state(TimeSinceTick, Asserts),
+    FinishTime = os:timestamp(),
+    MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
+
+    ok = exometer:update_or_create(
+        [?GLOBALPREFIX, "metric_merging_time"],
+        MergingTime,
+        gauge,
+        []),
+
+    lager:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
+    NewState.
+
+check_assertions(TimePeriod, #s{director_pid = DirPid, asserts = Asserts} = State) ->
+    lager:info("[ metrics ] CHECK ASSERTIONS:"),
+    NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
     FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?INTERVAL * 1000, NewAsserts),
 
     lager:info("Asserts:~n~p", [NewAsserts]),
@@ -179,14 +195,10 @@ tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts
             lager:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
             mzb_director:stop_benchmark(DirPid, {assertions_failed, FailedAsserts})
     end,
+    State#s{asserts = NewAsserts}.
 
-    ok = exometer:update_or_create(
-        [?GLOBALPREFIX, "metric_merging_time"],
-        timer:now_diff(os:timestamp(), Before) / 1000,
-        gauge,
-        []),
-
-    lager:info("[ metrics ] Checking signals..."),
+check_signals(#s{nodes = Nodes} = State) ->
+    lager:info("[ metrics ] CHECK SIGNALS:"),
     RawSignals = mzb_lists:pmap(
         fun (N) ->
             lager:info("[ metrics ] Reading signals from ~p...", [N]),
@@ -202,9 +214,7 @@ tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts
     GroupedSignals = groupby(lists:flatten(RawSignals)),
     Signals = [{N, lists:max(Counts)} || {N, Counts} <- GroupedSignals],
     lager:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
-
-    lager:info("[ metrics ] TICK finished~n~s", [format_global_metrics()]),
-    NewState#s{last_tick_time = Now, asserts = NewAsserts}.
+    State.
 
 format_global_metrics() ->
     Metrics = exometer:find_entries([?GLOBALPREFIX]),
@@ -237,7 +247,8 @@ get_metric_value(Metric) ->
         _ -> {error, not_found}
     end.
 
-eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = LastRPSCalculationTime} = State, Now) ->
+eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = LastRPSCalculationTime} = State) ->
+    Now = os:timestamp(),
     TimeInterval = timer:now_diff(Now, LastRPSCalculationTime),
     case TimeInterval > 1000000 of
         false -> State;
@@ -255,7 +266,7 @@ eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = 
             State#s{previous_counter_values = NewData, last_rps_calculation_time = Now}
     end.
 
-aggregate_metrics_data(Metrics) ->
+merge_metrics_data(Metrics) ->
     lists:foldl(
         fun ({{Name, counter}, Vs}, Acc) ->
                 [{Name, lists:sum(Vs), counter}|Acc];
