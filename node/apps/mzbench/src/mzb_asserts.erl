@@ -4,7 +4,7 @@
     validate/1,
     init/1,
     update_state/2,
-    get_failed/2
+    get_failed/3
 ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -30,29 +30,37 @@ validate_assert_op(Name, M) ->
     lists:flatten(io_lib:format("~sInvalid assert operation: ~p",
         [mzbl_script:meta_to_location_string(M), Name])).
 
-get_failed(BenchTime, State) ->
-    Failed = lists:filter(
-        fun ({{always, _}, Time}) when Time < BenchTime -> true;
-            ({{#constant{value = AssertTime, units = ms}, _}, Time})
-                when Time < 1000 * AssertTime -> true;
-            ({{_, _}, _}) -> false
-    end, State),
+get_failed(IsFinished, Accuracy, State) ->
+    Failed = lists:filter(fun (A) -> not check_assert(IsFinished, Accuracy, A) end, State),
+    [{Expr, format(A)} || #{assert_expr:= Expr} = A <- Failed].
 
-    [{Expr, format(A, BenchTime)} || {_, Expr} = A <- Failed].
+check_assert(_, Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > Accuracy -> false;
+check_assert(_, Accuracy, #{assert_time:= always, satisfy_time:= STime}) when STime > Accuracy -> true;
+check_assert(true, Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > 0 -> false;
+check_assert(_, _Accuracy, #{assert_time:= always}) -> true;
+check_assert(true, _, #{assert_time:= AssertTime, satisfy_time:= STime}) when AssertTime > STime -> false;
+check_assert(_, _, #{assert_time:= _, satisfy_time:= _}) -> true.
 
 init(Asserts) ->
-    [{A, 0} || A <- Asserts].
+    [#{assert_time => always,
+       assert_expr => Expr,
+       satisfy_time => 0,
+       unsatisfy_time => 0} || {always, Expr} <- Asserts] ++
+    [#{assert_time => Time * 1000,
+       assert_expr => Expr,
+       satisfy_time => 0,
+       unsatisfy_time => 0} || {#constant{value = Time, units = ms}, Expr} <- Asserts].
 
 update_state(TimeSinceCheck, State) ->
     lists:map(
-        fun ({{_, Expr} = Assert, Val}) ->
-            case check(Expr) of
-                true  -> {Assert, Val + TimeSinceCheck};
-                false -> {Assert, Val}
+        fun (#{assert_expr:= Expr, satisfy_time:= STime, unsatisfy_time:= UTime} = A) ->
+            case check_expr(Expr) of
+                true  -> A#{satisfy_time:= STime + TimeSinceCheck};
+                false -> A#{unsatisfy_time:= UTime + TimeSinceCheck}
             end
         end, State).
 
-check(#operation{name = Op, args = [Metric, Value1]}) ->
+check_expr(#operation{name = Op, args = [Metric, Value1]}) ->
     case mzb_metrics:get_metric_value(Metric) of
         {ok, Value2} -> check_value(Op, Value2, Value1);
         {error, not_found} -> false
@@ -63,11 +71,12 @@ check_value(gte, V1, V2) -> V1 >= V2;
 check_value(lt, V1, V2) -> V1 < V2;
 check_value(lte, V1, V2) -> V1 =< V2.
 
-format({{always, Expr}, Time}, BenchTime) ->
-    io_lib:format("Assertion: ~s~nwas expected to hold for ~s (whole bench time)~nbut held for just ~s", [format_expr(Expr), format_time(BenchTime), format_time(Time)]);
-format({{#constant{value = Value, units = ms}, Expr}, Time}, _) ->
-    io_lib:format("Assertion: ~s~nwas expected to hold for ~s~nbut held for just ~s", [format_expr(Expr), format_time(Value * 1000), format_time(Time)]).
-
+format(#{assert_time:= always, assert_expr:= Expr, unsatisfy_time:= UTime}) ->
+    io_lib:format("Assertion: ~s~nwas expected to hold for whole bench time~n(unsatisfied for ~s)",
+                  [format_expr(Expr), format_time(UTime)]);
+format(#{assert_time:= AssertTime, assert_expr:= Expr, satisfy_time:= STime}) ->
+    io_lib:format("Assertion: ~s~nwas expected to hold for ~s~nbut held for just ~s",
+                  [format_expr(Expr), format_time(AssertTime), format_time(STime)]).
 
 format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_list(Op1), is_number(Op2) ->
     io_lib:format("~s ~s ~p", [Op1, format_op(Operation), Op2]);

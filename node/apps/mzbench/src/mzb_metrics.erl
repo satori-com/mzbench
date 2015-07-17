@@ -22,7 +22,7 @@
 -record(s, {
     prefix = "undefined" :: string(),
     nodes = [],
-    supervisor_pid = undefined :: pid(),
+    director_pid = undefined :: pid(),
     graphite_reporter_ref = undefined :: reference(),
     last_tick_time = undefined,
     start_time = undefined,
@@ -45,8 +45,8 @@
 %%% API
 %%%===================================================================
 
-start_link(MetricsPrefix, Env, Metrics, Nodes, SuperPid) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, Metrics, Nodes, SuperPid], [{spawn_opt, [{priority, high}]}]).
+start_link(MetricsPrefix, Env, Metrics, Nodes, DirPid) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, Metrics, Nodes, DirPid], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
@@ -54,12 +54,6 @@ notify({Name, gauge}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, gauge, []);
 notify({Name, histogram}, Value) ->
     mz_histogram:notify(Name, Value);
-% BC code:
-notify({Name, fast_histogram, _}, Value) ->
-    mz_histogram:notify(Name, Value);
-notify({Name, fast_histogram}, Value) ->
-    mz_histogram:notify(Name, Value);
-% end of BC
 notify(Name, Value) ->
     notify({Name, counter}, Value).
 
@@ -75,7 +69,7 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([MetricsPrefix, Env, Metrics, Nodes, SuperPid]) ->
+init([MetricsPrefix, Env, Metrics, Nodes, DirPid]) ->
     {Host, Port} = get_graphite_host_and_port(Env),
     ApiKey = proplists:get_value("graphite_api_key", Env, []),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
@@ -87,7 +81,7 @@ init([MetricsPrefix, Env, Metrics, Nodes, SuperPid]) ->
     {ok, #s{
         prefix = MetricsPrefix,
         nodes = Nodes,
-        supervisor_pid = SuperPid,
+        director_pid = DirPid,
         graphite_reporter_ref = GraphiteReporterRef,
         last_tick_time = StartTime,
         start_time = StartTime,
@@ -100,14 +94,8 @@ init([MetricsPrefix, Env, Metrics, Nodes, SuperPid]) ->
 handle_call(final_trigger, _From, State) ->
     {reply, ok, tick(State#s{active = false, stop_time = os:timestamp()})};
 
-handle_call(get_failed_asserts, _From, #s{asserts = Asserts, start_time = StartTime, stop_time = StopTime} = State) ->
-    StopTime2 =
-        case StopTime of
-            undefined -> os:timestamp();
-            _ -> StopTime
-        end,
-    Diff = timer:now_diff(StopTime2, StartTime),
-    {reply, mzb_asserts:get_failed(Diff - ?INTERVAL * 1000, Asserts), State};
+handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
+    {reply, mzb_asserts:get_failed(_Finished = true, _Accuracy = ?INTERVAL * 1000, Asserts), State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
@@ -144,7 +132,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, asserts = Asserts} = State) ->
+tick(#s{nodes = Nodes, director_pid = DirPid, last_tick_time = LastTick, asserts = Asserts} = State) ->
 
     lager:info("[ metrics ] TICK"),
 
@@ -182,13 +170,22 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
 
     lager:info("[ metrics ] Checking assertions..."),
     NewAsserts = mzb_asserts:update_state(TimeSinceTick, Asserts),
+    FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?INTERVAL * 1000, NewAsserts),
+
     lager:info("Asserts:~n~p", [NewAsserts]),
+    case FailedAsserts of
+        [] -> ok;
+        _  ->
+            lager:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
+            mzb_director:stop_benchmark(DirPid, {assertions_failed, FailedAsserts})
+    end,
+
     ok = exometer:update_or_create(
         [?GLOBALPREFIX, "metric_merging_time"],
         timer:now_diff(os:timestamp(), Before) / 1000,
         gauge,
         []),
-    
+
     lager:info("[ metrics ] Checking signals..."),
     RawSignals = mzb_lists:pmap(
         fun (N) ->
@@ -205,7 +202,7 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
     GroupedSignals = groupby(lists:flatten(RawSignals)),
     Signals = [{N, lists:max(Counts)} || {N, Counts} <- GroupedSignals],
     lager:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
-    
+
     lager:info("[ metrics ] TICK finished~n~s", [format_global_metrics()]),
     NewState#s{last_tick_time = Now, asserts = NewAsserts}.
 

@@ -10,7 +10,8 @@
          handle_call/3,
          handle_info/2,
          terminate/2,
-         code_change/3
+         code_change/3,
+         stop_benchmark/2
         ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -22,7 +23,8 @@
     reportfile = undefined,
     pools      = [],
     owner      = undefined,
-    bench_name = undefined
+    bench_name = undefined,
+    stop_reason = undefined
 }).
 
 %%%===================================================================
@@ -37,6 +39,9 @@ pool_report(DirectorPid, PoolPid, Info, IsFinal) ->
 
 attach(DirectorPid) ->
     gen_server:call(DirectorPid, attach, infinity).
+
+stop_benchmark(DirectorPid, Reason) ->
+    gen_server:cast(DirectorPid, {stop_benchmark, Reason}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -55,7 +60,7 @@ init([SuperPid, BenchName, Script, Nodes, Env, ReportFile]) ->
     }}.
 
 handle_call(attach, From, State) ->
-    maybe_stop(State#state{owner = From});
+    maybe_report_and_stop(State#state{owner = From});
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
@@ -68,7 +73,7 @@ handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid, bench
     Metrics = get_metric_names(Pools, Nodes),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [BenchName, Env, Metrics, Nodes, SuperPid]},
+         {mzb_metrics, start_link, [BenchName, Env, Metrics, Nodes, self()]},
          transient, 5000, worker, [mzb_metrics]}),
     {noreply, State#state{
         pools = start_pools(Pools, Env, Nodes, [])
@@ -82,6 +87,9 @@ handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) -
 
 handle_cast({pool_report, _PoolPid, Info, false}, #state{} = State) ->
     {noreply, handle_pool_report(Info, State)};
+
+handle_cast({stop_benchmark, Reason}, #state{} = State) ->
+    maybe_stop(State#state{stop_reason = Reason});
 
 handle_cast(Req, State) ->
     lager:error("Unhandled cast: ~p", [Req]),
@@ -134,48 +142,59 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
     start_pools(Pools, Env, shift(Nodes, Size), NewRef ++ Acc).
 
+stop_pools(Pools) ->
+    _ = [catch erlang:demonitor(Mon, [flush]) || {_, Mon} <- Pools],
+    _ = mzb_lists:pmap(fun ({Pid, _}) -> catch mzb_pool:stop(Pid) end, Pools),
+    ok.
+
 shift(Nodes, undefined) -> Nodes;
 shift(Nodes, 0) -> Nodes;
 shift(Nodes, Size) when length(Nodes) < Size -> shift(Nodes, Size rem length(Nodes));
 shift(Nodes, Size) when Size > 0 -> {F, T} = lists:split(Size, Nodes), T ++ F.
+
+maybe_stop(#state{stop_reason = Reason, succeed = Ok, failed = NOk} = State) when Reason /= undefined ->
+    lager:info("[ director ] Received stop signal with reason: ~p", [Reason]),
+    lager:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
+    stop_pools(State#state.pools),
+    maybe_report_and_stop(State#state{pools = []});
 
 maybe_stop(#state{pools = [], succeed = Ok, failed = NOk} = State) ->
     ok = mzb_metrics:final_trigger(),
     lager:info("[ director ] All pools have finished, stopping mzb_director_sup ~p", [State#state.super_pid]),
     lager:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
     FailedAsserts = mzb_metrics:get_failed_asserts(),
-    case FailedAsserts of
-        [] -> ok;
-        _ ->
-            AssertMessages = [Msg || {_, Msg} <- FailedAsserts],
-            lager:error("[ director ] Failed assertions:~n~s", [string:join(AssertMessages, "\n")])
-    end,
-    case report_results(FailedAsserts, State) of
-        ok ->
-            erlang:spawn(fun mzb_sup:stop_bench/0),
-            {stop, normal, State};
-        {error, no_listener} ->
-            lager:info("[ director ] Waiting for someone to report results..."),
-            {noreply, State}
-    end;
+    Reason =
+        case FailedAsserts of
+            [] -> normal;
+            _ ->
+                AssertMessages = [Msg || {_, Msg} <- FailedAsserts],
+                lager:error("[ director ] Failed assertions:~n~s", [string:join(AssertMessages, "\n")]),
+                {assertions_failed, FailedAsserts}
+        end,
+    maybe_report_and_stop(State#state{stop_reason = Reason});
 
 maybe_stop(#state{} = State) ->
     {noreply, State}.
 
-report_results(_, #state{owner = undefined}) -> {error, no_listener};
-report_results(FailedAsserts, #state{owner = Owner} = State) ->
+maybe_report_and_stop(#state{stop_reason = undefined} = State) ->
+    {noreply, State};
+maybe_report_and_stop(#state{owner = undefined} = State) ->
+    lager:info("[ director ] Waiting for someone to report results..."),
+    {noreply, State};
+maybe_report_and_stop(#state{owner = Owner} = State) ->
     lager:info("[ director ] Reporting benchmark results to ~p", [Owner]),
     ok = report_file(State),
-    Res = format_results(FailedAsserts, State),
+    Res = format_results(State),
     gen_server:reply(Owner, Res),
-    ok.
+    erlang:spawn(fun mzb_sup:stop_bench/0),
+    {stop, normal, State}.
 
-format_results([], #state{succeed = Ok, failed = 0}) ->
+format_results(#state{stop_reason = normal, succeed = Ok, failed = 0}) ->
     {ok, lists:flatten(io_lib:format("SUCCESS~n~b workers have finished successfully", [Ok]))};
-format_results([], #state{succeed = Ok, failed = NOk}) ->
+format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk}) ->
     {error, {workers_failed, NOk},
         lists:flatten(io_lib:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk]))};
-format_results(FailedAsserts, #state{}) when is_list(FailedAsserts) ->
+format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     {error, {asserts_failed, length(FailedAsserts)},
         lists:flatten(io_lib:format("FAILED~n~b assertions failed", [length(FailedAsserts)]))}.
 
