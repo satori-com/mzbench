@@ -188,7 +188,7 @@ check_assertions(TimePeriod, #s{director_pid = DirPid, asserts = Asserts} = Stat
     NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
     FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?INTERVAL * 1000, NewAsserts),
 
-    lager:info("Asserts:~n~p", [NewAsserts]),
+    lager:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
     case FailedAsserts of
         [] -> ok;
         _  ->

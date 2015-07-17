@@ -4,7 +4,8 @@
     validate/1,
     init/1,
     update_state/2,
-    get_failed/3
+    get_failed/3,
+    format_state/1
 ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -32,13 +33,13 @@ validate_assert_op(Name, M) ->
 
 get_failed(IsFinished, Accuracy, State) ->
     Failed = lists:filter(fun (A) -> not check_assert(IsFinished, Accuracy, A) end, State),
-    [{Expr, format(A)} || #{assert_expr:= Expr} = A <- Failed].
+    [{Expr, format_error(A)} || #{assert_expr:= Expr} = A <- Failed].
 
 check_assert(_, Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > Accuracy -> false;
 check_assert(_, Accuracy, #{assert_time:= always, satisfy_time:= STime}) when STime > Accuracy -> true;
-check_assert(true, Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > 0 -> false;
+check_assert(true, _Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > 0 -> false;
 check_assert(_, _Accuracy, #{assert_time:= always}) -> true;
-check_assert(true, _, #{assert_time:= AssertTime, satisfy_time:= STime}) when AssertTime > STime -> false;
+check_assert(true, _, #{assert_time:= ExpectedTime, satisfy_time:= STime}) when ExpectedTime > STime -> false;
 check_assert(_, _, #{assert_time:= _, satisfy_time:= _}) -> true.
 
 init(Asserts) ->
@@ -71,12 +72,12 @@ check_value(gte, V1, V2) -> V1 >= V2;
 check_value(lt, V1, V2) -> V1 < V2;
 check_value(lte, V1, V2) -> V1 =< V2.
 
-format(#{assert_time:= always, assert_expr:= Expr, unsatisfy_time:= UTime}) ->
+format_error(#{assert_time:= always, assert_expr:= Expr, unsatisfy_time:= UTime}) ->
     io_lib:format("Assertion: ~s~nwas expected to hold for whole bench time~n(unsatisfied for ~s)",
                   [format_expr(Expr), format_time(UTime)]);
-format(#{assert_time:= AssertTime, assert_expr:= Expr, satisfy_time:= STime}) ->
+format_error(#{assert_time:= ExpectedTime, assert_expr:= Expr, satisfy_time:= STime}) ->
     io_lib:format("Assertion: ~s~nwas expected to hold for ~s~nbut held for just ~s",
-                  [format_expr(Expr), format_time(AssertTime), format_time(STime)]).
+                  [format_expr(Expr), format_time(ExpectedTime), format_time(STime)]).
 
 format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_list(Op1), is_number(Op2) ->
     io_lib:format("~s ~s ~p", [Op1, format_op(Operation), Op2]);
@@ -88,6 +89,8 @@ format_op(lt) -> "<";
 format_op(gte) -> ">=";
 format_op(lte) -> "<=".
 
+format_time(always) -> "always";
+format_time(0) -> "0";
 format_time(Time) when Time < 1000000 -> io_lib:format("~bus", [Time]);
 format_time(Time) ->
     case {calendar:seconds_to_time(Time div 1000000), Time rem 1000000} of
@@ -97,3 +100,13 @@ format_time(Time) ->
         {{0, M, S}, Mk} -> io_lib:format("~bm ~bs ~s", [M, S, format_time(Mk)]);
         {{H, M, S}, _} -> io_lib:format("~bh ~bm ~bs", [H, M, S])
     end.
+
+format_state([]) -> "(empty)";
+format_state(State) ->
+    Lines = lists:map(
+        fun (#{assert_time:= ExpectedTime, assert_expr:= Expr,
+               satisfy_time:= STime, unsatisfy_time:= UTime}) ->
+                io_lib:format("~s: ~s / ~s / ~s",
+                              [format_expr(Expr), format_time(ExpectedTime), format_time(STime), format_time(UTime)])
+        end, State),
+    string:join(Lines, "\n").
