@@ -33,7 +33,8 @@
     active = true :: true | false
 }).
 
--define(INTERVAL, 10000).
+-define(INTERVAL, 10000). % in ms
+-define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
 %% graphite stores data-points with 10-secs resolution
 %% report metrics with 5-secs interval to avoid gaps on graphs due to interval's trigger inaccuracy
 -define(GRAPHITE_INTERVAL, 5000).
@@ -95,7 +96,7 @@ handle_call(final_trigger, _From, State) ->
     {reply, ok, tick(State#s{active = false, stop_time = os:timestamp()})};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
-    {reply, mzb_asserts:get_failed(_Finished = true, _Accuracy = ?INTERVAL * 1000, Asserts), State};
+    {reply, mzb_asserts:get_failed(_Finished = true, ?ASSERT_ACCURACY, Asserts), State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
@@ -186,9 +187,9 @@ aggregate_metrics(#s{nodes = Nodes} = State) ->
 check_assertions(TimePeriod, #s{director_pid = DirPid, asserts = Asserts} = State) ->
     lager:info("[ metrics ] CHECK ASSERTIONS:"),
     NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
-    FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?INTERVAL * 1000, NewAsserts),
-
     lager:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
+
+    FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?ASSERT_ACCURACY, NewAsserts),
     case FailedAsserts of
         [] -> ok;
         _  ->

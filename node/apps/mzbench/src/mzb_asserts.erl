@@ -32,7 +32,7 @@ validate_assert_op(Name, M) ->
         [mzbl_script:meta_to_location_string(M), Name])).
 
 get_failed(IsFinished, Accuracy, State) ->
-    Failed = lists:filter(fun (A) -> not check_assert(IsFinished, Accuracy, A) end, State),
+    Failed = lists:filter(fun (A) -> not check_assert(IsFinished, Accuracy * 1000, A) end, State),
     [{Expr, format_error(A)} || #{assert_expr:= Expr} = A <- Failed].
 
 check_assert(_, Accuracy, #{assert_time:= always, unsatisfy_time:= UTime}) when UTime > Accuracy -> false;
