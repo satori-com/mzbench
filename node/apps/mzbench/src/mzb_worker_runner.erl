@@ -20,12 +20,15 @@ run_worker_script(Script, Env, {WorkerProvider, Worker}, Pool, false) ->
     Res =
         try
             _ = random:seed(now()),
+            ok = mzb_metrics:notify("workers.started", 1),
             InitialState = WorkerProvider:init(Worker),
             {WorkerResult, WorkerResultState} = eval_expr(Script, InitialState, Env, WorkerProvider),
             _ = WorkerProvider:terminate(WorkerResult, WorkerResultState),
+            ok = mzb_metrics:notify("workers.finished", 1),
             {ok, WorkerResult}
         catch
             C:E ->
+                ok = mzb_metrics:notify("workers.failed", 1),
                 {exception, node(), {C, E, erlang:get_stacktrace()}}
         end,
 
