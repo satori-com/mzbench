@@ -44,6 +44,16 @@ def env_param_missing_test():
         expected_log_message_regex=r'''\[error\] \[ API \] Stage 'pipeline - provisioning': failed\n\s*Benchmark has failed on provisioning with reason:\n\s*{substitution_error,variable_name_is_unbound,"pool_size",at_location,\n\s*"line 1: "}''')
 
 
+def time_assertions_fail_test():
+    run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},
+        expected_log_message_regex=r'\[error\].*Command execution failed.*Output: FAILED\n1 assertions failed\nAssertion: print.value > 40')
+
+
+def always_assertions_fail_test1():
+    run_failing_bench(scripts_dir + 'always_assertion_fail.erl', env={},
+        expected_log_message_regex=r'\[error\].*Interrupting benchmark because of failed asserts')
+
+
 def main():
     with start_mzbench_server():
         if not nose.run(defaultTest=__name__):
