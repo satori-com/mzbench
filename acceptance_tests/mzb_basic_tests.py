@@ -13,7 +13,7 @@ sys.path.append("../lib")
 
 from util import cmd
 
-from mzb_test_utils import run_successful_bench, restart_bench, run_failing_bench, start_mzbench_server
+from mzb_test_utils import run_successful_bench, restart_bench, start_mzbench_server
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
@@ -129,10 +129,6 @@ def loop_without_rate_test():
 
 def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples/assertions.erl', env={})
-
-
-def assertions_fail_test():
-    run_failing_bench(mzbench_dir + 'examples/assertions_fail.erl', env={})
 
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
