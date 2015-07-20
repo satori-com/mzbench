@@ -75,12 +75,15 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         for k, v in env.iteritems()))
 
     def run():
-        node_commit = os.environ.get('NODE_COMMIT', 'master')
+        if 'NODE_COMMIT' in os.environ:
+            node_commit_arg = '--node_commit={0}'.format(os.environ['NODE_COMMIT'])
+        else:
+            node_commit_arg = ''
 
         flags = ' '.join([
             '--host=localhost:4800',
             '--exclusive_node_usage=' + ('true' if exclusive_node_usage else 'false'),
-            '--node_commit={0}'.format(node_commit),
+            node_commit_arg,
             nodes_option,
             env_option,
             email_option])
