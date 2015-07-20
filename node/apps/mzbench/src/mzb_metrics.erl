@@ -28,6 +28,7 @@
     start_time = undefined,
     stop_time = undefined,
     previous_counter_values = [],
+    last_rps_calculation_time = undefined,
     asserts = [],
     active = true :: true | false
 }).
@@ -81,15 +82,17 @@ init([MetricsPrefix, Env, Metrics, Nodes, SuperPid]) ->
     {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, Metrics),
     erlang:send_after(?INTERVAL, self(), trigger),
     _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram} <- lists:flatten(Metrics)],
-    _ = random:seed(os:timestamp()),
+    StartTime = os:timestamp(),
+    _ = random:seed(StartTime),
     {ok, #s{
         prefix = MetricsPrefix,
         nodes = Nodes,
         supervisor_pid = SuperPid,
         graphite_reporter_ref = GraphiteReporterRef,
-        last_tick_time = os:timestamp(),
-        start_time = os:timestamp(),
+        last_tick_time = StartTime,
+        start_time = StartTime,
         previous_counter_values = [],
+        last_rps_calculation_time = StartTime,
         asserts = Asserts,
         active = true
         }}.
@@ -175,7 +178,7 @@ tick(#s{nodes = Nodes, supervisor_pid = _SuperPid, last_tick_time = LastTick, as
     TimeSinceTick = timer:now_diff(Now, LastTick),
 
     lager:info("[ metrics ] Evaluating rates..."),
-    NewState = eval_rps(State, TimeSinceTick),
+    NewState = eval_rps(State, Now),
 
     lager:info("[ metrics ] Checking assertions..."),
     NewAsserts = mzb_asserts:update_state(TimeSinceTick, Asserts),
@@ -237,18 +240,23 @@ get_metric_value(Metric) ->
         _ -> {error, not_found}
     end.
 
-eval_rps(#s{previous_counter_values = PreviousData} = State, TimeInterval) ->
-    Counters = [N || {[_, N], counter, _} <- exometer:find_entries([?GLOBALPREFIX])],
-    NewData = lists:foldl(
-        fun (Metric, Acc) ->
-            NewMetric = Metric ++ ".rps",
-            Old = proplists:get_value(NewMetric, Acc, 0),
-            {ok, [{value, New}]} = exometer:get_value([?GLOBALPREFIX, Metric], value),
-            HitsPerSecond = ((New - Old) * 1000000) / TimeInterval,
-            _ = exometer:update_or_create([?GLOBALPREFIX, NewMetric], HitsPerSecond, gauge, []),
-            lists:keystore(NewMetric, 1, Acc, {NewMetric, New})
-        end, PreviousData, Counters),
-    State#s{previous_counter_values = NewData}.
+eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = LastRPSCalculationTime} = State, Now) ->
+    TimeInterval = timer:now_diff(Now, LastRPSCalculationTime),
+    case TimeInterval > 1000000 of
+        false -> State;
+        true ->
+            Counters = [N || {[_, N], counter, _} <- exometer:find_entries([?GLOBALPREFIX])],
+            NewData = lists:foldl(
+                fun (Metric, Acc) ->
+                    NewMetric = Metric ++ ".rps",
+                    Old = proplists:get_value(NewMetric, Acc, 0),
+                    {ok, [{value, New}]} = exometer:get_value([?GLOBALPREFIX, Metric], value),
+                    HitsPerSecond = ((New - Old) * 1000000) / TimeInterval,
+                    ok = exometer:update_or_create([?GLOBALPREFIX, NewMetric], HitsPerSecond, gauge, []),
+                    lists:keystore(NewMetric, 1, Acc, {NewMetric, New})
+                end, PreviousData, Counters),
+            State#s{previous_counter_values = NewData, last_rps_calculation_time = Now}
+    end.
 
 aggregate_metrics_data(Metrics) ->
     lists:foldl(
