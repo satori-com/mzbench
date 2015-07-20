@@ -195,8 +195,10 @@ format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk}) ->
     {error, {workers_failed, NOk},
         lists:flatten(io_lib:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk]))};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
-    {error, {asserts_failed, length(FailedAsserts)},
-        lists:flatten(io_lib:format("FAILED~n~b assertions failed", [length(FailedAsserts)]))}.
+    AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
+    Str = io_lib:format("FAILED~n~b assertions failed~n~s",
+                        [length(FailedAsserts), AssertsStr]),
+    {error, {asserts_failed, length(FailedAsserts)}, lists:flatten(Str)}.
 
 report_file(#state{reportfile = undefined}) -> ok;
 report_file(#state{reportfile = File, succeed = Ok, failed = NOk}) ->
