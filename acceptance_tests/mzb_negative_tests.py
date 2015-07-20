@@ -49,7 +49,7 @@ def time_assertions_fail_test():
         expected_log_message_regex=r'\[error\].*Command execution failed.*Output: FAILED\n1 assertions failed\nAssertion: print.value > 40')
 
 
-def always_assertions_fail_test1():
+def always_assertions_fail_test():
     run_failing_bench(scripts_dir + 'always_assertion_fail.erl', env={},
         expected_log_message_regex=r'\[error\].*Interrupting benchmark because of failed asserts')
 
