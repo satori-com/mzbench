@@ -48,6 +48,11 @@ def env_test():
         'loop_rate': '2'})
 
 
+def poisson_worker_start_test():
+    run_successful_bench(mzbench_dir + 'examples/worker_start_poisson.erl',
+        expected_log_message_regex='workers\.started\.rps = 1\.')
+
+
 def unicode_resources_test():
     run_successful_bench(scripts_dir + 'unicode_resource.erl',
         env={'strings_filename':'unicode_strings.txt'})
