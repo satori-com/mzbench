@@ -5,6 +5,7 @@
          add_signal/2,
          check_signal/1,
          check_signal/2,
+         check_signal/3,
          set_nodes/1,
          get_all_signals/0]).
 
@@ -32,9 +33,17 @@ check_signal(Name) ->
     check_signal(Name, 1).
 
 check_signal(Name, Count) ->
+    check_signal(Name, Count, infinity).
+
+check_signal(Name, Count, Timeout) ->
     case ets:lookup(?MODULE, Name) of
         [{_, Cn}] when Cn >= Count -> ok;
-        _ -> gen_server:call(?MODULE, {check, Name, Count}, infinity)
+        _ ->
+            try
+                gen_server:call(?MODULE, {check, Name, Count}, Timeout)
+            catch
+                exit:{timeout, _} -> erlang:error({timeout, {wait_signal, Name}})
+            end
     end.
 
 add_signal(Name) ->
@@ -84,7 +93,7 @@ handle_cast({add, Name, Count}, #s{nodes = Nodes} = State) ->
     {noreply, State};
 handle_cast({add_local, Name, Count}, #s{queue = Q} = State) ->
     NewC = case ets:lookup(?MODULE, Name) of
-        [{_, Old}] -> ets:update_counter(?MODULE, Name, Count);
+        [{_, _Old}] -> ets:update_counter(?MODULE, Name, Count);
         _ -> ets:insert(?MODULE, {Name, Count}), Count
     end,
     W = [F || {N, F, C} <- Q, N == Name, C =< NewC],
