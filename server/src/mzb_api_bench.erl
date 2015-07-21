@@ -8,7 +8,10 @@
     get_status/1,
     seconds/0,
     send_email_report/2,
-    request_report/2
+    request_report/2,
+    log_file/1,
+    metrics_file/1,
+    remote_path/2
 ]).
 
 
@@ -40,13 +43,9 @@ init([Id, Params]) ->
     % {{_, M, D}, {H, Mi, S}} = calendar:now_to_universal_time(now()),
     % Purpose = lists:flatten(io_lib:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id])),
     Purpose = lists:flatten(io_lib:format("bench-~b-~b", [Id, StartTime])),
-    BenchDataDir = init_data_dir(Id),
-    RemoteBenchDir = filename:join(["/", "tmp", "mz", Purpose]),
     Includes = maps:get(includes, Params, []),
     Config = #{
         id => Id,
-        remote_dir => RemoteBenchDir,
-        local_dir => BenchDataDir,
         nodes_arg => maps:get(nodes, Params),
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
@@ -60,20 +59,23 @@ init([Id, Params]) ->
         initial_user => maps:get(user, Params),
         director_host => undefined,
         worker_hosts => [],
-        emulate_bench_crash => maps:get(emulate_bench_crash, Params)
+        emulate_bench_crash => maps:get(emulate_bench_crash, Params),
+        log_file => get_env(bench_log_file),
+        metrics_file => get_env(bench_metrics_file)
     },
     Data = #{
         includes => Includes
     },
 
+    ok = init_data_dir(Config),
     InputBin = erlang:term_to_binary(Params),
     ok = file:write_file(local_path("params.bin", Config), InputBin),
     erlang:process_flag(trap_exit, true),
 
-    LogFile = local_path(get_env(bench_log_file), Config),
+    LogFile = log_file(Config),
     {ok, LogHandler} = file:open(LogFile, [write]),
 
-    MetricsFile = local_path(get_env(bench_metrics_file), Config),
+    MetricsFile = metrics_file(Config),
     {ok, MetricsHandler} = file:open(MetricsFile, [write]),
 
     State = #{
@@ -83,16 +85,13 @@ init([Id, Params]) ->
         status => init,
         config => Config,
         data => Data,
-        log_file => LogFile,
         log_file_handler => LogHandler,
-        metrics_file => MetricsFile,
         metrics_file_handler => MetricsHandler,
         collectors => [],
         deallocator => undefined,
         metrics => #{},
         emails => maps:get(email, Params)
     },
-    info("Bench data dir: ~s", [BenchDataDir], State),
     {ok, State}.
 
 workflow_config(_State) ->
@@ -436,17 +435,27 @@ seconds() -> seconds(os:timestamp()).
 seconds({N1, N2, _N3}) ->
     N1*1000000 + N2.
 
-remote_path(RelPath, #{remote_dir:= Root}) -> filename:join(Root, RelPath).
-local_path(RelPath, #{local_dir:= Root}) -> filename:join(Root, RelPath).
+log_file(Config = #{log_file:= File}) ->
+    local_path(File, Config).
 
-init_data_dir(Id) ->
-    BenchDataDir = filename:join(mzb_api_server:server_data_dir(), integer_to_list(Id)),
+metrics_file(Config = #{metrics_file:= File}) ->
+    local_path(File, Config).
+
+remote_path(RelPath, #{purpose:= Purpose}) ->
+    filename:join(["/", "tmp", "mz", Purpose, RelPath]).
+
+local_path(RelPath, #{id:= Id}) ->
+    DataDir = mzb_api_server:server_data_dir(),
+    filename:join([DataDir, integer_to_list(Id), RelPath]).
+
+init_data_dir(Config) ->
+    BenchDataDir = local_path("", Config),
     case filelib:is_file(BenchDataDir) of
         false -> ok;
         true  -> erlang:error({data_dir_already_exists, BenchDataDir})
     end,
     case filelib:ensure_dir(filename:join(BenchDataDir, ".")) of
-        ok -> BenchDataDir;
+        ok -> ok;
         {error, Reason} -> erlang:error({ensure_dir_error, BenchDataDir, Reason})
     end.
 

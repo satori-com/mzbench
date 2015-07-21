@@ -14,12 +14,12 @@ provision_nodes(Config, Logger) ->
         director_host := DirectorHost,
         worker_hosts := WorkerHosts,
         user_name := UserName,
-        remote_dir := RootDir,
         env := Env
     } = Config,
 
     UniqHosts = lists:usort([DirectorHost|WorkerHosts]),
     Logger(info, "Provisioning nodes: ~p~nWith config: ~p", [UniqHosts, Config]),
+    RootDir = mzb_api_bench:remote_path("", Config),
     _ = mzb_subprocess:remote_cmd(UserName, UniqHosts, io_lib:format("mkdir -p ~s", [RootDir]), [], Logger),
 
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
@@ -47,9 +47,9 @@ provision_nodes(Config, Logger) ->
 clean_nodes(Config, Logger) ->
     #{
         user_name:= UserName,
-        remote_dir:= RootDir,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
+    RootDir = mzb_api_bench:remote_path("", Config),
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]), [], Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger).
 
@@ -91,12 +91,12 @@ ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
     ok.
 
 ensure_file_content(Hosts, Content, Filepath,
-                    #{user_name:= UserName, remote_dir:= RemoteRoot}, Logger) ->
+                    #{user_name:= UserName} = Config, Logger) ->
     Localfile = mzb_file:tmp_filename(),
     Remotefile =
         case Filepath of
             "~/" ++ _ -> Filepath;
-            _ -> filename:join(RemoteRoot, Filepath)
+            _ -> mzb_api_bench:remote_path(Filepath, Config)
         end,
     Logger(debug, "Ensure file content on hosts: ~p~nLocal filename: ~p~nContent: ~s~nRemote path: ~p", [Hosts, Localfile, Content, Remotefile]),
     ok = file:write_file(Localfile, Content),
@@ -148,7 +148,7 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
 
 install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
     ShortCommit = mzb_git:get_git_short_sha1(InstallSpec#install_spec.repo, InstallSpec#install_spec.branch, Logger),
-    #{remote_dir:= RemoteRoot, user_name:= User} = Config,
+    #{user_name:= User} = Config,
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
     _ = mzb_lists:pmap(fun (Host) ->
@@ -156,7 +156,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
         Logger(info, "[ mzb_api_provision ] Deploying package: ~s~nfrom: ~p~non: ~s (OS: ~s)", [PackageName, InstallSpec, Host, HostOSId]),
         PackageFileName = lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, ShortCommit, HostOSId])),
         PackageFilePath = filename:join(PackagesDir, PackageFileName),
-        RemoteFilePath = filename:join(RemoteRoot, PackageFileName),
+        RemoteFilePath = mzb_api_bench:remote_path(PackageFileName, Config),
 
         ensure_tgz_package(User, Host, PackageFilePath, InstallSpec, Logger),
         ensure_file(User, [Host], PackageFilePath, RemoteFilePath, Logger),
