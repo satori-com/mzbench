@@ -43,6 +43,9 @@ def env_param_missing_test():
     run_failing_bench(scripts_dir + 'env.erl', env={},
         expected_log_message_regex=r'''\[error\] \[ API \] Stage 'pipeline - provisioning': failed\n\s*Benchmark has failed on provisioning with reason:\n\s*{substitution_error,variable_name_is_unbound,"pool_size",at_location,\n\s*"line 1: "}''')
 
+def signal_timeout_test():
+    run_failing_bench(scripts_dir + 'signal_count_neg.erl', env={},
+        expected_log_message_regex=r'\[error\].*Worker.*has crashed: {timeout,{wait_signal,"A"}}')
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},
