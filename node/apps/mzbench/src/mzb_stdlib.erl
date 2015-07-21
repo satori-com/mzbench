@@ -19,6 +19,7 @@
          set_signal/5,
          wait_signal/4,
          wait_signal/5,
+         wait_signal/6,
          dump/4
          ]).
 
@@ -86,6 +87,9 @@ wait_signal(State, _Env, _Meta, Name) ->
 
 wait_signal(State, _Env, _Meta, Name, Count) ->
     {mzb_signaler:check_signal(Name, Count), State}.
+
+wait_signal(State, _Env, _Meta, Name, Count, #constant{value = Timeout, units = ms}) ->
+    {mzb_signaler:check_signal(Name, Count, Timeout), State}.
 
 set_signal(State, _Env, _Meta, Name) ->
     {mzb_signaler:add_signal(Name), State}.

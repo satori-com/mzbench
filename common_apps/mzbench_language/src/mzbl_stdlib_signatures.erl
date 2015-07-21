@@ -25,5 +25,6 @@ is_std_function(set_signal, 1) -> true;
 is_std_function(set_signal, 2) -> true;
 is_std_function(wait_signal, 1) -> true;
 is_std_function(wait_signal, 2) -> true;
+is_std_function(wait_signal, 3) -> true;
 is_std_function(dump, 1) -> true;
 is_std_function(_, _) -> false.
