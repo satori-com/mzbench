@@ -86,21 +86,26 @@ def stop(host, bench_id):
 
 
 def stream_lines(host, endpoint, args):
-    response = requests.get(
-        'http://' + host + endpoint + '?' + urlencode(args),
-        stream=True)
+    try:
+        response = requests.get(
+            'http://' + host + endpoint + '?' + urlencode(args),
+            stream=True)
 
-    for line in response.iter_lines(chunk_size=1):
-        try:
-            yield line
-        except ValueError:
-            print line
+        for line in response.iter_lines(chunk_size=1):
+            try:
+                yield line
+            except ValueError:
+                print line
 
-    if response.status_code == 200:
-        pass
-    else:
-        print 'Server call to {0} failed with code {1}'.format(endpoint, response.status_code)
-        sys.exit(3)
+        if response.status_code == 200:
+            pass
+        else:
+            print 'Server call to {0} failed with code {1}'.format(endpoint, response.status_code)
+            sys.exit(3)
+
+    except requests.exceptions.ConnectionError as e:
+        print 'Connect to "{0}" failed with message: {1}'.format(host, e)
+        sys.exit(4)
 
 
 def assert_successful_request(perform_request):
