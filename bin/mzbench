@@ -267,7 +267,7 @@ def status(host, bench_id, wait):
                 should_stop = raw_input('\nStop the bench before quitting? (y/n) ')
             if should_stop == 'y':
                 stop(host, bench_id)
-            sys.exit(0)
+            sys.exit(130)
 
 def stop(host, bench_id):
     response = api.stop(host, bench_id)
@@ -455,7 +455,7 @@ def apply_args(fun, kwargs):
 def main():
     args = docopt.docopt(__doc__, version='0.1.0')
     augment_args(args)
-    
+
     known_commands = [k for k in args
         if not k.startswith('-') and not k.startswith('<')]
 
@@ -474,4 +474,7 @@ def cmd(command):
         sys.exit(e.returncode)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)
