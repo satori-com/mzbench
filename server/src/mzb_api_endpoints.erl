@@ -70,7 +70,8 @@ handle(<<"GET">>, <<"/status">>, Req) ->
 
 handle(<<"GET">>, <<"/logs">>, Req) ->
     with_bench_id(Req, fun(Id) ->
-        #{log_file:= Filename} = mzb_api_server:status(Id),
+        #{config:= Config} = mzb_api_server:status(Id),
+        Filename = mzb_api_bench:log_file(Config),
         Headers = [{<<"content-type">>, <<"text/plain">>}],
         Req2 = cowboy_req:chunked_reply(200, Headers, Req),
         stream_from_file(Filename, Id, Req2),
@@ -79,7 +80,8 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
 
 handle(<<"GET">>, <<"/data">>, Req) ->
     with_bench_id(Req, fun(Id) ->
-        #{metrics_file:= Filename} = mzb_api_server:status(Id),
+        #{config:= Config} = mzb_api_server:status(Id),
+        Filename = mzb_api_bench:metrics_file(Config),
         Headers = [{<<"content-type">>, <<"text/plain">>}],
         Req2 = cowboy_req:chunked_reply(200, Headers, Req),
         stream_from_file(Filename, Id, Req2),
