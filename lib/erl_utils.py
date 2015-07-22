@@ -40,7 +40,7 @@ def substitute_vars(term_tree_root, env):
         return value
 
     def is_string_literal(s):
-        return (isinstance(s, str) and s)
+        return isinstance(s, str)
 
     def is_atom(a):
         # erl_terms currently doesn't provide a way to distinguish atoms and strings
