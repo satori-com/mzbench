@@ -142,6 +142,7 @@ handle_call({create, Name}, _From, State) ->
     {reply, init_hist(Name), State};
 
 handle_call({get_and_remove_raw_data}, _From, State) ->
+    lager:info("Get histogram data start on ~p", [node()]),
     Res = ets:foldl(
         fun ({Name, Tid1, Tid2}, Acc) ->
             Data = lists:map(
@@ -152,6 +153,7 @@ handle_call({get_and_remove_raw_data}, _From, State) ->
                     end, ets:tab2list(Tid1)),
             [{Name, Data}|Acc]
         end, [], mz_histograms),
+    lager:info("Get histogram data finish on ~p", [node()]),
     {reply, {ok, Res}, State};
 
 handle_call(Req, _From, State) ->
