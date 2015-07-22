@@ -29,7 +29,7 @@
 %%%===================================================================
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], [{spawn_opt, [{priority, high}]}]).
 
 create(Name) ->
     gen_server:call(?MODULE, {create, Name}).
