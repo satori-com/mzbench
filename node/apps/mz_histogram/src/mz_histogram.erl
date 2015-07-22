@@ -101,14 +101,14 @@ get_bucket_(SF, V) ->
 
 get_raw_data() ->
     ets:foldl(
-        fun ({Name, _}, Acc) ->
+        fun ({Name, _, _}, Acc) ->
             [{Name, get_raw_data(Name)} | Acc]
         end, [], mz_histograms).
 
 get_raw_data(Name) ->
     case ets:lookup(mz_histograms, Name) of
         [] -> erlang:error({histogram_not_found, Name});
-        [{_, Tid}] -> ets:tab2list(Tid)
+        [{_, Tid, _}] -> ets:tab2list(Tid)
     end.
 
 merge_histograms(DataList, Datapoints) ->
@@ -142,9 +142,17 @@ handle_call({create, Name}, _From, State) ->
     {reply, init_hist(Name), State};
 
 handle_call({get_and_remove_raw_data}, _From, State) ->
-    Data = get_raw_data(),
-    [notify_many(Hist, K, -V) || {Hist, HistData} <- Data, {K, V} <- HistData],
-    {reply, {ok, Data}, State};
+    Res = ets:foldl(
+        fun ({Name, Tid1, Tid2}, Acc) ->
+            Data = lists:map(
+                    fun ({K, V}) ->
+                        OldV = ets:lookup_element(Tid2, K, 2),
+                        ets:update_counter(Tid2, K, V - OldV),
+                        {K, V - OldV}
+                    end, ets:tab2list(Tid1)),
+            [{Name, Data}|Acc]
+        end, [], mz_histograms),
+    {reply, {ok, Res}, State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
@@ -165,9 +173,11 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 init_hist(Name) ->
-    Tid = ets:new(erlang:list_to_atom(Name), [set, public, {write_concurrency, true}]),
-    ets:insert(mz_histograms, {Name, Tid}),
-    init_hist(Tid, math:pow(10, ?SIGNIFICANT_FIGURES), 0).
+    Tid1 = ets:new(erlang:list_to_atom(Name), [set, public, {write_concurrency, true}]),
+    Tid2 = ets:new(erlang:list_to_atom(Name), [set, public, {write_concurrency, true}]),
+    ets:insert(mz_histograms, {Name, Tid1, Tid2}),
+    init_hist(Tid1, math:pow(10, ?SIGNIFICANT_FIGURES), 0),
+    init_hist(Tid2, math:pow(10, ?SIGNIFICANT_FIGURES), 0).
 
 init_hist(_, Max, C) when C >= Max -> ok;
 init_hist(Name, Max, C) ->
