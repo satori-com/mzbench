@@ -42,7 +42,7 @@ create(Nodes, Name) ->
     end.
 
 get_and_remove_raw_data() ->
-    {ok, Data} = gen_server:call(?MODULE, {get_and_remove_raw_data}),
+    {ok, Data} = gen_server:call(?MODULE, {get_and_remove_raw_data}, infinity),
     Data.
 
 notify(Name, Value) when is_number(Value), Value >= 0 ->
@@ -141,11 +141,10 @@ init([]) ->
 handle_call({create, Name}, _From, State) ->
     {reply, init_hist(Name), State};
 
-handle_call({get_and_remove_raw_data}, From, State) ->
+handle_call({get_and_remove_raw_data}, _From, State) ->
     Data = get_raw_data(),
-    gen_server:reply(From, {ok, Data}),
     [notify_many(Hist, K, -V) || {Hist, HistData} <- Data, {K, V} <- HistData],
-    {noreply, State};
+    {reply, {ok, Data}, State};
 
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
