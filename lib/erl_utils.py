@@ -6,16 +6,21 @@ def convert(script_content, env):
     return substitute_vars(erl_terms.decode(script_content), env)
 
 
-def get_packages(mlist):
+def get_tuples(mlist, name):
     if isinstance(mlist, list):
-        if len(mlist) > 1 and mlist[0] == "require_package":
-            return mlist[1:]
+        if len(mlist) > 0 and mlist[0] == name:
+            yield mlist;
         else:
-            return reduce(lambda a, x:a + get_packages(x), mlist, [])
+            for x in mlist:
+                for y in get_tuples(x, name):
+                    yield y
     elif isinstance(mlist, tuple):
-        return get_packages(list(mlist))
-    else:
-        return []
+        for x in get_tuples(list(mlist), name):
+            yield x
+
+
+def get_packages(mlist):
+    return [x[1:] for x in get_tuples(mlist, "require_package")]
 
 
 def substitute_vars(term_tree_root, env):
@@ -70,12 +75,12 @@ def substitute_vars(term_tree_root, env):
 
 
 def get_includes(mlist):
-    if isinstance(mlist, list):
-        if len(mlist)>0 and mlist[0] == "include_resource":
-            return [mlist[2]]
-        else:
-            return reduce(lambda a, x:a + get_includes(x), mlist, [])
-    elif isinstance(mlist, tuple):
-            return get_includes(list(mlist))
-    else:
-        return []
+    return [x[2] for x in get_tuples(mlist, "include_resource")]
+
+
+def get_num_of_workers(mlist):
+    workers = 0
+    for pool in get_tuples(mlist, "pool"):
+        for size in get_tuples(pool[1], "size"):
+            workers += size[1]
+    return workers
