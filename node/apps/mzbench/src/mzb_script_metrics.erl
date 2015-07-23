@@ -8,8 +8,7 @@ script_metrics(Pools, Nodes) ->
     Metrics = lists:usort(lists:flatmap(fun pool_metrics/1, Pools)),
     SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
     WorkerCountMetrics =
-        [{"workers.failed", counter},
-            [{"workers.started", counter}, {"workers.finished", counter}]],
+        [[{"workers." ++ X, counter} || X <- ["started", "ended", "failed"]]],
     Metrics ++ SystemLoadMetrics ++ WorkerCountMetrics ++ [{"metric_merging_time", gauge}].
 
 pool_metrics(Pool) ->
