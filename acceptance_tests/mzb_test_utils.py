@@ -44,32 +44,35 @@ def start_mzbench_server():
     finally:
         cmd('{0} stop_server'.format(mzbench_script))
 
-def run_successful_bench(name, nodes=None, env={}, email=None,
-        exclusive_node_usage=False, expected_log_message_regex=None):
+def run_successful_bench(name, nodes=None, workers_per_node=None, env={}, 
+        email=None, exclusive_node_usage=False, expected_log_message_regex=None):
     return run_bench(name, should_fail=False,
-        nodes=nodes, env=env, email=email,
+        nodes=nodes, workers_per_node=workers_per_node, env=env, email=email,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex)
 
 
-def run_failing_bench(name, nodes=None, env={}, email=None,
-        exclusive_node_usage=False, expected_log_message_regex=None):
+def run_failing_bench(name, nodes=None, workers_per_node=None, env={}, 
+        email=None, exclusive_node_usage=False, expected_log_message_regex=None):
     return run_bench(name, should_fail=True,
-        nodes=nodes, env=env,
+        nodes=nodes, workers_per_node=workers_per_node, env=env,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex)
 
 
-def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
-        env={}, email=None, should_fail=False, max_retries=2,
+def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None, 
+        workers_per_node=None, env={}, email=None, should_fail=False, max_retries=2,
         exclusive_node_usage=False, expected_log_message_regex=None):
 
     email_option = ('--email=' + email) if email else ''
 
-    if nodes:
-        nodes_option = '--nodes ' + ','.join(nodes)
+    if workers_per_node:
+        nodes_option = '--workers_per_node ' + str(workers_per_node)
     else:
-        nodes_option = '--nodes 1'
+        if nodes:
+            nodes_option = '--nodes ' + ','.join(nodes)
+        else:
+            nodes_option = '--nodes 1'
 
     env_option = ' '.join(('--env={0}={1}'.format(k, v)
         for k, v in env.iteritems()))

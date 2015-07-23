@@ -6,6 +6,7 @@ import subprocess
 import time
 import json
 import nose
+import re
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
@@ -132,6 +133,24 @@ def assertions_succ_test():
 
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
+
+def workers_per_node_test():
+    workers_per_node = 3
+    bench_id = run_successful_bench(scripts_dir + 'workers_per_node.erl', workers_per_node=workers_per_node)
+    
+    log_process = subprocess.Popen(
+        [mzbench_script,
+            '--host=localhost:4800',
+            'log',
+            str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    out, err = log_process.communicate()
+    log = "{0} {1}".format(out, err)
+    if not re.findall('nodes_arg => 4', log):
+        print 'Out: ', out
+        print 'Err: ', err
+        raise RuntimeError("The bench should have allocated 4 worker nodes")
 
 def main():
     with start_mzbench_server():
