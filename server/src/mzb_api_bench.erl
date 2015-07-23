@@ -339,7 +339,7 @@ send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
 status(State) ->
-    maps:with([id, status, start_time, finish_time, config, metrics, log_file, metrics_file], State).
+    maps:with([id, status, start_time, finish_time, config, metrics], State).
 
 get_cloud_provider() ->
     {ok, {_Type, Name}} = application:get_env(mzbench_api, cloud_plugin),
