@@ -80,8 +80,6 @@ format_error(#{assert_time:= ExpectedTime, assert_expr:= Expr, satisfy_time:= ST
                   [format_expr(Expr), format_time(ExpectedTime), format_time(STime)]).
 
 format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_list(Op1), is_number(Op2) ->
-    io_lib:format("~s ~s ~p", [Op1, format_op(Operation), Op2]);
-format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_number(Op1), is_list(Op2) ->
     io_lib:format("~s ~s ~p", [Op1, format_op(Operation), Op2]).
 
 format_op(gt) -> ">";
