@@ -118,20 +118,8 @@ worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 vm_args_content(NodeName) ->
     io_lib:format("-sname ~s~n", [NodeName]).
 
-get_git_sha1(GitRepo, GitRef, Logger) ->
-    case string:tokens(lists:flatten(mzb_subprocess:exec_format("git ls-remote ~s ~s", [GitRepo, GitRef], [stderr_to_stdout], Logger)), "\t") of
-        [Commit | _] -> Commit;
-        _ -> GitRef
-    end.
-
-substitute(String, OldSubStr, NewSubStr) ->
-    string:join(string:tokens(String, OldSubStr), NewSubStr).
-
-get_git_short_sha1(#install_spec{repo = GitRepo, branch = GitRef}, Logger) ->
-    lists:sublist(get_git_sha1(GitRepo, GitRef, Logger), 7).
-
 get_host_os_id(UserName, Host, Logger) ->
-    string:to_lower(substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), " ", "-")).
+    string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
 
 ensure_tgz_package(User, Host, LocalTarballName, #install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir}, Logger) ->
     case filelib:is_file(LocalTarballName) of
@@ -159,7 +147,7 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
     ok.
 
 install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger) ->
-    ShortCommit = get_git_short_sha1(InstallSpec, Logger),
+    ShortCommit = mzb_git:get_git_short_sha1(InstallSpec#install_spec.repo, InstallSpec#install_spec.branch, Logger),
     #{remote_dir:= RemoteRoot, user_name:= User} = Config,
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
