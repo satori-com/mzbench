@@ -4,10 +4,7 @@
          create/1,
          create/2,
          notify/2,
-         get_raw_data/0,
          get_and_remove_raw_data/0,
-         get_raw_data/1,
-         get_bucket/2,
          merge_histograms/2]).
 
 -behaviour(gen_server).
@@ -42,8 +39,13 @@ create(Nodes, Name) ->
     end.
 
 get_and_remove_raw_data() ->
-    {ok, Data} = gen_server:call(?MODULE, {get_and_remove_raw_data}, infinity),
-    Data.
+    ets:foldl(
+        fun ({Name, Ref}, Acc) ->
+            % TODO: this must be one atomic operation
+            Bin = hdr_histogram:to_binary(Ref, [{compression, none}]),
+            ok = hdr_histogram:reset(Ref),
+            [{Name, Bin} | Acc]
+        end, [], mz_histograms).
 
 notify(Name, Value) when is_number(Value), Value >= 0 ->
     notify_many(Name, Value, 1);
@@ -51,64 +53,13 @@ notify(_Name, Value) ->
     erlang:error({value_out_of_range, Value}).
 
 notify_many(Name, Value, Count) when is_number(Count) ->
-    try
-        ets:update_counter(erlang:get({mz_hist_tid, Name}), get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), Count)
-    catch
-        _:_ ->
-            Tid = ets:lookup_element(mz_histograms, Name, 2),
-            erlang:put({mz_hist_tid, Name}, Tid),
-            ets:update_counter(Tid, get_bucket(?SIGNIFICANT_FIGURES, erlang:trunc(Value)), Count)
-    end.
-
-
--spec get_bucket(pos_integer(), integer()) -> integer().
-get_bucket(2, V)  -> get_bucket2(V);
-get_bucket(3, V)  -> get_bucket3(V);
-get_bucket(SF, V) -> get_bucket_(SF, V).
-
--spec get_bucket2(integer()) -> integer().
-get_bucket2(V) when V < 100         -> V;
-get_bucket2(V) when V < 1000        -> (V div 10)        * 10;
-get_bucket2(V) when V < 10000       -> (V div 100)       * 100;
-get_bucket2(V) when V < 100000      -> (V div 1000)      * 1000;
-get_bucket2(V) when V < 1000000     -> (V div 10000)     * 10000;
-get_bucket2(V) when V < 10000000    -> (V div 100000)    * 100000;
-get_bucket2(V) when V < 100000000   -> (V div 1000000)   * 1000000;
-get_bucket2(V) when V < 1000000000  -> (V div 10000000)  * 10000000;
-get_bucket2(V) when V < 10000000000 -> (V div 100000000) * 100000000;
-get_bucket2(V) -> get_bucket_(2, V).
-
--spec get_bucket3(integer()) -> integer().
-get_bucket3(V) when V < 1000        -> V;
-get_bucket3(V) when V < 10000       -> (V div 10)       * 10;
-get_bucket3(V) when V < 100000      -> (V div 100)      * 100;
-get_bucket3(V) when V < 1000000     -> (V div 1000)     * 1000;
-get_bucket3(V) when V < 10000000    -> (V div 10000)    * 10000;
-get_bucket3(V) when V < 100000000   -> (V div 100000)   * 100000;
-get_bucket3(V) when V < 1000000000  -> (V div 1000000)  * 1000000;
-get_bucket3(V) when V < 10000000000 -> (V div 10000000) * 10000000;
-get_bucket3(V) -> get_bucket_(3, V).
-
--spec get_bucket_(pos_integer(), integer()) -> integer().
-get_bucket_(SF, V) ->
-    F = erlang:trunc(math:log10(V)) + 1,
-    case F =< SF of
-        true -> V;
-        false ->
-            M = erlang:trunc(math:pow(10, F - SF)),
-        (V div M) * M
-    end.
-
-get_raw_data() ->
-    ets:foldl(
-        fun ({Name, _, _}, Acc) ->
-            [{Name, get_raw_data(Name)} | Acc]
-        end, [], mz_histograms).
-
-get_raw_data(Name) ->
-    case ets:lookup(mz_histograms, Name) of
-        [] -> erlang:error({histogram_not_found, Name});
-        [{_, Tid, _}] -> ets:tab2list(Tid)
+    case erlang:get({mz_hist_ref, Name}) of
+        undefined -> 
+            Ref = ets:lookup_element(mz_histograms, Name, 2),
+            erlang:put({mz_hist_ref, Name}, Ref),
+            hdr_histogram:record_many(Ref, round(Value), Count);
+        Ref ->
+            hdr_histogram:record_many(Ref, round(Value), Count)
     end.
 
 merge_histograms(DataList, Datapoints) ->
@@ -141,21 +92,6 @@ init([]) ->
 handle_call({create, Name}, _From, State) ->
     {reply, init_hist(Name), State};
 
-handle_call({get_and_remove_raw_data}, _From, State) ->
-    lager:info("Get histogram data start on ~p", [node()]),
-    Res = ets:foldl(
-        fun ({Name, Tid1, Tid2}, Acc) ->
-            Data = lists:map(
-                    fun ({K, V}) ->
-                        OldV = ets:lookup_element(Tid2, K, 2),
-                        ets:update_counter(Tid2, K, V - OldV),
-                        {K, V - OldV}
-                    end, ets:tab2list(Tid1)),
-            [{Name, Data}|Acc]
-        end, [], mz_histograms),
-    lager:info("Get histogram data finish on ~p", [node()]),
-    {reply, {ok, Res}, State};
-
 handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
@@ -175,40 +111,14 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 init_hist(Name) ->
-    Tid1 = ets:new(erlang:list_to_atom(Name), [set, public, {write_concurrency, true}]),
-    Tid2 = ets:new(erlang:list_to_atom(Name), [set, public, {write_concurrency, true}]),
-    ets:insert(mz_histograms, {Name, Tid1, Tid2}),
-    init_hist(Tid1, math:pow(10, ?SIGNIFICANT_FIGURES), 0),
-    init_hist(Tid2, math:pow(10, ?SIGNIFICANT_FIGURES), 0).
+    {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+    ets:insert(mz_histograms, {Name, Ref}),
+    ok.
 
-init_hist(_, Max, C) when C >= Max -> ok;
-init_hist(Name, Max, C) ->
-    L = erlang:trunc(math:log10(?HIGHEST_VALUE) - ?SIGNIFICANT_FIGURES + 1),
-    lists:foreach(
-        fun (K) ->
-            B = round(C * math:pow(10, K)),
-            case B =< ?HIGHEST_VALUE of
-                true  -> ets:insert_new(Name, {B, 0});
-                false -> ok
-            end
-        end, lists:seq(0, L)),
-    init_hist(Name, Max, C + 1).
-
-import_hdr_data(_Ref, []) -> ok;
-import_hdr_data(Ref, [{_, 0}|T]) ->
-    import_hdr_data(Ref, T);
-% workaround for hdr_histogram bug (record_many doesn't work for 0)
-import_hdr_data(Ref, [{0, V}|T]) ->
-    ok = hdr_histogram:record(Ref, 0),
-    import_hdr_data(Ref, [{0, V - 1}|T]);
-import_hdr_data(Ref, [{K, V}|T]) ->
-    case hdr_histogram:record_many(Ref, K, V) of
-        ok -> ok;
-        {error, Reason} ->
-            lager:error("Failed to hdr_histogram:record_many~nReason: ~p~nParams: ~p", [Reason, [Ref, K, V]]),
-            erlang:error({record_many_error, [Ref, K, V]})
-    end,
-    import_hdr_data(Ref, T).
+import_hdr_data(To, BinHdrHistData) ->
+    {ok, From} = hdr_histogram:from_binary(BinHdrHistData),
+    _ = hdr_histogram:add(To, From),
+    ok = hdr_histogram:close(From).
 
 %%%===================================================================
 %%% benchmarks
