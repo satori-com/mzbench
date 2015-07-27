@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import cgi
 from contextlib import contextmanager
 import json
 from multiprocessing import Process
 import SimpleHTTPServer
 import SocketServer
-import sys
 import random
 
 port = random.randint(8777, 8888)
