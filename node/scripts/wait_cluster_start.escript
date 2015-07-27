@@ -14,17 +14,43 @@ main([TimeoutStr | NodesStr]) ->
 
     Nodes = [erlang:list_to_atom(N) || N <- NodesStr],
     Nodes == [] andalso bad_arg("host list", "(empty)"),
+    Hostnames = [lists:last(string:tokens(atom_to_list(Node), "@")) || Node <- Nodes],
 
     timer:apply_after(Timeout, ?MODULE, stop, [self(), timeout]),
 
     init_net_kernel(),
 
+    ok = ensure_hostnames_are_resolvable(Hostnames),
+    ok = ensure_hostnames_are_reachable_from_each_other(Hostnames),
     ok = is_nodes_ready(Nodes),
 
     connect_nodes(Nodes);
 
 main(_) ->
     usage().
+
+ensure_hostnames_are_reachable_from_each_other(Hostnames) ->
+    lists:foreach(
+        fun({From, To}) ->
+            Cmd = lists:flatten(io_lib:format("ssh ~s \"ping -qc1 ~s\"", [From, To])),
+            {Code, Output} = cmd(Cmd),
+            case Code of
+                0 -> ok;
+                _ ->
+                    error({cant_reach, To, from, From, Code, Output})
+            end
+        end,
+        [{From, To} || From <- Hostnames, To <- Hostnames, From =/= To]).
+
+ensure_hostnames_are_resolvable(Nodes) ->
+    lists:foreach(
+        fun(Node) ->
+            case inet:gethostbyname(Node) of
+                {ok, _} -> ok;
+                Error -> error({cant_resolve_hostname, Node, Error})
+            end
+        end,
+        Nodes).
 
 is_nodes_ready([]) -> ok;
 is_nodes_ready(Nodes) ->
@@ -101,3 +127,25 @@ connect_nodes(Nodes = [N | _]) ->
             io:format("Several nodes are not connected: ~p~n", [List]),
             halt(1)
     end.
+
+cmd(Command) ->
+    Port = open_port({spawn, Command}, [eof, exit_status, {line, 255}]),
+    Loop = fun Loop(Output) ->
+        receive
+            {Port, {data, {eol, Data}}} ->
+                Loop([Data | Output]);
+            {Port, {data, {noeol, Data}}} ->
+                Loop([Data | Output]);
+            {Port, eof} ->
+                Port ! {self(), close},
+                Loop(Output);
+            stop ->
+                Port ! {self(), close},
+                Loop(Output);
+            {Port, closed} ->
+                receive
+                    {Port, {exit_status, Code}} ->
+                        {Code, lists:reverse(Output)}
+                end
+        end end,
+    Loop([]).
