@@ -131,9 +131,13 @@ benchmark(N, P) ->
         Error -> Error
     end,
     create("my_hist"),
-    {Time, _} = timer:tc(?MODULE, prun, [N, P, fun (K) -> notify("my_hist", K) end]),
-    io:format("Result: ~f updates/s~n", [(N * 1000000) / Time]),
-    Time.
+    {Time1, _} = timer:tc(?MODULE, prun, [N, P, fun (K) -> notify("my_hist", K) end]),
+    io:format("MzHistogram result: ~f updates/s~n", [(N * 1000000) / Time1]),
+    {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+    {Time2, _} = timer:tc(?MODULE, prun, [N, P, fun (K) -> hdr_histogram:record(Ref, K) end]),
+    io:format("HdrHistogram result: ~f updates/s~n", [(N * 1000000) / Time2]),
+    ok = hdr_histogram:close(Ref),
+    {Time1, Time2}.
 
 prun(N, P, F) ->
     mzb_lists:pmap(
