@@ -47,20 +47,20 @@ get_and_remove_raw_data() ->
             [{Name, Bin} | Acc]
         end, [], mz_histograms).
 
-notify(Name, Value) when is_number(Value), Value >= 0 ->
-    notify_many(Name, Value, 1);
-notify(_Name, Value) ->
-    erlang:error({value_out_of_range, Value}).
 
-notify_many(Name, Value, Count) when is_number(Count) ->
+notify(Name, Value) when is_integer(Value), Value >= 0 ->
     case erlang:get({mz_hist_ref, Name}) of
         undefined -> 
             Ref = ets:lookup_element(mz_histograms, Name, 2),
             erlang:put({mz_hist_ref, Name}, Ref),
-            hdr_histogram:record_many(Ref, round(Value), Count);
+            hdr_histogram:record(Ref, Value);
         Ref ->
-            hdr_histogram:record_many(Ref, round(Value), Count)
-    end.
+            hdr_histogram:record(Ref, Value)
+    end;
+notify(Name, Value) when is_float(Value) ->
+    notify(Name, round(Value));
+notify(_Name, Value) ->
+    erlang:error({value_out_of_range, Value}).
 
 merge_histograms(DataList, Datapoints) ->
     {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
