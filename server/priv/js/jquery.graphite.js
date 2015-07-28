@@ -109,9 +109,7 @@
         if (null != mask) {
             targets = [
                 'alias(lineWidth('+mask+',0.5),"")',
-                'color(aliasSub(lineWidth(highestAverage('+mask+',1),3),"^(.*)$","\\1 -- high.avg."),"8e2800")',
-                'color(aliasSub(lineWidth(lowestAverage('+mask+',1),3),"^(.*)$","\\1 -- low.avg."),"35478c")',
-                'color(lineWidth(averageSeries('+mask+'),5),"ffb03b")'
+                'color(lineWidth(averageSeries('+mask+'),2),"ffb03b")'
             ];
             return $.extend(graphite, {target: targets, hideLegend: "0"});
         }
