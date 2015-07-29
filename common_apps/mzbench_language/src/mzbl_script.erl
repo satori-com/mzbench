@@ -180,6 +180,9 @@ import_resource(Path, binary) ->
         {ok, Binary} -> Binary;
         {error, E} -> erlang:error({read_file_error, Path, E})
     end;
+import_resource(Path, json) ->
+    Binary = import_resource(Path, binary),
+    jiffy:decode(Binary, [return_maps]);
 import_resource(Path, text) ->
     erlang:binary_to_list(import_resource(Path, binary));
 import_resource(Path, tsv) ->

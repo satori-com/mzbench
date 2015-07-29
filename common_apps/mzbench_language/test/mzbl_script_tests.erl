@@ -18,6 +18,23 @@ two_test() ->
        "[{make_install, [{git, \"git@github.com:foo/bar\"}, {branch, \"b\"}]},"
        "{make_install, [{git, \"https://github.com/baz/quux\"}, {dir, \"d\"}]}].").
 
+import_json_test() ->
+    AST = mzbl_script:read_from_string("[{include_resource, test_json, \"./file.json\", json}].",[]),
+    {ok, EUnitDir} = file:get_cwd(),
+    ResourceDir = filename:join([EUnitDir, "..", "test", "resources"]),
+    {_S, Env} = mzbl_script:extract_pools_and_env(AST, [{"bench_script_dir", ResourceDir}]),
+    Json = proplists:get_value({resource,test_json}, Env),
+    ?assertEqual(#{<<"widget">> => #{
+                       <<"debug">> => true,
+                       <<"image">> => #{
+                           <<"alignment">> => <<"center">>,
+                           <<"hOffset">> => 250,
+                           <<"name">> => <<"sun1">>,
+                           <<"src">> => <<"Images/Sun.png">>,
+                           <<"vOffset">> => 250
+                       }
+                  }}, Json).
+
 check(ExpectedInstallSpecs, Script) ->
     AST = mzbl_script:read_from_string(Script, []),
     ?assertEqual(ExpectedInstallSpecs, mzbl_script:extract_install_specs(AST)).
