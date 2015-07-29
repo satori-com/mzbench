@@ -151,7 +151,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
             Node = node(),
             lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes),
                             WId = N * NumNodes + Offset,
-                            WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}]),
+                            WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}, {pool_size, Size2}]),
                             gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2, Self})
                         end, Numbers)
         end),
