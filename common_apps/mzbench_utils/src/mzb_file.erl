@@ -35,6 +35,6 @@ del_dir(Dir) ->
     end.
 
 tmp_filename() ->
-    {N1,N2,N3} = os:timestamp(),
+    {N1,N2,N3} = erlang:now(),
     SafeNodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
     filename:join(["/", "tmp", io_lib:format("bench_~s_~b_~b_~b", [SafeNodeName, N1, N2, N3])]).
