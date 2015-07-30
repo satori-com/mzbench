@@ -32,7 +32,9 @@ main(_) ->
 ensure_hostnames_are_reachable_from_each_other(Hostnames) ->
     lists:foreach(
         fun({From, To}) ->
-            Cmd = lists:flatten(io_lib:format("ssh ~s \"ping -qc1 ~s\"", [From, To])),
+            SSHOptions = "-o StrictHostKeyChecking=no",
+            Cmd = lists:flatten(io_lib:format("ssh ~s ~s \"ping -qc1 ~s\"",
+                [SSHOptions, From, To])),
             {Code, Output} = cmd(Cmd),
             case Code of
                 0 -> ok;
