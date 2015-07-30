@@ -309,9 +309,9 @@ send_email_report(Emails, #{id:= Id,
                             config:= Config,
                             start_time:= StartTime,
                             finish_time:= FinishTime,
-                            metrics:= MetricsMap,
-                            metrics_file:= MetricsFile}) ->
+                            metrics:= MetricsMap}) ->
     try
+        #{metrics_file:= MetricsFile} = Config,
         BenchTime = FinishTime - StartTime,
         Links = mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime),
         lager:info("Metrics links: ~p", [Links]),
