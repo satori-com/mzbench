@@ -32,9 +32,17 @@
         }).
 -type ramp() :: #ramp{}.
 
--record(install_spec, {
+-record(git_install_spec, {
         repo :: string(),
         branch :: string(),
         dir :: string()
         }).
--type install_spec() :: #install_spec{}.
+-type git_install_spec() :: #git_install_spec{}.
+
+-record(rsync_install_spec, {
+        remote :: string(),
+        excludes :: [string()]
+        }).
+-type rsync_install_spec() :: #rsync_install_spec{}.
+
+-type install_spec() :: git_install_spec() | rsync_install_spec().
