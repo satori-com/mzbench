@@ -91,8 +91,6 @@ handle_info(trigger,
         {ok, Tokens, _} = erl_scan:string(NetStatsString),
         {ok, NetStats} = erl_parse:parse_term(Tokens),
 
-        lager:info("NetStatsString: ~p, NetStats: ~p", [NetStatsString, NetStats]),
-
         CurrentTXBytes = lists:sum([maps:get(tx_bytes, Info) || Info <- NetStats]),
         CurrentRXBytes = lists:sum([maps:get(rx_bytes, Info) || Info <- NetStats]),
 
@@ -112,7 +110,7 @@ handle_info(trigger,
 
         #state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
     catch
-        C:E -> lager:error("Exception while getting net stats: ~p", [{C,E}]),
+        C:E -> lager:error("Exception while getting net stats: ~p~nStacktrace: ~p", [{C,E}, erlang:get_stacktrace()]),
         State
     end,
 
