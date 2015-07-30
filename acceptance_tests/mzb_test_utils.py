@@ -20,7 +20,7 @@ mzbench_script = mzbench_dir + 'bin/mzbench'
 
 @contextmanager
 def start_mzbench_server():
-    if 'MZBENCH_REPO' in  os.environ:
+    if 'MZBENCH_REPO' in os.environ:
         mzbench_git_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
     else:
         mzbench_git_param = ''

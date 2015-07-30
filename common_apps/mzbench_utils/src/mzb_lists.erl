@@ -5,7 +5,8 @@
     choose/1,
     choose/2,
     pmap/2,
-    enumerate/1
+    enumerate/1,
+    unique/1
    ]).
 
 choose([]) -> erlang:error(badarg);
@@ -53,3 +54,5 @@ pmap_results([Ref|T], Res) ->
 enumerate(List) when is_list(List) ->
     lists:zip(lists:seq(0, length(List) - 1), List).
 
+unique(List) ->
+    sets:to_list(sets:from_list(List)).
