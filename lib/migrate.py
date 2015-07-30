@@ -27,7 +27,7 @@ migrations_dir = path.join(dirname, '../migrations/')
 def read_migrations(migration_dir):
     print('Reading migrations from {0}'.format(migration_dir))
     files = os.listdir(migration_dir)
-    return { int(f.split('_')[0]): path.join(migration_dir, f) for f in files }
+    return dict((int(f.split('_')[0]), path.join(migration_dir, f)) for f in files)
 
 def read_state(data_dir):
     print('Reading migration state from {0}'.format(data_dir))
@@ -55,7 +55,7 @@ def state_file_path(data_dir):
 def migrations_to_apply(data_dir):
     last_applied = read_state(data_dir)
     migrations = read_migrations(migrations_dir)
-    to_apply = { i: migrations[i] for i in migrations if i > last_applied }
+    to_apply = dict((i, migrations[i]) for i in migrations if i > last_applied)
     if to_apply:
         print("Migrations to apply:")
         for i in to_apply:
