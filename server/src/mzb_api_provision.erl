@@ -156,9 +156,9 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     CloneAndCDCommand = case InstallSpec of
         #git_install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir} ->
             lists:flatten(io_lib:format("git clone ~s deployment_code && cd deployment_code/~s && git checkout ~s", [GitRepo, GitSubDir, GitBranch]));
-        #rsync_install_spec{remote = Remote, excludes = Excludes} ->
-            lists:flatten(io_lib:format("rsync -aW ~s ~s deployment_code && cd deployment_code",
-                [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote]))
+        #rsync_install_spec{remote = Remote, excludes = Excludes, dir = SubDir} ->
+            lists:flatten(io_lib:format("rsync -aW ~s ~s deployment_code && cd deployment_code/~s",
+                [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, SubDir]))
     end,
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
@@ -197,19 +197,24 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
         HostsAndOSs).
 
 install_node(Hosts, Config, Logger) ->
-    #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
-    Logger(info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
-    Branch = case GitBranch of
-        undefined ->
-            {ok, GitRev} = application:get_key(mzbench_api, vsn),
-            GitRev;
-        _ -> GitBranch
-    end,
-
+    InstallSpec =
+        case application:get_env(mzbench_api, mzbench_rsync, undefined) of
+            undefined ->
+                #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
+                Logger(info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
+                Branch = case GitBranch of
+                    undefined ->
+                        {ok, GitRev} = application:get_key(mzbench_api, vsn),
+                        GitRev;
+                    _ -> GitBranch
+                end,
+                mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
+            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
+        end,
     install_package(
         Hosts,
         "node",
-        mzbl_script:make_git_install_spec(GitRepo, Branch, "node"),
+        InstallSpec,
         application:get_env(mzbench_api, node_deployment_path, ""),
         Config,
         Logger).
@@ -217,7 +222,8 @@ install_node(Hosts, Config, Logger) ->
 -spec get_worker_name(install_spec()) -> string().
 get_worker_name(#git_install_spec{repo = GitRepo, dir = ""}) -> filename:basename(GitRepo, ".git");
 get_worker_name(#git_install_spec{dir = GitSubDir}) -> filename:basename(GitSubDir);
-get_worker_name(#rsync_install_spec{remote = Remote}) -> filename:basename(Remote).
+get_worker_name(#rsync_install_spec{remote = Remote, dir = ""}) -> filename:basename(Remote);
+get_worker_name(#rsync_install_spec{dir = SubDir}) -> filename:basename(SubDir).
 
 install_worker(Hosts, InstallSpec, Config, Logger) ->
     WorkerName = get_worker_name(InstallSpec),

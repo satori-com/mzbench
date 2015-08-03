@@ -41,6 +41,7 @@
 
 -record(rsync_install_spec, {
         remote :: string(),
+        dir :: string(),
         excludes :: [string()]
         }).
 -type rsync_install_spec() :: #rsync_install_spec{}.
