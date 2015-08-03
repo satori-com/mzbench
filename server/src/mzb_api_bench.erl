@@ -19,6 +19,8 @@
 -export([allocate_hosts/2]).
 -endif.
 
+-define(DEFLATE_FLUSH_INTERVAL, 10000).
+
 %% mzb_pipeline callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, workflow_config/1, handle_stage/3,
@@ -61,7 +63,9 @@ init([Id, Params]) ->
         worker_hosts => [],
         emulate_bench_crash => maps:get(emulate_bench_crash, Params),
         log_file => get_env(bench_log_file),
-        metrics_file => get_env(bench_metrics_file)
+        metrics_file => get_env(bench_metrics_file),
+        log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
+        metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined)
     },
     Data = #{
         includes => Includes
@@ -73,10 +77,10 @@ init([Id, Params]) ->
     erlang:process_flag(trap_exit, true),
 
     LogFile = log_file(Config),
-    {ok, LogHandler} = file:open(LogFile, [write]),
+    LogHandler = get_file_writer(LogFile, maps:get(log_compression, Config)),
 
     MetricsFile = metrics_file(Config),
-    {ok, MetricsHandler} = file:open(MetricsFile, [write]),
+    MetricsHandler = get_file_writer(MetricsFile, maps:get(metrics_compression, Config)),
 
     State = #{
         id => Id,
@@ -230,8 +234,8 @@ handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
                   end, Collectors);
 
 handle_stage(finalize, closing_log_files, State) ->
-    ok = file:close(maps:get(log_file_handler, State)),
-    ok = file:close(maps:get(metrics_file_handler, State)).
+    catch (maps:get(log_file_handler, State))(close),
+    catch (maps:get(metrics_file_handler, State))(close).
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -495,7 +499,7 @@ wait_collectors([{Pid, Purpose, Host} | Tail], Acc) ->
 process_data(Purpose, Host, Socket, FileHandler) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Data} ->
-            ok = file:write(FileHandler, Data),
+            ok = FileHandler({write, Data}),
             process_data(Purpose, Host, Socket, FileHandler);
         {error, closed} ->
             lager:info("Collector '~p' is closed on host ~s", [Purpose, Host]);
@@ -583,7 +587,7 @@ format_log(_Handler, debug, _Format, _Args) -> ok;
 format_log(Handler, Severity, Format, Args) ->
     Now = {_, _, Ms} = os:timestamp(),
     {_, {H,M,S}} = calendar:now_to_universal_time(Now),
-    _ = file:write(Handler, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])),
+    _ = Handler({write, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])}),
     ok.
 
 format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->
@@ -598,3 +602,54 @@ generate_script_filename(#{name := _Name, body := Body} = Script) ->
         fun(Num) -> erlang:integer_to_list(Num, 16) end,
         erlang:binary_to_list(crypto:hash(sha, Body))
     ))]))}.
+
+get_file_writer(Filename, none) ->
+    {ok, H} = file:open(Filename, [write]),
+    fun (close) -> file:close(H);
+        ({write, Data}) -> file:write(H, Data)
+    end;
+get_file_writer(Filename, deflate) ->
+    P = erlang:spawn_link(fun () -> deflate_process(Filename) end),
+    fun (close) ->
+            Ref = erlang:monitor(process, P),
+            P ! close,
+            receive
+                {'DOWN', Ref, _, _, _} -> ok
+            end;
+        ({write, Data}) -> P ! {write, Data}, ok
+    end.
+
+deflate_process(Filename) ->
+    {ok, Ref} = timer:send_interval(?DEFLATE_FLUSH_INTERVAL, flush),
+    {ok, H} = file:open(Filename, [write]),
+    Z = zlib:open(),
+    ok = zlib:deflateInit(Z),
+    erlang:process_flag(trap_exit, true),
+    Flush = fun () ->
+        try
+            _ = file:write(H, zlib:deflate(Z, <<>>, sync))
+        catch
+            % If there is no data to compress in internal deflate buffer
+            % it throws buf_error for some reason
+            error:buf_error -> ok
+        end
+    end,
+    Close = fun () ->
+        Flush(),
+        _ = file:write(H, zlib:deflate(Z, <<>>, finish)),
+        zlib:deflateEnd(Z),
+        zlib:close(Z),
+        _ = timer:cancel(Ref),
+        file:close(H)
+    end,
+    fun D() ->
+        receive
+            {'EXIT', _, _} -> Close();
+            close -> Close();
+            flush -> Flush(), D();
+            {write, Data} ->
+                _ = file:write(H, zlib:deflate(Z, Data, none)),
+                D()
+        end
+    end ().
+
