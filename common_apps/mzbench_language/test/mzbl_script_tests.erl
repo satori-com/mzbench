@@ -19,12 +19,12 @@ git_two_test() ->
        "{make_install, [{git, \"https://github.com/baz/quux\"}, {dir, \"d\"}]}].").
 
 rsync_test() ->
-    check([#rsync_install_spec{remote = "../somewhere/nearby/", excludes = []}],
+    check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "", excludes = []}],
        "[{make_install, [{rsync, \"../somewhere/nearby/\"}]}].").
 
 rsync_with_excludes_test() ->
-    check([#rsync_install_spec{remote = "../somewhere/nearby/", excludes = ["deps", "ebin"]}],
-       "[{make_install, [{rsync, \"../somewhere/nearby/\"}, {excludes, [\"deps\", \"ebin\"]}]}].").
+    check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "node", excludes = ["deps", "ebin"]}],
+       "[{make_install, [{rsync, \"../somewhere/nearby/\"}, {dir, <<\"node\">>}, {excludes, [\"deps\", \"ebin\"]}]}].").
 
 check(ExpectedInstallSpecs, Script) ->
     AST = mzbl_script:read_from_string(Script, []),

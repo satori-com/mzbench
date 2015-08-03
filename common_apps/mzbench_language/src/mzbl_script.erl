@@ -13,7 +13,7 @@
          enumerate_pools/1,
          extract_worker/1,
          make_git_install_spec/3,
-         make_rsync_install_spec/2]).
+         make_rsync_install_spec/3]).
 
 -include("mzbl_types.hrl").
 
@@ -269,7 +269,8 @@ extract_install_specs(AST) ->
                         undefined -> error({unknown_install_spec, Args});
                         [Remote] ->
                             [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, [[]]),
-                            make_rsync_install_spec(Remote, Excludes)
+                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
+                            make_rsync_install_spec(Remote, Subdir, Excludes)
                     end;
                 [Repo] ->
                     [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
@@ -286,10 +287,11 @@ make_git_install_spec(Repo, Branch, Dir) ->
         branch = to_string(Branch),
         dir = to_string(Dir)}.
 
--spec make_rsync_install_spec(binary() | string(), [binary() | string()]) -> rsync_install_spec().
-make_rsync_install_spec(Remote, Excludes) ->
+-spec make_rsync_install_spec(binary() | string(), binary() | string(), [binary() | string()]) -> rsync_install_spec().
+make_rsync_install_spec(Remote, Subdir, Excludes) ->
     #rsync_install_spec{
         remote = to_string(Remote),
+        dir = to_string(Subdir),
         excludes = [to_string(E) || E <- Excludes]}.
 
 -spec to_string(string() | binary()) -> string().
