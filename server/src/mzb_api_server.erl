@@ -292,7 +292,8 @@ save_results(Id, Status, #{data_dir:= Dir}) ->
 import_data(Dir) ->
     lager:info("Importing server data from ~s", [Dir]),
 
-    Items = mzb_file:wildcard(filename:join(Dir, "*")),
+    WC = filename:join(Dir, "*"),
+    Items = [D || D <- mzb_file:wildcard(WC), ".migrations" /= filename:basename(D)],
 
     Import = fun (BenchFolder, Max) ->
         File = filename:join([BenchFolder, "status"]),
