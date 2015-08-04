@@ -18,6 +18,8 @@ mzbench_script = mzbench_dir + 'bin/mzbench'
 def devtool_run_local_tests():
     cmd(mzbench_dir + 'bin/mzbench validate ' + scripts_dir +'loop_rate.erl')
 
+    cmd(mzbench_dir + 'bin/mzbench validate ' + scripts_dir +'env.erl --env pool_size=20 --env jozin=jozin --env wait_ms=100')
+
     cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'loop_rate.erl')
 
     cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'data_script.erl')
