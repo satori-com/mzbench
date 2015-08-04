@@ -71,7 +71,8 @@ def cmd(command):
 def check_call_cmd(command):
     print 'Executing', command
     args = shlex.split(command)
-    subprocess.check_call(args)
+    FNULL = open(os.devnull, 'w')
+    subprocess.check_call(args, stdout=FNULL)
 
 def remote_cmd(host, command, ssh_opts = ""):
     ssh_cmd = "ssh -A -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=false {0} {1} \"source /etc/profile; {2}\"".format(ssh_opts, host, command)
