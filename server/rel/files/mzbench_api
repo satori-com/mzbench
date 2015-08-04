@@ -179,8 +179,11 @@ case "$1" in
                 fi
                 attempts=$[$attempts-1]
                 sleep 1
-                break
             fi
+        done
+
+        attempts=5
+        while true; do
             RES=`$NODETOOL rpcterms mzb_api_server ensure_started ''`
             EC=$?
             if [ "$EC" -eq 0 ]; then
