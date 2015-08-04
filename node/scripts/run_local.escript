@@ -6,7 +6,7 @@
 main([Script | Params]) ->
     _ = os:cmd("epmd -daemon"),
     Args = parse_args(Params, []),
-    Env = proplists:get_all_values(env, Args),
+
     Pa = proplists:get_all_values(pa, Args),
     Validate = proplists:get_value(validate, Args, false),
 
@@ -25,9 +25,12 @@ main([Script | Params]) ->
 
     code:add_pathsa(RpmCodePaths ++ LocalCodePaths ++ Pa),
 
+    Env = proplists:get_all_values(env, Args),
+    Env1 = [{"mzb_script_name", Script} | Env],
+
     case Validate of
-        true -> validate(Script);
-        _    -> run_script(Script, Env)
+        true -> validate(Script, Env1);
+        _    -> run_script(Script, Env1)
     end;
 
 main(_) ->
@@ -45,10 +48,9 @@ run_script(Script, Env) ->
     {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
     {ok, _} = ensure_all_started(mzbench),
     
-    Env2 = [{"mzb_script_name", Script} | Env],
 
     Ref =
-        case mzb_bench_sup:run_script(filename:absname(Script), Env2) of
+        case mzb_bench_sup:run_script(filename:absname(Script), Env) of
             {ok, R} -> R;
             {error, _, _E, _ST, Messages} ->
                 terminate_node(1, string:join(Messages, "\n"))
@@ -68,13 +70,13 @@ parse_args(["--env", KV | T], Res) ->
 parse_args(["--pa", P | T], Res) ->
     parse_args(T, [{pa, P}|Res]).
 
-validate(Script) ->
+validate(Script, Env) ->
     ok = application:load(lager),
     ok = application:set_env(lager, handlers, []),
     {ok, _} = application:ensure_all_started(lager),
     ok = application:load(mzbench),
 
-    case mzb_script_validator:read_and_validate(filename:absname(Script), []) of
+    case mzb_script_validator:read_and_validate(filename:absname(Script), Env) of
         {ok, _, _} ->
             terminate_node(0, "ok");
         {error, _, _, _, Messages} ->
