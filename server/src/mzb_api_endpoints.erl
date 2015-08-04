@@ -2,6 +2,8 @@
 
 -export([init/2, info/3, terminate/3]).
 
+-include_lib("kernel/include/file.hrl").
+
 init(Req, _Opts) ->
     try
         lager:debug("REQUEST: ~p", [Req]),
@@ -70,7 +72,7 @@ handle(<<"GET">>, <<"/status">>, Req) ->
 
 handle(<<"GET">>, <<"/logs">>, Req) ->
     with_bench_id(Req, fun(Id) ->
-        #{config:= Config} = mzb_api_server:status(Id),
+        #{config:= Config} = Status = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
         ContentEncoding =
             case Compression of
@@ -80,14 +82,24 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
         Filename = mzb_api_bench:log_file(Config),
         Headers = [{<<"content-type">>, <<"text/plain">>},
                    {<<"content-encoding">>, ContentEncoding}],
-        Req2 = cowboy_req:chunked_reply(200, Headers, Req),
-        stream_from_file(Filename, Id, Req2),
-        {ok, Req2, #{}}
+        case bench_finished(Status) of
+            true ->
+                {ok, #file_info{size = FileSize}} = file:read_file_info(Filename),
+                F = fun (Socket, Transport) ->
+                    Transport:sendfile(Socket, Filename)
+                end,
+                Req2 = cowboy_req:set_resp_body_fun(FileSize, F, Req),
+                {ok, cowboy_req:reply(200, Headers, Req2), #{}};
+            false ->
+                Req2 = cowboy_req:chunked_reply(200, Headers, Req),
+                stream_from_file(Filename, Id, Req2),
+                {ok, Req2, #{}}
+        end
     end);
 
 handle(<<"GET">>, <<"/data">>, Req) ->
     with_bench_id(Req, fun(Id) ->
-        #{config:= Config} = mzb_api_server:status(Id),
+        #{config:= Config} = Status = mzb_api_server:status(Id),
         #{metrics_compression:= Compression} = Config,
         ContentEncoding =
             case Compression of
@@ -97,9 +109,19 @@ handle(<<"GET">>, <<"/data">>, Req) ->
         Filename = mzb_api_bench:metrics_file(Config),
         Headers = [{<<"content-type">>, <<"text/plain">>},
                    {<<"content-encoding">>, ContentEncoding}],
-        Req2 = cowboy_req:chunked_reply(200, Headers, Req),
-        stream_from_file(Filename, Id, Req2),
-        {ok, Req2, #{}}
+        case bench_finished(Status) of
+            true ->
+                {ok, #file_info{size = FileSize}} = file:read_file_info(Filename),
+                F = fun (Socket, Transport) ->
+                    Transport:sendfile(Socket, Filename)
+                end,
+                Req2 = cowboy_req:set_resp_body_fun(FileSize, F, Req),
+                {ok, cowboy_req:reply(200, Headers, Req2), #{}};
+            false ->
+                Req2 = cowboy_req:chunked_reply(200, Headers, Req),
+                stream_from_file(Filename, Id, Req2),
+                {ok, Req2, #{}}
+        end
     end);
 
 handle(<<"GET">>, <<"/email_report">>, Req) ->
@@ -326,12 +348,7 @@ convert_strings(T) -> T.
 stream_from_file(File, BenchId, Request) ->
     IsFinished =
         fun () ->
-            case mzb_api_server:status(BenchId) of
-                #{status:= failed} -> true;
-                #{status:= complete} -> true;
-                #{status:= stopped} -> true;
-                #{status:= _} -> false
-            end
+            bench_finished(mzb_api_server:status(BenchId))
         end,
     Streamer = fun (Bin) -> cowboy_req:chunk(Bin, Request) end,
     ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
@@ -365,3 +382,8 @@ stream_from_file(H, Streamer, IsFinished, Timeout, Acc) ->
         {error, Reason} ->
             erlang:error({log_read_error, Reason})
     end.
+
+bench_finished(#{status:= failed}) -> true;
+bench_finished(#{status:= complete}) -> true;
+bench_finished(#{status:= stopped}) -> true;
+bench_finished(#{status:= _}) -> false.
