@@ -3,6 +3,7 @@
     {include_resource, text_resource,   "resource_data.txt", text},
     {include_resource, binary_resource, "resource_data.bin", binary},
     {include_resource, tsv_resource,    "resource_data.tsv", tsv},
+    {include_resource, json_resource,   "resource_data.json", json},
 
     {pool, [{size, 3},
             {worker_type, dummy_worker}],
@@ -15,6 +16,10 @@
     {pool, [{size, 1},
             {worker_type, dummy_worker}],
         [{print, {resource, binary_resource}}]},
+
+    {pool, [{size, 1},
+            {worker_type, dummy_worker}],
+        [{print, {resource, json_resource}}]},
 
     {pool, [{size, 3},
             {worker_type, dummy_worker}],
