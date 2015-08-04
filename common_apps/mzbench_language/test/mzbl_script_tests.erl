@@ -14,9 +14,13 @@ one_test() ->
 
 two_test() ->
     check([#install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = "."},
-        #install_spec{repo = "https://github.com/baz/quux", branch = "master", dir = "d"}],
+        #install_spec{repo = "https://github.com/baz/quux", branch = "", dir = "d"}],
        "[{make_install, [{git, \"git@github.com:foo/bar\"}, {branch, \"b\"}]},"
        "{make_install, [{git, \"https://github.com/baz/quux\"}, {dir, \"d\"}]}].").
+
+missed_git_opts_test() ->
+    AST = mzbl_script:read_from_string("[{make_install, [{branch, \"b\"}]}].", []),
+    ?assertError({install_spec_error, missed_mandatory_option, git}, mzbl_script:extract_install_specs(AST)).
 
 import_json_test() ->
     AST = mzbl_script:read_from_string("[{include_resource, test_json, \"./file.json\", json}].",[]),

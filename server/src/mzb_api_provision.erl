@@ -183,8 +183,12 @@ install_node(Hosts, Config, Logger) ->
         Config,
         Logger).
 
-get_worker_name(#install_spec{repo = GitRepo, dir = ""}) -> filename:basename(GitRepo, ".git");
-get_worker_name(#install_spec{dir = GitSubDir}) -> filename:basename(GitSubDir).
+get_worker_name(#install_spec{repo = GitRepo, dir = GitSubDir}) ->
+    Base = filename:basename(GitSubDir),
+    case re:replace(Base, "\\W", "", [global, {return, list}]) of
+        [] -> filename:basename(GitRepo, ".git");
+        BaseSanitized -> BaseSanitized
+    end.
 
 install_worker(Hosts, InstallSpec, Config, Logger) ->
     WorkerName = get_worker_name(InstallSpec),
