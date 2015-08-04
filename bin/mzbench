@@ -166,6 +166,7 @@ def start_server(config):
 
 def stop_server():
     require('escript')
+    execute_make(SERVER_PROJECTS, 'generate')
     cmd(server_rel_dir + 'bin/mzbench_api stop')
 
 def restart_server(config):
