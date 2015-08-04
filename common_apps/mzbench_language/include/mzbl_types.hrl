@@ -6,7 +6,7 @@
 -type script_validation_result() :: ok | {invalid_script, [string()]}.
 -type pool() :: {[script_expr()], [tuple()]}.
 -type named_pool() :: {atom(), [script_expr()], [tuple()]}.
--type worker_provider() :: mzb_erl_worker | mzb_lua_worker.
+-type worker_provider() :: mzb_erl_worker | mzb_lua_worker| mzb_python_worker.
 -type worker_name() :: atom().
 
 -record(operation, {
