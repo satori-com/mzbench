@@ -258,9 +258,14 @@ cast_to_type(Value, _) -> Value.
 
 extract_install_specs(AST) ->
     Convert = fun(#operation{args = [Args]}) ->
-        [Repo] = mzbl_ast:find_operation_and_extract_args(git, Args, [""]),
-        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, ["master"]),
+        Repo = case mzbl_ast:find_operation_and_extract_args(git, Args) of
+            undefined -> erlang:error({install_spec_error, missed_mandatory_option, git});
+            [GitUrl] -> GitUrl
+        end,
+
+        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
         [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
+
         make_install_spec(Repo, Branch, Subdir)
     end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].
