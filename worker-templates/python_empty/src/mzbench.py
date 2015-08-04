@@ -15,49 +15,32 @@ def _instruction_end():
     _mzbench_pipe.write("T\n")
 
 
+def _instruction_failed():
+    _mzbench_pipe.write("E\n")
+
+
 def _module_funcs(module_name):
     FuncList = dir(module_name)
     _mzbench_pipe.write("F {0}.\n".format(_encode_funcs_list(FuncList)))
 
 
-def _encode_funcs_list(FuncList):
-    result = '['
-    
-    is_first_element = True
-    for e in FuncList:
-        if is_first_element:
-           is_first_element = False 
-        else:
-            result = result + ', '
-        
-        result = result + '"{0}"'.format(e)
-        
-    result = result + ']'
-    return result
+def _encode_funcs_list(func_list):
+    return '[' + ', '.join(['"{0}"'.format(e) for e in func_list]) + ']'
 
 
 def _encode_metric(metric):
-    return '{{"{0[0]}", {0[1]}}}'.format(metric)
+    return '{{"{0}", {1}}}'.format(_encode_string_for_erlang(metric[0]), _encode_string_for_erlang(metric[1]))
 
 
 def _encode_metrics_list(metrics_list):
-    result = '['
-    
-    is_first_element = True
-    for e in metrics_list:
-        if is_first_element:
-           is_first_element = False 
-        else:
-            result = result + ', '
-            
-        if isinstance(e, list):
-            result = result + _encode_metrics_list(e)
-        else:
-            result = result + _encode_metric(e)
-    
-    result = result + ']'
-    return result
+    if isinstance(metrics_list, list):
+        return '[' + ', '.join(map(_encode_metrics_list, metrics_list)) + ']'
+    else:
+        return _encode_metric(metrics_list)
 
+# May fail in some complicated cases
+def _encode_string_for_erlang(string):
+    return string.replace('\\', '\\\\').replace('"', '\"')
 
 # MZBench communication initialization
 if 'MZ_PYTHON_WORKER_FIFO_NAME' not in os.environ:

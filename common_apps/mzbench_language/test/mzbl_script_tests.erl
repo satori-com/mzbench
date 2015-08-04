@@ -13,8 +13,8 @@ one_test() ->
             "{dir, \"d\"}]}].").
 
 two_test() ->
-    check([#install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = ""},
-        #install_spec{repo = "https://github.com/baz/quux", branch = "", dir = "d"}],
+    check([#install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = "."},
+        #install_spec{repo = "https://github.com/baz/quux", branch = "master", dir = "d"}],
        "[{make_install, [{git, \"git@github.com:foo/bar\"}, {branch, \"b\"}]},"
        "{make_install, [{git, \"https://github.com/baz/quux\"}, {dir, \"d\"}]}].").
 
