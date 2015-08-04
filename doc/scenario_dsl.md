@@ -275,6 +275,7 @@ Currently supported file types are the following:
 
    * `erlang` - the resource file can be interpreted directly as a valid Erlang term. See [Erlang terms](http://erlang.org/doc/reference_manual/expressions.html#id77790);
    * `text` - the resource file is a plain text file;
+   * `json` - the resource file is a json file;
    * `binary` - the resource file is a custom binary and should not be interpreted;
    * `tsv` - the resource file is a table with tabulation separated values.
 
