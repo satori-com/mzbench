@@ -36,7 +36,7 @@ def devtool_run_local_tests():
 
 
 def devtool_list_templates_test():
-    templates = os.listdir(mzbench_dir + 'worker-templates')
+    templates = os.listdir(mzbench_dir + 'worker_templates')
     got_templates = filter(
         lambda x: x,
         cmd(mzbench_dir + 'bin/mzbench list_templates').split('\n'))
