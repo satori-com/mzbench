@@ -232,7 +232,8 @@ extract_worker(PoolOpts) ->
     case mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]) of
         [WorkerName] -> {mzb_erl_worker, WorkerName};
         [WorkerName, erlang] -> {mzb_erl_worker, WorkerName};
-        [WorkerName, lua] -> {mzb_lua_worker, WorkerName}
+        [WorkerName, lua] -> {mzb_lua_worker, WorkerName};
+        [WorkerName, python] -> {mzb_python_worker, WorkerName}
     end.
 
 hostname(Node) ->
@@ -258,8 +259,8 @@ cast_to_type(Value, _) -> Value.
 extract_install_specs(AST) ->
     Convert = fun(#operation{args = [Args]}) ->
         [Repo] = mzbl_ast:find_operation_and_extract_args(git, Args, [""]),
-        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
-        [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
+        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, ["master"]),
+        [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
         make_install_spec(Repo, Branch, Subdir)
     end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].
