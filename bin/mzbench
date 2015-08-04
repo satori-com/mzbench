@@ -386,13 +386,13 @@ def validate(script, env):
 # Worker creation
 #=================================================================================================
 def list_templates():
-    templates_path = os.path.join(dirname, '../worker-templates/')
+    templates_path = os.path.join(dirname, '../worker_templates/')
     
     for tname in os.listdir(templates_path):
         print(tname)
 
 def new_worker(template, name):
-    templates_path = os.path.join(dirname, '../worker-templates/')
+    templates_path = os.path.join(dirname, '../worker_templates/')
     
     template_name = template or 'empty'
     worker_name = name
