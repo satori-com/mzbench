@@ -20,8 +20,10 @@ mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
+
 def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
+
 
 def lua_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
@@ -31,6 +33,7 @@ def lua_worker_from_git_test():
         env={'worker_branch': worker_commit,
             'mzbench_repo': mzbench_repo})
 
+
 def worker_from_git_test():
     # worker is located in the same repo as node
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
@@ -39,6 +42,7 @@ def worker_from_git_test():
         scripts_dir + 'worker_from_git.erl',
         env={'worker_branch': worker_commit,
             'mzbench_repo': mzbench_repo})
+
 
 def env_test():
     run_successful_bench(scripts_dir + 'env.erl', env={
@@ -131,13 +135,15 @@ def loop_without_rate_test():
 def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples/assertions.erl', env={})
 
+
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
+
 
 def workers_per_node_test():
     workers_per_node = 3
     bench_id = run_successful_bench(scripts_dir + 'workers_per_node.erl', workers_per_node=workers_per_node)
-    
+
     log_process = subprocess.Popen(
         [mzbench_script,
             '--host=localhost:4800',
@@ -151,6 +157,11 @@ def workers_per_node_test():
         print 'Out: ', out
         print 'Err: ', err
         raise RuntimeError("The bench should have allocated 4 worker nodes")
+
+def log_compression_test():
+    bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')
+    log_cmd = 'curl --head -X GET http://localhost:4800/logs?id={0}'.format(bench_id)
+    assert("content-encoding: deflate" in cmd(log_cmd))
 
 def main():
     with start_mzbench_server():
