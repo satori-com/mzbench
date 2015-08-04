@@ -37,17 +37,12 @@ main(_) ->
     usage().
 
 run_script(Script, Env) ->
-
-    % disable noisy "PROGRESS REPORT" messages
-    % lager logging should be enough
-    application:load(sasl),
-    application:set_env(sasl, sasl_error_logger, {file, "/dev/null"}),
-    application:start(sasl),
-
     ok = application:start(inets),
     {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
+
+    setup_logger([{lager_console_backend, info}]),
+
     {ok, _} = ensure_all_started(mzbench),
-    
 
     Ref =
         case mzb_bench_sup:run_script(filename:absname(Script), Env) of
@@ -71,9 +66,8 @@ parse_args(["--pa", P | T], Res) ->
     parse_args(T, [{pa, P}|Res]).
 
 validate(Script, Env) ->
-    ok = application:load(lager),
-    ok = application:set_env(lager, handlers, []),
-    {ok, _} = application:ensure_all_started(lager),
+    setup_logger([]),
+
     ok = application:load(mzbench),
 
     case mzb_script_validator:read_and_validate(filename:absname(Script), Env) of
@@ -90,6 +84,22 @@ nodename_gen() ->
 
 usage() ->
     io:format("Usage: ~s ScriptName [--validate] [--env name=value...]~n", [escript:script_name()]).
+
+setup_logger(Handlers) ->
+    ok = application:load(lager),
+    ok = application:set_env(lager, handlers, Handlers),
+    ok = application:set_env(lager, crash_log, undefined),
+    {ok, _} = ensure_all_started(lager),
+
+    % setup is exometer dependency.
+    ok = application:load(setup),
+    ok = application:set_env(setup, data_dir, "."),
+    ok = application:set_env(setup, log_dir, "."),
+    {ok, _} = ensure_all_started(setup),
+
+    application:load(sasl),
+    application:set_env(sasl, sasl_error_logger, {file, "/dev/null"}),
+    {ok, _} = ensure_all_started(sasl).
 
 %% backported from R17
 
