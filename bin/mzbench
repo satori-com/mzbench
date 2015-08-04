@@ -138,7 +138,7 @@ CHECK_PROJECTS = NODE_PROJECTS + SERVER_PROJECTS + \
 
 def execute_make(projects, target):
     for subproject in projects:
-        cmd('make -C ' + subproject + ' ' + target)
+        check_call_cmd('make -C ' + subproject + ' ' + target)
 
 def compile_projects(projects):
     execute_make(projects, 'compile')
@@ -162,11 +162,11 @@ def start_server(config):
         config_arg = '-config_file {0}'.format(os.path.abspath(config))
     else:
         config_arg = ''
-    cmd(server_rel_dir + 'bin/mzbench_api start {0}'.format(config_arg))
+    check_call_cmd(server_rel_dir + 'bin/mzbench_api start {0}'.format(config_arg))
 
 def stop_server():
     require('escript')
-    cmd(server_rel_dir + 'bin/mzbench_api stop')
+    check_call_cmd(server_rel_dir + 'bin/mzbench_api stop')
 
 def restart_server(config):
     stop_server()
@@ -180,7 +180,7 @@ def selfcheck():
     require('nosetests')
     require('pyflakes')
     require('escript')
-    cmd('{0}/lint.py {0}/../'.format(dirname))
+    check_call_cmd('{0}/lint.py {0}/../'.format(dirname))
     execute_make(CHECK_PROJECTS, 'check')
     try:
         tests_environ = os.environ
@@ -486,10 +486,10 @@ def main():
     print('Unsupported command', file=sys.stderr)
     sys.exit(1)
 
-def cmd(command):
+def check_call_cmd(command):
     import subprocess
     try:
-        util.cmd(command)
+        util.check_call_cmd(command)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
