@@ -179,6 +179,8 @@ case "$1" in
                 fi
                 attempts=$[$attempts-1]
                 sleep 1
+            else
+                break
             fi
         done
 
