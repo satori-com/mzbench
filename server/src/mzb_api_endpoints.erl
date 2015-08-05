@@ -74,54 +74,16 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
-        ContentEncoding =
-            case Compression of
-                none -> <<"identity">>;
-                deflate -> <<"deflate">>
-            end,
         Filename = mzb_api_bench:log_file(Config),
-        Headers = [{<<"content-type">>, <<"text/plain">>},
-                   {<<"content-encoding">>, ContentEncoding}],
-        case mzb_api_server:is_datastream_ended(Id) of
-            true ->
-                {ok, #file_info{size = FileSize}} = file:read_file_info(Filename),
-                F = fun (Socket, Transport) ->
-                    Transport:sendfile(Socket, Filename)
-                end,
-                Req2 = cowboy_req:set_resp_body_fun(FileSize, F, Req),
-                {ok, cowboy_req:reply(200, Headers, Req2), #{}};
-            false ->
-                Req2 = cowboy_req:chunked_reply(200, Headers, Req),
-                stream_from_file(Filename, Id, Req2),
-                {ok, Req2, #{}}
-        end
+        {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
 handle(<<"GET">>, <<"/data">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{metrics_compression:= Compression} = Config,
-        ContentEncoding =
-            case Compression of
-                none -> <<"identity">>;
-                deflate -> <<"deflate">>
-            end,
         Filename = mzb_api_bench:metrics_file(Config),
-        Headers = [{<<"content-type">>, <<"text/plain">>},
-                   {<<"content-encoding">>, ContentEncoding}],
-        case mzb_api_server:is_datastream_ended(Id) of
-            true ->
-                {ok, #file_info{size = FileSize}} = file:read_file_info(Filename),
-                F = fun (Socket, Transport) ->
-                    Transport:sendfile(Socket, Filename)
-                end,
-                Req2 = cowboy_req:set_resp_body_fun(FileSize, F, Req),
-                {ok, cowboy_req:reply(200, Headers, Req2), #{}};
-            false ->
-                Req2 = cowboy_req:chunked_reply(200, Headers, Req),
-                stream_from_file(Filename, Id, Req2),
-                {ok, Req2, #{}}
-        end
+        {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
 handle(<<"GET">>, <<"/email_report">>, Req) ->
@@ -345,27 +307,45 @@ convert_strings(T) when is_map(T) ->
     maps:from_list([{convert_strings(K), convert_strings(V)} || {K, V} <- maps:to_list(T)]);
 convert_strings(T) -> T.
 
-stream_from_file(File, BenchId, Request) ->
+stream_from_file(File, Compression, BenchId, Req) ->
+    ContentEncoding =
+        case Compression of
+            none -> <<"identity">>;
+            deflate -> <<"deflate">>
+        end,
+    Headers = [{<<"content-type">>, <<"text/plain">>},
+               {<<"content-encoding">>, ContentEncoding}],
     IsFinished =
         fun () ->
             mzb_api_server:is_datastream_ended(BenchId)
         end,
-    Streamer = fun (Bin) -> cowboy_req:chunk(Bin, Request) end,
-    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
-    {ok, H} = file:open(File, [raw, read, binary, {read_ahead, ReadAtOnce}]),
-    try
-        PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        stream_from_file(H, Streamer, IsFinished, PollTimeout)
-    after
-        file:close(H)
+
+    case IsFinished() of
+        true ->
+            {ok, #file_info{size = FileSize}} = file:read_file_info(File),
+            F = fun (Socket, Transport) -> Transport:sendfile(Socket, File) end,
+            Req2 = cowboy_req:set_resp_body_fun(FileSize, F, Req),
+            cowboy_req:reply(200, Headers, Req2);
+        false ->
+            Req2 = cowboy_req:chunked_reply(200, Headers, Req),
+            Streamer = fun (Bin) -> cowboy_req:chunk(Bin, Req2) end,
+            ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
+            {ok, H} = file:open(File, [raw, read, binary, {read_ahead, ReadAtOnce}]),
+            try
+                PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
+                stream_data_from_file(H, Streamer, IsFinished, PollTimeout),
+                Req2
+            after
+                file:close(H)
+            end
     end.
 
-stream_from_file(H, Streamer, IsFinished, Timeout) ->
+stream_data_from_file(H, Streamer, IsFinished, Timeout) ->
     IsLastTime = IsFinished(),
     case file:read(H, 1024) of
         {ok, D} ->
             Streamer(D),
-            stream_from_file(H, Streamer, IsFinished, Timeout);
+            stream_data_from_file(H, Streamer, IsFinished, Timeout);
 
         eof ->
             case IsLastTime of
@@ -373,7 +353,7 @@ stream_from_file(H, Streamer, IsFinished, Timeout) ->
                     ok;
                 false ->
                     timer:sleep(Timeout),
-                    stream_from_file(H, Streamer, IsFinished, Timeout)
+                    stream_data_from_file(H, Streamer, IsFinished, Timeout)
             end;
 
         {error, Reason} ->
