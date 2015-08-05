@@ -14,7 +14,8 @@
     status/1,
     server_data_dir/0,
     ensure_started/0,
-    request_report/2
+    request_report/2,
+    is_datastream_ended/1
 ]).
 
 %% gen_server callbacks
@@ -58,9 +59,9 @@ stop_bench(Id) ->
 
 status(Id) ->
     case ets:lookup(benchmarks, Id) of
-        [{_, B}] when is_pid(B) ->
+        [{_, B, undefined}] ->
             mzb_api_bench:get_status(B);
-        [{_, Status}] ->
+        [{_, _, Status}] ->
             Status;
         [] ->
             erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
@@ -69,11 +70,18 @@ status(Id) ->
 bench_finished(Id, Status) ->
     gen_server:cast(?MODULE, {bench_finished, Id, Status}).
 
+is_datastream_ended(Id) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, B, _}] when is_pid(B) -> false;
+        [{_, _, _Status}] -> true;
+        [] -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
+
 get_info() ->
     ets:foldl(
-        fun ({Id, Pid}, Acc) when is_pid(Pid) ->
+        fun ({Id, Pid, undefined}, Acc) ->
                 [{Id, mzb_api_bench:get_status(Pid)}|Acc];
-            ({Id, Status}, Acc) ->
+            ({Id, _, Status}, Acc) ->
                 [{Id, Status}|Acc]
         end, [], benchmarks).
 
@@ -148,7 +156,7 @@ handle_call({restart_bench, RestartId}, _From, #{status:= inactive} = State) ->
 
 handle_call(deactivate, _From, #{} = State) ->
     Unfinished = ets:foldl(
-        fun ({_, Pid}, Acc) when is_pid(Pid) -> [Pid | Acc];
+        fun ({_, Pid, _}, Acc) when is_pid(Pid) -> [Pid | Acc];
             (_, Acc) -> Acc
         end, [], benchmarks),
     lager:info("[ SERVER ] Stopping all benchmarks due to server stop: ~p", [Unfinished]),
@@ -158,10 +166,10 @@ handle_call(deactivate, _From, #{} = State) ->
 handle_call({stop_bench, Id}, _, #{} = State) ->
     lager:info("[ SERVER ] Stop bench #~b request received", [Id]),
     case ets:lookup(benchmarks, Id) of
-        [{_, BenchPid}] when is_pid(BenchPid) ->
+        [{_, BenchPid, undefined}] ->
             ok = mzb_api_bench:interrupt_bench(BenchPid),
             {reply, ok, State};
-        [{_, _}] ->
+        [{_, _, _}] ->
             {reply, ok, State};
         [] ->
             {reply, {error, not_found}, State}
@@ -170,10 +178,10 @@ handle_call({stop_bench, Id}, _, #{} = State) ->
 handle_call({request_report, Id, Emails}, _, #{} = State) ->
     lager:info("[ SERVER ] Report req for #~b received for emails: ~p", [Id, Emails]),
     case ets:lookup(benchmarks, Id) of
-        [{_, BenchPid}] when is_pid(BenchPid) ->
+        [{_, BenchPid, undefined}] ->
             ok = mzb_api_bench:request_report(BenchPid, Emails),
             {reply, ok, State};
-        [{_, Status}] ->
+        [{_, _, Status}] ->
             _ = spawn_link(fun () ->
                 case mzb_api_bench:send_email_report(Emails, Status) of
                     ok -> ok;
@@ -217,7 +225,8 @@ handle_cast(_Msg, State) ->
 
 handle_info({'DOWN', Ref, process, Pid, normal}, #{monitors:= Mons} = State) ->
     case maps:find(Ref, Mons) of
-        {ok, _} ->
+        {ok, Id} ->
+            true = ets:update_element(benchmarks, Id, {2, undefined}),
             {noreply, State#{monitors => maps:remove(Ref, Mons)}};
         error ->
             lager:error("Received DOWN from unknown process ~p", [Pid]),
@@ -228,6 +237,7 @@ handle_info({'DOWN', Ref, process, Pid, Reason}, #{monitors:= Mons} = State) ->
     case maps:find(Ref, Mons) of
         {ok, Id} ->
             lager:error("Benchmark process #~b ~p has crashed with reason: ~p", [Id, Pid, Reason]),
+            true = ets:update_element(benchmarks, Id, {2, undefined}),
             Status = #{status => failed, reason => {crashed, Reason}, config => undefined},
             save_results(Id, Status, State),
             {noreply, State#{monitors => maps:remove(Ref, Mons)}};
@@ -255,7 +265,7 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
     case supervisor:start_child(benchmarks_sup, [Id, Params#{user => User}]) of
         {ok, Pid} ->
             Mon = erlang:monitor(process, Pid),
-            true = ets:insert_new(benchmarks, {Id, Pid}),
+            true = ets:insert_new(benchmarks, {Id, Pid, undefined}),
             NewState = State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)},
             {ok, Id, check_max_bench_num(NewState)};
         {error, Reason} ->
@@ -265,9 +275,9 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
 check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} = State) ->
     MinId = (NextId - MaxNum),
     ets:foldl(
-        fun ({_Id, Pid}, _) when is_pid(Pid) -> ok;
-            ({Id, _Status}, _) when Id >= MinId -> ok;
-            ({Id, _Status}, _) ->
+        fun ({_Id, _, undefined}, _) -> ok;
+            ({Id, _, _Status}, _) when Id >= MinId -> ok;
+            ({Id, _, _Status}, _) ->
                 BenchDir = filename:join(Dir, erlang:integer_to_list(Id)),
                 lager:info("Deleting bench #~b", [Id]),
                 case mzb_file:del_dir(BenchDir) of
@@ -283,7 +293,8 @@ save_results(Id, Status, #{data_dir:= Dir}) ->
         Filename = filename:join([Dir, erlang:integer_to_list(Id), "status"]),
         ok = filelib:ensure_dir(Filename),
         ok = file:write_file(Filename, io_lib:format("~p.", [Status])),
-        true = ets:insert(benchmarks, {Id, Status})
+
+        true = ets:update_element(benchmarks, Id, {3, Status})
     catch
         _:Error ->
             lager:error("Save bench #~b results failed with reason: ~p~n~p", [Id, Error, erlang:get_stacktrace()])
@@ -314,7 +325,7 @@ import_bench_status(Id, File) ->
     try
         {ok, [Status]} = file:consult(File),
         #{status:= _, start_time := _, finish_time := _, config := #{}} = Status,
-        ets:insert(benchmarks, {Id, Status})
+        ets:insert(benchmarks, {Id, undefined, Status})
     catch _:E ->
         lager:error("Import from file ~s failed with reason: ~p~n~p", [File, E, erlang:get_stacktrace()])
     end.

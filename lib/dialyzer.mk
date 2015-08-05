@@ -20,6 +20,7 @@ dialyzer.log: $(DEPS_PLT) $(HOME)/.otp.plt .make/compilation-up-to-date
 		--plts $(DEPS_PLT) $(HOME)/.otp.plt -- \
 		$(DIALYZABLE_EBINS)
 	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
+	-@perl -ne 'print if not /The call cowboy_req:reply\(200,Headers/' -i dialyzer.log
 	-@perl -ne "print if not /The pattern {'error', UtilFailedReason} can never match the type float()/" -i dialyzer.log
 	-@ cat dialyzer.log
 	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
