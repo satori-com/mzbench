@@ -238,8 +238,14 @@ handle_info({'DOWN', Ref, process, Pid, Reason}, #{monitors:= Mons} = State) ->
         {ok, Id} ->
             lager:error("Benchmark process #~b ~p has crashed with reason: ~p", [Id, Pid, Reason]),
             true = ets:update_element(benchmarks, Id, {2, undefined}),
-            Status = #{status => failed, reason => {crashed, Reason}, config => undefined},
-            save_results(Id, Status, State),
+            case ets:lookup(benchmarks, Id) of
+                [{_, _, undefined}] ->
+                    Status = #{status => failed,
+                               reason => {crashed, Reason},
+                               config => undefined},
+                    save_results(Id, Status, State);
+                _ -> ok
+            end,
             {noreply, State#{monitors => maps:remove(Ref, Mons)}};
         error ->
             lager:error("Received DOWN from unknown process ~p", [Pid]),
