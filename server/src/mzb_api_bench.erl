@@ -112,8 +112,7 @@ workflow_config(_State) ->
                   sending_email_report,
                   stopping_collectors,
                   cleaning_nodes,
-                  deallocating_hosts,
-                  closing_log_files
+                  deallocating_hosts
                 ]}].
 
 get_logger(State) -> fun (S, F, A) -> log(S, F, A, State) end.
@@ -231,11 +230,7 @@ handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
                       after 30000 ->
                           erlang:error({collector_close_timeout, Purpose, Host})
                       end
-                  end, Collectors);
-
-handle_stage(finalize, closing_log_files, State) ->
-    catch (maps:get(log_file_handler, State))(close),
-    catch (maps:get(metrics_file_handler, State))(close).
+                  end, Collectors).
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -263,10 +258,14 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 
-terminate(normal, _State) -> ok;
+terminate(normal, State) ->
+    catch (maps:get(log_file_handler, State))(close),
+    catch (maps:get(metrics_file_handler, State))(close);
 % something is going wrong there. use special status for bench and run finalize stages again
 terminate(Reason, State) ->
     error("Receive terminate while finalize is not completed: ~p", [Reason], State),
+    catch (maps:get(log_file_handler, State))(close),
+    catch (maps:get(metrics_file_handler, State))(close),
     spawn(
       fun() ->
           {ok, Timer} = timer:kill_after(5 * 60 * 1000),
@@ -627,7 +626,7 @@ deflate_process(Filename) ->
     erlang:process_flag(trap_exit, true),
     Flush = fun () ->
         try
-            _ = file:write(H, zlib:deflate(Z, <<>>, sync))
+            file:write(H, zlib:deflate(Z, <<>>, sync))
         catch
             % If there is no data to compress in internal deflate buffer
             % it throws buf_error for some reason
@@ -635,7 +634,7 @@ deflate_process(Filename) ->
         end
     end,
     Close = fun () ->
-        Flush(),
+        _ = Flush(),
         _ = file:write(H, zlib:deflate(Z, <<>>, finish)),
         zlib:deflateEnd(Z),
         zlib:close(Z),
@@ -646,7 +645,7 @@ deflate_process(Filename) ->
         receive
             {'EXIT', _, _} -> Close();
             close -> Close();
-            flush -> Flush(), D();
+            flush -> _ = Flush(), D();
             {write, Data} ->
                 _ = file:write(H, zlib:deflate(Z, Data, none)),
                 D()
