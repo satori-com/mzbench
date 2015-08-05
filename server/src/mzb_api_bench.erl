@@ -262,8 +262,9 @@ terminate(normal, State) ->
     catch (maps:get(log_file_handler, State))(close),
     catch (maps:get(metrics_file_handler, State))(close);
 % something is going wrong there. use special status for bench and run finalize stages again
-terminate(Reason, State) ->
+terminate(Reason, #{id:= Id} = State) ->
     error("Receive terminate while finalize is not completed: ~p", [Reason], State),
+    mzb_api_server:bench_finished(Id, status(State)),
     catch (maps:get(log_file_handler, State))(close),
     catch (maps:get(metrics_file_handler, State))(close),
     spawn(
