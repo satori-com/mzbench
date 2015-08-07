@@ -138,7 +138,7 @@ handle(<<"GET">>, <<"/graphs">>, Req) ->
                             T -> iso_8601_fmt(T)
                         end,
 
-        JsonMetrics = jiffy:encode(convert_strings(Metrics)),
+        JsonMetrics = jiffy:encode(Metrics),
 
         {ok, HTML} = metrics_dtl:render([{metrics, JsonMetrics},
                                          {bench_id, Id},
@@ -302,14 +302,6 @@ parse_start_params(Req) ->
     Env2 = lists:usort(fun ({K1, _}, {K2, _}) -> K1 =< K2 end, Env),
 
     maps:from_list([{env, Env2}|Params2]).
-
-convert_strings(T = [X | _]) when is_integer(X) ->
-    list_to_binary(T);
-convert_strings(T) when is_list(T) ->
-    [convert_strings(X) || X <- T];
-convert_strings(T) when is_map(T) ->
-    maps:from_list([{convert_strings(K), convert_strings(V)} || {K, V} <- maps:to_list(T)]);
-convert_strings(T) -> T.
 
 stream_from_file(File, Compression, BenchId, Req) ->
     ContentEncoding =

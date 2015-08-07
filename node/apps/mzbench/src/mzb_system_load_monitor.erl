@@ -30,10 +30,28 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 metric_names(Nodes) ->
-    [
-       [{metric_name(T, N), gauge} || N <- Nodes]
-       || T <- ["la1", "cpu", "ram", "nettx", "netrx", "interval"]
-    ].
+    [{group, "System load metrics", [
+        {graph, #{title => "Load average",
+                  units => "la1",
+                  metrics => [{metric_name("la1", N), gauge} || N <- Nodes]}},
+
+        {graph, #{title => "CPU",
+                  metrics => [{metric_name("cpu", N), gauge} || N <- Nodes]}},
+
+        {graph, #{title => "RAM",
+                  metrics => [{metric_name("ram", N), gauge} || N <- Nodes]}},
+
+        {graph, #{title => "Network transmit",
+                  units => "bytes",
+                  metrics => [{metric_name("nettx", N), gauge} || N <- Nodes]}},
+
+        {graph, #{title => "Network receive",
+                  units => "bytes",
+                  metrics => [{metric_name("netrx", N), gauge} || N <- Nodes]}},
+
+        {graph, #{title => "Report interval",
+                  units => "sec",
+                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}]}].
 
 %% gen_server callbacks
 

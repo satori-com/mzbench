@@ -18,9 +18,7 @@ $(document).ready(function() {
     var finishTime = "{{ finish_time }}";
     var refreshInterval = {{ refreshInterval }};
 
-    var metricsCount = $.map(metrics, function(n, i) { return i; }).length;
-
-    if (0 == metricsCount) {
+    if (0 == metrics.groups.length) {
         var msg = $("<div class='alert alert-warning' role='alert'><strong>Oh snap!</strong> This bench hasn't produced any graphs</div>");
         msg.appendTo("#metrics-pane");
         return;
@@ -42,38 +40,48 @@ $(document).ready(function() {
 
     var bigGraphSize = {width: 960, height: 720};
 
-    $.each(metrics, function(graphiteUrl, groups) {
-        var graphs = $.map(groups, function (groupMetrics) {
-            var targets = $.map(groupMetrics, function(m) {
-                return $.isArray(m) ? m.join(".") : m; // Backward compatibility
-            });
+    var groups = metrics.groups || [];
+    var graphiteUrl = metrics.graphite_url || "";
 
-
-            var period = calculatePeriod(startTime, finishTime);
-
-            var graphiteOpts = $.fn.graphite.optimizeTargets({
-                target: targets,
-                url: graphiteUrl + "/render/",
-                from: period.from,
-                until: period.until,
-                width: "555",
-                height: "418"
-            });
-
-            return $("<img class='graph'/>").graphite(graphiteOpts);
+    var flattenGraphs = [];
+    $.each(groups, function(index, group) {
+        $.each(group.graphs, function(index, graph) {
+            flattenGraphs.push(graph);
         });
-        $.each(partition(graphs, 2), function(index, pair) {
-            var row = $("<div />", {class: "row"}).appendTo("#metrics-pane");
-            $.each(pair, function(index, graph) {
-                graph
-                .appendTo(row)
-                .wrap(function () {
-                    return $("<div class=\"col-md-6\"></div>")})
-                .wrap(function () {
-                    var link = $.fn.graphite.geturl($(this), bigGraphSize);
-                    return $("<a />", {href: link, target: "_blank"})});
-            })
+    });
+
+    var domGraphs = $.map(flattenGraphs, function(graph) {
+        var targets = $.map(graph.metrics, function(m) { return m.name; });
+        var title = graph.title;
+        var units = graph.units;
+
+        var period = calculatePeriod(startTime, finishTime);
+
+        var graphiteOpts = $.fn.graphite.optimizeTargets({
+            target: targets,
+            url: graphiteUrl + "/render/",
+            from: period.from,
+            until: period.until,
+            width: "555",
+            height: "418",
+            title: title,
+            vtitle: units
         });
+
+        return $("<img class='graph'/>").graphite(graphiteOpts);
+    });
+
+    $.each(partition(domGraphs, 2), function(index, pair) {
+        var row = $("<div />", {class: "row"}).appendTo("#metrics-pane");
+        $.each(pair, function(index, graph) {
+            graph
+            .appendTo(row)
+            .wrap(function () {
+                return $("<div class=\"col-md-6\"></div>")})
+            .wrap(function () {
+                var link = $.fn.graphite.geturl($(this), bigGraphSize);
+                return $("<a />", {href: link, target: "_blank"})});
+        })
     });
 
     var updateStatusFn = function () {
