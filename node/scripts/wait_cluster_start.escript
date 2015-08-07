@@ -4,6 +4,16 @@
 -export([stop/2]).
 
 main([TimeoutStr | NodesStr]) ->
+    io:format("~p starting~n", [os:timestamp()]),
+
+    {ok, [[Home|_]|_]} = init:get_argument(home),
+    ReleaseInfoFile = filename:join(Home, "mz/mzbench/releases/RELEASES"),
+    {ok, [[{release, "mzbench", _, _, Applications, _}]]} = file:consult(ReleaseInfoFile),
+    {mzbench_utils, _Version, BuildPath} = lists:keyfind(mzbench_utils, 1, Applications),
+    MZBenchUtilsInstallPath = filename:join([Home, "mz/mzbench/lib", filename:basename(BuildPath), "ebin"]),
+    code:add_path(MZBenchUtilsInstallPath),
+    ok = application:load(mzbench_utils),
+
     Timeout =
         try erlang:list_to_integer(TimeoutStr) of
             TO when TO > 0 -> TO;
@@ -14,45 +24,55 @@ main([TimeoutStr | NodesStr]) ->
 
     Nodes = [erlang:list_to_atom(N) || N <- NodesStr],
     Nodes == [] andalso bad_arg("host list", "(empty)"),
-%   Hostnames = [lists:last(string:tokens(atom_to_list(Node), "@")) || Node <- Nodes],
+    Hostnames = [lists:last(string:tokens(atom_to_list(Node), "@")) || Node <- Nodes],
 
     timer:apply_after(Timeout, ?MODULE, stop, [self(), timeout]),
 
     init_net_kernel(),
 
-%    ok = ensure_hostnames_are_resolvable(Hostnames),
-%    ok = ensure_hostnames_are_reachable_from_each_other(Hostnames),
+    true = ensure_hostnames_are_resolvable(Hostnames),
+    io:format("~p hostnames are resolvable~n", [os:timestamp()]),
+    true = ensure_hostnames_are_reachable_from_director(Hostnames),
+    io:format("~p hostnames are reachable~n", [os:timestamp()]),
     ok = is_nodes_ready(Nodes),
+    io:format("~p nodes are ready~n", [os:timestamp()]),
 
     connect_nodes(Nodes);
 
 main(_) ->
     usage().
 
-ensure_hostnames_are_reachable_from_each_other(Hostnames) ->
-    lists:foreach(
-        fun({From, To}) ->
-            SSHOptions = "-o StrictHostKeyChecking=no",
-            Cmd = lists:flatten(io_lib:format("ssh ~s ~s \"ping -qc1 ~s\"",
-                [SSHOptions, From, To])),
-            {Code, Output} = cmd(Cmd),
-            case Code of
-                0 -> ok;
-                _ ->
-                    error({cant_reach, To, from, From, Code, Output})
-            end
-        end,
-        [{From, To} || From <- Hostnames, To <- Hostnames, From =/= To]).
+ensure_hostnames_are_reachable_from_director([_]) -> true;
+ensure_hostnames_are_reachable_from_director(Hostnames) ->
+    lists:all(
+        fun(X) -> X end,
+        mzb_lists:pmap(
+            fun(Hostname) ->
+                Cmd = lists:flatten(io_lib:format("ping -qc1 ~s", [Hostname])),
+                {Code, Output} = cmd(Cmd),
+                case Code of
+                    0 -> true;
+                    _ ->
+                        io:format("can't reach ~p, code ~p, output: ~p~n",
+                            [Hostname, Code, Output]),
+                        false
+                end
+            end,
+            Hostnames)).
 
 ensure_hostnames_are_resolvable(Nodes) ->
-    lists:foreach(
-        fun(Node) ->
-            case inet:gethostbyname(Node) of
-                {ok, _} -> ok;
-                Error -> error({cant_resolve_hostname, Node, Error})
-            end
-        end,
-        Nodes).
+    lists:all(
+        fun(X) -> X end,
+        mzb_lists:pmap(
+            fun(Node) ->
+                case inet:gethostbyname(Node) of
+                    {ok, _} -> true;
+                    Error ->
+                        io:format("can't resolve hostname ~p: ~p~n", [Node, Error]),
+                        false
+                end
+            end,
+            Nodes)).
 
 is_nodes_ready([]) -> ok;
 is_nodes_ready(Nodes) ->
