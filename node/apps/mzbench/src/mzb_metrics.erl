@@ -8,8 +8,10 @@
          final_trigger/0,
          get_metric_value/1,
          get_failed_asserts/0,
-         build_graphite_groups/2,
-         build_metric_groups/1]).
+         build_metric_groups/1,
+         extract_exometer_metrics/1,
+         datapoint2str/1,
+         datapoints/1]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -46,8 +48,8 @@
 %%% API
 %%%===================================================================
 
-start_link(MetricsPrefix, Env, Metrics, Nodes, DirPid) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, Metrics, Nodes, DirPid], [{spawn_opt, [{priority, high}]}]).
+start_link(MetricsPrefix, Env, MetricGroups, Nodes, DirPid) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, MetricGroups, Nodes, DirPid], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
@@ -70,13 +72,13 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([MetricsPrefix, Env, Metrics, Nodes, DirPid]) ->
+init([MetricsPrefix, Env, MetricGroups, Nodes, DirPid]) ->
     {Host, Port} = get_graphite_host_and_port(Env),
     ApiKey = proplists:get_value("graphite_api_key", Env, []),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
-    {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, Metrics),
+    {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, MetricGroups),
     erlang:send_after(?INTERVAL, self(), trigger),
-    _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram} <- lists:flatten(Metrics)],
+    _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram} <- extract_metrics(MetricGroups)],
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     {ok, #s{
@@ -329,61 +331,73 @@ get_graphite_url(Env) ->
         _ -> URL
     end.
 
-flatten_exometer_metrics(BenchMetrics) ->
-    FlattenMetrics = lists:flatten(BenchMetrics),
-    FlattenExometerMetrics = lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]),
-    Names = [N || {N, _} <- FlattenExometerMetrics],
+extract_metrics(Groups) ->
+    [{Name, Type} || {group, _GroupName, Graphs} <- Groups,
+                     {graph, GraphOpts}          <- Graphs,
+                     {Name, Type, _Opts}         <- maps:get(metrics, GraphOpts, [])].
+
+extract_exometer_metrics(Groups) ->
+    MetricGroups = build_metric_groups(Groups),
+    Metrics = extract_metrics(MetricGroups),
+    Names = [Name || {Name, _Type} <- Metrics],
     UniqueNames = lists:usort(Names),
     case erlang:length(Names) > erlang:length(UniqueNames) of
         true -> erlang:error({doubling_metric_names, Names -- UniqueNames});
         false -> ok
     end,
-    FlattenExometerMetrics.
+    Metrics.
 
+get_exometer_metrics({Name, counter, Opts}) ->
+    RateOpts = Opts#{rps => true},
+    [[{Name, counter, Opts}], [{Name ++ ".rps", gauge, RateOpts}]];
 
-get_exometer_metrics({Name, counter}) ->
-    [[{Name, counter}], [{Name ++ ".rps", gauge}]];
-get_exometer_metrics({Name, gauge}) ->
-    [[{Name, gauge}]];
-get_exometer_metrics({Name, histogram}) ->
+get_exometer_metrics(Metric = {_, gauge, _}) ->
+    [[Metric]];
+get_exometer_metrics({Name, histogram, Opts}) ->
     DPs = [datapoint2str(DP) || DP <- datapoints(histogram)],
     Suffixes = ["." ++ DP || DP <- DPs],
-    [[{Name ++ S, gauge} || S <- Suffixes]].
+    [[{Name ++ S, gauge, Opts} || S <- Suffixes]].
 
-build_graphite_groups(Prefix, Metrics) ->
-    Groups = lists:append([build_metric_groups(M) || M <- Metrics]),
-    lists:map(fun (Group) ->
-        lists:flatmap(fun({Name, Type}) ->
-            DPs = [datapoint2str(DP) || DP <- datapoints(Type)],
-            [Prefix ++ "." ++ Name ++ "."++ S || S <- DPs]
-        end, Group)
+build_metric_groups(Groups) ->
+    lists:map(fun ({group, Name, Graphs}) ->
+        NewGraphs = lists:flatmap(fun ({graph, Opts}) ->
+            Metrics = maps:get(metrics, Opts, []),
+            MetricsGroups = build_metric_graphs(Metrics),
+            [{graph, Opts#{metrics => MG}} || MG <- MetricsGroups]
+        end, Graphs),
+        {group, Name, NewGraphs}
     end, Groups).
 
-build_metric_groups(Group) when is_tuple(Group) ->
-    build_metric_groups([Group]);
-build_metric_groups(Group) ->
-    NotCountersAndGauges = [M || M = {_Name, T} <- Group, T /= counter, T /= gauge],
+build_metric_graphs(Group) ->
+    NotCountersAndGauges = [M || M = {_Name, T, _Opts} <- Group, T /= counter, T /= gauge],
     Policy = case NotCountersAndGauges of
         [] -> counters_and_gauges;
         _  -> all_in_one_group
     end,
-    build_metric_groups(Group, Policy).
+    build_metric_graphs(Group, Policy).
 
-build_metric_groups(Group, counters_and_gauges) ->
-    Counters = [get_exometer_metrics(M) || M = {_Name, counter} <- Group],
+build_metric_graphs(Group, counters_and_gauges) ->
+    Counters = [get_exometer_metrics(M) || M = {_Name, counter, _Opts} <- Group],
     CounterGroups = lists:foldl(fun (Cnt, []) -> Cnt;
                                     (Cnt, Acc) -> [A ++ B || {A, B} <- lists:zip(Acc, Cnt)]
                                 end, [], Counters),
-    Gauges = flatten_exometer_metrics([M || M = {_Name, gauge} <- Group]),
+
+    Gauges = flatten_exometer_metrics([M || M = {_Name, gauge, _Opts} <- Group]),
+
     case CounterGroups of
         [] -> [ Gauges ];
         _  -> [ Gauges ++ CntGr || CntGr <- CounterGroups]
     end;
-build_metric_groups(Group, all_in_one_group) ->
+
+build_metric_graphs(Group, all_in_one_group) ->
     [flatten_exometer_metrics(Group)].
 
+flatten_exometer_metrics(BenchMetrics) ->
+    FlattenMetrics = lists:flatten(BenchMetrics),
+    lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
+
 init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
-    ExometerMetrics = flatten_exometer_metrics(Metrics),
+    ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(fun({Metric, Type}) ->
             exometer:new([?GLOBALPREFIX, Metric], Type)

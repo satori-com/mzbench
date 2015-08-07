@@ -20,10 +20,8 @@ main([NodeStr, Path, EnvFile]) ->
                 {badrpc, Reason} ->
                     io:format("rpc failed with reason ~p~n", [Reason]),
                     erlang:halt(1);
-                {Host, Groups} ->
-                    BinHost = list_to_binary(Host),
-                    BinGroups = [[list_to_binary(M) || M <- G] || G <- Groups],
-                    {[{BinHost, BinGroups}]};
+                Metrics when is_map(Metrics) ->
+                    Metrics;
                 _ -> {[]}
             end,
             io:format("~s~n", [jiffy:encode(Data)]);
