@@ -14,14 +14,14 @@ main([TimeoutStr | NodesStr]) ->
 
     Nodes = [erlang:list_to_atom(N) || N <- NodesStr],
     Nodes == [] andalso bad_arg("host list", "(empty)"),
-    Hostnames = [lists:last(string:tokens(atom_to_list(Node), "@")) || Node <- Nodes],
+%   Hostnames = [lists:last(string:tokens(atom_to_list(Node), "@")) || Node <- Nodes],
 
     timer:apply_after(Timeout, ?MODULE, stop, [self(), timeout]),
 
     init_net_kernel(),
 
-    ok = ensure_hostnames_are_resolvable(Hostnames),
-    ok = ensure_hostnames_are_reachable_from_each_other(Hostnames),
+%    ok = ensure_hostnames_are_resolvable(Hostnames),
+%    ok = ensure_hostnames_are_reachable_from_each_other(Hostnames),
     ok = is_nodes_ready(Nodes),
 
     connect_nodes(Nodes);
