@@ -195,9 +195,11 @@ handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
             error("Send report to ~p failed with reason: ~p~n~p", [Emails, Error, Stacktrace], State)
     end;
 
-handle_stage(finalize, cleaning_nodes, #{config:= Config = #{director_host:= DirectorHost}})
+handle_stage(finalize, cleaning_nodes, #{config:= #{deallocate_after_bench:= false}} = State) ->
+    info("Skip cleaning nodes. Deallocate after bench is false", [], State);
+handle_stage(finalize, cleaning_nodes, State = #{config:= Config = #{director_host:= DirectorHost}})
   when DirectorHost /= undefined ->
-    mzb_api_provision:clean_nodes(Config, mzb_api_app:default_logger());
+    mzb_api_provision:clean_nodes(Config, get_logger(State));
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
