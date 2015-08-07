@@ -88,8 +88,8 @@ try:
     import docopt
     import requests
     
-    if not check_module_version(requests, '1.1.0'):
-        print('mzbench requires the module requests to be version 1.1.0 or higher,')
+    if not check_module_version(requests, '2.7.0'):
+        print('mzbench requires the module requests to be version 2.7.0 or higher,')
         print('but version {0} is installed.'.format(requests.__version__))
         print()
         print('Please update your installation and try again.')
