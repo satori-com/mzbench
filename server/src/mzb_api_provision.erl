@@ -162,7 +162,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     end,
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
-    UniqueOSs = mzb_lists:unique([OS || {_Host, OS} <- HostsAndOSs]),
+    UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
     NeededTarballs =
         [{OS, filename:join(PackagesDir, lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, Version, OS])))}
