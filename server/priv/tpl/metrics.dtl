@@ -18,7 +18,10 @@ $(document).ready(function() {
     var finishTime = "{{ finish_time }}";
     var refreshInterval = {{ refreshInterval }};
 
-    if (0 == metrics.groups.length) {
+    var groups = metrics.groups || [];
+    var graphiteUrl = metrics.graphite_url || "";
+
+    if (0 == groups.length) {
         var msg = $("<div class='alert alert-warning' role='alert'><strong>Oh snap!</strong> This bench hasn't produced any graphs</div>");
         msg.appendTo("#metrics-pane");
         return;
@@ -39,9 +42,6 @@ $(document).ready(function() {
     }
 
     var bigGraphSize = {width: 960, height: 720};
-
-    var groups = metrics.groups || [];
-    var graphiteUrl = metrics.graphite_url || "";
 
     var flattenGraphs = [];
     $.each(groups, function(index, group) {
