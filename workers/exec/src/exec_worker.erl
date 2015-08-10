@@ -15,44 +15,43 @@ metrics() ->
      {"latency_us", histogram}
     ].
 
-execute(State, _Meta, Command) ->
-    lager:info("Executing ~p...~n", [Command]),
+execute(State, Meta, Command) ->
+    WorkerId = proplists:get_value(worker_id, Meta, undefined),
+    lager:info("Executing ~p... on ~p~n", [Command, WorkerId]),
     TimeStart = os:timestamp(),
-    case run(Command, []) of
-        {ok, _} -> 
-            mzb_metrics:notify("success", 1);
-        {error, {ExitCode, Output}} ->
+    case run(Command, [], WorkerId) of
+        0 -> mzb_metrics:notify("success", 1);
+        ExitCode ->
             mzb_metrics:notify("fail", 1),
-            lager:error("Execution failed~nCommand: ~p~nExit Code: ~p~nOutput: ~s", [Command, ExitCode, Output])
+            lager:error("Execution on ~p failed. Exit Code: ~p", [WorkerId, ExitCode])
     end,
     TimeFinish = os:timestamp(),
     mzb_metrics:notify({"latency_us", histogram}, timer:now_diff(TimeFinish, TimeStart)),
     {nil, State}.
 
-run(Command, Opts) ->
-    Port = open_port({spawn, Command}, [stream, eof, exit_status | Opts]),
-    case get_data(Port, "") of
-        {0, Output} ->
-            string:strip(Output, right, $\n),
-            {ok, Output};
-        {Code, Output} ->
-            {error, {Code, Output}}
-    end.
+run(Command, Opts, WorkerId) ->
+    Port = open_port({spawn, Command}, [
+        {env, [{"MZB_WORKER_ID", integer_to_list(WorkerId)}]}, 
+        {line, 255}, stream, eof, exit_status, stderr_to_stdout | Opts]),
+    get_data(Port, WorkerId).
 
-get_data(Port, Acc) ->
+get_data(Port, WorkerId) -> get_data(Port, WorkerId, []).
+
+get_data(Port, WorkerId, Buffer) ->
     receive
-        {Port, {data, Bytes}} ->
-            get_data(Port, [Acc | Bytes]);
+        {Port, {data, {eol, Bytes}}} ->
+            lager:info("Worker ~p output: ~s", [WorkerId, Buffer ++ Bytes]),
+            get_data(Port, WorkerId, []);
+        {Port, {data, {noeol, Bytes}}} ->
+            get_data(Port, WorkerId, Buffer ++ Bytes);
         {Port, eof} ->
             Port ! {self(), close},
-            get_data(Port, Acc);
+            get_data(Port, WorkerId, Buffer);
         stop ->
             Port ! {self(), close},
-            get_data(Port, Acc);
+            get_data(Port, WorkerId, Buffer);
         {Port, closed} ->
-            ExitCode =
-                receive
-                    {Port, {exit_status, Code}} -> Code
-                end,
-            {ExitCode, lists:flatten(Acc)}
+            receive
+                {Port, {exit_status, Code}} -> Code
+            end
     end.
