@@ -5,7 +5,12 @@
            {worker_type, exec_worker}],
         [{loop, [{time, {20, sec}},
                  {rate, {1, rps}}],
-            [{execute, "sleep 5"}]}]},
+            [{execute, "ls"}]}]},
+    {pool, [{size, 2},
+           {worker_type, exec_worker}],
+        [{loop, [{time, {20, sec}},
+                 {rate, {1, rps}}],
+            [{execute, "bash -c 'echo My id is $MZB_WORKER_ID'"}]}]},
     {pool, [{size, 2}, % second pool starts simultaneously with the same rate and duration
             {worker_type, exec_worker}],
         [{loop, [{time, {20, sec}},
