@@ -42,6 +42,12 @@ run_script(Script, Env) ->
 
     setup_logger([{lager_console_backend, info}]),
 
+    % setup is exometer dependency.
+    ok = application:load(setup),
+    ok = application:set_env(setup, data_dir, "."),
+    ok = application:set_env(setup, log_dir, "."),
+    {ok, _} = ensure_all_started(setup),
+
     {ok, _} = ensure_all_started(mzbench),
 
     Ref =
@@ -90,12 +96,6 @@ setup_logger(Handlers) ->
     ok = application:set_env(lager, handlers, Handlers),
     ok = application:set_env(lager, crash_log, undefined),
     {ok, _} = ensure_all_started(lager),
-
-    % setup is exometer dependency.
-    ok = application:load(setup),
-    ok = application:set_env(setup, data_dir, "."),
-    ok = application:set_env(setup, log_dir, "."),
-    {ok, _} = ensure_all_started(setup),
 
     application:load(sasl),
     application:set_env(sasl, sasl_error_logger, {file, "/dev/null"}),
