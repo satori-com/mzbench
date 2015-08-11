@@ -359,7 +359,7 @@ def run_or_validate(script, env, validate):
                 print ("WARNING: make didn't produce worker beam files")
 
     pa = []
-    for p in glob.glob(os.getcwd() + "/deps/*/ebin"):
+    for p in glob.glob(os.getcwd() + "/deps/*/ebin") + glob.glob(os.getcwd() + "/apps/*/ebin"):
         pa += ["--pa", p]
     cmd = [os.path.join(escript_path, escript_name), script, '--pa', os.getcwd() + "/ebin"] + pa
 
