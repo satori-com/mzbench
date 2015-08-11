@@ -52,4 +52,3 @@ pmap_results([Ref|T], Res) ->
 
 enumerate(List) when is_list(List) ->
     lists:zip(lists:seq(0, length(List) - 1), List).
-

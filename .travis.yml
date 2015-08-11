@@ -12,6 +12,7 @@ env:
  - TASK=error-messages
  - TASK=acceptance-local-tests
  - TASK=acceptance-basic-tests
+ - TASK=development-with-rsync
  - TASK=acceptance-signal-tests
  - TASK=acceptance-negative-tests
  - TASK=http-worker-tests
@@ -38,6 +39,13 @@ script:
                        export MZBENCH_REPO=`git config --get remote.origin.url` &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
+     development-with-rsync) sudo pip install -r requirements.txt &&
+                       sudo pip install -r acceptance_tests/requirements.txt &&
+                       export MZBENCH_RSYNC=$PWD/ &&
+                       rm node/Makefile &&
+                       make -C acceptance_tests signal-tests >/dev/null; [ $? -ne 0 ] &&
+                       git checkout -- node/Makefile &&
+                       make -C acceptance_tests signal-tests;;
      unit-tests) for prj in $(echo $PROJECTS); do make -C $prj test-unit || exit 1; done;;
      dialyzer) for prj in $(echo $PROJECTS); do make -C $prj dialyzer.log || exit 1; done;;
    esac
