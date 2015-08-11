@@ -9,7 +9,8 @@ start(_, _) ->
 
     CodeWildcards =
         [filename:join([D, "*", "ebin"])              || D <- WorkerDirs] ++
-        [filename:join([D, "*", "deps", "*", "ebin"]) || D <- WorkerDirs],
+        [filename:join([D, "*", "deps", "*", "ebin"]) || D <- WorkerDirs] ++
+        [filename:join([D, "*", "apps", "*", "ebin"]) || D <- WorkerDirs],
 
     CodePaths = [File || WC <- CodeWildcards, File <- mzb_file:wildcard(WC)],
 
