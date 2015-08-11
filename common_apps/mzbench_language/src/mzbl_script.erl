@@ -12,10 +12,12 @@
          extract_install_specs/1,
          enumerate_pools/1,
          extract_worker/1,
-         make_install_spec/3]).
+         make_git_install_spec/3,
+         make_rsync_install_spec/3]).
 
 -include("mzbl_types.hrl").
 
+-spec get_real_script_name([proplists:property()]) -> string().
 get_real_script_name(Env) ->
     case lists:keyfind("mzb_script_name", 1, Env) of
         {_K, V} -> V;
@@ -29,6 +31,7 @@ meta_to_location_string(Meta) ->
         LineNumber -> "line " ++ integer_to_list(LineNumber) ++ ": "
     end.
 
+-spec substitute(abstract_expr(), [proplists:property()]) -> abstract_expr().
 substitute(Tree, Env) -> substitute(Tree, Env, []).
 
 substitute(#operation{name = loop, args = [Spec, Body]} = Op, Env, Iterators) ->
@@ -85,6 +88,7 @@ substitute(L, Env, Iterators) when is_list(L) ->
     lists:map(fun(X) -> substitute(X, Env, Iterators) end, L);
 substitute(S, _, _) -> S.
 
+-spec read_from_string(string(), [proplists:property()]) -> abstract_expr().
 read_from_string(String, Env) ->
     try
         mzbl_literals:convert(substitute(parse(String), Env))
@@ -101,6 +105,7 @@ read_from_string(String, Env) ->
             erlang:raise(C,E,ST)
     end.
 
+-spec read(string(), [proplists:property()]) -> abstract_expr().
 read(Path, Env) ->
     try
         read_from_string(read_file(Path), Env)
@@ -223,6 +228,7 @@ read_file(File) ->
         {error, E} -> erlang:error({read_file_error, File, E})
     end.
 
+-spec get_benchname(string()) -> string().
 get_benchname(ScriptName) ->
     Name = filename:basename(ScriptName, ".erl"),
     re:replace(Name, "[^a-zA-Z0-9]", "_", [{return, list}, global]).
@@ -236,6 +242,7 @@ extract_worker(PoolOpts) ->
         [WorkerName, python] -> {mzb_python_worker, WorkerName}
     end.
 
+-spec hostname(atom()) -> string().
 hostname(Node) ->
     [_, H] = string:tokens(erlang:atom_to_list(Node), "@"),
     H.
@@ -256,28 +263,42 @@ cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
     list_to_binary(Value);
 cast_to_type(Value, _) -> Value.
 
+-spec extract_install_specs(abstract_expr()) -> [install_spec()].
 extract_install_specs(AST) ->
-    Convert = fun(#operation{args = [Args]}) ->
-        Repo = case mzbl_ast:find_operation_and_extract_args(git, Args) of
-            undefined -> erlang:error({install_spec_error, missed_mandatory_option, git});
-            [GitUrl] -> GitUrl
+    Convert =
+        fun(#operation{args = [Args]}) ->
+            case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
+                undefined ->
+                    case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
+                        undefined -> erlang:error({install_spec_error, missed_mandatory_option, git});
+                        [Remote] ->
+                            [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, [[]]),
+                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
+                            make_rsync_install_spec(Remote, Subdir, Excludes)
+                    end;
+                [Repo] ->
+                    [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
+                    [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
+                    make_git_install_spec(Repo, Branch, Subdir)
+            end
         end,
-
-        [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
-        [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
-
-        make_install_spec(Repo, Branch, Subdir)
-    end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].
 
-make_install_spec(Repo, Branch, Dir) ->
-    ToString = fun
-        (X) when is_binary(X) -> binary_to_list(X);
-        (X) when is_list(X) -> X;
-        (Y) -> erlang:error({not_a_stringy_thing_in_install_spec, Y})
-    end,
-    #install_spec{
-        repo = ToString(Repo),
-        branch = ToString(Branch),
-        dir = ToString(Dir)}.
+-spec make_git_install_spec(string(), string(), string()) -> git_install_spec().
+make_git_install_spec(Repo, Branch, Dir) ->
+    #git_install_spec{
+        repo = to_string(Repo),
+        branch = to_string(Branch),
+        dir = to_string(Dir)}.
 
+-spec make_rsync_install_spec(binary() | string(), binary() | string(), [binary() | string()]) -> rsync_install_spec().
+make_rsync_install_spec(Remote, Subdir, Excludes) ->
+    #rsync_install_spec{
+        remote = to_string(Remote),
+        dir = to_string(Subdir),
+        excludes = [to_string(E) || E <- Excludes]}.
+
+-spec to_string(string() | binary()) -> string().
+to_string(X) when is_binary(X) -> binary_to_list(X);
+to_string(X) when is_list(X) -> X;
+to_string(Y) -> erlang:error({not_a_stringy_thing, Y}).

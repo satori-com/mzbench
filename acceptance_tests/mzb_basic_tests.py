@@ -25,6 +25,12 @@ def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
 
 
+def worker_from_rsync_test():
+    run_successful_bench(
+        scripts_dir + 'worker_from_rsync.erl',
+        env={'exec_worker_dir': os.path.abspath('../workers/exec') + '/'})
+
+
 def lua_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
     mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')

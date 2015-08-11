@@ -20,13 +20,15 @@ mzbench_script = mzbench_dir + 'bin/mzbench'
 
 @contextmanager
 def start_mzbench_server():
-    if 'MZBENCH_REPO' in  os.environ:
-        mzbench_git_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
+    if 'MZBENCH_RSYNC' in os.environ:
+        node_location_param = '{{mzbench_rsync, "{0}"}}'.format(os.environ['MZBENCH_RSYNC'])
+    elif 'MZBENCH_REPO' in os.environ:
+        node_location_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
     else:
-        mzbench_git_param = ''
+        node_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0}]}}].'.format(mzbench_git_param))
+        config.write('[{{mzbench_api, [{0}]}}].'.format(node_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
         print(f.read())
