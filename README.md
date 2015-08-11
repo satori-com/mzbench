@@ -53,6 +53,11 @@ or protocol, see [How to write language extensions](doc/worker_howto.md).
 Current MZBench version is shipped with AWS EC2 cloud and local execution plugins,
 but other clouds are welcome, please refer to [Cloud plugin creation guide](doc/cloud_plugin.md).
 
+### Working with API
+
+MZBench server could be used directly via [HTTP API](doc/server_api.md) for better integration
+with external tools.
+
 ## Support
 
 Please report an issue on github.
