@@ -46,6 +46,10 @@ init([Id, Params]) ->
     % Purpose = lists:flatten(io_lib:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id])),
     Purpose = lists:flatten(io_lib:format("bench-~b-~b", [Id, StartTime])),
     Includes = maps:get(includes, Params, []),
+    VMArgs = case maps:find(vm_args, Params) of
+        {ok, [_|_] = List} -> List;
+        _ -> application:get_env(mzbench_api, vm_args, undefined)
+    end,
     Config = #{
         id => Id,
         nodes_arg => maps:get(nodes, Params),
@@ -65,7 +69,8 @@ init([Id, Params]) ->
         log_file => get_env(bench_log_file),
         metrics_file => get_env(bench_metrics_file),
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
-        metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined)
+        metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
+        vm_args => VMArgs
     },
     Data = #{
         includes => Includes

@@ -251,11 +251,11 @@ parse_start_params(Req) ->
     %   {ParamName,                 single_value,   binary_to_value conversion function,                        DefaultValue},
     %   {ParamName,                 list,           list_of_binaries_to_value conversion function,              DefaultValue}
     ParamsDefs = [
-        {nodes,                     list,           fun(List) -> 
-                                                        {true, List2} = check_nodes(List), 
-                                                        List2 
+        {nodes,                     list,           fun(List) ->
+                                                        {true, List2} = check_nodes(List),
+                                                        List2
                                                     end,                                                        1},
-        {email,                     list,           fun(List) -> 
+        {email,                     list,           fun(List) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
                                                     end,                                                        []},
@@ -263,9 +263,13 @@ parse_start_params(Req) ->
         {emulate_bench_crash,       single_value,   fun binary_to_bool/1,                                       false},
         {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},
         {provision_nodes,           single_value,   fun binary_to_bool/1,                                       true},
-        {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true}
+        {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true},
+        {vm_args,                   list,           fun (List) ->
+                                                        {true, List2} = check_string_multi_param(List),
+                                                        List2
+                                                    end,                                                        []}
     ],
-    
+
     {Params, Env} = lists:mapfoldl(
         fun (K, Acc) ->
             K1 = erlang:atom_to_binary(K, latin1),
@@ -284,7 +288,7 @@ parse_start_params(Req) ->
                             [Value|_] -> BinaryToValueFun(Value);
                             [] -> DefaultValue
                         end;
-                
+
                     {_, list, ListOfBinariesToValueFun, DefaultValue} ->
                         case  ValuesList of
                             [] -> DefaultValue;
