@@ -30,6 +30,9 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("OHAI")
 
+    def log_message(self, format, *args):
+        pass
+
 
 def serve():
     handler = ServerHandler
