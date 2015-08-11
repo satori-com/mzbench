@@ -3,6 +3,7 @@
     {make_install, [{git, "https://github.com/machinezone/mzbench.git"},
                     {dir, "workers/http"}]},
     {pool, [{size, {numvar, "conn_count", 20}},
+            {worker_start, {linear, {10, rps}}},
             {worker_type, http_worker}], [
         {set_host, {var, "host", "172.21.3.3"}}, % separate place for host and port definition
         {set_port, {numvar, "port", 80}},
