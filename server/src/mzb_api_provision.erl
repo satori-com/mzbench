@@ -86,7 +86,7 @@ ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
 ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
     _ = mzb_lists:pmap(
         fun ({H, N}) ->
-            ensure_file_content([H], vm_args_content(N), "vm.args", Config, Logger)
+            ensure_file_content([H], vm_args_content(N, Config), "vm.args", Config, Logger)
         end, lists:zip(Hosts, Nodenames)),
     ok.
 
@@ -115,8 +115,9 @@ ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 
-vm_args_content(NodeName) ->
-    io_lib:format("-sname ~s~n", [NodeName]).
+vm_args_content(NodeName, #{vm_args:= Args}) ->
+    ArgsFormated = io_lib:format(string:join([A ++ "~n" || A <- Args], ""), []),
+    io_lib:format("-sname ~s~n", [NodeName]) ++ ArgsFormated.
 
 get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
