@@ -163,7 +163,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
                         {Host, OS} ->
                             Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
                             download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
-                        false ->
+                        _ ->
                             Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
                             ok
                     end;
