@@ -149,23 +149,26 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
         [{OS, filename:join(PackagesDir, lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, Version, OS])))}
         || OS <- UniqueOSs],
     MissingTarballs = [{OS, T} || {OS, T} <- NeededTarballs, not filelib:is_file(T)],
+    Logger(info, "Missing tarballs: ~p", [MissingTarballs]),
     OSsWithMissingTarballs = [OS || {OS, _} <- MissingTarballs],
 
     _ = mzb_lists:pmap(fun({Host, OS}) ->
-            LocalTarballPath = lists:keyfind(NeededTarballs, 1, OS),
+            {OS, LocalTarballPath} = lists:keyfind(OS, 1, NeededTarballs),
             RemoteTarballPath = mzb_file:tmp_filename() ++ ".tgz",
             case lists:member(OS, OSsWithMissingTarballs) of
                 true ->
-                    lager:info("Building package ~s on ~s", [PackageName, Host]),
+                    Logger(info, "Building package ~s on ~s", [PackageName, Host]),
                     build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
                     case lists:keyfind(OS, 2, HostsAndOSs) of
                         {Host, OS} ->
-                            lager:info("Downloading package ~s from ~s", [PackageName, Host]),
+                            Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
                             download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
-                        _ -> ok
+                        false ->
+                            Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
+                            ok
                     end;
                 false ->
-                    lager:info("Uploading package ~s to ~s", [PackageName, Host]),
+                    Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
                     ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
             end,
             InstallationCmd = lists:flatten(io_lib:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath])),
