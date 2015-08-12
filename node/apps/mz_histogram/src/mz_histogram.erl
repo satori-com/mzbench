@@ -40,13 +40,13 @@ create(Nodes, Name) ->
 
 get_and_remove_raw_data() ->
     ets:foldl(
-        fun ({Name, Ref}, Acc) ->
-            % TODO: this must be one atomic operation
-            Bin = hdr_histogram:to_binary(Ref, [{compression, none}]),
-            ok = hdr_histogram:reset(Ref),
-            [{Name, Bin} | Acc]
+        fun ({Name, Ref1, Ref2}, Acc) ->
+            case hdr_histogram:rotate(Ref1, Ref2) of
+                Bin when is_binary(Bin) -> [{Name, Bin} | Acc];
+                {error, Reason} ->
+                    erlang:error({hdr_histogram_rotate_error, Reason})
+            end
         end, [], mz_histograms).
-
 
 notify(Name, Value) when is_integer(Value), Value >= 0 ->
     case erlang:get({mz_hist_ref, Name}) of
@@ -111,8 +111,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 init_hist(Name) ->
-    {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
-    ets:insert(mz_histograms, {Name, Ref}),
+    {ok, Ref1} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+    {ok, Ref2} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+    ets:insert(mz_histograms, {Name, Ref1, Ref2}),
     ok.
 
 import_hdr_data(To, BinHdrHistData) ->
