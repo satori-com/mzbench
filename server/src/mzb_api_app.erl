@@ -22,6 +22,7 @@ start(_Type, _Args) ->
             Static("css"),
             Static("img"),
             Static("js"),
+            {"/ws", mzb_api_ws_handler, []},
             {'_', mzb_api_endpoints, []}
         ]}
     ]),

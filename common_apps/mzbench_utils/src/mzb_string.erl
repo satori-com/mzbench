@@ -24,3 +24,8 @@ str_to_bstr(T) when is_list(T) ->
 str_to_bstr(T) when is_map(T) ->
     maps:from_list([{str_to_bstr(K), str_to_bstr(V)} || {K, V} <- maps:to_list(T)]);
 str_to_bstr(T) -> T.
+
+iso_8601_fmt(Seconds) ->
+    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time({Seconds div 1000000, Seconds rem 1000000, 0}),
+    io_lib:format("~4.10.0B-~2.10.0B-~2.10.0BT~2.10.0B:~2.10.0B:~2.10.0BZ",
+        [Year, Month, Day, Hour, Min, Sec]).
