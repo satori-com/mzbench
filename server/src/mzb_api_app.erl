@@ -22,6 +22,10 @@ start(_Type, _Args) ->
             Static("css"),
             Static("img"),
             Static("js"),
+
+            {"/dash_v2/", cowboy_static, {priv_file, mzbench_api, "dash_v2/index.dev.html"}},
+            Static("dash_v2"),
+
             {"/ws", mzb_api_ws_handler, []},
             {'_', mzb_api_endpoints, []}
         ]}
