@@ -1,0 +1,159 @@
+.navbar-default {
+    border-radius: 5px 5px 0 0;
+    border: none;
+}
+
+body {
+    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 13px;
+}
+
+.navbar-default .navbar-nav>li>a:focus, .navbar-default .navbar-nav>li>a:hover {
+    text-decoration: underline;
+}
+.navbar-brand {
+    padding-left:20px;
+}
+h1, h2, h3, h4, h5, h6, .navbar-brand, .brand-name,
+.table>tbody>tr>th {
+    font-weight: 350;
+    font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.timeline-pane {
+    margin-left: 20px;
+}
+.bs {
+    padding: 7px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-left-width: 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: hand;
+    cursor: pointer;
+}
+
+a.bs-link {
+    color: #333;
+    text-decoration: none;
+}
+
+.bs h6 {
+    margin: 5px 0;
+}
+.bs h6 span.label{
+    margin-left: 5px;
+}
+.bs i.ionicons {
+    margin-right: 4px;
+}
+
+.bs:hover  {
+    background-color: #f7f7f7;
+}
+
+.bs.bs-selected,
+.bs.bs-selected h6 {
+    color : white;
+    background-color: #337ab7;
+}
+
+.bs.bs-complete .label  {
+    background-color: #5cb85c;
+}
+
+.bs.bs-complete  {
+    border-left-color: #5cb85c;
+}
+
+.bs.bs-complete .label  {
+    background-color: #5cb85c;
+}
+
+.bs.bs-failed {
+    border-left-color: #d9534f;
+}
+
+.bs.bs-failed .label {
+    background-color: #d9534f;
+}
+
+.bs.bs-stopped {
+    border-left-color: #777;
+}
+
+.bs.bs-stopped .label {
+    background-color: #777;
+}
+
+.bs.bs-progress {
+    border-left-color: #5bc0de
+}
+
+.bs.bs-progress .label {
+    background-color: #5bc0de;
+}
+
+ul.nav.bench-nav {
+  margin-bottom: 20px;
+}
+
+.bench-actions .btn {
+    width: 100px;
+    margin-bottom: 5px;
+}
+
+.bench-details .table {
+  margin: 0px;
+}
+
+.bench-details .table>tbody>tr>td,
+.bench-details .table>tbody>tr>th,
+.bench-details .table>tfoot>tr>td,
+.bench-details .table>tfoot>tr>th,
+.bench-details .table>thead>tr>td,
+.bench-details .table>thead>tr>th {
+  padding: 4px;
+  line-height: 1;
+  vertical-align: top;
+  border-top: 0px;
+}
+
+
+img.graph {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 0;
+}
+
+.graph-panel span[role=button]:hover {
+    text-decoration: underline;
+}
+
+.glyphicon-spin {
+  -webkit-animation: spin 1000ms infinite linear;
+  animation: spin 1000ms infinite linear;
+}
+
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
