@@ -1,10 +1,10 @@
 # MZBench server API
 
-API allows to drive bench execution and gather metrics. It could not execute scripts locally or validate because these functions are not remote. As other HTTP APIs it has some endpoints and POST/GET parameters. Please notice that if log/metric compression is enabled at server.config -- you need to be able to handle compressed answers from MZBench server.
+API allows driving bench execution and gathering metrics. It can't execute scripts locally or validate because these functions are not remote. As other HTTP APIs it has some endpoints and POST/GET parameters. Please notice that if log/metric compression is enabled at server.config -- you need to be able to handle compressed answers from MZBench server.
 
 Most of the requests return JSON objects, in case of an error it has "reason" -- error text and "reason_code" -- short error textual id.
 
-API requests could be debugged with curl utility, for example:
+API requests can be debugged with curl utility, for example:
 
     $ curl http://mzbench.myserver.com/logs?id=777
     {"reason_code":"not_found","reason":"Benchmark 777 is not found"}
@@ -22,7 +22,7 @@ Optional query parameters:
 
 * nodes -- the number of nodes to be allocated or a comma-separated list of nodes to be used (for pre-allocated cluster), default is 1.
 * node_commit -- commit or branch to be used for node. It is useful when you need to run different versions of the node with one server.
-* deallocate_after_bench -- whether nodes require to be deallocated after the execution has finished. This option could be "true" or "false", default is "true".
+* deallocate_after_bench -- whether nodes require to be deallocated after the execution has finished. This option can be "true" or "false", default is "true".
 * provision_nodes -- whether software installation is required for nodes. In some cases, you already have MZBench installed and you do not need to reinstall it, default is "true".
 
 In a case of success, response is JSON object contains "id" and "status" fields.
@@ -56,7 +56,7 @@ Example:
 
 ### GET /stop?id=number
 
-Stop requested benchmark, in a case of success, response JSON object would contain the only filed "status".
+Stop requested benchmark, in a case of success, response JSON object will contain the only field "status".
 
 ### GET /restart?id=number
 
@@ -64,11 +64,11 @@ Clone and start one of the previously executes scenarios. The only parameter is 
 
 ### GET /log?id=number
 
-Request benchmark logs, in a case of success, response would be plain bench log text. If the bench is still running, log would be streamed continuously until it finishes.
+Request benchmark logs, in a case of success, response will be plain bench log text. If the bench is still running, log will be streamed continuously until it finishes.
 
 ### GET /data?id=number
 
-Request benchmark data, in a case of success, response would be tab-delimited CSV with timestamp followed by metric name and value, for example:
+Request benchmark data, in a case of success, response will be tab-delimited CSV with timestamp followed by metric name and value, for example:
 
     curl http://mzbench.myserver.com/data?id=1236
     1439245024  mzb.workers.failed.value    0
