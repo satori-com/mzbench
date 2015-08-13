@@ -8,7 +8,7 @@
 -spec initial_state() -> state().
 initial_state() -> "".
 
-metrics() -> [[{"print", counter}, {"print_2", counter}], {"dummy", histogram}].
+metrics() -> [[{"print", counter}], {"dummy", histogram}].
 
 print(State, _Meta, Text) ->
     Start = os:timestamp(),
