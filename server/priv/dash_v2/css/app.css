@@ -120,6 +120,21 @@ ul.nav.bench-nav {
   border-top: 0px;
 }
 
+.reset-query {
+    margin: 10px 0;
+}
+
+.reset-query a {
+    font-weight: bold;
+    font-size: 16px;
+    color: #5e5e5e;
+    text-decoration: none;
+}
+
+.reset-query a:hover {
+    color: #337ab7;
+    text-decoration: none;
+}
 
 img.graph {
   width: 100%;

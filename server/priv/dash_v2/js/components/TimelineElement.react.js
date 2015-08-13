@@ -16,11 +16,11 @@ class TimelineElement extends React.Component {
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
                     <h6>
-                        #{bench.id} {bench.scenario}
+                        #{bench.id} {bench.script_name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                     </h6>
                     <div><i className="ionicons ion-clock"></i> {moment.duration(duration).humanize()}</div>
-                    <div><i className="ionicons ion-calendar"></i> {moment(bench.startTime).format("lll")}</div>
+                    <div><i className="ionicons ion-calendar"></i> {moment(bench.start_time).format("lll")}</div>
                 </div>
             </a>
         );
