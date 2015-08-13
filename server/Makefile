@@ -14,6 +14,11 @@ compile: .make/compilation-up-to-date
 console: generate
 	rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME) console
 
+.PHONY: js-dev
+js-dev: compile
+	erl -pa mzbench_api/ebin -pa mzbench_api/deps/*/ebin -eval 'application:ensure_all_started(mzbench_api)'
+
+
 .PHONY: test-unit
 test-unit: compile
 	$(REBAR) eunit skip_deps=true

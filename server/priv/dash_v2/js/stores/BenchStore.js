@@ -4,12 +4,17 @@ import ActionTypes from '../constants/ActionTypes';
 
 const CHANGE_EVENT = 'change';
 
-let data = {
+const defaultData = {
     benchmarks: [],
+    filter: "",
+    pager: {},
+    currentPage: new Map(),
     isLoaded: false,
     selectedBenchId: undefined,
     activeTab: undefined
 };
+
+let data = defaultData;
 
 class Bench {
     constructor(props) {
@@ -73,12 +78,28 @@ class BenchStore extends EventEmitter {
         return this.findById(data.selectedBenchId);
     }
 
+    getSelectedBenchId() {
+        return data.selectedBenchId;
+    }
+
     getActiveTab() {
         return data.activeTab;
     }
 
     isLoaded() {
         return data.isLoaded;
+    }
+
+    getFilter() {
+        return data.filter;
+    }
+
+    getPager() {
+        return data.pager;
+    }
+
+    getCurrentPage() {
+        return data.currentPage;
     }
 }
 
@@ -92,18 +113,33 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             _BenchStore.emitChange();
             break;
 
-        case ActionTypes.BENCH_INIT_DATA:
+        case ActionTypes.INIT_TIMELINE:
             _BenchStore.loadAll(action.data);
+            data.pager = action.pager;
             _BenchStore.emitChange();
             break;
 
         case ActionTypes.SELECT_BENCH_BY_ID:
-            data.selectedBenchId = action.data;
+            data.selectedBenchId = parseInt(action.data);
             _BenchStore.emitChange();
             break;
 
         case ActionTypes.SELECT_ACTIVE_TAB:
             data.activeTab = action.data;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.CLEAN_TIMELINE:
+            data = defaultData;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.SET_CURRENT_PAGE:
+            data.currentPage = action.data;
+            break;
+
+        case ActionTypes.SET_FILTER:
+            data.filter = action.data;
             _BenchStore.emitChange();
             break;
 
