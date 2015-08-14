@@ -43,8 +43,8 @@ init([Id, Params]) ->
     StartTime = seconds(Now),
     % Acceptance tests assume the following purpose format: bench-<id>-<timestamp>
     % {{_, M, D}, {H, Mi, S}} = calendar:now_to_universal_time(now()),
-    % Purpose = lists:flatten(io_lib:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id])),
-    Purpose = lists:flatten(io_lib:format("bench-~b-~b", [Id, StartTime])),
+    % Purpose = mzb_string:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id]),
+    Purpose = mzb_string:format("bench-~b-~b", [Id, StartTime]),
     Includes = maps:get(includes, Params, []),
     VMArgs = case maps:find(vm_args, Params) of
         {ok, [_|_] = List} -> List;
@@ -398,7 +398,7 @@ allocate_hosts(#{nodes_arg:= N} = Config, _) when is_integer(N), N > 0 ->
     #{purpose:= Purpose,
       initial_user:= User,
       exclusive_node_usage:= Exclusive} = Config,
-    Description = lists:flatten(io_lib:format("MZ-Bench cluster:~n~p", [Config])),
+    Description = mzb_string:format("MZ-Bench cluster:~n~p", [Config]),
     CloudProvider = get_cloud_provider(),
     ClusterConfig = #{
         user => User, 
@@ -605,10 +605,11 @@ format_error(Op, {E, Stack}) ->
 get_env(K) -> application:get_env(mzbench_api, K, undefined).
 
 generate_script_filename(#{name := _Name, body := Body} = Script) ->
-    Script#{filename => lists:flatten(io_lib:format("~s.erl", [lists:flatten(lists:map(
+    Name = lists:flatten(lists:map(
         fun(Num) -> erlang:integer_to_list(Num, 16) end,
         erlang:binary_to_list(crypto:hash(sha, Body))
-    ))]))}.
+    )),
+    Script#{filename => mzb_string:format("~s.erl", [Name])}.
 
 get_file_writer(Filename, none) ->
     {ok, H} = file:open(Filename, [write]),

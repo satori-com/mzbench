@@ -105,7 +105,7 @@ search_paths(Name) ->
     || P <- application:get_env(mzbench, workers_dirs, [])].
 
 -spec worker_filename(worker_name()) -> string().
-worker_filename(Name) -> lists:flatten(io_lib:format("~s_worker.lua", [Name])).
+worker_filename(Name) -> mzb_string:format("~s_worker.lua", [Name]).
 
 -spec search_worker_file(worker_name(), [string()]) -> {ok, string()} | {error, not_found, worker_name()}.
 search_worker_file(Name, []) -> {error, not_found, Name};

@@ -57,7 +57,7 @@ random_number(State, _Env, _Meta, N, M) ->
     {mzb_utility:random_number(N, M), State}.
 
 sprintf(State, _Env, _Meta, Str, Vars) ->
-    {lists:flatten(io_lib:format(Str, Vars)), State}.
+    {mzb_string:format(Str, Vars), State}.
 
 numvar(State, Env, Meta, Name) ->
     {Value, NewState} = var(State, Env, Meta, Name),
