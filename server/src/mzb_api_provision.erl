@@ -181,7 +181,7 @@ build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger) ->
     DeploymentDirectory = mzb_file:tmp_filename(),
     CloneAndCDCommand = case InstallSpec of
         #git_install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir} ->
-            mzb_string:format("git clone ~s deployment_code && cd deployment_code/~s && git checkout ~s", [GitRepo, GitSubDir, GitBranch]);
+            mzb_string:format("git clone ~s deployment_code && cd deployment_code && git checkout ~s && cd ./~s", [GitRepo, GitBranch, GitSubDir]);
         #rsync_install_spec{remote = Remote, excludes = Excludes, dir = SubDir} ->
             mzb_string:format("rsync -aW ~s ~s deployment_code && cd deployment_code/~s",
                 [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, SubDir])
