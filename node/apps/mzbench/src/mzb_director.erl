@@ -190,15 +190,15 @@ maybe_report_and_stop(#state{owner = Owner} = State) ->
     {stop, normal, State}.
 
 format_results(#state{stop_reason = normal, succeed = Ok, failed = 0}) ->
-    {ok, lists:flatten(io_lib:format("SUCCESS~n~b workers have finished successfully", [Ok]))};
+    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully", [Ok])};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk}) ->
     {error, {workers_failed, NOk},
-        lists:flatten(io_lib:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk]))};
+        mzb_string:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk])};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
-    Str = io_lib:format("FAILED~n~b assertions failed~n~s",
+    Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
-    {error, {asserts_failed, length(FailedAsserts)}, lists:flatten(Str)}.
+    {error, {asserts_failed, length(FailedAsserts)}, Str}.
 
 report_file(#state{reportfile = undefined}) -> ok;
 report_file(#state{reportfile = File, succeed = Ok, failed = NOk}) ->

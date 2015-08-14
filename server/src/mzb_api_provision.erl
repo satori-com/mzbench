@@ -139,7 +139,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
             mzb_git:get_git_short_sha1(Repo, Branch, Logger);
         #rsync_install_spec{} ->
             {A, B, C} = os:timestamp(),
-            lists:flatten(io_lib:format("~p.~p.~p", [A, B, C]))
+            mzb_string:format("~p.~p.~p", [A, B, C])
     end,
     #{user_name:= User} = Config,
     HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_os_id(User, Host, Logger)} end, Hosts),
@@ -147,7 +147,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
     NeededTarballs =
-        [{OS, filename:join(PackagesDir, lists:flatten(io_lib:format("~s-~s-~s.tgz", [PackageName, Version, OS])))}
+        [{OS, filename:join(PackagesDir, mzb_string:format("~s-~s-~s.tgz", [PackageName, Version, OS]))}
         || OS <- UniqueOSs],
     MissingTarballs = [{OS, T} || {OS, T} <- NeededTarballs, not filelib:is_file(T)],
     Logger(info, "Missing tarballs: ~p", [MissingTarballs]),
@@ -172,7 +172,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
                     Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
                     ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
             end,
-            InstallationCmd = lists:flatten(io_lib:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath])),
+            InstallationCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath]),
             _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
         end,
         HostsAndOSs).
@@ -181,10 +181,10 @@ build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger) ->
     DeploymentDirectory = mzb_file:tmp_filename(),
     CloneAndCDCommand = case InstallSpec of
         #git_install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir} ->
-            lists:flatten(io_lib:format("git clone ~s deployment_code && cd deployment_code/~s && git checkout ~s", [GitRepo, GitSubDir, GitBranch]));
+            mzb_string:format("git clone ~s deployment_code && cd deployment_code/~s && git checkout ~s", [GitRepo, GitSubDir, GitBranch]);
         #rsync_install_spec{remote = Remote, excludes = Excludes, dir = SubDir} ->
-            lists:flatten(io_lib:format("rsync -aW ~s ~s deployment_code && cd deployment_code/~s",
-                [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, SubDir]))
+            mzb_string:format("rsync -aW ~s ~s deployment_code && cd deployment_code/~s",
+                [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, SubDir])
     end,
     GenerationCmd = io_lib:format("mkdir -p ~s && cd ~s && ~s "
                                   "&& make generate_tgz && mv *.tgz ~s",

@@ -23,9 +23,9 @@ validate_expr(#operation{} = Op, Worker) ->
         fun(Exprs) when is_list(Exprs) ->
             validate_expr(Exprs, Worker);
            (X) ->
-            [lists:flatten(io_lib:format(
+            [mzb_string:format(
                 mzbl_script:meta_to_location_string(Meta) ++ "Expected list of expressions but got ~p.",
-                [X]))]
+                [X])]
         end,
     AddLocation =
         fun(Messages) ->
@@ -52,13 +52,13 @@ validate_expr(#operation{} = Op, Worker) ->
                 {true, _} -> ValidateList(Args);
                 {_, ok} -> ValidateList(Args);
                 {_, bad_arity} ->
-                    AddLocation([lists:flatten(io_lib:format(
+                    AddLocation([mzb_string:format(
                                                  "Function with wrong arity ~p:~p/~p.",
-                                                 [Worker, Fn, Arity]))]);
+                                                 [Worker, Fn, Arity])]);
                 {_, _} ->
-                    AddLocation([lists:flatten(io_lib:format(
+                    AddLocation([mzb_string:format(
                                                  "Unknown function ~p/~p.",
-                                                 [Fn, Arity]))])
+                                                 [Fn, Arity])])
             end
     end;
 validate_expr(Ops, Worker) when is_list(Ops) ->
@@ -89,8 +89,8 @@ validate_loopspec(LoopSpec, LoopLocation) ->
                     {parallel, [N]} -> validate_pos_int(N);
                     {spawn, [Val]} -> validate_bool(Val);
                     {Name, Args} ->
-                        [lists:flatten(io_lib:format(
-                            "Unexpected loop option {~p, ~p}.", [Name, Args]))]
+                        [mzb_string:format(
+                            "Unexpected loop option {~p, ~p}.", [Name, Args])]
                 end);
             (_) -> ["Unexpected loop option."]
         end,

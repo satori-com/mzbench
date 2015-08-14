@@ -37,7 +37,7 @@ destroy_cluster(Ids) ->
 update_hostfiles(UserName, Hosts) ->
     Logger = mzb_api_app:default_logger(),
     _ = lists:map(fun (H) -> mzb_subprocess:remote_cmd(UserName, Hosts,
-        lists:flatten(io_lib:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")])), [], Logger) end, Hosts),
+        mzb_string:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")]), [], Logger) end, Hosts),
     ok.
 
 wait_nodes_ssh(_, C) when C < 0 -> erlang:error({ec2_error, cluster_ssh_start_timed_out});

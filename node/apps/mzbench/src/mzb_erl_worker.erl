@@ -14,7 +14,7 @@ validate(Module) ->
         _InfoList -> []
     catch
         _:_ ->
-            [lists:flatten(io_lib:format("Couldn't get module info for ~p", [Module]))]
+            [mzb_string:format("Couldn't get module info for ~p", [Module])]
     end.
 
 validate_function(Module, Fn, Arity) ->

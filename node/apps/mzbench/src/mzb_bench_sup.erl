@@ -60,8 +60,8 @@ get_results(Pid) ->
     catch
         _:E ->
             ST = erlang:get_stacktrace(),
-            Str = io_lib:format("Unexpected error: ~p~n~p", [E, ST]),
-            {error, {unexpected_error, E, ST}, lists:flatten(Str)}
+            Str = mzb_string:format("Unexpected error: ~p~n~p", [E, ST]),
+            {error, {unexpected_error, E, ST}, Str}
     end.
 
 start_pool(Args) ->
@@ -106,5 +106,5 @@ normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
 normalize_env_(V) when is_list(V) -> V;
 normalize_env_(V) when is_integer(V) -> V;
 normalize_env_(U) ->
-    Msg = lists:flatten(io_lib:format("Env value of unknown type: ~p", [U])),
+    Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
     erlang:error({error, {validation, [Msg]}}).

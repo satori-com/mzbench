@@ -17,25 +17,24 @@ read_and_validate(ScriptFileName, Env) ->
         {ok, Body, AutoEnv ++ Env}
     catch
         C:{read_file_error, File, E} = Error ->
-            Message = io_lib:format(
+            Message = mzb_string:format(
                 "Failed to read file ~s: ~s",
                 [File, file:format_error(E)]),
-            {error, C, Error, erlang:get_stacktrace(), [lists:flatten(Message)]};
+            {error, C, Error, erlang:get_stacktrace(), [Message]};
         C:{parse_error, {LineNumber, erl_parse, E}} = Error ->
-            Message = io_lib:format(
+            Message = mzb_string:format(
                 "Failed to parse script ~s:~nline ~p: ~s",
                 [ScriptFileName, LineNumber, [E]]),
-            {error, C, Error, erlang:get_stacktrace(), [lists:flatten(Message)]};
+            {error, C, Error, erlang:get_stacktrace(), [Message]};
         C:{error, {validation, VM}} = Error when is_list(VM) ->
-            Messages = [lists:flatten(io_lib:format("Script ~s is invalid:~n", [ScriptFileName])) 
-                        | VM],
+            Messages = [mzb_string:format("Script ~s is invalid:~n", [ScriptFileName]) | VM],
             {error, C, Error, erlang:get_stacktrace(), Messages};
         C:Error ->
             ST = erlang:get_stacktrace(),
-            Message = io_lib:format(
+            Message = mzb_string:format(
                 "Script ~s is invalid:~nError: ~p~n~nStacktrace for the curious: ~p",
                 [ScriptFileName, Error, ST]),
-            {error, C, Error, ST, [lists:flatten(Message)]}
+            {error, C, Error, ST, [Message]}
     end.
 
 validate(Script) ->
@@ -54,11 +53,10 @@ validate(Script) ->
                 ++ Acc;
             (#operation{name = pool} = Pool, Acc) -> validate_pool(Pool) ++ Acc;
             (#operation{name = F, args = A, meta = M}, Acc) ->
-                [lists:flatten(io_lib:format("~sUnknown function: ~p/~p",
-                    [mzbl_script:meta_to_location_string(M), F, erlang:length(A)]))|Acc];
+                [mzb_string:format("~sUnknown function: ~p/~p",
+                    [mzbl_script:meta_to_location_string(M), F, erlang:length(A)])|Acc];
             (T, Acc) ->
-                [lists:flatten(io_lib:format("Unexpected top-level term ~p",
-                    [T]))|Acc]
+                [mzb_string:format("Unexpected top-level term ~p", [T])|Acc]
         end, [], Script2),
 
     case Errors of
@@ -73,7 +71,7 @@ validate_resource_filename(Filename) ->
     case filename:split(Filename) of
         [_] -> [];
         [".", _] -> [];
-        _ -> [lists:flatten(io_lib:format("Invalid resource filename: ~s", [Filename]))]
+        _ -> [mzb_string:format("Invalid resource filename: ~s", [Filename])]
     end.
 
 -spec validate_pool(#operation{}) -> [string()].
@@ -88,10 +86,10 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
           [] ->
               case Size of
                 #operation{name = N, args = A} ->
-                    lists:flatten(io_lib:format(
-                    "can't use operation ~p with args ~p as pool size.", [N, A]));
-                _ -> [lists:flatten(io_lib:format(
-                          "size option: expected something integer-like but got ~p.", [Size]))
+                    mzb_string:format(
+                    "can't use operation ~p with args ~p as pool size.", [N, A]);
+                _ -> [mzb_string:format(
+                          "size option: expected something integer-like but got ~p.", [Size])
                           || mzb_utility:to_integer_with_default(Size, fail) == fail] ++
                       ["zero size is not allowed." || mzb_utility:to_integer_with_default(Size, fail) == 0]
               end ++
@@ -106,17 +104,17 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
 validate_worker_start_type(undefined) -> [];
 validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) when is_number(N), N > 0 -> [];
 validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) ->
-    [lists:flatten(io_lib:format("Invalid poisson parameter lambda (should be positive number): ~p", [N]))];
+    [mzb_string:format("Invalid poisson parameter lambda (should be positive number): ~p", [N])];
 validate_worker_start_type(#operation{name = poisson, args = [N]}) ->
-    [lists:flatten(io_lib:format("Invalid poisson parameter lambda (should be {<N>, rps}): ~p", [N]))];
+    [mzb_string:format("Invalid poisson parameter lambda (should be {<N>, rps}): ~p", [N])];
 validate_worker_start_type(#operation{name = poisson, args = Args}) ->
-    [lists:flatten(io_lib:format("Invalid poisson arguments (only one arg is allowed, ~p were given)", [erlang:length(Args)]))];
+    [mzb_string:format("Invalid poisson arguments (only one arg is allowed, ~p were given)", [erlang:length(Args)])];
 validate_worker_start_type(#operation{name = linear, args = [#constant{value = N, units = rps}]}) when is_integer(N); N > 0 -> [];
 validate_worker_start_type(#operation{name = linear, args = [#constant{value = N, units = rps}]}) ->
-    [lists:flatten(io_lib:format("Invalid worker start rate (should be positive integer): ~b", [N]))];
+    [mzb_string:format("Invalid worker start rate (should be positive integer): ~b", [N])];
 validate_worker_start_type(#operation{name = linear, args = [Arg]}) ->
-    [lists:flatten(io_lib:format("Invalid worker start rate: (should be like {<N>, rps}, but '~p' was given)", [Arg]))];
+    [mzb_string:format("Invalid worker start rate: (should be like {<N>, rps}, but '~p' was given)", [Arg])];
 validate_worker_start_type(#operation{name = linear, args = Args}) ->
-    [lists:flatten(io_lib:format("Invalid worker start rate arguments: only one arg is allowed, ~p were given", [erlang:length(Args)]))];
+    [mzb_string:format("Invalid worker start rate arguments: only one arg is allowed, ~p were given", [erlang:length(Args)])];
 validate_worker_start_type(Unknown) ->
-    [lists:flatten(io_lib:format("Unknown worker start type: ~p", [Unknown]))].
+    [mzb_string:format("Unknown worker start type: ~p", [Unknown])].

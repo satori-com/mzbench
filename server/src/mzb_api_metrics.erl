@@ -28,9 +28,9 @@ get_graphite_image_links(MetricsMap, BenchTime) ->
 make_graphite_link(Host, BenchTime, Group) ->
     {From, To} = get_graphite_from_and_to(BenchTime),
     Targets = ["target=" ++ binary_to_list(M) || M <- Group],
-    lists:flatten(io_lib:format(
+    mzb_string:format(
         "~s/render?width=800&height=500&from=~s&until=~s&~s",
-        [Host, From, To, string:join(Targets, "&")])).
+        [Host, From, To, string:join(Targets, "&")]).
 
 get_graphite_from_and_to(Seconds) when Seconds < 60 ->
     get_graphite_from_and_to(60);

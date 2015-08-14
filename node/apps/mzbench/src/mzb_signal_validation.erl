@@ -60,15 +60,13 @@ standalone_vertices(G) ->
         end, digraph:vertices(G)).
 
 format_standalone_error({_, wait_signal, N}) ->
-    lists:flatten(io_lib:format("Nobody sets signal ~p", [N]));
+    mzb_string:format("Nobody sets signal ~p", [N]);
 format_standalone_error({_, set_signal, N}) ->
-    lists:flatten(io_lib:format("Nobody waits for signal ~p", [N])).
+    mzb_string:format("Nobody waits for signal ~p", [N]).
 
 format_signal_deadlock_error(Cycle) ->
     FormatedCycle = [format_vertex(V) || V <- Cycle],
-    Str = io_lib:format("Deadlock is posible: ~s",
-                        [string:join(FormatedCycle, " -> ")]),
-    lists:flatten(Str).
+    mzb_string:format("Deadlock is posible: ~s", [string:join(FormatedCycle, " -> ")]).
 
 format_vertex({Pool, Op, Arg}) ->
     io_lib:format("~s:~s(~p)", [Pool, Op, Arg]).

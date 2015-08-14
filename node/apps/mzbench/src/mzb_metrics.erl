@@ -324,7 +324,7 @@ get_graphite_url(Env) ->
         undefined -> {H, _} = get_graphite_host_and_port(Env),
                      case H of
                         undefined -> undefined;
-                        _ -> lists:flatten(io_lib:format("http://~s", [H]))
+                        _ -> mzb_string:format("http://~s", [H])
                      end;
         _ -> URL
     end.
