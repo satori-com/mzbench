@@ -2,7 +2,7 @@
 {application, exec_worker,
  [
   {description, "Mz-bench exec-worker"},
-  {vsn, "0.3.3"},
+  {vsn, "0.3.6"},
   {applications, [
                   kernel,
                   stdlib
