@@ -3,15 +3,15 @@
 
 -export([stop/2]).
 
+add_libs() ->
+    BinDir = filename:dirname(escript:script_name()),
+    CodePaths = filelib:wildcard(filename:join(BinDir, "../lib/mzbench_utils-*/ebin/")),
+    code:add_pathsz(CodePaths).
+
 main([TimeoutStr | NodesStr]) ->
     io:format("~p starting~n", [os:timestamp()]),
 
-    {ok, [[Home|_]|_]} = init:get_argument(home),
-    ReleaseInfoFile = filename:join(Home, "mz/mzbench/releases/RELEASES"),
-    {ok, [[{release, "mzbench", _, _, Applications, _}]]} = file:consult(ReleaseInfoFile),
-    {mzbench_utils, _Version, BuildPath} = lists:keyfind(mzbench_utils, 1, Applications),
-    MZBenchUtilsInstallPath = filename:join([Home, "mz/mzbench/lib", filename:basename(BuildPath), "ebin"]),
-    code:add_path(MZBenchUtilsInstallPath),
+    add_libs(),
     ok = application:load(mzbench_utils),
 
     Timeout =
