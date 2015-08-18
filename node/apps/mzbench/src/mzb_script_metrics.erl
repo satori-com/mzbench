@@ -1,6 +1,6 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/2, pool_metrics/1, metrics/2, normalize/1, build_graphite_groups/2]).
+-export([script_metrics/2, pool_metrics/1, metrics/2, normalize/1, build_metric_groups_json/2]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
@@ -31,14 +31,18 @@ metrics(Path, EnvFromClient) ->
     Nodes = [node() | nodes()],
     {Pools, Env} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
-    case mzb_metrics:get_graphite_url(Env) of
-        undefined -> undefined_graphite;
-        GraphiteUrl ->
-            ScriptMetrics = script_metrics(Pools, Nodes),
-            GraphiteGroups = build_graphite_groups(BenchName ++ ".mzb", ScriptMetrics),
-            mzb_string:str_to_bstr(#{graphite_url => GraphiteUrl, groups => GraphiteGroups})
-    end.
+    ScriptMetrics = script_metrics(Pools, Nodes),
 
+    MetricJson = #{ groups => build_metric_groups_json("mzb", ScriptMetrics) },
+
+    MetricJson1 = case mzb_metrics:get_graphite_url(Env) of
+        undefined -> MetricJson;
+        GraphiteUrl ->
+            MetricJson#{ graphite_prefix => BenchName,
+                         graphite_url => GraphiteUrl }
+    end,
+
+    mzb_string:str_to_bstr(MetricJson1).
 
 %% normalize any user metrics to inner format
 
@@ -82,33 +86,31 @@ normalize_metric(Metric = {Name, Type, Opts}) when is_list(Name),
 normalize_metric(UnknownFormat) ->
     erlang:error({unknown_metric_format, UnknownFormat}).
 
-%% build graphite groups in jiffy compatible format
+maybe_append_rps_units(GraphOpts, Metrics) ->
+    IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not maps:get(rps, Opts, false)]),
+    case IsRPSGraph of
+        true ->
+            Units = case maps:get(units, GraphOpts, "") of
+                "" -> "rps";
+                U -> U ++ "/sec"
+            end,
+            GraphOpts#{units => Units};
+        _ -> GraphOpts
+    end.
 
-build_graphite_groups(Prefix, Groups) ->
+build_metric_groups_json(ExometerGlobalPrefix, Groups) ->
     MetricGroups = mzb_metrics:build_metric_groups(Groups),
-
     lists:map(fun ({group, GroupName, Graphs}) ->
         NewGraphs = lists:map(fun ({graph, GraphOpts}) ->
             Metrics = maps:get(metrics, GraphOpts, []),
 
-
             MetricMap = lists:flatmap(fun({Name, Type, Opts}) ->
                 DPs = [mzb_metrics:datapoint2str(DP) || DP <- mzb_metrics:datapoints(Type)],
                 Opts1 = maps:without([rps], Opts),
-                [Opts1#{name => (Prefix ++ "." ++ Name ++ "."++ S)} || S <- DPs]
+                [Opts1#{name => (ExometerGlobalPrefix ++ "." ++ Name ++ "."++ S)} || S <- DPs]
             end, Metrics),
 
-            % add 'rps' suffix if graph contains only rps metrics
-            IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not maps:get(rps, Opts, false)]),
-            GraphOpts1 = case IsRPSGraph of
-                true ->
-                    Units = case maps:get(units, GraphOpts, "") of
-                        "" -> "rps";
-                        U -> U ++ "/sec"
-                    end,
-                    GraphOpts#{units => Units};
-                _ -> GraphOpts
-            end,
+            GraphOpts1 = maybe_append_rps_units(GraphOpts, Metrics),
 
             GraphOpts1#{metrics => MetricMap}
         end, Graphs),

@@ -9,11 +9,31 @@ main([BenchDir]) ->
                 #{<<"graphite_url">> := _GraphiteUrl} -> ok;
                 M when is_map(M), map_size(M) == 0 -> ok;
                 M when is_map(M) ->
+                    ScriptName = case Status of
+                                     #{config := #{script:= #{name:= SName}}} -> SName;
+                                     _ -> ""
+                                 end,
+
+                    Name = filename:basename(ScriptName, ".erl"),
+                    GraphitePrefix = re:replace(Name, "[^a-zA-Z0-9]", "_", [{return, list}, global]),
+                    BinGraphitePrefix = list_to_binary(GraphitePrefix),
+                    PrefixSize = byte_size(BinGraphitePrefix),
+
+                    TargetMigrator = fun (Target) ->
+                        case Target of
+                            <<BinGraphitePrefix:PrefixSize/binary, $., Rest/binary>> -> Rest;
+                            _ -> Target
+                        end
+                    end,
+
                     [{GraphiteUrl, OldMetics}] = maps:to_list(Metrics),
-                    Graphs = [#{<<"metrics">> => [#{<<"name">> => T} || T<- Targets]} || Targets <- OldMetics],
+
+                    Graphs = [#{<<"metrics">> => [#{ <<"name">> => TargetMigrator(T) } || T <- Targets]} || Targets <- OldMetics],
                     NewMetrics = #{ <<"graphite_url">> => GraphiteUrl,
+                                    <<"graphite_prefix">> => BinGraphitePrefix,
                                     <<"groups">> => [#{<<"name">> => <<"Default">>,
                                                        <<"graphs">> => Graphs}]},
+
                     NewStatusContent = io_lib:format("~p.", [Status#{metrics => NewMetrics}]),
                     ok = file:write_file(StatusFile, NewStatusContent)
             end;

@@ -149,5 +149,5 @@ normalizetion_negative_test() ->
 
 build_graphite(Prefix, Metrics) ->
     Normalized = mzb_script_metrics:normalize(Metrics),
-    mzb_script_metrics:build_graphite_groups(Prefix, Normalized).
+    mzb_script_metrics:build_metric_groups_json(Prefix, Normalized).
 
