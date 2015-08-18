@@ -141,7 +141,7 @@ You declare the groups of metrics collected by your _worker_ in the list returne
 This structure supports a three-level hierarchy:
 
 * Group of graphs is placed on the top of this hierarchy. It consists of the one or more graphs and define a group of graphs under the same name.
-* Graph consists of the on or more metrics which will be plotted on the same chart. Furthermore, you could specify additional option for the chart (e.g. units, title etc)
+* Graph consists of the one or more metrics that will be plotted on the same chart. Furthermore, you could specify additional option for the chart (e.g. units, title etc)
 * Metric is the lowest unit of this hierarchy. It specifies the name and type of the user-defined metric.
 
 Let see the following metrics declaration:

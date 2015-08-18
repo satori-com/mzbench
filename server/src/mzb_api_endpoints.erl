@@ -119,8 +119,9 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
                                     Time when is_number(Time) ->
                                         FinishTime - StartTime
                                 end,
+                     HasGraphite = maps:is_key(<<"graphite_url">>, Metrics),
                      [Id, list_to_binary(iso_8601_fmt(StartTime)), list_to_binary(ScriptName),
-                      Status, Duration, #{} =/= Metrics];
+                      Status, Duration, HasGraphite];
                 ({Id, #{status:= failed, reason:= {crashed, _}}}) ->
                      [Id, <<"n/a">>, <<"n/a">>, crashed, 0, false]
              end, SortedBenchInfo),

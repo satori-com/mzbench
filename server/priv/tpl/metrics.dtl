@@ -20,6 +20,7 @@ $(document).ready(function() {
 
     var groups = metrics.groups || [];
     var graphiteUrl = metrics.graphite_url || "";
+    var graphitePrefix = metrics.graphite_prefix || "";
 
     if (0 == groups.length) {
         var msg = $("<div class='alert alert-warning' role='alert'><strong>Oh snap!</strong> This bench hasn't produced any graphs</div>");
@@ -51,7 +52,10 @@ $(document).ready(function() {
     });
 
     var domGraphs = $.map(flattenGraphs, function(graph) {
-        var targets = $.map(graph.metrics, function(m) { return m.name; });
+        var targets = $.map(graph.metrics, function(m) {
+            var prefix = graphitePrefix ? graphitePrefix + "." : "";
+            return prefix + m.name;
+        });
         var title = graph.title;
         var units = graph.units;
 

@@ -20,20 +20,26 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
             erlang:raise(C,E,ST)
     end.
 
-get_graphite_image_links(#{<<"graphite_url">> := GraphiteUrl, <<"groups">> := Groups}, BenchTime) ->
-    [make_graphite_link(GraphiteUrl, BenchTime, Graph) || Group <- Groups,
-                                                          Graph <- maps:get(<<"graphs">>, Group, [])];
+get_graphite_image_links(MetricInfo = #{<<"graphite_url">>:= GraphiteUrl,
+                                        <<"graphite_prefix">>:= GraphitePrefix,
+                                        <<"groups">>:= Groups}, BenchTime) ->
+    [make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) || Group <- Groups,
+                                                                          Graph <- maps:get(<<"graphs">>, Group, [])];
 get_graphite_image_links(_UnknownGraphite, _BenchTime) -> [].
 
 
-make_graphite_link(Host, BenchTime, Graph) ->
+make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) ->
     GraphTargets = maps:get(<<"metrics">>, Graph, []),
-
     Title = maps:get(<<"title">>, Graph, <<>>),
     Units = maps:get(<<"units">>, Graph, <<>>),
 
     {From, To} = get_graphite_from_and_to(BenchTime),
-    Targets = ["target=" ++ binary_to_list(maps:get(<<"name">>, Target)) || Target <- GraphTargets],
+
+    Targets = lists:map(fun (Target) ->
+                            Parts = [GraphitePrefix, maps:get(<<"name">>, Target)],
+                            MetricName = string:join([binary_to_list(P) || P <- Parts, P /= <<>>], "."),
+                            "target=" ++ MetricName
+                        end, GraphTargets),
 
     mzb_string:format("~s/render?width=800&height=500&from=~s&until=~s&~s&title=~s&vtitle=~s",
         [Host, From, To, string:join(Targets, "&"), http_uri:encode(binary_to_list(Title)), http_uri:encode(binary_to_list(Units))]).
