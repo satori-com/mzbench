@@ -1,4 +1,5 @@
 import React, { PropTypes } from 'react';
+import moment from 'moment';
 
 class Graph extends React.Component {
     componentDidMount() {
@@ -11,9 +12,24 @@ class Graph extends React.Component {
         }
     }
 
+    _formatDate(iso, offsetMinutes) {
+        return moment(iso).utc().add(offsetMinutes || 0, "minutes").format("HH:mm_YYYYMMDD");
+    }
+
+    _getPeriod() {
+        const bench = this.props.bench;
+        const autoUpdate = bench.isRunning();
+
+        const from  = !autoUpdate ? this._formatDate(bench.start_time, -2) : "-10min";
+        const until = !autoUpdate ? this._formatDate(bench.finish_time, 2) : "now" ;
+
+        return {from: from, until: until};
+    }
+
     _createTimer() {
         this.forceUpdate();
-        this.timer = this.props.autoUpdate ? setTimeout(this._createTimer.bind(this), this.props.autoUpdateInterval) : undefined;
+        const autoUpdate = this.props.bench.isRunning();
+        this.timer = autoUpdate ? setTimeout(this._createTimer.bind(this), this.props.autoUpdateInterval) : undefined;
     }
 
     _getUrl(options) {
@@ -24,7 +40,7 @@ class Graph extends React.Component {
                 value.forEach((value) => {
                     src += "&target=" + value;
                 });
-            } else if (value !== null) {
+            } else if (value !== undefined) {
                 src += "&" + key + "=" + value;
             }
         });
@@ -32,7 +48,10 @@ class Graph extends React.Component {
     }
 
     render() {
-        let options = Object.assign({"_t": Math.random(), "width": 555, "height": 418}, this.props.graphiteOpts);
+        let timestamp = { _t: Math.random() };
+        let periods = this._getPeriod();
+        let options = Object.assign({}, timestamp, periods, this.props.graphiteOpts);
+
         let optimizedOptions = this._optimizeTargets(options);
         let bigGraphOptions = Object.assign({}, optimizedOptions, {width: 960, height: 720});
 

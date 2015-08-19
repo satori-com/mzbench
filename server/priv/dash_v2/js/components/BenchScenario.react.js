@@ -5,7 +5,7 @@ class BenchScenario extends React.Component {
     render() {
         return (
             <Highlight className="erlang">
-                {this.props.bench.scenarioBody}
+                {this.props.bench.script_body || ""}
             </Highlight>
         );
     }

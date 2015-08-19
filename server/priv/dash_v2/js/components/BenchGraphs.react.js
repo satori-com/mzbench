@@ -8,33 +8,67 @@ class BenchGraphs extends React.Component {
         this.state = {toggles: new Set([0])};
     }
 
-    _onToggle(idx) {
-        let { toggles } = this.state;
-        toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
-        this.setState({toggles: toggles});
-    }
-
     renderWaitMetrics() {
         return (
             <LoadingSpinner>Waiting metrics from node...</LoadingSpinner>
         );
     }
 
-    renderGraphGroup(group) {
+    renderUnknownGraphite() {
+        return (
+            <div className="alert alert-warning" role="alert">
+                <strong>Graphite is not specified!</strong> You should specify the Graphite server in the server config. You could find addition details by the following <a href="https://github.com/machinezone/mzbench/blob/master/doc/deployment_guide.md#configuration-file-format" target="_blank">link</a>.
+            </div>
+        );
+    }
+
+    renderEmptyGraphs() {
         return (
             <div className="panel-body">
-                {group.graphs.map((graph, idx) => {
+                <div className="alert alert-warning" role="alert">
+                    <strong>Oh snap!</strong> This group doesn't have any graphs
+                </div>
+            </div>
+        );
+    }
+
+    renderEmptyGroups() {
+        return (
+            <div className="alert alert-warning" role="alert">
+                <strong>Oh snap!</strong> This bench hasn't recordered any metrics. See <a href="#">Logs</a> for the additional information.
+            </div>
+        );
+    }
+
+    renderGraphGroup(group) {
+        const graphitePrefix = this.props.bench.metrics.graphite_prefix;
+        const graphiteUrl = this.props.bench.metrics.graphite_url;
+        const graphs = group.graphs || [];
+
+        if (0 == graphs.length) {
+            return this.renderEmptyGroups();
+        }
+
+        return (
+            <div className="panel-body">
+                {graphs.map((graph, idx) => {
+
+                    let targets = graph.metrics.map((m) => {
+                        const parts = [graphitePrefix, m.name];
+                        return parts.filter(x => x).join(".");
+                    });
+
                     return (
                         <div key={idx} className="col-xs-6 col-md-6">
                             <Graph
-                                url={this.props.bench.graphite + "/render/"}
+                                url={graphiteUrl + "/render/"}
+                                bench={this.props.bench}
                                 graphiteOpts={{
-                                    target: graph.metrics,
-                                    title: graph.name,
-                                    from: "09:21_20150729",
-                                    until: "09:39_20150729",
-                                    width: "555",
-                                    height: "418"
+                                    target: targets,
+                                    title: graph.title,
+                                    vtitle: graph.units,
+                                    width: 555,
+                                    height: 418
                                 }} />
                         </div>
                     );
@@ -43,11 +77,16 @@ class BenchGraphs extends React.Component {
         );
     }
 
-
     renderGraphs() {
+        const groups = this.props.bench.metrics.groups || [];
+
+        if (0 == groups.length) {
+            return this.renderEmptyGroups();
+        }
+
         return (
             <div>
-                {this.props.bench.demoGroups.map((group, idx) => {
+                {groups.map((group, idx) => {
                     let isExpanded = this.state.toggles.has(idx);
                     let iconClass = isExpanded ? "glyphicon-collapse-down" : "glyphicon-expand";
                     return (
@@ -55,7 +94,7 @@ class BenchGraphs extends React.Component {
                             <div className="panel-heading">
                                 <h3 className="panel-title"> 
                                     <span className={`glyphicon ${iconClass}`} />&nbsp;
-                                    <span className="graph-group-title" role="button" href="#" onClick={this._onToggle.bind(this, idx)}>{group.name}</span>
+                                    <span className="graph-group-title" role="button" onClick={this._onToggle.bind(this, idx)}>{group.name}</span>
                                 </h3>
                             </div>
                             {isExpanded ? this.renderGraphGroup(group) : null}
@@ -66,11 +105,25 @@ class BenchGraphs extends React.Component {
     }
 
     render() {
-        if (!this.props.bench.demoGroups) {
+        const bench = this.props.bench;
+        const hasGraphite = bench.metrics.graphite_url;
+        const hasGroups = bench.metrics.groups;
+
+        if (bench.isRunning() && !hasGroups) {
             return this.renderWaitMetrics();
         }
 
+        if (hasGroups && !hasGraphite) {
+            return this.renderUnknownGraphite();
+        }
+
         return this.renderGraphs();
+    }
+
+    _onToggle(idx) {
+        let { toggles } = this.state;
+        toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
+        this.setState({toggles: toggles});
     }
 }
 
