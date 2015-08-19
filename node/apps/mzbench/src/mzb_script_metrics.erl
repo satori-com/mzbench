@@ -6,26 +6,26 @@
 
 script_metrics(Pools, Nodes) ->
     PoolMetrics = pool_metrics(Pools),
-    PoolNames = lists:map(fun pool_name/1, Pools),
-    WorkerNumMetrics = [{mzb_string:format("workers.~s.~s", [P, X]), counter} ||
-                            X <- ["started", "ended", "failed"],
-                            P <- PoolNames],
 
     Node2str = fun (N) -> string:join(string:tokens(atom_to_list(N), "@"), "_") end,
-    WorkerNumMetricsPerNode = [{mzb_string:format("workers.~s.~s.~s", [P, Node2str(N), X]), counter} ||
-                            X <- ["started", "ended", "failed"],
-                            P <- PoolNames,
-                            N <- Nodes],
 
-    MZBenchInternal = [{group, "MZBench Internals", [
-                          {graph, #{title => "Worker Status",
-                                    metrics => WorkerNumMetrics}},
-                          {graph, #{title => "Worker Status (per node)",
-                                    metrics => WorkerNumMetricsPerNode}},
+    WorkerStatusGraphs = lists:map(fun (P) ->
+        {graph, #{title => mzb_string:format("Worker status (~s)", [pool_name(P)]),
+                  metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]] ++
+                             [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), Node2str(N), X]), counter} ||
+                                    X <- ["started", "ended", "failed"],
+                                    N <- Nodes]}}
+        end, Pools),
+
+    MZBenchInternal = [{group, "MZBench Internals",
+                        WorkerStatusGraphs ++
+                        [
                           {graph, #{title => "Metric merging time",
-                                    units => "ms",
-                                    metrics => [{"metric_merging_time", gauge}]}}
-                      ]}],
+                                    units => "ms", 
+                                    metrics => [{"metric_merging_time", gauge}]}},
+                          {graph, #{title => "Errors",
+                                    metrics => [{"errors", counter}]}}
+                        ]}],
 
     SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
 
