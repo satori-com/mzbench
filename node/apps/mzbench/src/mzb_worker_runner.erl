@@ -11,20 +11,25 @@
 -spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), PoolName ::string())
     -> ok.
 run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
-
+    NodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
     Res =
         try
             _ = random:seed(now()),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.started", [PoolName]), 1),
+            ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.started", [PoolName, NodeName]), 1),
+
             InitialState = WorkerProvider:init(Worker),
             {WorkerResult, WorkerResultState} = eval_expr(Script, InitialState, Env, WorkerProvider),
             _ = WorkerProvider:terminate(WorkerResult, WorkerResultState),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [PoolName]), 1),
+            ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.ended", [PoolName, NodeName]), 1),
             {ok, WorkerResult}
         catch
             C:E ->
                 ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [PoolName]), 1),
+                ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.ended", [PoolName, NodeName]), 1),
                 ok = mzb_metrics:notify(mzb_string:format("workers.~s.failed", [PoolName]), 1),
+                ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.failed", [PoolName, NodeName]), 1),
                 {exception, node(), {C, E, erlang:get_stacktrace()}}
         end,
 

@@ -11,15 +11,23 @@ script_metrics(Pools, Nodes) ->
                             X <- ["started", "ended", "failed"],
                             P <- PoolNames],
 
-    SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
+    Node2str = fun (N) -> string:join(string:tokens(atom_to_list(N), "@"), "_") end,
+    WorkerNumMetricsPerNode = [{mzb_string:format("workers.~s.~s.~s", [P, Node2str(N), X]), counter} ||
+                            X <- ["started", "ended", "failed"],
+                            P <- PoolNames,
+                            N <- Nodes],
 
     MZBenchInternal = [{group, "MZBench Internals", [
                           {graph, #{title => "Worker Status",
                                     metrics => WorkerNumMetrics}},
+                          {graph, #{title => "Worker Status (per node)",
+                                    metrics => WorkerNumMetricsPerNode}},
                           {graph, #{title => "Metric merging time",
                                     units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}}
                       ]}],
+
+    SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
 
     normalize(PoolMetrics ++ SystemLoadMetrics ++ MZBenchInternal).
 
