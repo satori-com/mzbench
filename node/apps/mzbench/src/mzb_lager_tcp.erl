@@ -38,6 +38,12 @@ handle_call(_Request, State) ->
 
 handle_event({log, Message},
     #state{socket = Socket, level=L,formatter=Formatter,format_config=FormatConfig,colors=Colors} = State) ->
+
+    case lager_msg:severity(Message) of
+        error -> mzb_metrics:notify("errors", 1);
+        _ -> ok
+    end,
+
     case lager_util:is_loggable(Message, L, ?MODULE) of
         true ->
             _ = gen_tcp:send(Socket, Formatter:format(Message,FormatConfig,Colors)),
