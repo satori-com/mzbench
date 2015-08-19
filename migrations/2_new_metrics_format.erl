@@ -37,6 +37,7 @@ main([BenchDir]) ->
                     NewStatusContent = io_lib:format("~p.", [Status#{metrics => NewMetrics}]),
                     ok = file:write_file(StatusFile, NewStatusContent)
             end;
+        {ok, [_Status = #{}]} -> ok;
         {error, enoent} -> ok;
         {error, Reason} ->
             io:format("Can't read status file: ~s with reason: ~p", [StatusFile, Reason]),
