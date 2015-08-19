@@ -40,7 +40,7 @@ class BenchGraphs extends React.Component {
         );
     }
 
-    renderGraphGroup(group) {
+    renderGraphs(group) {
         const graphitePrefix = this.props.bench.metrics.graphite_prefix;
         const graphiteUrl = this.props.bench.metrics.graphite_url;
         const graphs = group.graphs || [];
@@ -77,7 +77,7 @@ class BenchGraphs extends React.Component {
         );
     }
 
-    renderGraphs() {
+    renderGroups() {
         const groups = this.props.bench.metrics.groups || [];
 
         if (0 == groups.length) {
@@ -92,12 +92,12 @@ class BenchGraphs extends React.Component {
                     return (
                         <div key={idx} className="panel panel-default graph-panel">
                             <div className="panel-heading">
-                                <h3 className="panel-title"> 
+                                <h3 className="panel-title">
                                     <span className={`glyphicon ${iconClass}`} />&nbsp;
                                     <span className="graph-group-title" role="button" onClick={this._onToggle.bind(this, idx)}>{group.name}</span>
                                 </h3>
                             </div>
-                            {isExpanded ? this.renderGraphGroup(group) : null}
+                            {isExpanded ? this.renderGraphs(group) : null}
                         </div>);
                 })}
             </div>
@@ -117,7 +117,7 @@ class BenchGraphs extends React.Component {
             return this.renderUnknownGraphite();
         }
 
-        return this.renderGraphs();
+        return this.renderGroups();
     }
 
     _onToggle(idx) {
