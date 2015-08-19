@@ -1,6 +1,6 @@
 -module(mzb_worker_runner).
 
--export([run_worker_script/6]).
+-export([run_worker_script/5]).
 
 % For Common and EUnit tests
 -export([eval_expr/4, time_of_next_iteration_in_ramp/4, mknow/0]).
@@ -8,14 +8,9 @@
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 -include("mzb_types.hrl").
 
--spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), Suspended :: boolean())
+-spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), PoolName ::string())
     -> ok.
-run_worker_script(Script, Env, Worker, PoolPid, PoolName, true) ->
-    receive
-        resume ->
-            run_worker_script(Script, Env, Worker, PoolPid, PoolName, false)
-    end;
-run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName, false) ->
+run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
 
     Res =
         try
@@ -33,7 +28,7 @@ run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName, fals
                 {exception, node(), {C, E, erlang:get_stacktrace()}}
         end,
 
-    Pool ! {worker_result, self(), Res},
+    PoolPid ! {worker_result, self(), Res},
     ok.
 
 -spec eval_expr(script_expr(), worker_state(), worker_env(), module())
