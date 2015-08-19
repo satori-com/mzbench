@@ -6,12 +6,16 @@
 
 script_metrics(Pools, Nodes) ->
     PoolMetrics = pool_metrics(Pools),
+    PoolNames = lists:map(fun pool_name/1, Pools),
+    WorkerNumMetrics = [{mzb_string:format("workers.~s.~s", [P, X]), counter} ||
+                            X <- ["started", "ended", "failed"],
+                            P <- PoolNames],
 
     SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
 
     MZBenchInternal = [{group, "MZBench Internals", [
                           {graph, #{title => "Worker Status",
-                                    metrics => [{"workers." ++ X, counter} || X <- ["started", "ended", "failed"]]}},
+                                    metrics => WorkerNumMetrics}},
                           {graph, #{title => "Metric merging time",
                                     units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}}
@@ -24,6 +28,10 @@ pool_metrics(Pools) ->
                    #operation{name = pool, args = [PoolOpts, _Script]} <- Pools],
     UniqPoolWorkers = mzb_lists:uniq(PoolWorkers),
     lists:flatten([Provider:metrics(Worker) || {Provider, Worker} <- UniqPoolWorkers]).
+
+pool_name(Pool) ->
+    #operation{name = pool, meta = Meta} = Pool,
+    proplists:get_value(pool_name, Meta).
 
 metrics(Path, EnvFromClient) ->
     Script = mzbl_script:read(Path, EnvFromClient),

@@ -1,6 +1,6 @@
 -module(mzb_worker_runner).
 
--export([run_worker_script/5]).
+-export([run_worker_script/6]).
 
 % For Common and EUnit tests
 -export([eval_expr/4, time_of_next_iteration_in_ramp/4, mknow/0]).
@@ -10,26 +10,26 @@
 
 -spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), Suspended :: boolean())
     -> ok.
-run_worker_script(Script, Env, Worker, Pool, true) ->
+run_worker_script(Script, Env, Worker, PoolPid, PoolName, true) ->
     receive
         resume ->
-            run_worker_script(Script, Env, Worker, Pool, false)
+            run_worker_script(Script, Env, Worker, PoolPid, PoolName, false)
     end;
-run_worker_script(Script, Env, {WorkerProvider, Worker}, Pool, false) ->
+run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName, false) ->
 
     Res =
         try
             _ = random:seed(now()),
-            ok = mzb_metrics:notify("workers.started", 1),
+            ok = mzb_metrics:notify(mzb_string:format("workers.~s.started", [PoolName]), 1),
             InitialState = WorkerProvider:init(Worker),
             {WorkerResult, WorkerResultState} = eval_expr(Script, InitialState, Env, WorkerProvider),
             _ = WorkerProvider:terminate(WorkerResult, WorkerResultState),
-            ok = mzb_metrics:notify("workers.ended", 1),
+            ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [PoolName]), 1),
             {ok, WorkerResult}
         catch
             C:E ->
-                ok = mzb_metrics:notify("workers.ended", 1),
-                ok = mzb_metrics:notify("workers.failed", 1),
+                ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [PoolName]), 1),
+                ok = mzb_metrics:notify(mzb_string:format("workers.~s.failed", [PoolName]), 1),
                 {exception, node(), {C, E, erlang:get_stacktrace()}}
         end,
 

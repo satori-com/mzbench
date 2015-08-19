@@ -59,9 +59,10 @@ handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
-handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers, Self}, #s{workers = Tid} = State) ->
+handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers}, #s{workers = Tid, name = PoolName} = State) ->
+    Self = self(),
     {P, Ref} = erlang:spawn_monitor(fun() ->
-        mzb_worker_runner:run_worker_script(WorkerScript, Env, Worker, Self, false)
+            mzb_worker_runner:run_worker_script(WorkerScript, Env, Worker, Self, PoolName, false)
         end),
     ets:insert(Tid, {P, Ref}),
     if
@@ -152,7 +153,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
             lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes),
                             WId = N * NumNodes + Offset,
                             WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}, {pool_size, Size2}]),
-                            gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2, Self})
+                            gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2})
                         end, Numbers)
         end),
     State#s{name = Name, worker_starter = WorkerStarter}.
