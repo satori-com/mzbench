@@ -42,7 +42,7 @@ make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) ->
                         end, GraphTargets),
 
     mzb_string:format("~s/render?width=800&height=500&from=~s&until=~s&~s&title=~s&vtitle=~s",
-        [Host, From, To, string:join(Targets, "&"), http_uri:encode(binary_to_list(Title)), http_uri:encode(binary_to_list(Units))]).
+        [GraphiteUrl, From, To, string:join(Targets, "&"), http_uri:encode(binary_to_list(Title)), http_uri:encode(binary_to_list(Units))]).
 
 get_graphite_from_and_to(Seconds) when Seconds < 60 ->
     get_graphite_from_and_to(60);
