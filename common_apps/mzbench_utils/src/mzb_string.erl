@@ -15,6 +15,7 @@ char_substitute(String, OldChar, NewChar) ->
     lists:map(fun(Char) when Char =:= OldChar -> NewChar;
         (Char) -> Char end, String).
 
+str_to_bstr([]) -> [];
 str_to_bstr(T) when is_list(T) ->
     case io_lib:printable_list(T) of
         true -> list_to_binary(T);
