@@ -172,3 +172,10 @@ img.graph {
     transform: rotate(359deg);
   }
 }
+.panel-report .panel-body button{
+    margin: 0px 3px;
+}
+
+iframe {
+    border: 1px solid #ddd;
+}

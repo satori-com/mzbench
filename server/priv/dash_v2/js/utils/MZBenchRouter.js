@@ -23,7 +23,7 @@ const routes = {
 
 class MZBenchRouter extends Router {
     stringifyQuery(obj) {
-        return Object.keys(obj || {}).sort().reduce(function(parts, key) {
+        return Object.keys(obj).sort().reduce(function(parts, key) {
             const val = obj[key];
             if (undefined !== val) {
                 parts.push(encodeURI(key) + '=' + encodeURI(val));
@@ -38,13 +38,11 @@ class MZBenchRouter extends Router {
     }
 
     parseQuery (str) {
-        str = (str || "").trim().replace(/^(\?|#|&)/, '');
-
-        if (!str) { return {}; }
+        str = (str || "").trim();
 
         return str.split('&').reduce(function (ret, param) {
-            const [key, val, ...rest] = param.replace(/\+/g, ' ').split('=');
-            ret[decodeURIComponent(key)] = ("" == val || isNaN(val)) ? decodeURIComponent(val) : parseInt(val);
+            const [key, val, ...rest] = param.split('=');
+            ret[decodeURIComponent(key)] = decodeURIComponent(val);
             return ret;
         }, {});
     }

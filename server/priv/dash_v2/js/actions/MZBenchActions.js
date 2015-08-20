@@ -32,8 +32,8 @@ export default {
         }
 
         let currentPage = new Map();
-        if (undefined !== opts.max_id) currentPage.set("max_id", opts.max_id);
-        if (undefined !== opts.min_id) currentPage.set("min_id", opts.min_id);
+        if (undefined !== opts.max_id) currentPage.set("max_id", parseInt(opts.max_id));
+        if (undefined !== opts.min_id) currentPage.set("min_id", parseInt(opts.min_id));
 
         Dispatcher.dispatch({ type: Constants.SET_CURRENT_PAGE, data: currentPage });
     },
