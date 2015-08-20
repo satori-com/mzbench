@@ -7,12 +7,10 @@
 script_metrics(Pools, Nodes) ->
     PoolMetrics = pool_metrics(Pools),
 
-    Node2str = fun (N) -> string:join(string:tokens(atom_to_list(N), "@"), "_") end,
-
     WorkerStatusGraphs = lists:map(fun (P) ->
         {graph, #{title => mzb_string:format("Worker status (~s)", [pool_name(P)]),
                   metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]] ++
-                             [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), Node2str(N), X]), counter} ||
+                             [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), mzb_utility:hostname_str(N), X]), counter} ||
                                     X <- ["started", "ended", "failed"],
                                     N <- Nodes]}}
         end, Pools),

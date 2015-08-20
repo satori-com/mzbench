@@ -149,11 +149,11 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 
-
 metric_name(GaugeName) ->
     metric_name(GaugeName, atom_to_list(node())).
 
 metric_name(GaugeName, Node) when is_atom(Node) ->
     metric_name(GaugeName, atom_to_list(Node));
 metric_name(GaugeName, Node) ->
-    "systemload." ++ GaugeName ++ "." ++ string:join(string:tokens(Node, "@"), "_").
+    "systemload." ++ GaugeName ++ "." ++ mzb_utility:hostname_str(Node).
+

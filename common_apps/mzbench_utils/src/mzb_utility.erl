@@ -8,7 +8,8 @@
     random_number/2,
     to_integer_with_default/2,
     int_ceil/1,
-    any_to_num/1
+    any_to_num/1,
+    hostname_str/1
    ]).
 
 random_binary(N) -> crypto:rand_bytes(N).
@@ -52,4 +53,8 @@ any_to_num(Value) when is_list(Value) ->
         {F,_Rest} -> F
     end.
 
+hostname_str(Node) when is_atom(Node) ->
+    hostname_str(atom_to_list(Node));
+hostname_str(NodeStr) ->
+    hd(tl(string:tokens(NodeStr, "@"))).
 
