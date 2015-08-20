@@ -1,0 +1,50 @@
+[
+    {make_install, [{git, "https://github.com/machinezone/mzbench.git"},
+                    {dir, "workers/xmpp"}]},
+
+    {pool, [{size, {numvar, "users-number", 50000}},
+            {worker_type, xmpp_worker},
+            {worker_start, {linear, {{numvar, "user-rps", 200}, rps}}}],
+        [
+            % connect to xmpp.example.com:5222 server and
+            % use domain.example.com as domain
+            % use user_{pool_id} as nickname
+            {connect, {iname, "user", {pool_id}},
+                      "domain.example.com",
+                      "xmpp.example.com",
+                      5222},
+
+            % send initial presence
+            {initial_presence},
+
+            {set_muc_service, "conference.domain.example.com"},
+
+            % each user enters to 10 rooms
+            {multi_enter_room, "room", {get_room_ids, {numvar, "rooms-per-user", 10},
+                                                      {numvar, "total-rooms", 6000}}},
+
+            % spawn stream parser in the seperate thread and enable message's latency and muc_message count
+            {spawn_stream_parser, 0, 120000, [{t, latency},
+                                              {t, muc_message}]},
+
+            % warming up xmpp server
+            % send 50 bytes messages with encoded timestamp to each room one by one
+            % don't wait any responses from the server here because we will read a responses in the stream_parser 
+            {loop, [{time, {{numvar, "ramp-duration", 5}, min}},
+                    {rate, {ramp, linear, {{numvar, "min-msgs-rpm", 1}, rpm},
+                                          {{numvar, "max-msgs-rpm", 5}, rpm}}}],
+                [{send_muc_message, {iname, "room", {round_robin_room_id}}, {marker, 50}, skip}]
+            },
+
+            % do 15 minute benchmark
+            {loop, [{time, {{numvar, "duration", 15}, min}},
+                    {rate, {{numvar, "max-msgs-rpm", 5}, rpm}}],
+                [{send_muc_message, {iname, "room", {round_robin_room_id}}, {marker, 50}, skip}]
+            },
+
+            % close socket and halt stream parser
+            {close}
+        ]
+    }
+].
+
