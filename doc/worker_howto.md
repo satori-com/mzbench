@@ -80,7 +80,7 @@ To define a DSL statement provided by your _worker_ you export an Erlang functio
     <statement_name>(State, [<Param1>, [<Param2>, ...]]) ->
         {ReturnValue, NewState}.
 
-The function must have the same name as the statement it defines. It must take at least one parameter: the _worker_ internal state at the moment the statement is executed. The function can also accept any number of other parameters. They correspond to the parameters of the statement.
+The function must have the same name as the statement it defines. It must take at least two parameters: the _worker_ internal state at the moment the statement is executed and _meta_ information proplist. The function can also accept any number of other parameters. They correspond to the parameters of the statement.
 
 The statement function must return a tuple of two values. The first one is the return value of statement. You must return `nil` if your statement have no return value. The second member of the tuple is the new _worker_ initial state after the statement execution.
 
