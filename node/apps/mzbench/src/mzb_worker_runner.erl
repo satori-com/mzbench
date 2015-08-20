@@ -11,7 +11,7 @@
 -spec run_worker_script([script_expr()], worker_env() , module(), Pool :: pid(), PoolName ::string())
     -> ok.
 run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
-    NodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
+    NodeName = mzb_utility:hostname_str(node()),
     Res =
         try
             _ = random:seed(now()),
