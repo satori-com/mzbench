@@ -1,17 +1,24 @@
 -module(mzb_api_ws_handler).
 
--export([init/2]).
--export([websocket_handle/3]).
--export([websocket_info/3]).
+-export([init/2,
+         terminate/3,
+         websocket_handle/3,
+         websocket_info/3]).
 
 -record(state, {
-            filter = undefined,
-            pagination = undefined,
-            bench_id = undefined
-         }).
+          ref = undefined,
+          timeline_opts = undefined,
+          timeline_bounds = undefined
+       }).
 
 init(Req, _Opts) ->
-    {cowboy_websocket, Req, #state{}}.
+    Ref = erlang:make_ref(),
+    ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose_handler, Ref}, [self()]),
+    {cowboy_websocket, Req, #state{ref = Ref}}.
+
+terminate(_Reason, _Req, #state{ref = Ref}) ->
+    gen_event:delete_handler(mzb_api_firehose, {mzb_api_firehose_handler, Ref}, [self()]),
+    ok.
 
 websocket_handle({text, Msg}, Req, State) ->
     case dispatch_request(jiffy:decode(Msg, [return_maps]), State) of
@@ -25,28 +32,60 @@ websocket_handle({text, Msg}, Req, State) ->
 websocket_handle(_Data, Req, State) ->
     {ok, Req, State}.
 
-websocket_info(_Info, Req, State) ->
-    {ok, Req, State}.
+websocket_info(Message, Req, State) ->
+    case dispatch_info(Message, State) of
+        {reply, Reply, NewState} ->
+            JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply)),
+            {reply, {text, JsonReply}, Req, NewState};
+        {ok, NewState} ->
+            {ok, Req, NewState}
+    end.
+
+dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
+    {ok, State};
+
+dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_opts   = TimelineOpts,
+                                                                     timeline_bounds = TimelineBounds}) ->
+    BenchInfos1  = normalize([{Id, BenchInfo}]),
+    BenchInfos2  = apply_filter(TimelineOpts, BenchInfos1),
+    TimlineItems = apply_boundaries(TimelineBounds, BenchInfos2, fun(A, B) -> A =< B end),
+
+    case TimlineItems of
+        [Bench] ->
+            Event = #{type => "UPDATE_BENCH_INFO", data => Bench},
+            {reply, Event, State};
+        [] ->
+            {ok, State}
+    end;
+
+dispatch_info(Info, State) ->
+    lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
+    {ok, State}.
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
 
 dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
-    Filter = maps:get(<<"q">>, Cmd, undefined),
-    Pagination = maps:with([<<"max_id">>, <<"min_id">>, <<"bench_id">>, <<"limit">>], Cmd),
+    BenchInfos0 = mzb_api_server:get_info(),
+    BenchInfos1 = normalize(BenchInfos0),
+    BenchInfos2 = apply_filter(Cmd, BenchInfos1),
+    {TimelineItems, {MinId, MaxId}} = apply_pagination(Cmd, BenchInfos2),
 
-    BenchInfos0       = mzb_api_server:get_info(),
-    BenchInfos1       = normalize(BenchInfos0),
-    BenchInfos2       = apply_filter(Filter, BenchInfos1),
-    {Timeline, Pager} = apply_pagination(Pagination, BenchInfos2),
+    KV = [{min_id, MinId}, {max_id, MaxId}],
+    Pager = maps:from_list([T || T = {K,V} <- KV, V /= undefined]),
 
     Event = #{
                type => "INIT_TIMELINE",
-               data => Timeline,
+               data => TimelineItems,
                pager => Pager
              },
 
-    {reply, Event, State#state{filter = Filter, pagination = Pagination}}.
+    {reply, Event, State#state{timeline_opts   = Cmd,
+                               timeline_bounds = {MinId, MaxId}}};
+
+dispatch_request(Cmd, State) ->
+    lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
+    {ok, State}.
 
 %% Normalization
 
@@ -66,7 +105,6 @@ normalize_bench({_Id, Status = #{config:= Config}}) ->
                            #{},
                            maps:with([finish_time, start_time], Status)),
 
-
     #{script:= #{body:= ScriptBody, name:= ScriptName}} = Config,
     ScriptFields = #{script_body => ScriptBody, script_name => ScriptName},
 
@@ -76,17 +114,18 @@ normalize_bench({_Id, Status = #{config:= Config}}) ->
 
 %% Filtering
 
-apply_filter(undefined, BenchInfos) -> BenchInfos;
-apply_filter(Query, BenchInfos) ->
-    % todo check for empty query
-    lists:filter(fun(BenchInfo) ->
-                     is_satisfy_filter(Query, BenchInfo)
-                 end, BenchInfos).
+apply_filter(TimelineOpts, BenchInfos) -> 
+    Query = maps:get(<<"q">>, TimelineOpts, undefined),
+    case Query of
+        undefined -> BenchInfos;
+        Q -> [Bench || Bench <- BenchInfos, is_satisfy_filter(Q, Bench)]
+    end.
 
 get_searchable_fields(BenchInfo) ->
-    SearchFields = maps:with([status, script_name, start_time, finish_time], BenchInfo),
+    SearchFields = maps:with([id, status, script_name, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
     lists:map(fun (X) when is_atom(X) -> atom_to_list(X);
+                  (X) when is_integer(X) -> integer_to_list(X);
                   (X) -> X
               end, Values).
 
@@ -107,20 +146,14 @@ is_satisfy_filter(Query, BenchInfo) ->
 
 %% Pagination
 
-get_boundary(_, []) -> no_bound;
-get_boundary([H | _], [H | _]) -> no_bound;
+get_boundary(_, []) -> undefined;
+get_boundary([H | _], [H | _]) -> undefined;
 get_boundary(_, [ #{id:= Id} | _]) -> Id.
 
-prev_next_pager(BenchInfos, Paginated) ->
-    Pager = case get_boundary(BenchInfos, Paginated) of
-        no_bound -> #{};
-        MaxId -> #{prev => MaxId}
-    end,
-
-    case get_boundary(lists:reverse(BenchInfos), lists:reverse(Paginated)) of
-        no_bound -> Pager;
-        MinId -> Pager#{next => MinId}
-    end.
+get_page_boundaries(BenchInfos, Paginated) ->
+    MaxId = get_boundary(BenchInfos, Paginated),
+    MinId = get_boundary(lists:reverse(BenchInfos), lists:reverse(Paginated)),
+    {MinId, MaxId}.
 
 index_of(Id, List) -> index_of(Id, List, 1).
 
@@ -129,36 +162,33 @@ index_of(Id, [#{id:= Id}|_], Index) -> Index;
 index_of(Id, [_|Tl], Index) -> index_of(Id, Tl, Index+1).
 
 apply_pagination(Pagination, BenchInfos) ->
-    Limit = maps:get(<<"limit">>, Pagination, 20),
+    Limit = maps:get(<<"limit">>, Pagination, 10),
     MaxId = maps:get(<<"max_id">>, Pagination, undefined),
     MinId = maps:get(<<"min_id">>, Pagination, undefined),
     BenchId = maps:get(<<"bench_id">>, Pagination, undefined),
 
-    % check for bounds
-    Bounded = lists:filter(fun(BenchInfo) ->
-                               is_satisfy_bounds({MinId, MaxId}, BenchInfo)
-                           end, BenchInfos),
+    Bounded = apply_boundaries({MinId, MaxId}, BenchInfos, fun(A, B) -> A < B end),
+    Limited = apply_limit({BenchId, MinId, MaxId}, Limit, Bounded),
 
-    Paginated = pick_page_items({BenchId, MinId, MaxId}, Limit, Bounded),
+    PageBoundaries = get_page_boundaries(BenchInfos, Limited),
 
-    % Calculate pager for prev and next links on dashboards
-    Pager = prev_next_pager(BenchInfos, Paginated),
+    {Limited, PageBoundaries}.
 
-    {Paginated, Pager}.
-
-pick_page_items({BenchId, undefined, undefined}, Limit, Bounded) when is_integer(BenchId) ->
+apply_limit({BenchId, undefined, undefined}, Limit, Bounded) when is_integer(BenchId) ->
     Bounded1 = case index_of(BenchId, Bounded) of
         not_found -> Bounded;
         X when X =< Limit -> Bounded;
         X -> lists:nthtail(X-1, Bounded)
     end,
     lists:sublist(Bounded1, Limit);
-pick_page_items({undefined, MinId, undefined}, Limit, Bounded) when is_integer(MinId) ->
+apply_limit({undefined, MinId, undefined}, Limit, Bounded) when is_integer(MinId) ->
     lists:reverse(lists:sublist(lists:reverse(Bounded), Limit));
-pick_page_items(_, Limit, Bounded) ->
+apply_limit(_, Limit, Bounded) ->
     lists:sublist(Bounded, Limit).
 
-is_satisfy_bounds({MinId, MaxId}, #{id := Id}) ->
-    IsBelowMax = undefined == MaxId orelse Id < MaxId,
-    IsAboveMin = undefined == MinId orelse Id > MinId,
-    IsBelowMax andalso IsAboveMin.
+apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
+    lists:filter(fun(#{id := Id}) ->
+                     IsBelowMax = undefined == MaxId orelse Comparator(Id, MaxId),
+                     IsAboveMin = undefined == MinId orelse Comparator(MinId, Id),
+                     IsBelowMax andalso IsAboveMin
+                 end, BenchInfos).

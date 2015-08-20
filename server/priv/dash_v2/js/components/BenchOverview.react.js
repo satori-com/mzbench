@@ -2,7 +2,6 @@ import React, { PropTypes } from 'react';
 
 import Duration from './Duration.react';
 import BenchSummary from './BenchSummary.react';
-import BenchOverviewMetrics from './BenchOverviewMetrics.react';
 import BenchOverviewGraphs from './BenchOverviewGraphs.react';
 
 class BenchOverview extends React.Component {

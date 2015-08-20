@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner.react';
 class BenchMetrics extends React.Component {
     renderDownloadReportPanel() {
         return (
-            <div className="panel panel-default">
+            <div className="panel panel-default panel-report">
                 <div className="panel-heading">
                     <h3 className="panel-title">Download report&nbsp;
                     {this.props.bench.isRunning() ? <small>(enabled for finished benches only)</small> : null}
@@ -13,8 +13,8 @@ class BenchMetrics extends React.Component {
                 </div>
                 <div className="panel-body">
                     <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>Email</button>
-                    <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>Text</button>&nbsp;
-                    <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>CSV</button>&nbsp;
+                    <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>Text</button>
+                    <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>CSV</button>
                     <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>JSON</button>
                 </div>
             </div>
@@ -32,7 +32,7 @@ class BenchMetrics extends React.Component {
 
 }
 
-BenchGraphs.propTypes = {
+BenchMetrics.propTypes = {
     bench: React.PropTypes.object.isRequired
 }
 

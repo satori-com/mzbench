@@ -6,6 +6,7 @@ import BenchOverview from './BenchOverview.react';
 import BenchGraphs from './BenchGraphs.react';
 import BenchMetrics from './BenchMetrics.react';
 import BenchScenario from './BenchScenario.react';
+import BenchLog from './BenchLog.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import Highlight from './Highlight.react';
 import MetricWSConnector from './MetricWSConnector.react';
@@ -38,7 +39,7 @@ class Bench extends React.Component {
                 component = <BenchScenario bench = {this.state.bench} />;
                 break;
             case "logs":
-                component = null;
+                component = <BenchLog bench = {this.state.bench} />;
                 break;
             default:
                 component = <BenchOverview bench = {this.state.bench} />;

@@ -120,7 +120,7 @@ class Graph extends React.Component {
              return Object.assign(options, {target: target});
          };
 
-         var mask = findMask(target);
+         var mask = this._findMask(target);
 
          if (null != mask) {
              target = [

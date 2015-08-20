@@ -62,7 +62,7 @@ class BenchStore extends EventEmitter {
         benchmarks.sort((a, b) => b.id - a.id);
         data.benchmarks = benchmarks.map((b) => new Bench(b));
         data.isLoaded = true;
-        if (!data.selectedBenchId && (0 < data.benchmarks.length)) {
+        if (!this.getSelectedBench() && (0 < data.benchmarks.length)) {
             data.selectedBenchId = data.benchmarks[0].id;
         }
     }
