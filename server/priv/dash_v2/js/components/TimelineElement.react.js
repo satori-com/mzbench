@@ -19,8 +19,8 @@ class TimelineElement extends React.Component {
                         #{bench.id} {bench.script_name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                     </h6>
-                    <div><i className="ionicons ion-clock"></i> {moment.duration(duration).humanize()}</div>
-                    <div><i className="ionicons ion-calendar"></i> {moment(bench.start_time).format("lll")}</div>
+                    <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
+                    <div><i className="glyphicon glyphicon-calendar"></i> {moment(bench.start_time).format("lll")}</div>
                 </div>
             </a>
         );

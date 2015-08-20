@@ -17,10 +17,10 @@ class MZBenchApp extends React.Component {
         return (
             <div className="fluid-container">
                 <div className="row">
-                    <div className="col-xs-4 col-md-3 timeline-pane">
+                    <div className="col-xs-3 timeline-pane">
                         <Timeline />
                     </div>
-                    <div className="col-xs-7 col-md-8 bench-pane">
+                    <div className="col-xs-8 bench-pane">
                         <Bench />
                     </div>
                 </div>

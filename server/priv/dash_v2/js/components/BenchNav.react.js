@@ -6,7 +6,7 @@ class BenchNav extends React.Component {
         const tabs = {
             overview: "Overview",
             scenario: "Scenario",
-            metrics:  "Metrics",
+            reports:  "Reports",
             logs:     "Logs"
         };
 

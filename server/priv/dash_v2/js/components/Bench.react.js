@@ -4,7 +4,7 @@ import BenchStore from '../stores/BenchStore';
 import BenchNav from './BenchNav.react';
 import BenchOverview from './BenchOverview.react';
 import BenchGraphs from './BenchGraphs.react';
-import BenchMetrics from './BenchMetrics.react';
+import BenchReports from './BenchReports.react';
 import BenchScenario from './BenchScenario.react';
 import BenchLog from './BenchLog.react';
 import LoadingSpinner from './LoadingSpinner.react';
@@ -32,8 +32,8 @@ class Bench extends React.Component {
             case "graphs":
                 component = <BenchGraphs bench = {this.state.bench} />;
                 break;
-            case "metrics":
-                component = <BenchMetrics bench = {this.state.bench } />;
+            case "reports":
+                component = <BenchReports bench = {this.state.bench } />;
                 break;
             case "scenario":
                 component = <BenchScenario bench = {this.state.bench} />;
