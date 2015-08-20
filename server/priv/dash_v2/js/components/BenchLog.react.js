@@ -7,12 +7,15 @@ class BenchLog extends React.Component {
         const wsUrl = location.protocol + "//" + location.host + url;
 
         return (
-            <iframe
-                frameBorder="0"
-                src={url}
-                width="100%"
-                height="700"
-            />
+            <div>
+                <a href={url} target="_blank">Open in new window</a>
+                <iframe
+                    frameBorder="0"
+                    src={url}
+                    width="100%"
+                    height="700"
+                />
+            </div>
         );
     }
 }

@@ -1,7 +1,7 @@
 import moment from 'moment';
 import React, { PropTypes } from 'react';
 
-export class Duration extends React.Component {
+class Duration extends React.Component {
     constructor(props) {
         super(props);
         this.state = { duration: this._calculate(props.bench), timeout: undefined };

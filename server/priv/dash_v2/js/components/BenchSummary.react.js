@@ -2,6 +2,7 @@ import React, { PropTypes } from 'react';
 
 import moment from 'moment';
 import moment_df from 'moment-duration-format';
+import MZBenchRouter from '../utils/MZBenchRouter';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -28,11 +29,11 @@ class BenchSummary extends React.Component {
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
-                    <div className="col-md-6">
+                    <div className="col-xs-6">
                         <table className="table">
                             <tbody>
                                 <tr>
-                                    <th scope="row" className="col-md-2">Scenario</th>
+                                    <th scope="row" className="col-xs-2">Scenario</th>
                                     <td>#{bench.id} {bench.scenario}</td>
                                 </tr>
                                 <tr>
@@ -51,14 +52,16 @@ class BenchSummary extends React.Component {
                         </table>
                     </div>
 
-                    <div className="bench-actions col-md-offset-2 col-md-4">
+                    <div className="bench-actions col-xs-offset-2 col-xs-4">
                         <div className="text-right">
-                            <a type="button" className="btn btn-sm btn-danger" href="#/stop" disabled={!this.props.bench.isRunning()}>
+                            <a type="button" ref="stop" className="btn btn-sm btn-danger" href={MZBenchRouter.buildLink("/stop", {id: this.props.bench.id})}
+                                    disabled={!this.props.bench.isRunning()} onClick={this._onClick}>
                                 <span className="glyphicon glyphicon-minus-sign"></span> Stop
                             </a>
                         </div>
                         <div className="text-right">
-                            <a type="button" className="btn btn-sm btn-primary disable" href="#/restart">
+                            <a type="button" ref="restart" className="btn btn-sm btn-primary" href={MZBenchRouter.buildLink("/restart", {id: this.props.bench.id})}
+                                    disabled={this.props.bench.isRunning()} onClick={this._onClick}>
                                 <span className="glyphicon glyphicon-refresh"></span> Restart
                             </a>
                         </div>
@@ -66,6 +69,12 @@ class BenchSummary extends React.Component {
                 </div>
             </div>
         );
+    }
+
+    _onClick(event) {
+        let anchor = $(event.target).closest('a');
+        $.ajax({ url: anchor.attr('href') });
+        event.preventDefault();
     }
 }
 

@@ -71,7 +71,7 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     BenchInfos2 = apply_filter(Cmd, BenchInfos1),
     {TimelineItems, {MinId, MaxId}} = apply_pagination(Cmd, BenchInfos2),
 
-    KV = [{min_id, MinId}, {max_id, MaxId}],
+    KV = [{next, MinId}, {prev, MaxId}],
     Pager = maps:from_list([T || T = {K,V} <- KV, V /= undefined]),
 
     Event = #{
