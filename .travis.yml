@@ -30,13 +30,13 @@ script:
      error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      http-worker-tests) sudo pip install -r requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
-                       export MZBENCH_REPO=`git config --get remote.origin.url` &&
+                       export MZBENCH_REPO=`pwd` &&
                        cd workers/http &&
                        make && make check-local;;
      acceptance-*-tests) sudo pip install -r requirements.txt &&
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
-                       export MZBENCH_REPO=`git config --get remote.origin.url` &&
+                       export MZBENCH_REPO=`pwd` &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
      development-with-rsync) sudo pip install -r requirements.txt &&
