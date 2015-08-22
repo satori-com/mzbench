@@ -382,9 +382,9 @@ This statement works like [`{choose, <list>}`](#`{choose, <list>}`), but the sel
 
 Write `<text>` to the benchmark log.
 
-### `{sprintf, "<format>", <var1>, <var2>, ...}`
+### `{sprintf, "<format>", [<var1>, <var2>, ...]}`
 
-Write a formatted text to the benchmark log. See [Erlang fwrite/1](http://www.erlang.org/doc/man/io.html#fwrite-1) for a detailed description of the available formatting options.
+This statement is substituted with a formatted text. See [Erlang fwrite/1](http://www.erlang.org/doc/man/io.html#fwrite-1) for a detailed description of the available formatting options.
 
 ## Miscellaneous routines
 
