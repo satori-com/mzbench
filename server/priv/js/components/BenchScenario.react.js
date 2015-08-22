@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 import Highlight from './Highlight.react';
 
 class BenchScenario extends React.Component {
@@ -9,7 +9,10 @@ class BenchScenario extends React.Component {
             </Highlight>
         );
     }
-}
+};
 
+BenchScenario.propTypes = {
+    bench: React.PropTypes.object.isRequired
+};
 
 export default BenchScenario;

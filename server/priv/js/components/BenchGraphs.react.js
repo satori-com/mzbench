@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 import Graph from './Graph.react'
 import LoadingSpinner from './LoadingSpinner.react';
 
@@ -33,9 +33,10 @@ class BenchGraphs extends React.Component {
     }
 
     renderEmptyGroups() {
+        const link = `#/bench/${this.props.bench.id}/logs`;
         return (
             <div className="alert alert-warning" role="alert">
-                <strong>Oh snap!</strong> This bench hasn't recordered any metrics. See <a href="#">Logs</a> for the additional information.
+                <strong>Oh snap!</strong> This bench hasn't recordered any metrics. See <a href={link}>Logs</a> for the additional information.
             </div>
         );
     }
@@ -125,10 +126,10 @@ class BenchGraphs extends React.Component {
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
         this.setState({toggles: toggles});
     }
-}
+};
 
 BenchGraphs.propTypes = {
     bench: React.PropTypes.object.isRequired
-}
+};
 
 export default BenchGraphs;

@@ -1,5 +1,4 @@
-import React, { PropTypes } from 'react';
-import BenchTabs from '../constants/BenchTabs';
+import React from 'react';
 
 class BenchNav extends React.Component {
     render() {
@@ -21,7 +20,7 @@ class BenchNav extends React.Component {
             </ul>
         );
     }
-}
+};
 
 BenchNav.propTypes = {
     bench: React.PropTypes.object.isRequired,

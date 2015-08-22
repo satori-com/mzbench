@@ -1,4 +1,4 @@
-import React, { PropTypes, findDOMNode } from 'react';
+import React, { findDOMNode } from 'react';
 import Hjs from 'highlight.js';
 
 class Highlight extends React.Component {
@@ -24,10 +24,10 @@ class Highlight extends React.Component {
             </pre>
         );
     }
-}
+};
 
 Highlight.PropTypes = {
-    className: PropTypes.string
+    className: React.PropTypes.string
 };
 
 export default Highlight;

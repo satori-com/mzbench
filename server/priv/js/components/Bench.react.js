@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 
 import BenchStore from '../stores/BenchStore';
 import BenchNav from './BenchNav.react';
@@ -9,7 +9,6 @@ import BenchScenario from './BenchScenario.react';
 import BenchLog from './BenchLog.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import Highlight from './Highlight.react';
-import MetricWSConnector from './MetricWSConnector.react';
 
 class Bench extends React.Component {
     constructor(props) {
@@ -73,7 +72,6 @@ class Bench extends React.Component {
 
         return (
             <div key={this.state.bench.id}>
-                <MetricWSConnector bench={this.state.bench} />
                 <BenchNav bench={this.state.bench} selectedTab={this.state.tab} />
                 { this.renderActiveTab() }
             </div>

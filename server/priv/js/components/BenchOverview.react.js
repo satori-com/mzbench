@@ -1,14 +1,10 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 
 import Duration from './Duration.react';
 import BenchSummary from './BenchSummary.react';
 import BenchOverviewGraphs from './BenchOverviewGraphs.react';
 
 class BenchOverview extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
         return (
             <div>
@@ -20,8 +16,10 @@ class BenchOverview extends React.Component {
             </div>
         );
     }
-}
+};
 
-BenchOverview.propTypes = { bench: React.PropTypes.object.isRequired }
+BenchOverview.propTypes = {
+    bench: React.PropTypes.object.isRequired
+};
 
 export default BenchOverview;

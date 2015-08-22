@@ -1,5 +1,5 @@
+import React from 'react';
 import moment from 'moment';
-import React, { PropTypes } from 'react';
 
 class Duration extends React.Component {
     constructor(props) {
@@ -47,7 +47,7 @@ class Duration extends React.Component {
     render() {
         return (<div>{this.renderChildren()}</div>);
     }
-}
+};
 
 Duration.propTypes = {
     bench: React.PropTypes.object.isRequired

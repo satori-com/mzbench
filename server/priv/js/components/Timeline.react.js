@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 import BenchStore from '../stores/BenchStore';
 import TimelineElement from './TimelineElement.react';
 import TimelineFilter from './TimelineFilter.react';
@@ -115,6 +115,6 @@ class Timeline extends React.Component {
     _onChange() {
         this.setState(this._resolveState());
     }
-}
+};
 
 export default Timeline;
