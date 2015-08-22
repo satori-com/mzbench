@@ -18,6 +18,13 @@ console: generate
 js-dev: compile
 	erl -pa mzbench_api/ebin -pa mzbench_api/deps/*/ebin -eval 'application:ensure_all_started(mzbench_api)'
 
+.PHONY: jsbuild-auto
+jsbuild-auto:
+	cd priv && npm start
+
+.PHONY: jsbuild-prod
+jsbuild-prod:
+	cd priv && npm run build
 
 .PHONY: test-unit
 test-unit: compile
