@@ -1,13 +1,7 @@
-import Dispatcher from '../dispatcher/AppDispatcher';
-import Constants from '../constants/ActionTypes.js';
-import * as api from '../utils/bench_api_emulator'
-
-import MZBenchWS from '../utils/MZBenchWS';
 import BenchStore from '../stores/BenchStore';
-
-export function spawn(fn) {
-    setTimeout(fn.bind(this), 0);
-}
+import Constants from '../constants/ActionTypes';
+import Dispatcher from '../dispatcher/AppDispatcher';
+import MZBenchWS from '../utils/MZBenchWS';
 
 export default {
     subscribeBenchTimeline () {
@@ -67,21 +61,5 @@ export default {
 
     resetMetrics() {
         Dispatcher.dispatch({ type: Constants.METRIC_STORE_RESET });
-    },
-
-    subscribeMetrics(benchId) {
-        return api.subscribeMetrics({
-            params: {benchId: benchId}, // from
-            onData: (data) => {
-                Dispatcher.dispatch(data);
-            },
-            onClose: () => {
-                setTimeout(() => subscribeMetrics(benchId), 10000);
-            }
-        });
-    },
-
-    unsubscribeMetrics(ws) {
-        api.unsubscribeMetrics(ws);
     }
 }

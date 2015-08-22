@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 import moment from 'moment';
 
 class Graph extends React.Component {
@@ -94,8 +94,6 @@ class Graph extends React.Component {
         return pivot.join(".");
     }
 
-
-
     _truncateTargets(targets, threshold) {
         var length = 0;
         var result = targets.filter(function (value) {
@@ -132,19 +130,16 @@ class Graph extends React.Component {
 
          return Object.assign(options, {target: target});
     }
-}
-
+};
 
 Graph.propTypes = {
-    autoUpdate: React.PropTypes.bool,
-    autoUpdateInterval: React.PropTypes.number,
     url: React.PropTypes.string.isRequired,
     graphiteOpts: React.PropTypes.object,
+    autoUpdateInterval: React.PropTypes.number
 };
 
 Graph.defaultProps = {
     graphiteOpts: {},
-    autoUpdate: false,
     autoUpdateInterval: 10000
 };
 

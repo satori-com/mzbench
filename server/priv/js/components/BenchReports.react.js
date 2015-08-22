@@ -1,4 +1,4 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 
 import Modal from './Modal.react';
 
@@ -18,12 +18,12 @@ class BenchReports extends React.Component {
             <div className="panel panel-default panel-report">
                 <div className="panel-heading">
                     <h3 className="panel-title">Download report&nbsp;
-                    {this.props.bench.isRunning() ? <small>(enabled for finished benches only)</small> : null}
+                    {this.props.bench.isRunning() ? <small>(email report is enabled for finished benches only)</small> : null}
                     </h3>
                 </div>
                 <div className="panel-body">
                     <button className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()} onClick={this._openEmailReport}>Email</button>
-                    <a href={`/data?id=${this.props.bench.id}`} target="_blank" className="btn btn-primary" type="submit" disabled={this.props.bench.isRunning()}>Text</a>
+                    <a href={`/data?id=${this.props.bench.id}`} target="_blank" className="btn btn-primary" type="submit">Text</a>
                 </div>
 
                 <Modal ref="emailReportModal" onOk = {this._onSendEmailReport} title="Send Email Report">
@@ -62,10 +62,10 @@ class BenchReports extends React.Component {
     _onEmailChange(event) {
         this.setState({email: event.target.value});
     }
-}
+};
 
 BenchReports.propTypes = {
     bench: React.PropTypes.object.isRequired
-}
+};
 
 export default BenchReports;

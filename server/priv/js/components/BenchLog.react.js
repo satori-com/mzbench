@@ -3,8 +3,6 @@ import React from 'react';
 class BenchLog extends React.Component {
     render() {
         const url = '/logs?id='+this.props.bench.id;
-        const location = window.location;
-        const wsUrl = location.protocol + "//" + location.host + url;
 
         return (
             <div>
@@ -18,10 +16,10 @@ class BenchLog extends React.Component {
             </div>
         );
     }
-}
+};
 
 BenchLog.propTypes = {
     bench: React.PropTypes.object.isRequired
-}
+};
 
 export default BenchLog;

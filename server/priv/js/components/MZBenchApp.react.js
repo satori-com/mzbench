@@ -1,5 +1,4 @@
-import React, { PropTypes } from 'react';
-
+import React from 'react';
 import MZBenchActions from '../actions/MZBenchActions';
 import Timeline from './Timeline.react';
 import Bench from './Bench.react';
@@ -27,6 +26,6 @@ class MZBenchApp extends React.Component {
             </div>
         );
     }
-}
+};
 
 export default MZBenchApp;

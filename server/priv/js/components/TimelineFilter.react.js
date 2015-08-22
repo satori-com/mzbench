@@ -39,6 +39,6 @@ class TimelineFilter extends React.Component {
     _onChange(event) {
         this.setState({filter: event.target.value});
     }
-}
+};
 
 export default TimelineFilter;

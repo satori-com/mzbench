@@ -1,7 +1,3 @@
-import ActionTypes from '../constants/ActionTypes';
-import moment from 'moment';
-
-
 class MZBenchWS {
     constructor() {
         this.wsSocket = undefined;

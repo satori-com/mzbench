@@ -1,14 +1,9 @@
-import React, { PropTypes } from 'react';
-
-import moment from 'moment';
-import moment_df from 'moment-duration-format';
+import React from 'react';
 import MZBenchRouter from '../utils/MZBenchRouter';
+import moment from 'moment';
+import 'moment-duration-format';
 
 class BenchSummary extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     _labelCssClass(status) {
         switch (status) {
             case "complete":
@@ -76,7 +71,7 @@ class BenchSummary extends React.Component {
         $.ajax({ url: anchor.attr('href') });
         event.preventDefault();
     }
-}
+};
 
 BenchSummary.propTypes = {
     bench: React.PropTypes.object.isRequired
