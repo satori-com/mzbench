@@ -1,11 +1,11 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/2, pool_metrics/1, metrics/2, normalize/1, build_metric_groups_json/2]).
+-export([script_metrics/2, metrics/2, normalize/1, build_metric_groups_json/2]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
 script_metrics(Pools, Nodes) ->
-    PoolMetrics = lists:flatmap(fun pool_metrics/1, Pools),
+    PoolMetrics = pool_metrics(Pools),
 
     SystemLoadMetrics = mzb_system_load_monitor:metric_names(Nodes),
 
@@ -13,17 +13,17 @@ script_metrics(Pools, Nodes) ->
                           {graph, #{title => "Worker Status",
                                     metrics => [{"workers." ++ X, counter} || X <- ["started", "ended", "failed"]]}},
                           {graph, #{title => "Metric merging time",
-                                    units => "ms", 
+                                    units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}}
                       ]}],
 
-
     normalize(PoolMetrics ++ SystemLoadMetrics ++ MZBenchInternal).
 
-pool_metrics(Pool) ->
-    #operation{name = pool, args = [PoolOpts, _Script]} = Pool,
-    {Provider, Worker} = mzbl_script:extract_worker(PoolOpts),
-    Provider:metrics(Worker).
+pool_metrics(Pools) ->
+    PoolWorkers = [mzbl_script:extract_worker(PoolOpts) ||
+                   #operation{name = pool, args = [PoolOpts, _Script]} <- Pools],
+    UniqPoolWorkers = mzb_lists:uniq(PoolWorkers),
+    lists:flatten([Provider:metrics(Worker) || {Provider, Worker} <- UniqPoolWorkers]).
 
 metrics(Path, EnvFromClient) ->
     Script = mzbl_script:read(Path, EnvFromClient),
