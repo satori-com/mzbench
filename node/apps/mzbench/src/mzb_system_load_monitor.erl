@@ -36,9 +36,11 @@ metric_names(Nodes) ->
                   metrics => [{metric_name("la1", N), gauge} || N <- Nodes]}},
 
         {graph, #{title => "CPU",
+                  units => "%",
                   metrics => [{metric_name("cpu", N), gauge} || N <- Nodes]}},
 
         {graph, #{title => "RAM",
+                  units => "%",
                   metrics => [{metric_name("ram", N), gauge} || N <- Nodes]}},
 
         {graph, #{title => "Network transmit",
@@ -90,7 +92,7 @@ handle_info(trigger,
     end,
 
     {TotalMem, AllocatedMem, _} = memsup:get_memory_data(),
-    ok = mzb_metrics:notify({metric_name("ram"), gauge}, AllocatedMem / TotalMem),
+    ok = mzb_metrics:notify({metric_name("ram"), gauge}, (AllocatedMem / TotalMem) * 100),
 
     case os:type() of
         {unix, linux} ->
