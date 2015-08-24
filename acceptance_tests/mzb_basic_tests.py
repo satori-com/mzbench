@@ -70,7 +70,7 @@ def env_test():
 
 def poisson_worker_start_test():
     run_successful_bench(mzbench_dir + 'examples/worker_start_poisson.erl',
-        expected_log_message_regex='workers\.started\.rps = 1\.')
+        expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')
 
 
 def unicode_resources_test():
