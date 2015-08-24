@@ -5,7 +5,8 @@
     choose/1,
     choose/2,
     pmap/2,
-    enumerate/1
+    enumerate/1,
+    uniq/1
    ]).
 
 choose([]) -> erlang:error(badarg);
@@ -52,3 +53,13 @@ pmap_results([Ref|T], Res) ->
 
 enumerate(List) when is_list(List) ->
     lists:zip(lists:seq(0, length(List) - 1), List).
+
+uniq(List) when is_list(List) ->
+    uniq(List, [], sets:new()).
+
+uniq([], Result, _Set) -> lists:reverse(Result);
+uniq([X | Rest], Result, Set) ->
+    case sets:is_element(X, Set) of
+        false -> uniq(Rest, [X | Result], sets:add_element(X, Set));
+        true -> uniq(Rest, Result, Set)
+    end.
