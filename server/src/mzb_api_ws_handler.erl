@@ -100,8 +100,8 @@ normalize(BenchInfos) ->
                         end, BenchInfos),
     lists:map(fun normalize_bench/1, Sorted).
 
-normalize_bench({_Id, Status = #{config:= Config}}) ->
-    StatusFields =  maps:with([status, metrics, id], Status),
+normalize_bench({Id, Status = #{config:= Config}}) ->
+    StatusFields =  maps:with([status, metrics], Status),
 
     TimeFields = maps:fold(fun (K, V, AccIn) when is_number(V) ->
                                    maps:put(K, mzb_string:iso_8601_fmt(V), AccIn);
@@ -114,7 +114,7 @@ normalize_bench({_Id, Status = #{config:= Config}}) ->
     ScriptFields = #{script_body => ScriptBody, script_name => ScriptName},
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,
-                #{},
+                #{id => Id},
                 [StatusFields, TimeFields, ScriptFields]).
 
 %% Filtering
