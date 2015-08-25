@@ -295,19 +295,24 @@ terminate(Reason, #{id:= Id} = State) ->
       end),
     ok.
 
-handle_pipeline_status({start, Phase, Stage}, State) ->
+handle_pipeline_status(Info, State) ->
+    NewState = handle_pipeline_status_ll(Info, State),
+    gen_event:notify(mzb_api_firehose, {update_bench, status(NewState)}),
+    NewState.
+
+handle_pipeline_status_ll({start, Phase, Stage}, State) ->
     info("Stage '~s - ~s': started", [Phase, Stage], State),
     case Phase of
         pipeline -> State#{status => Stage};
         _ -> State
     end;
-handle_pipeline_status({complete, Phase, Stage}, State) ->
+handle_pipeline_status_ll({complete, Phase, Stage}, State) ->
     info("Stage '~s - ~s': finished", [Phase, Stage], State),
     State;
-handle_pipeline_status({exception, Phase, Stage, E, ST}, State) ->
+handle_pipeline_status_ll({exception, Phase, Stage, E, ST}, State) ->
     error("Stage '~s - ~s': failed~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
     State;
-handle_pipeline_status({final, Final}, State) ->
+handle_pipeline_status_ll({final, Final}, State) ->
     info("Bench final: ~s", [Final], State),
     State#{status => Final, finish_time => seconds()}.
 

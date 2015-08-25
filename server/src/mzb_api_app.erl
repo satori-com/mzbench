@@ -18,10 +18,11 @@ start(_Type, _Args) ->
 
     Dispatch = cowboy_router:compile([
         {'_', [
-            Static("fonts"),
             Static("css"),
-            Static("img"),
             Static("js"),
+            {"/",    cowboy_static, {priv_file, mzbench_api, "/index.html"}},
+            {"/dev", cowboy_static, {priv_file, mzbench_api, "/index.dev.html"}},
+            {"/ws", mzb_api_ws_handler, []},
             {'_', mzb_api_endpoints, []}
         ]}
     ]),
