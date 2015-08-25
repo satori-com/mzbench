@@ -8,6 +8,7 @@ Usage:
   mzbench restart_server [--config=<config>]
   mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>|--workers_per_node=<workers_per_node>]
+    [--nodes_file=<filename>]
     [(--email=<email> ...)]
     [(--env=<name=value>...)]
     [--node_commit=<commit>]
@@ -44,6 +45,9 @@ Options:
                      nodes needed so each node will run the requested number 
                      of workers. Beware that one additional node will be 
                      allocated for the director.
+    --nodes_file <filename>    
+                     Specify a file with hostnames of preallocated nodes
+                     separated by newline.
     --deallocate_after_bench <deallocate_after_bench>
                      Either "true" or "false". Default is "true". Setting
                      this to "false" results in worker nodes still being
@@ -430,6 +434,13 @@ def augment_args(args):
             args['--nodes'] = int(args['--nodes'])
         except ValueError:
             args['--nodes'] = args['--nodes'].split(',')
+
+    if args['--nodes_file'] is not None:
+        if not os.path.exists(args['--nodes_file']):
+            print("File '{0}' doesn't exist.".format(args['--nodes_file']), file=sys.stderr)
+            sys.exit(2)
+        with open(args['--nodes_file']) as fi:
+            args['--nodes'] = fi.read().split('\n')
     
     if args['--workers_per_node'] is not None:
         try:
