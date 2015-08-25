@@ -26,10 +26,9 @@ class Timeline extends React.Component {
     }
 
     renderClearSearchQueryIfNeeded() {
-        const query = BenchStore.getFilter();
-        const pager = BenchStore.getPager();
+        const pager = this.state.pager;
 
-        if (!query && undefined == pager.prev) {
+        if (!this.state.filter && undefined == pager.prev) {
             return null;
         }
 
@@ -44,9 +43,18 @@ class Timeline extends React.Component {
     }
 
     renderEmptyTimeline() {
+        if (this.state.filter) {
+            return (
+                <div className="alert alert-info" role="alert">
+                    No results matched your search.
+                </div>
+            );
+        }
+
         return (
             <div className="alert alert-info" role="alert">
-                No results matched your search.
+                There aren't any completed benchmarks. <br />
+                Use <a href="https://github.com/machinezone/mzbench#quickstart" target="_blank"><strong>Quickstart guide</strong></a> to create some benchmarks.
             </div>
         );
     }
@@ -66,14 +74,14 @@ class Timeline extends React.Component {
     }
 
     renderPrev(boundId) {
-        let link = MZBenchRouter.buildLink("#/timeline", { q: BenchStore.getFilter() || undefined, min_id: boundId});
+        let link = MZBenchRouter.buildLink("#/timeline", { q: this.state.filter || undefined, min_id: boundId});
         return (
             <li className="previous"><a href={link}><span aria-hidden="true">&larr;</span> Newer</a></li>
         );
     }
 
     renderNext(boundId) {
-        let link = MZBenchRouter.buildLink("#/timeline", { q: BenchStore.getFilter() || undefined, max_id: boundId});
+        let link = MZBenchRouter.buildLink("#/timeline", { q: this.state.filter || undefined, max_id: boundId});
         return (
             <li className="next"><a href={link}>Older <span aria-hidden="true">&rarr;</span></a></li>
         );
@@ -84,10 +92,11 @@ class Timeline extends React.Component {
             return this.renderLoadingSpinner();
         }
 
-        let pager = BenchStore.getPager();
+        const pager = this.state.pager;
+
         return (
             <div>
-                <TimelineFilter filter={BenchStore.getFilter()}/>
+                <TimelineFilter filter={this.state.filter}/>
                 {this.renderClearSearchQueryIfNeeded()}
                 {this.renderTimeline()}
                 <nav>
@@ -107,6 +116,8 @@ class Timeline extends React.Component {
 
         return {
             selectedBench: BenchStore.getSelectedBench(),
+            filter: BenchStore.getFilter(),
+            pager: BenchStore.getPager(),
             list: BenchStore.getBenchmarks(),
             isLoaded: true
         };
