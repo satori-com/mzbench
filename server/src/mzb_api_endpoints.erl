@@ -127,34 +127,6 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
              end, SortedBenchInfo),
     {ok, reply_json(200, #{data => Body}, Req), #{}};
 
-handle(<<"GET">>, <<"/graphs">>, Req) ->
-    with_bench_id(Req, fun(Id) ->
-        Status = mzb_api_server:status(Id),
-
-        #{metrics:= Metrics, start_time:= StartTime, finish_time:= FinishTime} = Status,
-
-        StartTimeIso = iso_8601_fmt(StartTime),
-        FinishTimeIso = case FinishTime of
-                            undefined -> "";
-                            T -> iso_8601_fmt(T)
-                        end,
-
-        JsonMetrics = jiffy:encode(Metrics),
-
-        {ok, HTML} = metrics_dtl:render([{metrics, JsonMetrics},
-                                         {bench_id, Id},
-                                         {start_time, StartTimeIso},
-                                         {finish_time, FinishTimeIso},
-                                         {refreshInterval, 30000} % refresh graphs each 30 seconds
-                                        ]),
-        {ok, cowboy_req:reply(200, [], HTML, Req), #{}}
-    end);
-
-handle(<<"GET">>, <<"/">>, Req) ->
-    {ok, HTML} = index_dtl:render([{refreshInterval, 30000}]),
-    Req2 = cowboy_req:reply(200, [], HTML, Req),
-    {ok, Req2, #{}};
-
 handle(Method, Path, Req) ->
     lager:error("Unknown request: ~p ~p~n~p", [Method, Path, Req]),
     erlang:error({not_found, io_lib:format("Wrong endpoint: ~p ~p", [Method, Path])}).
