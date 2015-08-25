@@ -5,6 +5,11 @@
          websocket_handle/3,
          websocket_info/3]).
 
+% export for tests
+-export([normalize/1,
+         apply_filter/2,
+         apply_pagination/2 ]).
+
 -record(state, {
           ref = undefined,
           timeline_opts = undefined,
