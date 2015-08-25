@@ -84,7 +84,7 @@ validate(Script, Env) ->
     end.
 
 nodename_gen() ->
-    {N1,N2,N3} = erlang:now(),
+    {N1,N2,N3} = os:timestamp(),
     Str = lists:flatten(io_lib:format("~p-~p~p", [N1,N2,N3])),
     erlang:list_to_atom(Str).
 

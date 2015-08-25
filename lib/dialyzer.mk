@@ -4,7 +4,7 @@ DEPS_PLT ?= deps.plt
 
 
 $(HOME)/.otp.plt:
-	dialyzer --output_plt $@ --build_plt --apps erts stdlib kernel crypto syntax_tools os_mon inets
+	dialyzer --output_plt $@ --build_plt --apps erts stdlib kernel crypto os_mon inets
 
 deps.plt: .make/deps-compiled
 	- dialyzer --output_plt $@ --build_plt $(BUILD_PLT_FLAGS) -pa deps/*/ebin
@@ -20,6 +20,8 @@ dialyzer.log: $(DEPS_PLT) $(HOME)/.otp.plt .make/compilation-up-to-date
 		--plts $(DEPS_PLT) $(HOME)/.otp.plt -- \
 		$(DIALYZABLE_EBINS)
 	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
+	-@perl -ne 'print if not /Unknown types/' -i dialyzer.log
+	-@perl -ne 'print if not /erl_syntax:syntaxTree/' -i dialyzer.log
 	-@perl -ne 'print if not /The call cowboy_req:reply\(200,Headers/' -i dialyzer.log
 	-@perl -ne 'print if not /mzb_python_worker/' -i dialyzer.log
 	-@perl -ne "print if not /The pattern {'error', UtilFailedReason} can never match the type float()/" -i dialyzer.log
