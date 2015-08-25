@@ -20,9 +20,9 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
             erlang:raise(C,E,ST)
     end.
 
-get_graphite_image_links(MetricInfo = #{<<"graphite_url">>:= GraphiteUrl,
-                                        <<"graphite_prefix">>:= GraphitePrefix,
-                                        <<"groups">>:= Groups}, BenchTime) ->
+get_graphite_image_links(#{<<"graphite_url">>:= GraphiteUrl,
+                           <<"graphite_prefix">>:= GraphitePrefix,
+                           <<"groups">>:= Groups}, BenchTime) ->
     [make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) || Group <- Groups,
                                                                           Graph <- maps:get(<<"graphs">>, Group, [])];
 get_graphite_image_links(_UnknownGraphite, _BenchTime) -> [].
