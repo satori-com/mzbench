@@ -2,9 +2,10 @@
 
 -export([start_link/5,
          notify/2,
+         get_value/1,
          get_graphite_host_and_port/1,
          get_graphite_url/1,
-         get_local_values/0,
+         get_local_values/1,
          final_trigger/0,
          get_metric_value/1,
          get_failed_asserts/0,
@@ -32,7 +33,8 @@
     previous_counter_values = [],
     last_rps_calculation_time = undefined,
     asserts = [],
-    active = true :: true | false
+    active = true :: true | false,
+    metrics = []
 }).
 
 -define(INTERVAL, 10000). % in ms
@@ -60,6 +62,12 @@ notify({Name, histogram}, Value) ->
 notify(Name, Value) ->
     notify({Name, counter}, Value).
 
+get_value(Metric) ->
+    case exometer:get_value([?GLOBALPREFIX, Metric], value) of
+        {ok, [{value, Value}]} -> Value;
+        {error, Reason} -> erlang:error({badarg, Metric, Reason})
+    end.
+
 final_trigger() ->
     gen_server:call(?MODULE, final_trigger, infinity),
     timer:sleep(?INTERVAL). % let reporters report last metric data
@@ -78,7 +86,7 @@ init([MetricsPrefix, Env, MetricGroups, Nodes, DirPid]) ->
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
     {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, MetricGroups),
     erlang:send_after(?INTERVAL, self(), trigger),
-    _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram} <- extract_metrics(MetricGroups)],
+    _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram, _} <- extract_metrics(MetricGroups)],
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     {ok, #s{
@@ -91,7 +99,8 @@ init([MetricsPrefix, Env, MetricGroups, Nodes, DirPid]) ->
         previous_counter_values = [],
         last_rps_calculation_time = StartTime,
         asserts = Asserts,
-        active = true
+        active = true,
+        metrics = extract_metrics(MetricGroups)
         }}.
 
 handle_call(final_trigger, _From, State) ->
@@ -139,19 +148,19 @@ tick(#s{last_tick_time = LastTick} = State) ->
     Now = os:timestamp(),
     TimeSinceTick = timer:now_diff(Now, LastTick),
     State1 = aggregate_metrics(State),
-    State2 = check_assertions(TimeSinceTick, State1),
-    State3 = check_signals(State2),
-    State3#s{last_tick_time = Now}.
+    State2 = evaluate_derived_metrics(State1),
+    State3 = check_assertions(TimeSinceTick, State2),
+    State4 = check_signals(State3),
+    State4#s{last_tick_time = Now}.
 
-aggregate_metrics(#s{nodes = Nodes} = State) ->
+aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     lager:info("[ metrics ] METRIC AGGREGATION:"),
-
     StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
         fun (N) ->
             lager:info("[ metrics ] Waiting for metrics from ~p...", [N]),
-            case rpc:call(N, mzb_metrics, get_local_values, []) of
+            case rpc:call(N, mzb_metrics, get_local_values, [Metrics]) of
                 {badrpc, Reason} ->
                     lager:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
                     erlang:error({request_metrics_failed, N, Reason});
@@ -171,9 +180,6 @@ aggregate_metrics(#s{nodes = Nodes} = State) ->
                 exometer:update_or_create([?GLOBALPREFIX, N], V, gauge, [])
         end, Aggregated),
 
-    lager:info("[ metrics ] Evaluating rates..."),
-    NewState = eval_rps(State),
-
     FinishTime = os:timestamp(),
     MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
 
@@ -183,6 +189,18 @@ aggregate_metrics(#s{nodes = Nodes} = State) ->
         gauge,
         []),
 
+    State.
+
+evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
+    lager:info("[ metrics ] Evaluating rates..."),
+    NewState = eval_rps(State),
+
+    lager:info("[ metrics ] Evaluating derived metrics..."),
+    DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
+    lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
+        Val = Provider:apply(Resolver, [], Worker),
+        exometer:update_or_create([?GLOBALPREFIX, Name], Val, gauge, [])
+    end, DerivedMetrics),
     lager:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
@@ -296,17 +314,18 @@ metric_name_suffix(M) ->
 drop_metric_suffix(M) ->
     string:join(lists:droplast(string:tokens(M, ".")), ".").
 
-get_local_values() ->
-    lager:info("[ local_metrics ] Getting local metric values on ~p... ", [node()]),
-    Metrics = exometer:find_entries([?LOCALPREFIX]),
+get_local_values(Metrics) ->
+    lager:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
     CountersAndGauges = lists:map(
-        fun({[?LOCALPREFIX, Name], Type, _Status}) ->
-            {ok, [{value, Value}]} = exometer:get_value([?LOCALPREFIX, Name], value),
-            {Name, Value, Type}
+        fun ({Name, Type, _}) ->
+            case exometer:get_value([?LOCALPREFIX, Name], value) of
+                {ok, [{value, Value}]} -> {Name, Value, Type};
+                {error, _} -> ok
+            end
         end,
-        Metrics),
-    _ = [ ok = exometer:reset(N) || {N, counter, _} <- Metrics ],
-    Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data()],
+        [M || {_, T, _} = M <- Metrics, (T == gauge) or (T == counter)]),
+    _ = [ exometer:reset([?LOCALPREFIX, N]) || {N, counter, _} <- Metrics ],
+    Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data([N || {N, histogram, _} <- Metrics])],
     lager:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
 
@@ -332,14 +351,17 @@ get_graphite_url(Env) ->
     end.
 
 extract_metrics(Groups) ->
-    [{Name, Type} || {group, _GroupName, Graphs} <- Groups,
-                     {graph, GraphOpts}          <- Graphs,
-                     {Name, Type, _Opts}         <- maps:get(metrics, GraphOpts, [])].
+    [{Name, Type, Opts} || {group, _GroupName, Graphs} <- Groups,
+                           {graph, GraphOpts}          <- Graphs,
+                           {Name, Type, Opts}          <- maps:get(metrics, GraphOpts, [])].
+
+is_derived_metric({_Name, derived, _}) -> true;
+is_derived_metric({_Name, _Type,   _}) -> false.
 
 extract_exometer_metrics(Groups) ->
     MetricGroups = build_metric_groups(Groups),
     Metrics = extract_metrics(MetricGroups),
-    Names = [Name || {Name, _Type} <- Metrics],
+    Names = [Name || {Name, _Type, _} <- Metrics],
     UniqueNames = lists:usort(Names),
     case erlang:length(Names) > erlang:length(UniqueNames) of
         true -> erlang:error({doubling_metric_names, Names -- UniqueNames});
@@ -362,7 +384,8 @@ build_metric_groups(Groups) ->
     lists:map(fun ({group, Name, Graphs}) ->
         NewGraphs = lists:flatmap(fun ({graph, Opts}) ->
             Metrics = maps:get(metrics, Opts, []),
-            MetricsGroups = build_metric_graphs(Metrics),
+            Metrics2 = lists:map(fun ({N, derived, O}) -> {N, gauge, O}; (M) -> M end, Metrics),
+            MetricsGroups = build_metric_graphs(Metrics2),
             [{graph, Opts#{metrics => MG}} || MG <- MetricsGroups]
         end, Graphs),
         {group, Name, NewGraphs}
@@ -399,8 +422,10 @@ flatten_exometer_metrics(BenchMetrics) ->
 init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
-    _ = lists:map(fun({Metric, Type}) ->
-            exometer:new([?GLOBALPREFIX, Metric], Type)
+    _ = lists:map(
+        fun ({Metric, counter, _}) -> exometer:new([?GLOBALPREFIX, Metric], counter);
+            ({Metric, gauge, _}) -> exometer:new([?GLOBALPREFIX, Metric], gauge);
+            ({_Metric, _, _}) -> ok
         end, ExometerMetrics),
 
     GraphiteReporterMonitorRef = case GraphiteHost of
@@ -438,7 +463,7 @@ datapoints(gauge)     -> [value].
 
 subscribe_exometer(Reporter, Metrics) ->
     lager:info("Subscribing reporter ~p to ~p.", [Reporter, Metrics]),
-    lists:foreach(fun ({Metric, Type}) ->
+    lists:foreach(fun ({Metric, Type, _}) ->
         exometer_report:subscribe(Reporter, [?GLOBALPREFIX, Metric], datapoints(Type), ?INTERVALNAME, [])
     end, Metrics),
     ok.

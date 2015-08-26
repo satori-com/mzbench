@@ -210,3 +210,4 @@ get_metric_names(Pools, Nodes) ->
         true -> [];
         false -> mzb_system_load_monitor:metric_names([erlang:node()])
     end.
+
