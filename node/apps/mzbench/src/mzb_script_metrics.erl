@@ -73,11 +73,15 @@ normalize(Seq) ->
                                            end, Seq),
 
     GrouplessNormalized = [normalize_graph(G) || G <- Groupless],
-    DefaultGroup = {group, "Default", GrouplessNormalized},
+    DefaultGroups =
+        case length(GrouplessNormalized) > 0 of
+            true -> [{group, "Default", GrouplessNormalized}];
+            false -> []
+        end,
 
     NormalizedGroup = [normalize_group(G) || G <- Grouped],
 
-    [DefaultGroup | NormalizedGroup].
+    DefaultGroups ++ NormalizedGroup.
 
 normalize_group({group, Name, Graphs}) ->
     NormalizedGraphs = [normalize_graph(G) || G <- Graphs],
