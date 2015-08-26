@@ -4,7 +4,7 @@
          create/1,
          create/2,
          notify/2,
-         get_and_remove_raw_data/0,
+         get_and_remove_raw_data/1,
          merge_histograms/2]).
 
 -behaviour(gen_server).
@@ -38,11 +38,12 @@ create(Nodes, Name) ->
         _ -> {error, Results}
     end.
 
-get_and_remove_raw_data() ->
+get_and_remove_raw_data(Metrics) ->
     ets:foldl(
         fun ({Name, Ref1, Ref2}, Acc) ->
-            case hdr_histogram:rotate(Ref1, Ref2) of
+            case lists:member(Name, Metrics) andalso hdr_histogram:rotate(Ref1, Ref2) of
                 Bin when is_binary(Bin) -> [{Name, Bin} | Acc];
+                false -> Acc;
                 {error, Reason} ->
                     erlang:error({hdr_histogram_rotate_error, Reason})
             end

@@ -3,6 +3,7 @@
 -export([
     load/1,
     init/1,
+    apply/3,
     apply/4,
     metrics/1,
     terminate/2,
@@ -37,7 +38,7 @@ init(Module) ->
     {Module, Module:initial_state()}.
 
 apply(F, Args, {Module, State}, Meta) ->
-    {Result, NewState} = apply(Module, F, [State, Meta | Args]),
+    {Result, NewState} = erlang:apply(Module, F, [State, Meta | Args]),
     {Result, {Module, NewState}}.
 
 terminate(Result, {Module, State}) ->
@@ -50,6 +51,9 @@ apply_if_exists(M, F, A) ->
     end.
 
 metrics(Module) -> Module:metrics().
+
+apply(F, Args, Module) ->
+    erlang:apply(Module, F, Args).
 
 %% backported from R17
 

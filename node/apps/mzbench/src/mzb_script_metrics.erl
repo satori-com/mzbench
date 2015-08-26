@@ -33,7 +33,14 @@ pool_metrics(Pools) ->
     PoolWorkers = [mzbl_script:extract_worker(PoolOpts) ||
                    #operation{name = pool, args = [PoolOpts, _Script]} <- Pools],
     UniqPoolWorkers = mzb_lists:uniq(PoolWorkers),
-    lists:append([Provider:metrics(Worker) || {Provider, Worker} <- UniqPoolWorkers]).
+    AddWorker = fun(MetricGroups, Worker) ->
+                    lists:map(fun ({group, Name, Graphs}) ->
+                        {group, Name, lists:map(fun ({graph, Opts = #{metrics:= Metrics}}) ->
+                            {graph, Opts#{metrics => [{N, T, O#{worker => Worker}} || {N, T, O} <- Metrics]}}
+                        end, Graphs)}
+                    end, MetricGroups)
+                end,
+    lists:append([AddWorker(normalize(P:metrics(W)), Worker) || {P, W} = Worker <- UniqPoolWorkers]).
 
 pool_name(Pool) ->
     #operation{name = pool, meta = Meta} = Pool,
@@ -120,7 +127,7 @@ build_metric_groups_json(ExometerGlobalPrefix, Groups) ->
 
             MetricMap = lists:flatmap(fun({Name, Type, Opts}) ->
                 DPs = [mzb_metrics:datapoint2str(DP) || DP <- mzb_metrics:datapoints(Type)],
-                Opts1 = maps:without([rps], Opts),
+                Opts1 = maps:without([rps, worker], Opts),
                 [Opts1#{name => (ExometerGlobalPrefix ++ "." ++ Name ++ "."++ S)} || S <- DPs]
             end, Metrics),
 
