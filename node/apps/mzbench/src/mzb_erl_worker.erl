@@ -29,7 +29,12 @@ validate_function(Module, Fn, Arity) ->
     end.
 
 load(Worker) ->
-    ok = load_config(Worker, application:get_env(mzbench, workers_dirs, [])),
+    WorkerStr = atom_to_list(Worker),
+    WorkerFiles = [filename:join([Dir, WorkerStr, "sys.config"]) ||
+                   Dir <- application:get_env(mzbench, workers_dirs, [])],
+    {ok, CurrentDir} = file:get_cwd(),
+    CurrentDirFiles = [filename:join([CurrentDir, "sys.config"])],
+    ok = load_config(WorkerFiles ++ CurrentDirFiles),
     {ok, _} = ensure_all_started(Worker),
     ok.
 
@@ -82,20 +87,20 @@ ensure_all_started(Application, Type, Started) ->
             {error, {Application, Reason}, Started}
     end.
 
-
-load_config(_, []) -> ok;
-load_config(Worker, [Dir|T]) ->
-    WorkerStr = atom_to_list(Worker),
-    File = filename:join([Dir, WorkerStr, "sys.config"]),
+load_config([]) ->
+    ok;
+load_config([File|T]) ->
     case file:consult(mzb_file:expand_filename(File)) of
         {ok, [Config]} ->
             lager:info("Reading configuration from ~s", [File]),
-            lists:foreach(fun ({App, Env}) ->
-                [application:set_env(App, Key, Val) || {Key, Val} <- Env]
-            end, Config);
+            lists:foreach(fun({App, Env}) ->
+                                  [application:set_env(App, Key, Val) || {Key, Val} <- Env]
+                          end, Config),
+            ok;
         {error, enoent} ->
-            lager:info("Worker ~p config file not found: ~p", [Worker, File]),
-            load_config(Worker, T);
+            lager:info("Config file not found: ~p", [File]),
+            load_config(T);
         {error, Reason} ->
             lager:error("Could not open file ~p, reason ~p", [File, Reason])
     end.
+
