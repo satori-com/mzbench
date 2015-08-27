@@ -18,11 +18,6 @@ def get_tuples(mlist, name):
         for x in get_tuples(list(mlist), name):
             yield x
 
-
-def get_packages(mlist):
-    return [x[1:] for x in get_tuples(mlist, "require_package")]
-
-
 def substitute_vars(term_tree_root, env):
 
     def cast_to_type_of(value, default_value):
