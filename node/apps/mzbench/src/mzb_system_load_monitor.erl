@@ -30,7 +30,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 metric_names(Nodes) ->
-    [{group, "System load metrics", [
+    [{group, "System Load", [
         {graph, #{title => "Load average",
                   units => "la1",
                   metrics => [{metric_name("la1", N), gauge} || N <- Nodes]}},
