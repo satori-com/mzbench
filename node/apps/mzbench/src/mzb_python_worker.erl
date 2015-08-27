@@ -3,6 +3,7 @@
 -export([
     load/1,
     init/1,
+    apply/3,
     apply/4,
     metrics/1,
     terminate/2,
@@ -36,30 +37,47 @@ load(_Worker) -> ok.
 -spec init(worker_name()) -> state().
 init(Worker) ->
     PythonInterpreter = start_python_interpreter(Worker),
-    ok = send_command(PythonInterpreter, "~s.initial_state()", [Worker]),
+    _ = send_command(PythonInterpreter, "~s.initial_state()", [Worker]),
     #state{
         worker_name         =   Worker,
         python_interpreter  =   PythonInterpreter
     }.
+
+-spec apply(Func :: atom(), Args :: [term()], Worker :: worker_name()) -> term().
+apply(Func, Args, Worker) ->
+    PythonInterpreter = start_python_interpreter(Worker),
+    try
+        execute_python_command(PythonInterpreter, Worker, Func, Args)
+    catch
+        _:Reason ->
+            stop_python_interpreter(PythonInterpreter),
+            erlang:error({python_apply_failed, {Func, Args, Worker}, Reason})
+    after
+        stop_python_interpreter(PythonInterpreter)
+    end.
+
 
 -spec apply(atom(), [term()], state(), term()) -> {term(), state()}.
 apply(Func, Args, #state{
                             worker_name         = Worker, 
                             python_interpreter  = PythonInterpreter
                         } = State, _Meta) ->
-    case execute_python_command(PythonInterpreter, Worker, Func, Args) of
-        ok -> {ok, State};
-        error ->
+    try
+        {execute_python_command(PythonInterpreter, Worker, Func, Args), State}
+    catch
+        _:Reason ->
             stop_python_interpreter(PythonInterpreter),
-            erlang:error(python_statement_failed)
+            erlang:error({python_apply_failed, {Func, Args, Worker}, Reason})
     end.
 
 -spec metrics(worker_name()) -> [term()].
 metrics(Worker) ->
     PythonInterpreter = start_python_interpreter(Worker),
-    Metrics = send_command(PythonInterpreter, "~s.metrics()", [Worker]),
-    stop_python_interpreter(PythonInterpreter),
-    Metrics.
+    try
+        mzb_script_metrics:normalize(send_command(PythonInterpreter, "~s.metrics()", [Worker]))
+    after
+        stop_python_interpreter(PythonInterpreter)
+    end.
 
 -spec terminate(term(), state()) -> ok.
 terminate(_Result, #state{python_interpreter = PythonInterpreter}) ->
@@ -68,15 +86,17 @@ terminate(_Result, #state{python_interpreter = PythonInterpreter}) ->
 -spec validate(worker_name()) -> [].
 validate(_WorkerName) -> [].
 
--spec validate_function(worker_name(), atom(), integer()) -> ok | false | bad_arity.
+-spec validate_function(worker_name(), atom(), integer()) -> ok | not_found | bad_arity.
 validate_function(Worker, Func, _Arity) ->
     PythonInterpreter = start_python_interpreter(Worker),
-    ModuleFuncs = send_command(PythonInterpreter, "mzbench._module_funcs(~s)", [Worker]),
-    stop_python_interpreter(PythonInterpreter),
-    
-    case lists:any(fun(FuncName) -> string:equal(FuncName, atom_to_list(Func)) end, ModuleFuncs) of
-        true -> ok;
-        false -> false
+    try
+        ModuleFuncs = send_command(PythonInterpreter,"mzbench._module_funcs(~s)", [Worker]),
+        case lists:member(atom_to_list(Func), ModuleFuncs) of
+            true -> ok;
+            false -> not_found
+        end
+    after
+        stop_python_interpreter(PythonInterpreter)
     end.
 
 %%%===================================================================
@@ -119,7 +139,7 @@ start_python_interpreter(Worker) ->
         metrics_pipe_name   = MetricsPipeName,
         python_port         = PythonPort
     },
-    
+    skip_port_messages(PythonPort, 3),
     port_command(PythonPort, "import sys; sys.ps1 = ''; sys.ps2 = ''\n"),   % Get rid of standard Python prompt
     port_command(PythonPort, "import os\n"),
     
@@ -129,8 +149,16 @@ start_python_interpreter(Worker) ->
     
     port_command(PythonPort, "import traceback\n"),
     port_command(PythonPort, "import mzbench\n"),
-    ok = send_command(PythonInterpreter, "import ~s", [Worker]),
+    port_command(PythonPort, mzb_string:format("import ~s\n", [Worker])),
     PythonInterpreter.
+
+skip_port_messages(_Port, 0) -> ok;
+skip_port_messages(Port, N) ->
+    lager:info("Waiting for messages from python shell"),
+    receive {Port, {data, {eol, M}}} -> lager:info("MSG: ~p", [M])
+    after 10000 -> ok
+    end,
+    skip_port_messages(Port, N - 1).
 
 -spec stop_python_interpreter(python_interpreter()) -> ok.
 stop_python_interpreter(#python_interpreter{
@@ -173,38 +201,32 @@ wait_python_stop(PythonPort, Acc) ->
 execute_python_command(PythonInterpreter, Worker, Func, Args) ->
     FuncName = atom_to_list(Func),
     ParamStr = string:join(lists:map(fun encode_for_python/1, Args), ", "),
-    
-    try
-        ok = send_command(PythonInterpreter, "~s.~s(~s)", [Worker, FuncName, ParamStr])
-    catch
-        _ -> error
-    end.
+    send_command(PythonInterpreter, "~s.~s(~s)", [Worker, FuncName, ParamStr]).
 
 -spec send_command(python_interpreter(), string(), [term()]) -> term().
 send_command(#python_interpreter{python_port = PythonPort} = PythonInterpreter, CmdTemplate, Args) ->
     port_command(PythonPort, io_lib:format("try:\n"
-        "    ~s\n"
-        "    mzbench._instruction_end()\n"
+        "    mzbench._instruction_end(~s)\n"
         "except:\n"
         "    traceback.print_exc()\n"
-        "    mzbench._instruction_failed()\n"
+        "    mzbench._instruction_failed(sys.exc_info())\n"
         "\n", 
         [io_lib:format(CmdTemplate, Args)])),
     read_python_output(PythonInterpreter).
 
 -spec read_python_output(python_interpreter()) -> term().
 read_python_output(PythonInterpreter) ->
-    read_python_output(PythonInterpreter, "", "", ok).
+    read_python_output(PythonInterpreter, "", "").
 
--spec read_python_output(python_interpreter(), string(), string(), term()) -> term().
+-spec read_python_output(python_interpreter(), string(), string()) -> term().
 read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = MetricsPipe} = PythonInterpreter, 
-                        PythonAcc, MetricsAcc, ReturnTerm) ->
+                        PythonAcc, MetricsAcc) ->
     receive
         {PythonPort, {data, {eol, Line}}} ->
             lager:info(PythonAcc ++ Line, []),
-            read_python_output(PythonInterpreter, "", MetricsAcc, ReturnTerm);
+            read_python_output(PythonInterpreter, "", MetricsAcc);
         {PythonPort, {data, {noeol, Line}}} ->
-            read_python_output(PythonInterpreter, PythonAcc ++ Line, MetricsAcc, ReturnTerm);
+            read_python_output(PythonInterpreter, PythonAcc ++ Line, MetricsAcc);
         {PythonPort, {exit_status, _Status}} ->
             case length(PythonAcc) of
                 0 -> ok;
@@ -215,14 +237,12 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
             erlang:error(python_interpreter_died);
         {MetricsPipe, {data, {eol, Line}}} ->
             case interpret_metrics_pipe(MetricsAcc ++ Line) of
-                execution_finished -> ReturnTerm;
-                execution_failed -> erlang:error(python_statement_failed);
-                {metrics_list, MetricsList} -> read_python_output(PythonInterpreter, PythonAcc, "", MetricsList);
-                {funcs_list, FuncsList} -> read_python_output(PythonInterpreter, PythonAcc, "", FuncsList);
-                continue -> read_python_output(PythonInterpreter, PythonAcc, "", ReturnTerm)
+                {execution_finished, Res} -> Res;
+                {execution_failed, Reason} -> erlang:error({python_statement_failed, Reason});
+                continue -> read_python_output(PythonInterpreter, PythonAcc, "")
             end;
         {MetricsPipe, {data, {noeol, Line}}} ->
-            read_python_output(PythonInterpreter, PythonAcc, MetricsAcc ++ Line, ReturnTerm);
+            read_python_output(PythonInterpreter, PythonAcc, MetricsAcc ++ Line);
         {MetricsPipe, closed} ->
             case length(MetricsAcc) of
                 0 -> ok;
@@ -241,35 +261,31 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
 % Currently existing messages:
 %   * T - function execution finished normally;
 %   * E - function execution finished with an error;
-%   * D - the "Data" carry a list of possible metrics;
 %   * M - metric notify ("Data" = {Metric, Value});
-%   * F - the "Data" carry a list of functions.
 -spec interpret_metrics_pipe(string()) -> execution_finished | execution_failed | {metrics_list, term()} | {funcs_list, term()} | continue.
 interpret_metrics_pipe(String) ->
-    case hd(String) of
-        $T -> execution_finished;
-        $E -> execution_failed;
-        $D ->
-            MetricsText = string:substr(String, 2),
-            {metrics_list, eval_erlang_term(MetricsText)};
-        $M ->
-            MetricUpdateText = string:substr(String, 2),
+    case String of
+        "T " ++ Result ->
+            {execution_finished, eval_erlang_term(Result)};
+        "E " ++ Reason ->
+            {execution_failed, Reason};
+        "M " ++ MetricUpdateText ->
             {Metric, Value} = eval_erlang_term(MetricUpdateText),
             _ = mzb_metrics:notify(Metric, Value),
             continue;
-        $F ->
-            FuncsListText = string:substr(String, 2),
-            FuncsList = eval_erlang_term(FuncsListText),
-            {funcs_list, FuncsList};
-        _ -> erlang:error(invalid_script_feedback)
+        _ -> erlang:error({invalid_script_feedback, String})
     end.
 
 -spec eval_erlang_term(string()) -> term().
 eval_erlang_term(String) ->
-    {ok, Tokens, _EndLine} = erl_scan:string(String),
-    {ok, AbsForm} = erl_parse:parse_exprs(Tokens),
-    {value, Value, _Bs} = erl_eval:exprs(AbsForm, erl_eval:new_bindings()),
-    Value.
+    try
+        {ok, Tokens, _EndLine} = erl_scan:string(String),
+        {ok, AbsForm} = erl_parse:parse_exprs(Tokens),
+        {value, Value, _Bs} = erl_eval:exprs(AbsForm, erl_eval:new_bindings()),
+        Value
+    catch
+        _:_ -> erlang:error({bad_erlang_term, String})
+    end.
 
 -spec encode_for_python(term()) -> string().
 encode_for_python(Term) when is_list(Term) -> "'" ++ encode_str_for_python(Term) ++ "'";

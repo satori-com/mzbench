@@ -6,13 +6,13 @@ def initial_state():
 
 
 def metrics():
-    mzbench.define_metrics([
+    return [
         [
             ('print', 'counter'), 
             ('print_2', 'counter')
         ], 
         ('dummy', 'histogram')
-    ])
+    ]
 
 
 def my_print(msg):
