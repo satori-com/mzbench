@@ -28,7 +28,7 @@ terminate(_Reason, _Req, #state{ref = Ref}) ->
 websocket_handle({text, Msg}, Req, State) ->
     case dispatch_request(jiffy:decode(Msg, [return_maps]), State) of
         {reply, Reply, NewState} ->
-            JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply)),
+            JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply), [force_utf8]),
             {reply, {text, JsonReply}, Req, NewState};
         {ok, NewState} ->
             {ok, Req, NewState}
@@ -40,7 +40,7 @@ websocket_handle(_Data, Req, State) ->
 websocket_info(Message, Req, State) ->
     case dispatch_info(Message, State) of
         {reply, Reply, NewState} ->
-            JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply)),
+            JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply), [force_utf8]),
             {reply, {text, JsonReply}, Req, NewState};
         {ok, NewState} ->
             {ok, Req, NewState}
