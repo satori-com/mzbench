@@ -3,15 +3,43 @@ from urllib import urlencode
 import json
 import os
 import sys
-
 import requests
-
 import multipart
 
+class MZBenchAPIException(Exception):
+    pass
+
 def start(host, script_file, script_content,
-         node_commit, nodes, deallocate_after_bench, provision_nodes, 
-         exclusive_node_usage, emails=[], includes=[], env={}
+         node_commit = None, nodes = None, deallocate_after_bench = None, provision_nodes = None,
+         exclusive_node_usage = None, emails=[], includes=[], env={}
         ):
+    """Starts a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param script_file: Scenario filename for dashboard
+    :type script_file: str or unicode
+    :param script_content: Scenario content to execute
+    :type script_content: str or unicode
+    :param node_commit: Commit or branch name for MZBench node, default is "master"
+    :type node_commit: str
+    :param nodes: Number of nodes to allocate or node list, 1 by default
+    :type nodes: int or list of strings
+    :param deallocate_after_bench: Deallocate nodes after bench is over
+    :type deallocate_after_bench: "true" or "false"
+    :param provision_nodes: Install required software
+    :type provision_nodes: "true" or "false"
+    :param exclusive_node_usage: Allocate exclusive nodes if allocator supports this mode
+    :type exclusive_node_usage: "true" or "false"
+    :param emails: Emails to notify on bench results
+    :type emails: List of strings
+    :param includes: List of files to include
+    :type includes: List of strings
+    :param env: Dictionary of environment variables to substitute
+    :type env: Dictionary
+    :returns: Operation status
+    :rtype: Dictionary
+    """
 
     if nodes is not None:
         if isinstance(nodes, int):
@@ -100,12 +128,10 @@ def stream_lines(host, endpoint, args):
         if response.status_code == 200:
             pass
         else:
-            print 'Server call to {0} failed with code {1}'.format(endpoint, response.status_code)
-            sys.exit(3)
+            raise MZBenchAPIException('Server call to {0} failed with code {1}'.format(endpoint, response.status_code))
 
     except requests.exceptions.ConnectionError as e:
-        print 'Connect to "{0}" failed with message: {1}'.format(host, e)
-        sys.exit(4)
+        raise MZBenchAPIException('Connect to "{0}" failed with message: {1}'.format(host, e))
 
 
 def assert_successful_request(perform_request):
@@ -121,11 +147,9 @@ def assert_successful_request(perform_request):
                     data = json.loads(response.text)
                     json.dump(data, sys.stdout, indent=4)
                 except:
-                    print response.text
-                sys.exit(2)
+                    raise MZBenchAPIException(response.text)
         except requests.exceptions.ConnectionError as e:
-            print 'Connect to "{0}" failed with message: {1}'.format(args[0], e)
-            sys.exit(4)
+            raise MZBenchAPIException('Connect to "{0}" failed with message: {1}'.format(args[0], e))
     return wrapped
 
 
