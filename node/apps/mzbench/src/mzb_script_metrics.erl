@@ -19,7 +19,7 @@ script_metrics(Pools, Nodes) ->
                         WorkerStatusGraphs ++
                         [
                           {graph, #{title => "Metric merging time",
-                                    units => "ms", 
+                                    units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}},
                           {graph, #{title => "Errors",
                                     metrics => [{"errors", counter}]}}
@@ -33,7 +33,7 @@ pool_metrics(Pools) ->
     PoolWorkers = [mzbl_script:extract_worker(PoolOpts) ||
                    #operation{name = pool, args = [PoolOpts, _Script]} <- Pools],
     UniqPoolWorkers = mzb_lists:uniq(PoolWorkers),
-    lists:flatten([Provider:metrics(Worker) || {Provider, Worker} <- UniqPoolWorkers]).
+    lists:append([Provider:metrics(Worker) || {Provider, Worker} <- UniqPoolWorkers]).
 
 pool_name(Pool) ->
     #operation{name = pool, meta = Meta} = Pool,
