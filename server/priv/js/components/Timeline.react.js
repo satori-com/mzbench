@@ -53,7 +53,7 @@ class Timeline extends React.Component {
 
         return (
             <div className="alert alert-info" role="alert">
-                There aren't any completed benchmarks. <br />
+                There aren't any benchmarks. <br />
                 Use <a href="https://github.com/machinezone/mzbench#quickstart" target="_blank"><strong>Quickstart guide</strong></a> to create some benchmarks.
             </div>
         );
