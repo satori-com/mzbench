@@ -112,7 +112,7 @@ create_fifo(Worker) ->
 
 -spec close_fifo(string(), port()) -> ok.
 close_fifo(FifoName, FifoPort) ->
-    port_close(FifoPort),
+    _ = (catch port_close(FifoPort)),
     _ = file:delete(FifoName),
     ok.
 
@@ -168,8 +168,8 @@ stop_python_interpreter(#python_interpreter{
                             metrics_pipe_name   = MetricsPipeName, 
                             python_port         = PythonPort
                         }) ->
-    port_command(PythonPort, "quit()\n"),
-    wait_python_stop(PythonPort),
+    _ = (catch port_command(PythonPort, "quit()\n")),
+    _ = (catch wait_python_stop(PythonPort)),
     close_fifo(MetricsPipeName, MetricsPipe).
 
 -spec wait_python_stop(port()) -> ok.
@@ -186,7 +186,7 @@ wait_python_stop(PythonPort, Acc) ->
             end,
             receive
                 {PythonPort, {exit_status, _Status}} ->
-                    port_close(PythonPort),
+                    _ = (catch port_close(PythonPort)),
                     ok
             end;
         {PythonPort, {data, {eol, Line}}} ->
@@ -195,7 +195,7 @@ wait_python_stop(PythonPort, Acc) ->
         {PythonPort, {data, {noeol, Line}}} ->
             wait_python_stop(PythonPort, Acc ++ Line)
     after 5000 ->
-        port_close(PythonPort),
+        _ = (catch port_close(PythonPort)),
         ok
     end.
 
@@ -207,13 +207,14 @@ execute_python_command(PythonInterpreter, Worker, Func, Args) ->
 
 -spec send_command(python_interpreter(), string(), [term()]) -> term().
 send_command(#python_interpreter{python_port = PythonPort} = PythonInterpreter, CmdTemplate, Args) ->
+    Command = mzb_string:format(CmdTemplate, Args),
     port_command(PythonPort, io_lib:format("try:\n"
         "    mzbench._instruction_end(~s)\n"
         "except:\n"
         "    traceback.print_exc()\n"
         "    mzbench._instruction_failed(sys.exc_info())\n"
         "\n", 
-        [io_lib:format(CmdTemplate, Args)])),
+        [Command])),
     read_python_output(PythonInterpreter).
 
 -spec read_python_output(python_interpreter()) -> term().
