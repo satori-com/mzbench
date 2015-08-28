@@ -102,6 +102,13 @@ handle(<<"GET">>, <<"/server_logs">>, Req) ->
     lager:set_loglevel(mzb_api_slogs_backend, self(), Severity),
     {cowboy_loop, Req2, #{lager_backend_id => Id}};
 
+handle(<<"GET">>, <<"/graphs">>, Req) ->
+    with_bench_id(Req, fun(Id) ->
+        Location = list_to_binary(mzb_string:format("/#/bench/~p/overview", [Id])),
+        Headers = [{<<"Location">>, Location}],
+        {ok, cowboy_req:reply(302, Headers, <<>>, Req), #{}}
+    end);
+
 handle(<<"GET">>, <<"/report.json">>, Req) ->
     BenchInfo = mzb_api_server:get_info(),
     SortedBenchInfo = lists:sort(fun ({IdA, _}, {IdB, _}) ->
