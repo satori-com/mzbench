@@ -139,14 +139,17 @@ start_python_interpreter(Worker) ->
         metrics_pipe_name   = MetricsPipeName,
         python_port         = PythonPort
     },
+
+    % skip version, copyright, etc
     skip_port_messages(PythonPort, 3),
+
     port_command(PythonPort, "import sys; sys.ps1 = ''; sys.ps2 = ''\n"),   % Get rid of standard Python prompt
     port_command(PythonPort, "import os\n"),
-    
+
     {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
     WorkersDirsStr = string:join(["'./src'" | [io_lib:format("os.path.expanduser('~s')", [filename:join(W, Worker)]) || W <- WorkerDirs]], ", "),
     port_command(PythonPort, io_lib:format("sys.path = sys.path + [~s]\n", [WorkersDirsStr])),
-    
+
     port_command(PythonPort, "import traceback\n"),
     port_command(PythonPort, "import mzbench\n"),
     port_command(PythonPort, mzb_string:format("import ~s\n", [Worker])),
@@ -154,8 +157,7 @@ start_python_interpreter(Worker) ->
 
 skip_port_messages(_Port, 0) -> ok;
 skip_port_messages(Port, N) ->
-    lager:info("Waiting for messages from python shell"),
-    receive {Port, {data, {eol, M}}} -> lager:info("MSG: ~p", [M])
+    receive {Port, {data, {eol, _}}} -> ok
     after 10000 -> ok
     end,
     skip_port_messages(Port, N - 1).
