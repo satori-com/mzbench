@@ -37,7 +37,7 @@ def lua_worker_from_git_test():
     run_successful_bench(
         scripts_dir + 'lua_worker_from_git.erl',
         env={'worker_branch': worker_commit,
-            'mzbench_repo': mzbench_repo})
+             'mzbench_repo':  mzbench_repo})
 
 
 def python_worker_from_git_test():
@@ -46,7 +46,7 @@ def python_worker_from_git_test():
     run_successful_bench(
         scripts_dir + 'python_worker_from_git.erl',
         env={'worker_branch': worker_commit,
-            'mzbench_repo': mzbench_repo})
+             'mzbench_repo':  mzbench_repo})
 
 
 def worker_from_git_test():
@@ -56,7 +56,7 @@ def worker_from_git_test():
     run_successful_bench(
         scripts_dir + 'worker_from_git.erl',
         env={'worker_branch': worker_commit,
-            'mzbench_repo': mzbench_repo})
+             'mzbench_repo':  mzbench_repo})
 
 
 def env_test():

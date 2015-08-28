@@ -26,6 +26,7 @@ def _encode_term(term):
     T = type(term)
     if   (list == T): return _encode_list(term)
     elif (tuple == T): return _encode_tuple(term)
+    elif (dict == T): return _encode_dict(term)
     elif (int == T): return _encode_num(term)
     elif (float == T): return _encode_num(term)
     elif (str == T): return _encode_str(term)
@@ -41,11 +42,17 @@ def _encode_tuple(l):
     return '{' + ', '.join([_encode_term(e) for e in l]) + '}'
 
 
+def _encode_dict(d):
+    return '#{' + ', '.join([ _encode_term(k) + '=>' + _encode_term(d[k]) for k in d]) + '}'
+
+
 def _encode_num(n):
     return str(n)
 
+
 def _encode_str(s):
     return '"{0}"'.format(s)
+
 
 def _encode_funcs_list(func_list):
     return '[' + ', '.join(['"{0}"'.format(e) for e in func_list]) + ']'
