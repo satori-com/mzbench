@@ -201,9 +201,8 @@ wait_python_stop(PythonPort, Acc) ->
 
 -spec execute_python_command(python_interpreter(), string(), atom(), [term()]) -> ok | error.
 execute_python_command(PythonInterpreter, Worker, Func, Args) ->
-    FuncName = atom_to_list(Func),
     ParamStr = string:join(lists:map(fun encode_for_python/1, Args), ", "),
-    send_command(PythonInterpreter, "~s.~s(~s)", [Worker, FuncName, ParamStr]).
+    send_command(PythonInterpreter, "~s.~s(~s)", [Worker, Func, ParamStr]).
 
 -spec send_command(python_interpreter(), string(), [term()]) -> term().
 send_command(#python_interpreter{python_port = PythonPort} = PythonInterpreter, CmdTemplate, Args) ->

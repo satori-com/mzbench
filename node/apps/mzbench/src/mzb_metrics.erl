@@ -198,8 +198,11 @@ evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
     lager:info("[ metrics ] Evaluating derived metrics..."),
     DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
-        Val = Provider:apply(Resolver, [], Worker),
-        exometer:update_or_create([?GLOBALPREFIX, Name], Val, gauge, [])
+        try Provider:apply(Resolver, [], Worker) of
+            Val -> exometer:update_or_create([?GLOBALPREFIX, Name], Val, gauge, [])
+        catch
+            _:Reason -> lager:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
+        end
     end, DerivedMetrics),
     lager:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
