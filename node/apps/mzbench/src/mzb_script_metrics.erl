@@ -104,16 +104,22 @@ normalize_graph(UnknownFormat) ->
 normalize_metric({Name, Type}) when is_list(Name), is_list(Type) ->
     {Name, list_to_atom(Type)};
 normalize_metric({Name, Type, Opts}) when is_list(Name), is_list(Type) ->
-    {Name, list_to_atom(Type), Opts};
+    {Name, list_to_atom(Type), normalize_metric_opts(Opts)};
 normalize_metric({Name, Type}) when is_list(Name),
                                     is_atom(Type) ->
-    {Name, Type, #{}};
-normalize_metric(Metric = {Name, Type, Opts}) when is_list(Name),
+    {Name, Type, normalize_metric_opts(#{})};
+normalize_metric({Name, Type, Opts}) when is_list(Name),
                                                    is_atom(Type),
                                                    is_map(Opts) ->
-    Metric;
+    {Name, Type, normalize_metric_opts(Opts)};
 normalize_metric(UnknownFormat) ->
     erlang:error({unknown_metric_format, UnknownFormat}).
+
+normalize_metric_opts(#{} = Opts) ->
+    maps:from_list(lists:map(
+        fun ({K, V}) when is_list(K) -> {list_to_atom(K), V};
+            ({K, V}) when is_atom(K) -> {K, V}
+        end, maps:to_list(Opts))).
 
 maybe_append_rps_units(GraphOpts, Metrics) ->
     IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not maps:get(rps, Opts, false)]),
