@@ -137,15 +137,21 @@ normalize_positive_test() ->
         {group, "Subscribers", [
             {graph, #{metrics => [{"sub", counter, #{}}]}}
         ]}
-    ], NormalizedMetrics).
+    ], NormalizedMetrics),
+
+
+    NormalizedMetrics2 = mzb_script_metrics:normalize([[{"foo", "counter"}]]),
+    ?assertEqual([
+        {group, "Default", [
+            {graph, #{metrics => [{"foo", counter, #{}}]}}
+        ]}], NormalizedMetrics2).
 
 normalizetion_negative_test() ->
     ?assertError({unknown_group_format, {group, foo, bar, zoh}},
                  mzb_script_metrics:normalize([{group, foo, bar, zoh}])),
     ?assertError({unknown_graph_format, #{foo := bar}},
-                 mzb_script_metrics:normalize([#{foo => bar}])),
-    ?assertError({unknown_metric_format, {"foo", "counter"}},
-                 mzb_script_metrics:normalize([[{"foo", "counter"}]])).
+                 mzb_script_metrics:normalize([#{foo => bar}])).
+
 
 build_graphite(Prefix, Metrics) ->
     Normalized = mzb_script_metrics:normalize(Metrics),

@@ -102,7 +102,7 @@ normalize_graph(UnknownFormat) ->
     erlang:error({unknown_graph_format, UnknownFormat}).
 
 normalize_metric({Name, Type}) when is_list(Name), is_list(Type) ->
-    {Name, list_to_atom(Type)};
+    normalize_metric({Name, list_to_atom(Type)});
 normalize_metric({Name, Type, Opts}) when is_list(Name), is_list(Type) ->
     {Name, list_to_atom(Type), normalize_metric_opts(Opts)};
 normalize_metric({Name, Type}) when is_list(Name),
