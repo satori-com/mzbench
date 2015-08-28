@@ -221,7 +221,7 @@ read_python_output(PythonInterpreter) ->
     read_python_output(PythonInterpreter, "", "").
 
 -spec read_python_output(python_interpreter(), string(), string()) -> term().
-read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = MetricsPipe} = PythonInterpreter, 
+read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = MetricsPipe} = PythonInterpreter,
                         PythonAcc, MetricsAcc) ->
     receive
         {PythonPort, {data, {eol, Line}}} ->
@@ -239,6 +239,17 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
             erlang:error(python_interpreter_died);
         {MetricsPipe, {data, {eol, Line}}} ->
             case interpret_metrics_pipe(MetricsAcc ++ Line) of
+                {call, {M, F, A}} ->
+                    {Res, Content} = try
+                        {"OK", erlang:apply(M, F, A)}
+                    catch
+                        _:Error ->
+                            {"ERROR", mzb_string:format("~p", [Error])}
+                    end,
+                    Str = encode_for_python(Content),
+                    LineNum = length(string:tokens(Str, "\n")),
+                    port_command(PythonPort, io_lib:format("~s~n~b~n~s~n", [Res, LineNum, Str])),
+                    read_python_output(PythonInterpreter, PythonAcc, "");
                 {execution_finished, Res} -> Res;
                 {execution_failed, Reason} -> erlang:error({python_statement_failed, Reason});
                 continue -> read_python_output(PythonInterpreter, PythonAcc, "")
@@ -261,12 +272,15 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
 % The "Marker" is a character identifying the message and the "Data" is an optional erlang term.
 %
 % Currently existing messages:
+%   * C - call erlang function
 %   * T - function execution finished normally;
 %   * E - function execution finished with an error;
 %   * M - metric notify ("Data" = {Metric, Value});
 -spec interpret_metrics_pipe(string()) -> execution_finished | execution_failed | {metrics_list, term()} | {funcs_list, term()} | continue.
 interpret_metrics_pipe(String) ->
     case String of
+        "C " ++ MFA ->
+            {call, eval_erlang_term(MFA)};
         "T " ++ Result ->
             {execution_finished, eval_erlang_term(Result)};
         "E " ++ Reason ->
