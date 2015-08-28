@@ -24,7 +24,8 @@ def _module_funcs(module_name):
 
 def _encode_term(term):
     T = type(term)
-    if   (list == T): return _encode_list(term)
+    if   (term is None): return "undefined"
+    elif (list == T): return _encode_list(term)
     elif (tuple == T): return _encode_tuple(term)
     elif (dict == T): return _encode_dict(term)
     elif (int == T): return _encode_num(term)
