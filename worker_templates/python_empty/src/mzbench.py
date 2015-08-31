@@ -31,7 +31,6 @@ def _instruction_failed((t, o, st)):
 
 def _module_funcs(module_name):
     return dir(module_name)
-    #_mzbench_pipe.write("F {0}.\n".format(_encode_term(FuncList)))
 
 def _read_call_result():
     res = sys.stdin.readline().rstrip()
