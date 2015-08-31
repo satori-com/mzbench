@@ -8,6 +8,8 @@ class TimelineFilter extends React.Component {
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onChange = this._onChange.bind(this);
         this.state = {filter: this.props.filter};
+        this.autoSearchInterval = 500;
+        this.autoSearchHandler = null;
     }
 
     componentWillReceiveProps(nextProps) {
@@ -30,9 +32,13 @@ class TimelineFilter extends React.Component {
     }
 
     _onKeyDown(event) {
+        var runSearch = () => MZBenchRouter.navigate("/timeline", {q: this.state.filter});
         if (event.key === 'Enter') {
             event.preventDefault();
-            MZBenchRouter.navigate("/timeline", {q: this.state.filter});
+            runSearch();
+        } else {
+            if (this.autoSearchHandler) clearTimeout(this.autoSearchHandler);
+            this.autoSearchHandler = setTimeout(runSearch, this.autoSearchInterval);
         }
     }
 
