@@ -67,9 +67,12 @@ class BenchSummary extends React.Component {
     }
 
     _onClick(event) {
-        let anchor = $(event.target).closest('a');
-        $.ajax({ url: anchor.attr('href') });
         event.preventDefault();
+
+        let anchor = $(event.target).closest('a');
+        if (!anchor.attr('disabled')) {
+            $.ajax({url: anchor.attr('href')});
+        }
     }
 };
 
