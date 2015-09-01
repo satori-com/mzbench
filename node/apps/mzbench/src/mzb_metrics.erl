@@ -375,9 +375,10 @@ extract_exometer_metrics(Groups) ->
 get_exometer_metrics({Name, counter, Opts}) ->
     RateOpts = Opts#{rps => true},
     [[{Name, counter, Opts}], [{Name ++ ".rps", gauge, RateOpts}]];
-
-get_exometer_metrics(Metric = {_, gauge, _}) ->
-    [[Metric]];
+get_exometer_metrics({Name, gauge, Opts}) ->
+    [[{Name, gauge, Opts}]];
+get_exometer_metrics({Name, derived, Opts}) ->
+    [[{Name, gauge, Opts}]];
 get_exometer_metrics({Name, histogram, Opts}) ->
     DPs = [datapoint2str(DP) || DP <- datapoints(histogram)],
     Suffixes = ["." ++ DP || DP <- DPs],
@@ -387,15 +388,14 @@ build_metric_groups(Groups) ->
     lists:map(fun ({group, Name, Graphs}) ->
         NewGraphs = lists:flatmap(fun ({graph, Opts}) ->
             Metrics = maps:get(metrics, Opts, []),
-            Metrics2 = lists:map(fun ({N, derived, O}) -> {N, gauge, O}; (M) -> M end, Metrics),
-            MetricsGroups = build_metric_graphs(Metrics2),
+            MetricsGroups = build_metric_graphs(Metrics),
             [{graph, Opts#{metrics => MG}} || MG <- MetricsGroups]
         end, Graphs),
         {group, Name, NewGraphs}
     end, Groups).
 
 build_metric_graphs(Group) ->
-    NotCountersAndGauges = [M || M = {_Name, T, _Opts} <- Group, T /= counter, T /= gauge],
+    NotCountersAndGauges = [M || M = {_Name, T, _Opts} <- Group, T /= counter, T /= gauge, T /= derived],
     Policy = case NotCountersAndGauges of
         [] -> counters_and_gauges;
         _  -> all_in_one_group
@@ -408,7 +408,7 @@ build_metric_graphs(Group, counters_and_gauges) ->
                                     (Cnt, Acc) -> [A ++ B || {A, B} <- lists:zip(Acc, Cnt)]
                                 end, [], Counters),
 
-    Gauges = flatten_exometer_metrics([M || M = {_Name, gauge, _Opts} <- Group]),
+    Gauges = flatten_exometer_metrics([M || M = {_Name, T, _Opts} <- Group, T == gauge orelse T == derived]),
 
     case CounterGroups of
         [] -> [ Gauges ];
@@ -426,9 +426,8 @@ init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(
-        fun ({Metric, counter, _}) -> exometer:new([?GLOBALPREFIX, Metric], counter);
-            ({Metric, gauge, _}) -> exometer:new([?GLOBALPREFIX, Metric], gauge);
-            ({_Metric, _, _}) -> ok
+        fun ({Metric, Type, _Opts}) -> 
+                exometer:new([?GLOBALPREFIX, Metric], Type)
         end, ExometerMetrics),
 
     GraphiteReporterMonitorRef = case GraphiteHost of
