@@ -36,6 +36,7 @@ validate_expr(#operation{} = Op, Worker) ->
     case Op of
         #operation{name = undefined} ->
             AddLocation(["Empty instruction."]);
+        #operation{name = parallel, args = Body} -> ValidateList(Body);
         #operation{name = loop, args = [Spec, Body]} ->
             validate_loopspec(Spec, mzbl_script:meta_to_location_string(Meta)) ++
             ValidateList(Body);
