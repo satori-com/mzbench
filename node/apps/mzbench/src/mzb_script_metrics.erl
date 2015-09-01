@@ -1,6 +1,6 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/2, metrics/2, normalize/1, build_metric_groups_json/2]).
+-export([script_metrics/2, metrics/2, normalize/1, build_metric_groups_json/1]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
@@ -54,7 +54,7 @@ metrics(Path, EnvFromClient) ->
 
     ScriptMetrics = script_metrics(Pools, Nodes),
 
-    MetricJson = #{ groups => build_metric_groups_json("mzb", ScriptMetrics) },
+    MetricJson = #{ groups => build_metric_groups_json(ScriptMetrics) },
 
     MetricJson1 = case mzb_metrics:get_graphite_url(Env) of
         undefined -> MetricJson;
@@ -133,7 +133,7 @@ maybe_append_rps_units(GraphOpts, Metrics) ->
         _ -> GraphOpts
     end.
 
-build_metric_groups_json(ExometerGlobalPrefix, Groups) ->
+build_metric_groups_json(Groups) ->
     MetricGroups = mzb_metrics:build_metric_groups(Groups),
     lists:map(fun ({group, GroupName, Graphs}) ->
         NewGraphs = lists:map(fun ({graph, GraphOpts}) ->
@@ -142,7 +142,7 @@ build_metric_groups_json(ExometerGlobalPrefix, Groups) ->
             MetricMap = lists:flatmap(fun({Name, Type, Opts}) ->
                 DPs = [mzb_metrics:datapoint2str(DP) || DP <- mzb_metrics:datapoints(Type)],
                 Opts1 = maps:without([rps, worker], Opts),
-                [Opts1#{name => (ExometerGlobalPrefix ++ "." ++ Name ++ "."++ S)} || S <- DPs]
+                [Opts1#{name => (Name ++ "."++ S)} || S <- DPs]
             end, Metrics),
 
             GraphOpts1 = maybe_append_rps_units(GraphOpts, Metrics),
