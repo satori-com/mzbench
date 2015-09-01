@@ -2,9 +2,6 @@
 
 -export([get_graphite_image_links/2, get_metrics/5]).
 
--define(HISTOGRAM_DATAPOINTS, ["max", "min", "mean", "50", "75", "90", "95", "99", "999"]).
--define(DEVIATION_DATAPOINTS, ["50", "75", "90", "95", "99", "999"]).
-
 get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
     [Res] = mzb_subprocess:remote_cmd(
               UserName,
