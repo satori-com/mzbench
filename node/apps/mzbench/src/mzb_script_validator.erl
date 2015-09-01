@@ -102,6 +102,14 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
       end).
 
 validate_worker_start_type(undefined) -> [];
+validate_worker_start_type(#operation{name = pow, args = [Y, W, #constant{value = N, units = ms}]})
+    when is_number(N), N > 0, is_number(Y), Y > 0, is_number(W), W > 0 -> [];
+validate_worker_start_type(#operation{name = pow}) ->
+    [mzb_string:format("Invalid pow parameters (should be two positive numbers followed by time constant)", [])];
+validate_worker_start_type(#operation{name = exp, args = [X, #constant{value = N, units = ms}]})
+    when is_number(N), N > 0, is_number(X), X > 1 -> [];
+validate_worker_start_type(#operation{name = exp}) ->
+    [mzb_string:format("Invalid exp parameters (should be X > 1 followed by time constant)", [])];
 validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) when is_number(N), N > 0 -> [];
 validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) ->
     [mzb_string:format("Invalid poisson parameter lambda (should be positive number): ~p", [N])];

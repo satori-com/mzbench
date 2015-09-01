@@ -150,7 +150,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     WorkerStarter =
         erlang:spawn_monitor(fun () ->
             Node = node(),
-            lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes),
+            lists:map(fun(N) -> worker_start_delay(StartDelay, NumNodes, N),
                             WId = N * NumNodes + Offset,
                             WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}, {pool_size, Size2}]),
                             gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2})
@@ -186,14 +186,18 @@ maybe_report_error(Pid, {error, Reason}) ->
 maybe_report_error(Pid, {exception, Node, {_C, E, ST}}) ->
     lager:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p", [Pid, Node, E, ST]).
 
-worker_start_delay(undefined, _) -> ok;
-worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, units = rps}]}, Factor) ->
+worker_start_delay(undefined, _, _) -> ok;
+worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, units = rps}]}, Factor, _) ->
     % The time between each pair of consecutive events has an exponential
     % distribution with parameter λ and each of these inter-arrival times
     % is assumed to be independent of other inter-arrival times.
     % (http://en.wikipedia.org/wiki/Poisson_process)
     SleepTime = -(1000*Factor*math:log(random:uniform()))/Lambda,
     timer:sleep(erlang:round(SleepTime));
-worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor) ->
-    timer:sleep(1000*Factor div RPS).
-
+worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor, _) ->
+    timer:sleep(1000*Factor div RPS);
+worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N) ->
+    timer:sleep(erlang:round(T*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))/F));
+worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0) -> ok;
+worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N) ->
+    timer:sleep(erlang:round(T*(math:log((N+1)*math:exp(1)/X) - math:log(N*math:exp(1)/X))/F)).
