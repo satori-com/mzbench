@@ -49,7 +49,7 @@ populate_graph(#operation{name = FName, args = [L], meta = Meta},
     case NewVertices of
         [] -> ParallelVertex;
         [H | T] -> EndParallelVertex = add_and_connect(FName, finish, Meta, H, G),
-                   lists:map(fun(X) -> digraph:add_edge(G, X, EndParallelVertex) end, T),
+                   _ = lists:map(fun(X) -> digraph:add_edge(G, X, EndParallelVertex) end, T),
                    EndParallelVertex
     end;
 populate_graph(#operation{name = loop, args = [_, Body]},
