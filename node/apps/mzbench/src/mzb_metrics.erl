@@ -43,7 +43,6 @@
 %% report metrics with 5-secs interval to avoid gaps on graphs due to interval's trigger inaccuracy
 -define(GRAPHITE_INTERVAL, 5000).
 -define(LOCALPREFIX, "local").
--define(GLOBALPREFIX, "mzb").
 -define(INTERVALNAME, report_interval).
 
 %%%===================================================================
@@ -63,7 +62,7 @@ notify(Name, Value) ->
     notify({Name, counter}, Value).
 
 get_value(Metric) ->
-    case exometer:get_value([?GLOBALPREFIX, Metric], value) of
+    case exometer:get_value([Metric], value) of
         {ok, [{value, Value}]} -> Value;
         {error, Reason} -> erlang:error({badarg, Metric, Reason})
     end.
@@ -175,16 +174,16 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     lager:info("[ metrics ] Updating metric values in exometer..."),
     lists:foreach(
         fun ({N, V, counter}) ->
-                exometer:update_or_create([?GLOBALPREFIX, N], V, counter, []);
+                exometer:update_or_create([N], V, counter, []);
             ({N, V, gauge}) ->
-                exometer:update_or_create([?GLOBALPREFIX, N], V, gauge, [])
+                exometer:update_or_create([N], V, gauge, [])
         end, Aggregated),
 
     FinishTime = os:timestamp(),
     MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
 
     ok = exometer:update_or_create(
-        [?GLOBALPREFIX, "metric_merging_time"],
+        ["metric_merging_time"],
         MergingTime,
         gauge,
         []),
@@ -199,7 +198,7 @@ evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
     DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
         try Provider:apply(Resolver, [], Worker) of
-            Val -> exometer:update_or_create([?GLOBALPREFIX, Name], Val, gauge, [])
+            Val -> exometer:update_or_create([Name], Val, gauge, [])
         catch
             _:Reason -> lager:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
         end
@@ -241,10 +240,10 @@ check_signals(#s{nodes = Nodes} = State) ->
     State.
 
 format_global_metrics() ->
-    Metrics = exometer:find_entries([?GLOBALPREFIX]),
+    Metrics = global_metrics(),
     Lines = lists:map(
-        fun({[?GLOBALPREFIX, Name], _Type, _Status}) ->
-            {ok, [{value, Value}]} = exometer:get_value([?GLOBALPREFIX, Name], value),
+        fun({[Name], _Type, _Status}) ->
+            {ok, [{value, Value}]} = exometer:get_value([Name], value),
             io_lib:format("~s = ~p", [Name, Value])
         end,
         Metrics),
@@ -266,7 +265,7 @@ get_metric_value(Metric) ->
         catch
             _:_ -> erlang:list_to_atom(Suffix)
         end,
-    case exometer:get_value([?GLOBALPREFIX, drop_metric_suffix(Metric)], DataPoint) of
+    case exometer:get_value([drop_metric_suffix(Metric)], DataPoint) of
         {ok, [{_, Value}]} -> {ok, Value};
         _ -> {error, not_found}
     end.
@@ -277,14 +276,14 @@ eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = 
     case TimeInterval > 1000000 of
         false -> State;
         true ->
-            Counters = [N || {[_, N], counter, _} <- exometer:find_entries([?GLOBALPREFIX])],
+            Counters = [N || {[N], counter, _} <- global_metrics()],
             NewData = lists:foldl(
                 fun (Metric, Acc) ->
                     NewMetric = Metric ++ ".rps",
                     Old = proplists:get_value(NewMetric, Acc, 0),
-                    {ok, [{value, New}]} = exometer:get_value([?GLOBALPREFIX, Metric], value),
+                    {ok, [{value, New}]} = exometer:get_value([Metric], value),
                     HitsPerSecond = ((New - Old) * 1000000) / TimeInterval,
-                    ok = exometer:update_or_create([?GLOBALPREFIX, NewMetric], HitsPerSecond, gauge, []),
+                    ok = exometer:update_or_create([NewMetric], HitsPerSecond, gauge, []),
                     lists:keystore(NewMetric, 1, Acc, {NewMetric, New})
                 end, PreviousData, Counters),
             State#s{previous_counter_values = NewData, last_rps_calculation_time = Now}
@@ -427,7 +426,7 @@ init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
 
     _ = lists:map(
         fun ({Metric, Type, _Opts}) -> 
-                exometer:new([?GLOBALPREFIX, Metric], Type)
+            exometer:new([Metric], Type)
         end, ExometerMetrics),
 
     GraphiteReporterMonitorRef = case GraphiteHost of
@@ -466,6 +465,10 @@ datapoints(gauge)     -> [value].
 subscribe_exometer(Reporter, Metrics) ->
     lager:info("Subscribing reporter ~p to ~p.", [Reporter, Metrics]),
     lists:foreach(fun ({Metric, Type, _}) ->
-        exometer_report:subscribe(Reporter, [?GLOBALPREFIX, Metric], datapoints(Type), ?INTERVALNAME, [])
+        exometer_report:subscribe(Reporter, [Metric], datapoints(Type), ?INTERVALNAME, [])
     end, Metrics),
     ok.
+
+global_metrics() ->
+     [M || {[_], _, _} = M <- exometer:find_entries([])].
+
