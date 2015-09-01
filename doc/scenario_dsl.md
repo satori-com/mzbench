@@ -332,7 +332,11 @@ This statement is substituted with the numerical value of the environment variab
 
 This statement is substituted with the numerical value of the environment variable `<string>` or `<default>` if this variable wasn't defined.
 
-## Parallel jobs synchronization
+## Parallel jobs and synchronization
+
+### `{parallel, [<statement>]}`
+
+Execute statements in parallel.
 
 ### `{set_signal, <term> [, <count>]}`
 

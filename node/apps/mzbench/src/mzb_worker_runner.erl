@@ -65,6 +65,9 @@ eval_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     WorkerProvider:apply(Name, Params, NextState, Meta).
 
+eval_std_function(parallel, [Body], _, State, Env, WorkerProvider) ->
+    [R | _] = mzb_lists:pmap(fun (E) -> eval_expr(E, State, Env, WorkerProvider) end, Body), R;
+
 eval_std_function(loop, [LoopSpec, Body], _, State, Env, WorkerProvider) ->
     {LoopSpec2, NextState} =
     lists:foldl(

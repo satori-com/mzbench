@@ -25,6 +25,8 @@ fold(Fun, Acc, #operation{args = Args} = Op) ->
     fold(Fun, Fun(Op, Acc), Args);
 fold(Fun, Acc, L) when is_list(L) ->
     lists:foldl(fun(X, Acc2) -> fold(Fun, Acc2, X) end, Acc, L);
+fold(Fun, Acc, #constant{value = Val} = C) ->
+    fold(Fun, Fun(C, Acc), Val);
 fold(Fun, Acc, C) ->
     Fun(C, Acc).
 
