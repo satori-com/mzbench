@@ -50,6 +50,8 @@ init([Id, Params]) ->
         {ok, [_|_] = List} -> List;
         _ -> application:get_env(mzbench_api, vm_args, undefined)
     end,
+    #{name := ScriptName} = maps:get(script, Params),
+    MetricPrefix = mzbl_script:get_benchname(ScriptName) ++ ".0",
     Config = #{
         id => Id,
         nodes_arg => maps:get(nodes, Params),
@@ -57,7 +59,7 @@ init([Id, Params]) ->
         purpose => Purpose,
         node_git => application:get_env(mzbench_api, mzbench_git, undefined),
         node_commit => maps:get(node_commit, Params),
-        env => generate_bench_env(Params),
+        env => generate_bench_env(MetricPrefix, Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
         exclusive_node_usage => maps:get(exclusive_node_usage, Params),
@@ -176,10 +178,11 @@ handle_stage(pipeline, starting_collectors, #{config:= Config} = State) ->
     fun (S) -> S#{collectors => LogsCollectors ++ MetricsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+    #{user_name:= UserName, director_host:= DirectorHost, script:= Script, env:= Env} = Config,
+    Prefix = proplists:get_value(<<"graphite_prefix">>, Env),
     [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
     MetricsMap = mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv),
-    fun (S) -> S#{metrics => MetricsMap} end;
+    fun (S) -> S#{metrics => MetricsMap#{<<"graphite_prefix">> => Prefix}} end;
 
 handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
@@ -368,11 +371,12 @@ add_env([H | T], Env) ->
         {ok, V} -> [{list_to_binary(atom_to_list(H)), list_to_binary(V)} | add_env(T, Env)]
     end.
 
-generate_bench_env(Params) ->
+generate_bench_env(MetricPrefix, Params) ->
     Env = maps:get(env, Params),
     Script = maps:get(script, Params),
     #{name := ScriptName} = Script,
-    Env2 = [{<<"mzb_script_name">>, list_to_binary(ScriptName)} | Env],
+    Env2 = [{<<"mzb_script_name">>, list_to_binary(ScriptName)},
+            {<<"graphite_prefix">>, list_to_binary(MetricPrefix)}| Env],
 
     case proplists:get_value(<<"graphite">>, Env2) of
         undefined -> add_env([graphite, graphite_api_key, graphite_url], Env2);

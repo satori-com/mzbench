@@ -71,9 +71,14 @@ handle_cast({start_pools, _Pools, _Env, []}, State) ->
     {stop, empty_nodes, State};
 handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid, bench_name = BenchName} = State) ->
     Metrics = get_metric_names(Pools, Nodes),
+    Prefix =
+        case proplists:get_value("graphite_prefix", Env) of
+            undefined -> BenchName;
+            P -> P
+        end,
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [BenchName, Env, Metrics, Nodes, self()]},
+         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes, self()]},
          transient, 5000, worker, [mzb_metrics]}),
     {noreply, State#state{
         pools = start_pools(Pools, Env, Nodes, [])

@@ -59,8 +59,7 @@ metrics(Path, EnvFromClient) ->
     MetricJson1 = case mzb_metrics:get_graphite_url(Env) of
         undefined -> MetricJson;
         GraphiteUrl ->
-            MetricJson#{ graphite_prefix => BenchName,
-                         graphite_url => GraphiteUrl }
+            MetricJson#{ graphite_url => GraphiteUrl }
     end,
 
     mzb_string:str_to_bstr(MetricJson1).
