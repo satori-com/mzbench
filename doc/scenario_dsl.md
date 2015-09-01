@@ -135,6 +135,14 @@ Indicates to the system that the jobs must be started at a rate defined by a Poi
 
 By default, all the jobs are started at the same time.
 
+#### `{worker_start, {exp, <W>, <time>}}`
+
+In this case <W> workers are expected to start in a given period of <time> with k*E^Time function.
+
+#### `{worker_start, {pow, <N>, <W>, <time>}}`
+
+In this case <W> workers are expected to start in a given period of <time> with k*Time^N function.
+
 # Conditions
 
 Some statements take a boolean condition as an argument. Such a condition is defined by a triplet. The first element is an atom that defines the used comparison operation. The possible operations are:
