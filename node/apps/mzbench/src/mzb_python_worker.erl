@@ -65,7 +65,7 @@ apply(Func, Args, #state{
 metrics(Worker) ->
     Python = mzb_py:start_interpreter(Worker),
     try
-        mzb_script_metrics:normalize(mzb_py:apply(Python, Worker, metrics, []))
+        mzb_py:apply(Python, Worker, metrics, [])
     after
         mzb_py:stop_interpreter(Python)
     end.
