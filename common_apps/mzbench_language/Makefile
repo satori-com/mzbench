@@ -1,5 +1,5 @@
 
-REBAR := $(abspath $(shell which ../../bin/rebar || which rebar))
+REBAR := $(abspath $(shell which ../../bin/rebar3 || which rebar3))
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find src include test -name .eunit -prune -o -name ebin -prune -o -type f -print)
@@ -21,17 +21,9 @@ clean:
 	rm -rf tmp
 	$(REBAR) clean
 
-.make/deps-cloned: rebar.config
-	rm -rf deps && $(REBAR) get-deps
-	PATH="$$PWD/../../bin:$$PATH" make -C deps/mzbench_utils clean
-	mkdir -p .make && touch $@
-
-.make/deps-compiled: .make/deps-cloned
+.make/compilation-up-to-date: $(SOURCES) rebar.config
 	$(REBAR) compile
-	mkdir -p .make && touch $@
-
-.make/compilation-up-to-date: .make/deps-compiled $(SOURCES)
-	$(REBAR) compile skip_deps=true
+	make -C _build/default/deps/jiffy
 	mkdir -p .make && touch $@
 
 -include ../../lib/dialyzer.mk
