@@ -11,6 +11,7 @@ const defaultData = {
     currentPage: new Map(),
     isLoaded: false,
     selectedBenchId: undefined,
+    isShowTimelineLoadingMask: false,
     activeTab: undefined
 };
 
@@ -90,6 +91,10 @@ class BenchStore extends EventEmitter {
         return data.isLoaded;
     }
 
+    isShowTimelineLoadingMask() {
+        return data.isShowTimelineLoadingMask;
+    }
+
     getFilter() {
         return data.filter;
     }
@@ -116,6 +121,7 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
         case ActionTypes.INIT_TIMELINE:
             _BenchStore.loadAll(action.data);
             data.pager = action.pager;
+            data.isShowTimelineLoadingMask = false;
             _BenchStore.emitChange();
             break;
 
@@ -129,8 +135,13 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             _BenchStore.emitChange();
             break;
 
-        case ActionTypes.CLEAN_TIMELINE:
-            data = defaultData;
+        case ActionTypes.SHOW_TIMELINE_LOADING_MASK:
+            data.isShowTimelineLoadingMask = true;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.HIDE_TIMELINE_LOADING_MASK:
+            data.isShowTimelineLoadingMask = false;
             _BenchStore.emitChange();
             break;
 

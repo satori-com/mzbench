@@ -16,13 +16,16 @@ export default {
             },
             onmessage: (data) => {
                 Dispatcher.dispatch(data);
+            },
+            onclose: () => {
+                this.hideTimelineLoadingMask();
             }
         });
     },
 
     applyQueryParameters(opts) {
         if (undefined !== opts.q) {
-            Dispatcher.dispatch({ type: Constants.SET_FILTER, data: opts.q });
+            this.setFilter(opts.q);
         }
 
         let currentPage = new Map();
@@ -32,10 +35,24 @@ export default {
         Dispatcher.dispatch({ type: Constants.SET_CURRENT_PAGE, data: currentPage });
     },
 
+    setFilter(query) {
+        Dispatcher.dispatch({ type: Constants.SET_FILTER, data: query });
+    },
+
+    hideTimelineLoadingMask() {
+        Dispatcher.dispatch({ type: Constants.HIDE_TIMELINE_LOADING_MASK });
+    },
+
+    showTimelineLoadingMask() {
+        if (MZBenchWS.isConnected() && BenchStore.isLoaded()) {
+            Dispatcher.dispatch({ type: Constants.SHOW_TIMELINE_LOADING_MASK });
+        }
+    },
+
     getTimeline(opts) {
         Object.assign(opts, {cmd: "get_timeline"});
 
-        Dispatcher.dispatch({ type: Constants.CLEAN_TIMELINE });
+        this.showTimelineLoadingMask();
 
         opts.q = BenchStore.getFilter();
 
@@ -52,7 +69,6 @@ export default {
 
     selectBenchById (benchId) {
         Dispatcher.dispatch({ type: Constants.SELECT_BENCH_BY_ID, data: benchId });
-
     },
 
     selectActiveTab(tab) {

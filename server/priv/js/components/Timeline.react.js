@@ -43,7 +43,7 @@ class Timeline extends React.Component {
     }
 
     renderEmptyTimeline() {
-        if (this.state.filter) {
+        if (this.state.isTimelineLoading || this.state.filter) {
             return (
                 <div className="alert alert-info" role="alert">
                     No results matched your search.
@@ -59,10 +59,11 @@ class Timeline extends React.Component {
         );
     }
 
-    renderTimeline() {
+    renderTimelineBody() {
         if (0 == this.state.list.length) {
             return this.renderEmptyTimeline();
         }
+
         return this.state.list.map((bench) => {
             let isSelected = this.state.selectedBench && this.state.selectedBench.id == bench.id;
             return (
@@ -71,6 +72,15 @@ class Timeline extends React.Component {
                 </Duration>
             );
         });
+    }
+
+    renderTimeline() {
+        return (
+            <div className="timeline-body">
+                { this.state.isTimelineLoading ? <div className="load-mask" /> : null }
+                { this.renderTimelineBody() }
+            </div>
+        );
     }
 
     renderPrev(boundId) {
@@ -119,6 +129,7 @@ class Timeline extends React.Component {
             filter: BenchStore.getFilter(),
             pager: BenchStore.getPager(),
             list: BenchStore.getBenchmarks(),
+            isTimelineLoading: BenchStore.isShowTimelineLoadingMask(),
             isLoaded: true
         };
     }
