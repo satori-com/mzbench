@@ -4,7 +4,7 @@ class MZBenchWS {
     }
 
     connect(url, callbacks) {
-        let {onopen, onmessage} = callbacks;
+        let {onopen, onmessage, onclose} = callbacks;
 
         let location = window.location;
         let protocol = "https:" == location.protocol ? "wss:" : "ws:";
@@ -18,6 +18,7 @@ class MZBenchWS {
 
         socket.onclose = (event) => {
             this.wsSocket = undefined;
+            if (onclose) { onclose(); }
             setTimeout(() => this.connect(url, callbacks), 10000);
         };
 
@@ -41,11 +42,15 @@ class MZBenchWS {
     }
 
     send(data) {
-        if (this.wsSocket && (this.wsSocket.readyState == WebSocket.OPEN)) {
+        if (this.isConnected()) {
             this.wsSocket.send(JSON.stringify(data));
         } else {
             console.log("WebSocket is not connected");
         }
+    }
+
+    isConnected() {
+        return this.wsSocket && (this.wsSocket.readyState == WebSocket.OPEN);
     }
 
     close() {
