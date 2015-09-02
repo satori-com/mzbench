@@ -51,7 +51,7 @@ init([Id, Params]) ->
         _ -> application:get_env(mzbench_api, vm_args, undefined)
     end,
     #{name := ScriptName} = maps:get(script, Params),
-    MetricPrefix = mzbl_script:get_benchname(ScriptName) ++ ".0",
+    MetricPrefix = generate_graphite_prefix(mzbl_script:get_benchname(ScriptName)),
     NodeInstallSpec =
         case application:get_env(mzbench_api, mzbench_rsync, undefined) of
             undefined ->
@@ -683,4 +683,10 @@ deflate_process(Filename) ->
                 D()
         end
     end ().
+
+generate_graphite_prefix(BenchName) ->
+    Threshold = application:get_env(mzbench_api, graphite_prefixes_num, undefined),
+    _ = ets:insert_new(graphite_prefixes, {BenchName, -1}),
+    N = ets:update_counter(graphite_prefixes, BenchName, {2, 1, Threshold - 1, 0}),
+    mzb_string:format("~s.~b", [BenchName, N]).
 

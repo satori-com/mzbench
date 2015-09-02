@@ -55,6 +55,7 @@
         {tgz_packages_dir, "../../packages"},
         {server_configs, ["~/.config/mzbench/server.config", "/etc/mzbench/server.config"]},
         {max_bench_num, 1000},
-        {vm_args, []}
+        {vm_args, []},
+        {graphite_prefixes_num, 3}
     ]}
 ]}.
