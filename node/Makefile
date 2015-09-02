@@ -3,7 +3,7 @@ SECOND_ARG := $(wordlist 2,2,$(MAKECMDGOALS))
 
 .SILENT: new-worker
 
-REBAR := $(abspath $(shell which ../bin/rebar || which rebar))
+REBAR := $(abspath $(shell which ../bin/rebar3 || which rebar3))
 SERVICE_PREFIX=/mz
 SERVICE_NAME=mzbench
 SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
@@ -62,7 +62,7 @@ generate_tgz: generate
 
 .PHONY: clean
 clean:
-	$(REBAR) clean skip_deps=true
+	$(REBAR) clean
 	rm -rf .make
 	rm -rf *.rpm
 	rm -rf *.tgz
@@ -89,18 +89,9 @@ rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltoo
 	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
 	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
 
-.make/deps-cloned: rebar.config $(MZBENCH_COMMON_SOURCES)
-	rm -rf deps && $(REBAR) --quiet get-deps
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_language clean
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_utils clean
-	mkdir -p .make && touch $@
-
-.make/deps-compiled: .make/deps-cloned
-	$(REBAR) --quiet compile
-	mkdir -p .make && touch $@
-
-.make/compilation-up-to-date: .make/deps-compiled $(SOURCES) .make/git-rev-$(GIT_HEAD)
-	$(REBAR) compile skip_deps=true
+.make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
+	$(REBAR) compile
+	make -C _build/default/deps/jiffy
 	mkdir -p .make && touch $@
 
 .make/git-rev-$(GIT_HEAD):
