@@ -193,21 +193,7 @@ build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger) ->
     _ = mzb_subprocess:remote_cmd(User, [Host], GenerationCmd, [], Logger),
     ok.
 
-install_node(Hosts, Config, Logger) ->
-    InstallSpec =
-        case application:get_env(mzbench_api, mzbench_rsync, undefined) of
-            undefined ->
-                #{node_git:= GitRepo, node_commit:= GitBranch} = Config,
-                Logger(info, "Node repo: ~s ~s", [GitRepo, GitBranch]),
-                Branch = case GitBranch of
-                    undefined ->
-                        {ok, GitRev} = application:get_key(mzbench_api, vsn),
-                        GitRev;
-                    _ -> GitBranch
-                end,
-                mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
-            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
-        end,
+install_node(Hosts, #{node_install_spec:= InstallSpec} = Config, Logger) ->
     install_package(
         Hosts,
         "node",

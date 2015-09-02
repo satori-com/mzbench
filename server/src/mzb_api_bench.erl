@@ -52,13 +52,26 @@ init([Id, Params]) ->
     end,
     #{name := ScriptName} = maps:get(script, Params),
     MetricPrefix = mzbl_script:get_benchname(ScriptName) ++ ".0",
+    NodeInstallSpec =
+        case application:get_env(mzbench_api, mzbench_rsync, undefined) of
+            undefined ->
+                GitRepo = application:get_env(mzbench_api, mzbench_git, undefined),
+                GitBranch = maps:get(node_commit, Params),
+                Branch = case GitBranch of
+                    undefined ->
+                        {ok, GitRev} = application:get_key(mzbench_api, vsn),
+                        GitRev;
+                    _ -> GitBranch
+                end,
+                mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
+            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
+        end,
     Config = #{
         id => Id,
         nodes_arg => maps:get(nodes, Params),
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
-        node_git => application:get_env(mzbench_api, mzbench_git, undefined),
-        node_commit => maps:get(node_commit, Params),
+        node_install_spec => NodeInstallSpec,
         env => generate_bench_env(MetricPrefix, Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
@@ -103,6 +116,7 @@ init([Id, Params]) ->
         metrics => #{},
         emails => maps:get(email, Params)
     },
+    info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
 
 workflow_config(_State) ->
