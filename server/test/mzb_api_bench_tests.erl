@@ -1,4 +1,4 @@
--module(mzb_api_bench_test).
+-module(mzb_api_bench_tests).
 -include_lib("eunit/include/eunit.hrl").
 
 cloud_plugin_test() ->

@@ -1,4 +1,4 @@
--module(mzb_python_worker_test).
+-module(mzb_python_worker_tests).
 -include_lib("eunit/include/eunit.hrl").
 
 encode_str_for_python_test() ->

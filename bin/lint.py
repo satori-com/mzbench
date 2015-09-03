@@ -1,21 +1,11 @@
 #!/usr/bin/env python
-"""Run python linter on mz-bench and check escripts for errors
-
-Usage:
-    lint.py <MZBENCH_PATH>
-
-Options:
-    -h, --help       Show this help
-"""
 
 import os
 import sys
-import docopt
 import subprocess
 from distutils.spawn import find_executable
 
 sys.dont_write_bytecode = True
-
 
 def files_with_extension(ext, root='.'):
     for d, _, files in os.walk(root):
@@ -46,10 +36,27 @@ def lint_escript(root):
     return 0
 
 
+def lint_eunit_file_naming(root):
+    orphans = []
+    for appdir in ['common_apps/mzbench_utils', 'common_apps/mzbench_language',
+            'node/apps/mzbench', 'node/apps/dummy_worker', 'node/apps/mz_histogram', 'server']:
+        try:
+            for t in os.listdir(os.path.join(root, appdir, 'test')):
+                if t.endswith('_test.erl'):
+                    print "{0}/test/{1} has '_test' instead of '_tests' in the name and won't be tested by eunit".format(appdir, t)
+                if t.endswith('.erl') and not t.replace('_tests', '') in os.listdir(os.path.join(root, appdir, 'src')):
+                    orphans.append(os.path.join(appdir, 'test', t))
+        except OSError:
+            pass
+
+    if orphans:
+        print 'Orphan eunit files found: {0}'.format(orphans)
+        sys.exit(1)
+
+
 if __name__ == '__main__':
 
-    args = docopt.docopt(__doc__)
-    root = args['<MZBENCH_PATH>'] or os.curdir
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    if any([lint_python(root), lint_escript(root)]):
+    if any([lint_python(root), lint_escript(root), lint_eunit_file_naming(root)]):
         sys.exit(1)
