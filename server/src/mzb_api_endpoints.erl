@@ -4,6 +4,7 @@
 
 -include_lib("kernel/include/file.hrl").
 
+-spec init(cowboy_req:req(), any()) -> {ok, cowboy_req:req(), term()}.
 init(Req, _Opts) ->
     try
         lager:debug("REQUEST: ~p", [Req]),

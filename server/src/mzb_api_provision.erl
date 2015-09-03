@@ -29,7 +29,7 @@ provision_nodes(Config, Logger) ->
 
     case ProvisionNodes of
         true ->
-            install_node(UniqHosts, Config, Logger),
+            ok = install_node(UniqHosts, Config, Logger),
             install_workers(UniqHosts, Config, Logger, Env),
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
@@ -175,7 +175,8 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
             InstallationCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath]),
             _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
         end,
-        HostsAndOSs).
+        HostsAndOSs),
+    ok.
 
 build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger) ->
     DeploymentDirectory = mzb_file:tmp_filename(),

@@ -27,7 +27,7 @@ create_cluster(Name, NumNodes, _Config) when is_list(Name), is_integer(NumNodes)
     update_hostfiles(UserName, Hosts),
     {ok, Ids, UserName, Hosts}.
 
--spec destroy_cluster(term()) -> ok.
+-spec destroy_cluster([term()]) -> ok.
 destroy_cluster(Ids) ->
     R = erlcloud_ec2:terminate_instances(Ids, get_config()),
     lager:info("Deallocating ids: ~p, result: ~p", [Ids, R]),
