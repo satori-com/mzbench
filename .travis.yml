@@ -44,9 +44,9 @@ script:
                        sudo pip install -r acceptance_tests/requirements.txt &&
                        export MZBENCH_RSYNC=$PWD/ &&
                        rm node/Makefile &&
-                       make -C acceptance_tests signal-tests >/dev/null; [ $? -ne 0 ] &&
+                       make -C acceptance_tests quick-test >/dev/null; [ $? -ne 0 ] &&
                        git checkout -- node/Makefile &&
-                       make -C acceptance_tests signal-tests;;
+                       make -C acceptance_tests quick-test;;
      unit-tests) for prj in $(echo $PROJECTS); do make -C $prj test-unit || exit 1; done;;
      dialyzer) for prj in $(echo $PROJECTS); do make -C $prj dialyzer.log || exit 1; done;;
    esac
