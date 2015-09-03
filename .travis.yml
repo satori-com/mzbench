@@ -26,7 +26,7 @@ script:
  - ./bin/rebar3 update
  - export PROJECTS="node server common_apps/mzbench_language common_apps/mzbench_utils";
  - case "$TASK" in
-     lint) sudo pip install --src pip_src -r requirements.txt && sudo rm -rf pip_src && sudo pip install pyflakes && ./bin/lint.py . ;;
+     lint) sudo pip install pyflakes && ./bin/lint.py . ;;
      validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
      error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      http-worker-tests) sudo pip install -r requirements.txt &&

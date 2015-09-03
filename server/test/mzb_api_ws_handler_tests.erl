@@ -1,4 +1,4 @@
--module(mzb_api_ws_handler_test).
+-module(mzb_api_ws_handler_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 

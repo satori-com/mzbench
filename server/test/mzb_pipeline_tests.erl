@@ -1,4 +1,4 @@
--module(mzb_pipeline_test).
+-module(mzb_pipeline_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 
