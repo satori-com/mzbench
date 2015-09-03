@@ -1,33 +1,40 @@
 
-DIALYZABLE_EBINS ?= ebin
-DEPS_PLT ?= deps.plt
+define DIALYZER_HELPER
+import shutil
+import re
+import sys
+report = sys.stdin.read()
+warning_count = re.search(r'Warnings occured running dialyzer: (\d+)', report)
+file_location = re.search(r'Warnings written to (.*\.dialyzer_warnings)', report)
+ignore_list = [
+	r"Expression produces a value of type 'ok' | {'error','lager_not_running'}, but this value is unmatched",
 
+	# You're welcome to remove this and try to figure out what is dialyzer unhappy about
+	r"The call cowboy_req:reply\(200,Headers"
+	]
+if warning_count:
+	ignored_count = 0
+	with open('dialyzer.log', 'w') as log:
+		for line in report.split('\n'):
+			for ignore_pattern in ignore_list:
+				if re.search(ignore_pattern, line):
+					ignored_count += 1
+					break
+			else:
+				log.write(line + '\n')
+	print 'Ignored {0} warnings'.format(ignored_count)
+	if int(warning_count.group(1)) > ignored_count:
+		print open('dialyzer.log').read()
+		sys.exit(1)
+	else:
+		sys.exit(0)
+else:
+	with open('dialyzer.log', 'w') as f:
+		f.write('')
+	sys.exit(0)
+endef
+export DIALYZER_HELPER
 
-$(HOME)/.otp.plt:
-	dialyzer --output_plt $@ --build_plt --apps erts stdlib kernel crypto os_mon inets
-
-deps.plt: .make/compilation-up-to-date
-	- dialyzer --output_plt $@ --build_plt $(BUILD_PLT_FLAGS) -pa deps/*/ebin
-
-dialyzer.log: $(DEPS_PLT) $(HOME)/.otp.plt .make/compilation-up-to-date
-	- dialyzer -nn \
-		-o dialyzer.log \
-		-Wno_undefined_callbacks \
-		-Wunmatched_returns \
-		-Werror_handling \
-		-Wrace_conditions \
-		--no_check_plt \
-		--plts $(DEPS_PLT) $(HOME)/.otp.plt -- \
-		"$(DIALYZABLE_EBINS)"
-	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
-	-@perl -ne 'print if not /Unknown types/' -i dialyzer.log
-	-@perl -ne 'print if not /erl_syntax:syntaxTree/' -i dialyzer.log
-	-@perl -ne 'print if not /The call cowboy_req:reply\(200,Headers/' -i dialyzer.log
-	-@perl -ne 'print if not /mzb_py/' -i dialyzer.log
-	-@perl -ne "print if not /The pattern {'error', UtilFailedReason} can never match the type float()/" -i dialyzer.log
-	-@ cat dialyzer.log
-	@python -c 'with open("dialyzer.log") as f: import sys; sys.exit(1 if f.read().strip() else 0)'
-
-.PHONY: clean-plt
-clean-plt:
-	-@rm *.plt
+dialyzer.log: .make/compilation-up-to-date
+	@echo "dialyzing..."
+	@$(REBAR) dialyzer | python -c "$$DIALYZER_HELPER"

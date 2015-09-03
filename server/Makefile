@@ -54,7 +54,9 @@ change-version:
 
 .make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile
-	make -C _build/default/deps/jiffy
+
+	make -C _build/default/deps/jiffy # Until https://github.com/davisp/jiffy/issues/96 is resolved
+
 	mkdir -p .make && touch $@
 
 .make/git-rev-$(GIT_HEAD):

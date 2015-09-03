@@ -23,6 +23,7 @@ matrix:
     env: TASK=lint
 
 script:
+ - ./bin/rebar3 update
  - export PROJECTS="node server common_apps/mzbench_language common_apps/mzbench_utils";
  - case "$TASK" in
      lint) sudo pip install --src pip_src -r requirements.txt && sudo rm -rf pip_src && sudo pip install pyflakes && ./bin/lint.py . ;;

@@ -19,3 +19,4 @@ dialyzer.log
 server/data
 server/plugins
 acceptance_tests/test_server.config
+_build
