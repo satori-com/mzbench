@@ -192,11 +192,10 @@ handle_stage(pipeline, starting_collectors, #{config:= Config} = State) ->
     fun (S) -> S#{collectors => LogsCollectors ++ MetricsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script, env:= Env} = Config,
-    Prefix = proplists:get_value(<<"graphite_prefix">>, Env),
+    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
     [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
     MetricsMap = mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv),
-    fun (S) -> S#{metrics => MetricsMap#{<<"graphite_prefix">> => Prefix}} end;
+    fun (S) -> S#{metrics => MetricsMap} end;
 
 handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
@@ -389,8 +388,14 @@ generate_bench_env(MetricPrefix, Params) ->
     Env = maps:get(env, Params),
     Script = maps:get(script, Params),
     #{name := ScriptName} = Script,
-    Env2 = [{<<"mzb_script_name">>, list_to_binary(ScriptName)},
-            {<<"graphite_prefix">>, list_to_binary(MetricPrefix)}| Env],
+    Env2 = lists:foldl(fun ({K, V}, E) ->
+                        case proplists:get_value(K, E) of
+                            undefined -> [{K, V}|E];
+                            _ -> E
+                        end
+                       end, Env,
+                [{<<"mzb_script_name">>, list_to_binary(ScriptName)},
+                 {<<"graphite_prefix">>, list_to_binary(MetricPrefix)}]),
 
     case proplists:get_value(<<"graphite">>, Env2) of
         undefined -> add_env([graphite, graphite_api_key, graphite_url], Env2);

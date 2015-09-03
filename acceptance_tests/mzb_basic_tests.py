@@ -132,8 +132,8 @@ def data_endpoint_test():
 
     assert csv_data_ret_code == 0
     assert json_data_ret_code == 0
-    assert 'mzb.print.value,' in csv_out
-    assert 'mzb.print.value' in\
+    assert 'print.value,' in csv_out
+    assert 'print.value' in\
         [metric['target'] for metric in json.loads(json_out)]
 
 
