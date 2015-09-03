@@ -115,7 +115,7 @@ is_node_ready(Node) ->
         case net_kernel:hidden_connect_node(Node) of
             true  ->
                 case rpc:call(Node, mzb_bench_sup, is_ready, []) of
-                    {badrpc, Reason} -> false;
+                    {badrpc, _Reason} -> false;
                     Reply -> Reply
                 end;
             false -> false

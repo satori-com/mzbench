@@ -10,6 +10,10 @@ local-tests:
 basic-tests:
 	./mzb_basic_tests.py -v
 
+.PHONY: quick-test
+quick-test:
+	./mzb_quick_test.py -v
+
 .PHONY: negative-tests
 negative-tests:
 	./mzb_negative_tests.py -v
