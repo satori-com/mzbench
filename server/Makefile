@@ -1,5 +1,5 @@
 
-REBAR := $(abspath $(shell which ../bin/rebar || which rebar))
+REBAR := $(abspath $(shell which ../bin/rebar3 || which rebar3))
 SERVICE_NAME=mzbench_api
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
@@ -52,19 +52,9 @@ change-version:
 	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
 	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
 
-.make/deps-cloned: rebar.config $(MZBENCH_COMMON_SOURCES)
-	rm -rf deps && $(REBAR) get-deps
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_language clean
-	PATH="$$PWD/../bin:$$PATH" make -C deps/mzbench_utils clean
-	perl -pe 's/ERLC_FLAGS=$$/ERLC_FLAGS=+debug_info/' -i deps/merl/Makefile
-	mkdir -p .make && touch $@
-
-.make/deps-compiled: .make/deps-cloned
+.make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile
-	mkdir -p .make && touch $@
-
-.make/compilation-up-to-date: .make/deps-compiled $(SOURCES) .make/git-rev-$(GIT_HEAD)
-	$(REBAR) compile skip_deps=true
+	make -C _build/default/deps/jiffy
 	mkdir -p .make && touch $@
 
 .make/git-rev-$(GIT_HEAD):

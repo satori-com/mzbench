@@ -24,8 +24,8 @@ missed_git_opts_test() ->
 
 import_json_test() ->
     AST = mzbl_script:read_from_string("[{include_resource, test_json, \"./file.json\", json}].",[]),
-    {ok, EUnitDir} = file:get_cwd(),
-    ResourceDir = filename:join([EUnitDir, "..", "test", "resources"]),
+    {ok, MZBenchLanguageDir} = file:get_cwd(),
+    ResourceDir = filename:join([MZBenchLanguageDir, "test", "resources"]),
     {_S, Env} = mzbl_script:extract_pools_and_env(AST, [{"bench_script_dir", ResourceDir}]),
     Json = proplists:get_value({resource,test_json}, Env),
     ?assertEqual(#{<<"widget">> => #{

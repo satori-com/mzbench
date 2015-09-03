@@ -6,7 +6,7 @@ DEPS_PLT ?= deps.plt
 $(HOME)/.otp.plt:
 	dialyzer --output_plt $@ --build_plt --apps erts stdlib kernel crypto os_mon inets
 
-deps.plt: .make/deps-compiled
+deps.plt: .make/compilation-up-to-date
 	- dialyzer --output_plt $@ --build_plt $(BUILD_PLT_FLAGS) -pa deps/*/ebin
 
 dialyzer.log: $(DEPS_PLT) $(HOME)/.otp.plt .make/compilation-up-to-date
@@ -18,7 +18,7 @@ dialyzer.log: $(DEPS_PLT) $(HOME)/.otp.plt .make/compilation-up-to-date
 		-Wrace_conditions \
 		--no_check_plt \
 		--plts $(DEPS_PLT) $(HOME)/.otp.plt -- \
-		$(DIALYZABLE_EBINS)
+		"$(DIALYZABLE_EBINS)"
 	-@perl -ne 'print if not /lager_not_running/' -i dialyzer.log
 	-@perl -ne 'print if not /Unknown types/' -i dialyzer.log
 	-@perl -ne 'print if not /erl_syntax:syntaxTree/' -i dialyzer.log
