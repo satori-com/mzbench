@@ -48,7 +48,6 @@ pool_name(Pool) ->
 
 metrics(Path, EnvFromClient) ->
     Script = mzbl_script:read(Path, EnvFromClient),
-    BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(EnvFromClient)),
     Nodes = [node() | nodes()],
     {Pools, Env} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
@@ -59,7 +58,9 @@ metrics(Path, EnvFromClient) ->
     MetricJson1 = case mzb_metrics:get_graphite_url(Env) of
         undefined -> MetricJson;
         GraphiteUrl ->
-            MetricJson#{ graphite_url => GraphiteUrl }
+            Prefix = proplists:get_value("graphite_prefix", Env),
+            MetricJson#{ graphite_prefix => Prefix,
+                         graphite_url    => GraphiteUrl }
     end,
 
     mzb_string:str_to_bstr(MetricJson1).
