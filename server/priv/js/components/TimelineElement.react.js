@@ -1,5 +1,7 @@
 import React from 'react';
 import moment from 'moment';
+
+import RelativeDate from './RelativeDate.react';
 import MZBenchActions from '../actions/MZBenchActions';
 
 class TimelineElement extends React.Component {
@@ -20,7 +22,7 @@ class TimelineElement extends React.Component {
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                     </h6>
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
-                    <div><i className="glyphicon glyphicon-calendar"></i> {moment(bench.start_time).format("lll")}</div>
+                    <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time} /></div>
                 </div>
             </a>
         );
