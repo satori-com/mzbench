@@ -38,6 +38,7 @@ start(_Type, _Args) ->
 
 prep_stop(State) ->
     lager:warning("Server is going to shutdown!"),
+    mzb_api_firehose:notify(danger, "Server is going to shutdown!"),
     %% deactivate stops all benchmarks. we are waiting 120 secs 
     %% to be sure that benchmark's finalize are finished
     mzb_api_server:deactivate(),
