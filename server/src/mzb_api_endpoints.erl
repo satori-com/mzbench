@@ -90,7 +90,7 @@ handle(<<"GET">>, <<"/data">>, Req) ->
 handle(<<"GET">>, <<"/email_report">>, Req) ->
     with_bench_id(Req, fun (Id) ->
         #{addr:= Addrs} = cowboy_req:match_qs([{addr, fun check_string_multi_param/1}], Req),
-        ok = mzb_api_server:request_report(Id, Addrs),
+        ok = mzb_api_server:email_report(Id, Addrs),
         {ok, reply_json(200, #{}, Req), #{}}
     end);
 
