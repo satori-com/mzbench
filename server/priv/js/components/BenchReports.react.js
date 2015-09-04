@@ -1,6 +1,7 @@
 import React from 'react';
-
 import Modal from './Modal.react';
+import $ from 'jquery'
+import 'bootstrap-notify'
 
 class BenchReports extends React.Component {
     constructor(props) {
@@ -55,11 +56,20 @@ class BenchReports extends React.Component {
     // we need to add some notification mechanism
 
     _onSendEmailReport(event) {
+        let notify = $.notify({message: `Sending report to ${this.state.email}... `}, {type: 'info', delay: 0});
         $.ajax({
             url: `/email_report?id=${this.props.bench.id}&addr=${this.state.email}`,
-            success: () => this.refs.emailReportModal.close()
+            success: () => {
+                notify.update({message: `Report has been sent to ${this.state.email}`, type: 'success'});
+                setTimeout(() => notify.close(), 5000);
+            },
+            error: () => {
+                notify.update({message: `Sending report failed`, type: 'danger'});
+                setTimeout(() => notify.close(), 5000);
+            }
         });
         event.preventDefault();
+        this.refs.emailReportModal.close();
     }
 
     _openEmailReport() {
