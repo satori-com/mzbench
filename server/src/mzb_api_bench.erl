@@ -313,7 +313,7 @@ terminate(Reason, #{id:= Id} = State) ->
 
 handle_pipeline_status(Info, State) ->
     NewState = handle_pipeline_status_ll(Info, State),
-    gen_event:notify(mzb_api_firehose, {update_bench, status(NewState)}),
+    mzb_api_firehose:update_bench(status(NewState)),
     NewState.
 
 handle_pipeline_status_ll({start, Phase, Stage}, State) ->

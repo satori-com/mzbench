@@ -18,11 +18,11 @@
 
 init(Req, _Opts) ->
     Ref = erlang:make_ref(),
-    ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose_handler, Ref}, [self()]),
+    ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
     {cowboy_websocket, Req, #state{ref = Ref}}.
 
 terminate(_Reason, _Req, #state{ref = Ref}) ->
-    gen_event:delete_handler(mzb_api_firehose, {mzb_api_firehose_handler, Ref}, [self()]),
+    gen_event:delete_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
     ok.
 
 websocket_handle({text, Msg}, Req, State) ->
