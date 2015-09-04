@@ -1,6 +1,8 @@
--module(mzb_api_firehose_handler).
+-module(mzb_api_firehose).
 
 -behaviour(gen_event).
+
+-export([update_bench/1]).
 
 % gen_event
 -export([init/1,
@@ -9,6 +11,9 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
+
+update_bench(Status) ->
+    gen_event:notify(mzb_api_firehose, {update_bench, Status}).
 
 init([WSPid]) -> {ok, WSPid}.
 
