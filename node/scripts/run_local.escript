@@ -18,7 +18,7 @@ main([Script | Params]) ->
                     end, [],
                     ["../apps/*/ebin/",
                      "../../workers/*/ebin/",
-                     "../deps/*/ebin/"]),
+                     "../_build/default/deps/*/ebin/"]),
 
     BinDir = filename:dirname(escript:script_name()),
     RpmCodePaths = filelib:wildcard(filename:join(BinDir, "../lib/*/ebin/")),

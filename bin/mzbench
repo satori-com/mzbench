@@ -111,7 +111,7 @@ except ImportError:
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
 sys.dont_write_bytecode = True
-server_rel_dir = dirname + "/../server/rel/mzbench_api/"
+server_rel_dir = dirname + "/../server/_build/default/rel/mzbench_api/"
 
 import color_terminal
 import util
