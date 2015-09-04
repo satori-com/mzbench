@@ -10,5 +10,6 @@ export default keyMirror({
     SELECT_BENCH_BY_ID: null,
     SELECT_ACTIVE_TAB: null,
     METRIC_STORE_RESET: null,
-    METRIC_UPDATE: null
+    METRIC_UPDATE: null,
+    NOTIFY: null
 });
