@@ -9,6 +9,7 @@ SERVICE_NAME=mzbench
 SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
+RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
@@ -22,11 +23,11 @@ run: compile
 	./scripts/run_local.escript $(realpath $(SECOND_ARG))
 
 .PHONY: generate
-generate: rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
+generate: $(RELEASE_BINARY)
 
 .PHONY: console
-console: generate
-	rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME) console $(realpath $(RUN_ARGS))
+console: $(RELEASE_BINARY)
+	$@ console $(realpath $(RUN_ARGS))
 
 .PHONY: $(SECOND_ARG)
 $(SECOND_ARG):
@@ -51,43 +52,28 @@ check: test-unit test-network-usage-script dialyzer.log
 .PHONY: install
 install: generate
 	mkdir -p ~/mz
-	cp -rf rel/mzbench ~/mz
+	cp -rf _build/default/rel/mzbench ~/mz
 
 .PHONY: generate_tgz
 generate_tgz: generate
 	mkdir -p pkgroot
-	cp -rf rel/mzbench pkgroot/
+	cp -rf _build/default/rel/mzbench pkgroot/
 	cd pkgroot && tar czf ../node.tgz ./mzbench && cd ..
 	rm -rf pkgroot
 
 .PHONY: clean
 clean:
 	$(REBAR) clean
+	rm -rf _build
 	rm -rf .make
-	rm -rf *.rpm
 	rm -rf *.tgz
-	rm -rf rel/$(SERVICE_NAME)
-	rm -rf deps
 	rm -rf pkgroot
-
-# RPM creation
-.PHONY: change-version
-change-version:
-	@if test "$(new-version)" = "" ; then \
-		echo "new-version is undefined, use 'make change-version new-version=X.X.X' command"; \
-		exit 1; \
-	fi
-	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
-	git commit rel/reltool.config -m "Bump mzbench version to $(new-version)"
 
 DIALYZABLE_EBINS := apps/*/ebin
 -include ../lib/dialyzer.mk
 
-rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
-	rm -rf rel/$(SERVICE_NAME)
-	cd rel && $(REBAR) generate -f target_dir=$(SERVICE_NAME)
-	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
-	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
+$(RELEASE_BINARY): .make/compilation-up-to-date rel/files/sys.config rel/files/vm.args
+	$(REBAR) release
 
 .make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile

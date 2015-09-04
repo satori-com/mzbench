@@ -4,6 +4,7 @@ import re
 import sys
 import shlex
 import subprocess
+import time
 import json
 from operator import xor
 from contextlib import contextmanager
@@ -35,6 +36,7 @@ def start_mzbench_server():
 
     cmd('{0} start_server --config {1}/test_server.config'.format(mzbench_script, dirname))
     try:
+        time.sleep(3) # give server some time to start
         yield
     except:
         print ''

@@ -6,13 +6,14 @@ GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
 MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*)
+RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
 
 .PHONY: console
-console: generate
-	rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME) console
+console: $(RELEASE_BINARY)
+	$(RELEASE_BINARY) console
 
 .PHONY: js-dev
 js-dev: compile
@@ -36,21 +37,11 @@ check: test-unit dialyzer.log
 .PHONY: clean
 clean:
 	$(REBAR) clean
+	rm -rf _build
 	rm -rf .make
-	rm -rf rel/$(SERVICE_NAME)
-	rm -rf deps
 
 .PHONY: generate
-generate: rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
-
-.PHONY: change-version
-change-version:
-	@if test "$(new-version)" = "" ; then \
-		echo "new-version is undefined, use 'make change-version new-version=X.X.X' command"; \
-		exit 1; \
-	fi
-	sed -i "s/${RELVSN}/$(new-version)/g" rel/reltool.config
-	git commit rel/reltool.config -m "Bump mzbench-api version to $(new-version)"
+generate: $(RELEASE_BINARY)
 
 .make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile
@@ -63,11 +54,8 @@ change-version:
 	rm -rf .make/git-rev-*
 	mkdir -p .make && touch $@
 
-rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME): .make/compilation-up-to-date rel/reltool.config
-	rm -rf rel/$(SERVICE_NAME)
-	cd rel && $(REBAR) generate -f target_dir=$(SERVICE_NAME)
-	cp rel/$(SERVICE_NAME)/releases/$(RELVSN)/$(SERVICE_NAME).boot rel/$(SERVICE_NAME)/releases/$(RELVSN)/start.boot #workaround for rebar bug
-	echo $(RELVSN) > rel/$(SERVICE_NAME)/relvsn
+$(RELEASE_BINARY): .make/compilation-up-to-date rel/files/sys.config rel/files/vm.args
+	$(REBAR) release
 
 BUILD_PLT_FLAGS := --apps deps/cowboy
 -include ../lib/dialyzer.mk
