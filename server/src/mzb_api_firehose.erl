@@ -2,7 +2,8 @@
 
 -behaviour(gen_event).
 
--export([update_bench/1]).
+-export([update_bench/1,
+         notify/2]).
 
 % gen_event
 -export([init/1,
@@ -12,8 +13,15 @@
          terminate/2,
          code_change/3]).
 
+-spec update_bench(term()) -> ok.
 update_bench(Status) ->
     gen_event:notify(mzb_api_firehose, {update_bench, Status}).
+
+-spec notify(Severity, Msg) -> ok when
+    Severity :: success | info | warning | danger,
+    Msg :: string().
+notify(Severity, Message) ->
+    gen_event:notify(mzb_api_firehose, {notify, Severity, Message}).
 
 init([WSPid]) -> {ok, WSPid}.
 

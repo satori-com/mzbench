@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
+import $ from 'jquery';
+import 'bootstrap-notify';
 
 const CHANGE_EVENT = 'change';
 
@@ -152,6 +154,10 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
         case ActionTypes.SET_FILTER:
             data.filter = action.data;
             _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.NOTIFY:
+            $.notify({message: action.message}, {type: action.severity});
             break;
 
         default:

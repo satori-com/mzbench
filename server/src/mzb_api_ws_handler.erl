@@ -63,6 +63,12 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
+dispatch_info({notify, Severity, Msg}, State) ->
+    Event = #{type => "NOTIFY",
+              severity => atom_to_list(Severity),
+              message => Msg},
+    {reply, Event, State};
+
 dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
