@@ -30,7 +30,7 @@
 @set epmd="%erts_bin%\epmd.exe"
 @set escript="%erts_bin%\escript.exe"
 @set werl="%erts_bin%\werl.exe"
-@set nodetool="%erts_bin%\nodetool"
+@set nodetool="%node_root%\%bin%\nodetool"
 
 @if "%1"=="usage" @goto usage
 @if "%1"=="install" @goto install
