@@ -1,8 +1,6 @@
 import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
-import $ from 'jquery';
-import 'bootstrap-notify';
 
 const CHANGE_EVENT = 'change';
 

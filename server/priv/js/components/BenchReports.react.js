@@ -1,7 +1,5 @@
 import React from 'react';
 import Modal from './Modal.react';
-import $ from 'jquery'
-import 'bootstrap-notify'
 
 class BenchReports extends React.Component {
     constructor(props) {
