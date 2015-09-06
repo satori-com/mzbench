@@ -2,7 +2,7 @@
 -sname mzb_director
 
 ## Cookie for distributed erlang
-##-setcookie mzbench
+## -setcookie mzbench
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

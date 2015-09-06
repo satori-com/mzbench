@@ -111,7 +111,7 @@ mkdir -p $USE_DIR/log
 ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 
 # Setup command to control the node
-NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
+NODETOOL="$ERTS_PATH/escript $RUNNER_SCRIPT_DIR/nodetool $NAME_ARG $COOKIE_ARG"
 
 # Setup remote shell command to control node
 REMSH="$ERTS_PATH/erl $REMSH_NAME_ARG $REMSH_REMSH_ARG $COOKIE_ARG"
