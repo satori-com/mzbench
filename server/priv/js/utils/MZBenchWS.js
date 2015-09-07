@@ -1,6 +1,7 @@
 class MZBenchWS {
     constructor() {
         this.wsSocket = undefined;
+        this.notify = undefined;
     }
 
     connect(url, callbacks) {
@@ -12,14 +13,29 @@ class MZBenchWS {
 
         let socket = new WebSocket(wsUrl);
 
-        if (onopen) {
-            socket.onopen = (event) => { onopen(socket) };
+        socket.onopen = (event) => {
+            if (this.notify) {
+                this.notify.update({message: 'The board has connected to the server', type: 'success'});
+                setTimeout(() => {
+                        this.notify.close();
+                        this.notify = undefined;
+                    }, 5000);
+            }
+            if (onopen) {
+                onopen(socket);
+            }
         }
 
         socket.onclose = (event) => {
             this.wsSocket = undefined;
             if (onclose) { onclose(); }
             setTimeout(() => this.connect(url, callbacks), 10000);
+            if (!this.notify) {
+                this.notify = $.notify(
+                                { message: "The board is not connected to the server" },
+                                { type: "danger", delay: 0 }
+                              );
+            }
         };
 
         socket.onmessage = (event) => {
