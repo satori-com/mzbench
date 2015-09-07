@@ -41,7 +41,12 @@ def start_mzbench_server():
     except:
         print ''
         print '-------------------- >> begin server logs << ---------------------'
-        print cmd('cat ' + mzbench_dir + '/server/log/console.log').replace('\\n', '\n')
+        logdir = os.path.join(mzbench_dir + 'server/_build/default/rel/mzbench_api/log')
+        logfiles = [logfile for logfile in os.listdir(logdir)]
+        logfile = sorted([os.path.join(logdir, l) for l in logfiles if l.startswith('erlang')], key=os.path.getmtime, reverse=True)[0]
+        with open(logfile) as f:
+            for line in f:
+                print line.rstrip().replace('\\n', '\n')
         print '-------------------- >> end server logs   << ---------------------'
         print ''
         raise
