@@ -1,4 +1,4 @@
-[ % this simplified http example is trying to request "taget_url" at variable rate from 1 rps to 200
+[ % this simplified http example is trying to request "target_url" at variable rate from 1 rps to 200
   % "ok" rate should be always greater than 0.5 per second, otherwise it fails
     {assert, always, {gt, "http_ok.rps.value", 0.5}},
     {make_install, [
