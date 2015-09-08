@@ -1,4 +1,4 @@
-REBAR := $(abspath $(shell which ../../bin/rebar || which rebar))
+REBAR := $(abspath $(shell which ../../bin/rebar3 || which rebar3))
 
 SOURCES := src/http_worker.erl src/http_worker.app.src
 
@@ -12,13 +12,8 @@ generate_tgz: pkgroot
 	cd pkgroot && tar czf ../http_worker.tgz ./${PKG_NAME} && cd ..
 	rm -rf pkgroot
 
-.make/compilation-up-to-date: $(SOURCES) .make/deps-up-to-date
-	$(REBAR) compile skip_deps=true
-	mkdir -p .make && touch $@
-
-.make/deps-up-to-date: rebar.config
-	rm -rf deps
-	$(REBAR) get-deps compile
+.make/compilation-up-to-date: $(SOURCES) rebar.config
+	$(REBAR) compile
 	mkdir -p .make && touch $@
 
 .PHONY: clean
