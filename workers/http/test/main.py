@@ -51,6 +51,8 @@ def main():
                 subprocess.check_call(['../../bin/mzbench', 'start_server', '--config', dirname + '/mzbench_server.config'])
 
             run_command = ['../../bin/mzbench', 'run']
+            if 'NODE_COMMIT' in os.environ:
+                run_command += ['--node_commit=' + os.environ['NODE_COMMIT']]
 
         with server.background_server():
             subprocess.check_call(
