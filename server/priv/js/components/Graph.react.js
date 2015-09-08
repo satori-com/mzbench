@@ -6,8 +6,10 @@ import LoadingSpinner from './LoadingSpinner.react';
 class Graph extends React.Component {
     constructor(props) {
         super(props);
-        this._loaded = false;
-        this._timestamp = { _t: Math.random() };
+        this.state = {
+            loaded: false,
+            timestamp: Math.random()
+        };
     }
     componentDidMount() {
         this._startRedrawTimer();
@@ -34,8 +36,7 @@ class Graph extends React.Component {
     }
 
     _redrawGraphs() {
-        this._timestamp = { _t: Math.random() };
-        this.forceUpdate();
+        this.setState({timestamp: Math.random()});
         this._startRedrawTimer();
     }
 
@@ -59,7 +60,7 @@ class Graph extends React.Component {
         return src.replace(/\?&/, "?");
     }
 
-    render_graph_spinner() {
+    renderGraphSpinner() {
         return (
             <div className="spinner-wrapper">
                 <div className="text-center spinner-main">
@@ -69,26 +70,20 @@ class Graph extends React.Component {
             </div>);
     }
 
-    _graph_loaded() {
-        this._loaded = true;
-        this.forceUpdate();
-    }
-
     render() {
         let periods = this._getPeriod();
-        let options = Object.assign({}, this._timestamp, periods, this.props.graphiteOpts);
+        let options = Object.assign({}, { _t: this.state.timestamp }, periods, this.props.graphiteOpts);
 
         let optimizedOptions = this._optimizeTargets(options);
         let bigGraphOptions = Object.assign({}, optimizedOptions, {width: 960, height: 720});
 
-        let content = this._loaded ?
+        let content = this.state.loaded ?
                 (<img className="graph" src={this._getUrl(optimizedOptions)} width={optimizedOptions.width}/>) :
                 (<ImageLoader
                     src={this._getUrl(optimizedOptions)}
                     imgProps={{className: "graph", width: optimizedOptions.width}}
-                    preloader={() => this.render_graph_spinner()}
-                    wrapper={React.DOM.div}
-                    onLoad={() => this._graph_loaded()}>
+                    preloader={() => this.renderGraphSpinner()}
+                    onLoad={() => this.setState({loaded: true})}>
                     Image load failed!
                 </ImageLoader>);
 
