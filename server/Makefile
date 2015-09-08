@@ -1,7 +1,6 @@
 
 REBAR := $(abspath $(shell which ../bin/rebar3 || which rebar3))
 SERVICE_NAME=mzbench_api
-RELVSN := $(shell ../bin/relvsn.erl $(SERVICE_NAME))
 GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
