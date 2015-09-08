@@ -13,6 +13,12 @@ class BenchReports extends React.Component {
         this.state = {email: ""};
     }
 
+    componentDidMount() {
+        $(React.findDOMNode(this.refs.emailReportModal)).on('shown.bs.modal', () => {
+            React.findDOMNode(this.refs.email).focus();
+        });
+    }
+
     renderDownloadReportPanel() {
         return (
             <div className="panel panel-default panel-report">
@@ -26,8 +32,8 @@ class BenchReports extends React.Component {
                     <a href={`/data?id=${this.props.bench.id}`} target="_blank" className="btn btn-primary" type="submit">Text</a>
                 </div>
 
-                <Modal ref="emailReportModal" onOk = {this._onSendEmailReport} title="Send Email Report">
-                    <form>
+                <Modal ref="emailReportModal" onOk={this._onSendEmailReport} title="Send Email Report">
+                    <form onSubmit={this._onSendEmailReport}>
                         <div className="form-group">
                             <label className="control-label">Email:</label>
                             <input ref="email" type="text" className="form-control" value={this.state.email} onChange={this._onEmailChange}/>
@@ -48,11 +54,12 @@ class BenchReports extends React.Component {
 
     // we need to add some notification mechanism
 
-    _onSendEmailReport() {
+    _onSendEmailReport(event) {
         $.ajax({
             url: `/email_report?id=${this.props.bench.id}&addr=${this.state.email}`,
             success: () => this.refs.emailReportModal.close()
         });
+        event.preventDefault();
     }
 
     _openEmailReport() {
