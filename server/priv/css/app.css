@@ -199,3 +199,26 @@ iframe {
     zoom: 1;
     border-radius: 3px;
 }
+
+.spinner-wrapper {
+    width: 100%;
+    display: inline-block;
+    position: relative;
+}
+
+.spinner-wrapper:after {
+  /* ratio */
+  padding-top: 79.20%;
+  display: block;
+  content: '';
+}
+
+.spinner-main {
+  position: absolute;
+  top: 50%;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  margin: 0 auto;
+}
+

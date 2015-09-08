@@ -1,9 +1,16 @@
 import React from 'react';
 import moment from 'moment';
+import ImageLoader from 'react-imageloader';
+import LoadingSpinner from './LoadingSpinner.react';
 
 class Graph extends React.Component {
+    constructor(props) {
+        super(props);
+        this._loaded = false;
+        this._timestamp = { _t: Math.random() };
+    }
     componentDidMount() {
-        this._createTimer();
+        this._startRedrawTimer();
     }
 
     componentWillUnmount() {
@@ -26,10 +33,15 @@ class Graph extends React.Component {
         return {from: from, until: until};
     }
 
-    _createTimer() {
+    _redrawGraphs() {
+        this._timestamp = { _t: Math.random() };
         this.forceUpdate();
+        this._startRedrawTimer();
+    }
+
+    _startRedrawTimer() {
         const autoUpdate = this.props.bench.isRunning();
-        this.timer = autoUpdate ? setTimeout(this._createTimer.bind(this), this.props.autoUpdateInterval) : undefined;
+        this.timer = autoUpdate ? setTimeout(() => this._redrawGraphs(), this.props.autoUpdateInterval) : undefined;
     }
 
     _getUrl(options) {
@@ -47,17 +59,36 @@ class Graph extends React.Component {
         return src.replace(/\?&/, "?");
     }
 
+    render_graph_spinner() {
+        return (<div className="spinner-wrapper"><div className="spinner-main"><LoadingSpinner>Loading...</LoadingSpinner></div></div>);
+    }
+
+    _graph_loaded() {
+        this._loaded = true;
+        this.forceUpdate();
+    }
+
     render() {
-        let timestamp = { _t: Math.random() };
         let periods = this._getPeriod();
-        let options = Object.assign({}, timestamp, periods, this.props.graphiteOpts);
+        let options = Object.assign({}, this._timestamp, periods, this.props.graphiteOpts);
 
         let optimizedOptions = this._optimizeTargets(options);
         let bigGraphOptions = Object.assign({}, optimizedOptions, {width: 960, height: 720});
 
+        let content = this._loaded ?
+                (<img className="graph" src={this._getUrl(optimizedOptions)} width={optimizedOptions.width}/>) :
+                (<ImageLoader
+                    src={this._getUrl(optimizedOptions)}
+                    imgProps={{className: "graph", width: optimizedOptions.width}}
+                    preloader={() => this.render_graph_spinner()}
+                    wrapper={React.DOM.div}
+                    onLoad={() => this._graph_loaded()}>
+                    Image load failed!
+                </ImageLoader>);
+
         return (
             <a href={this._getUrl(bigGraphOptions)} target="_blank">
-                <img className="graph" src={this._getUrl(optimizedOptions)} width={optimizedOptions.width}/>
+                {content}
             </a>
         );
     }
