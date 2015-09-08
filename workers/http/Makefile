@@ -38,7 +38,7 @@ PKG_NAME = http_worker
 pkgroot: .make/compilation-up-to-date
 	rm -rf pkgroot
 	mkdir -p pkgroot/${PKG_NAME}/ebin
-	cp ebin/* pkgroot/${PKG_NAME}/ebin/
-	if [ -d "deps" ]; then cp -Rf deps pkgroot/${PKG_NAME}; fi
+	mkdir pkgroot/${PKG_NAME}/deps
+	cp _build/default/deps/*/ebin/* pkgroot/${PKG_NAME}/ebin/
 	if [ -d "examples" ]; then cp -Rf examples pkgroot/${PKG_NAME}; fi
 	if [ -d "resources" ]; then cp -Rf resources pkgroot/${PKG_NAME}; fi

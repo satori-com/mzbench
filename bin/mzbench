@@ -352,14 +352,19 @@ def run_or_validate(script, env, validate):
     maybe_plugin_name = [app_src_filename[4:-8] for app_src_filename in glob.glob('src/*.app.src')]
     if len(maybe_plugin_name) == 1:
         [plugin_name] = maybe_plugin_name
-        if not os.path.exists('ebin/' + plugin_name + '.beam'):
+        worker_beam_rebar2 = 'ebin/' + plugin_name + '.beam'
+        worker_beam_rebar3 = '_build/default/deps/' + plugin_name + '/ebin/' + plugin_name + '.beam'
+        if not os.path.exists(worker_beam_rebar2) and not os.path.exists(worker_beam_rebar3):
             print("WARNING: no worker beam files detected, launching make")
             check_call(['make'])
-            if not os.path.exists('ebin/' + plugin_name + '.beam'):
+            if not os.path.exists(worker_beam_rebar2) and not os.path.exists(worker_beam_rebar3):
                 print ("WARNING: make didn't produce worker beam files")
 
     pa = []
-    for p in glob.glob(os.getcwd() + "/deps/*/ebin") + glob.glob(os.getcwd() + "/apps/*/ebin"):
+    ebin_dirs = (glob.glob(os.getcwd() + "/deps/*/ebin") +
+        glob.glob(os.getcwd() + "/apps/*/ebin") +
+        glob.glob(os.getcwd() + "/_build/default/deps/*/ebin"))
+    for p in ebin_dirs:
         pa += ["--pa", p]
     cmd = [os.path.join(escript_path, escript_name), script, '--pa', os.getcwd() + "/ebin"] + pa
 
