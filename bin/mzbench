@@ -355,7 +355,8 @@ def run_or_validate(script, env, validate):
         worker_beam_rebar2 = 'ebin/' + plugin_name + '.beam'
         worker_beam_rebar3 = '_build/default/deps/' + plugin_name + '/ebin/' + plugin_name + '.beam'
         if not os.path.exists(worker_beam_rebar2) and not os.path.exists(worker_beam_rebar3):
-            print("WARNING: no worker beam files detected, launching make")
+            print("WARNING: no worker beam files detected in {0} or {1}, launching make".format(
+                worker_beam_rebar2, worker_beam_rebar3))
             check_call(['make'])
             if not os.path.exists(worker_beam_rebar2) and not os.path.exists(worker_beam_rebar3):
                 print ("WARNING: make didn't produce worker beam files")
