@@ -60,7 +60,13 @@ class Graph extends React.Component {
     }
 
     render_graph_spinner() {
-        return (<div className="spinner-wrapper"><div className="spinner-main"><LoadingSpinner>Loading...</LoadingSpinner></div></div>);
+        return (
+            <div className="spinner-wrapper">
+                <div className="text-center spinner-main">
+                    <span className="glyphicon glyphicon-refresh glyphicon-spin">
+                    </span>&nbsp;
+                </div>
+            </div>);
     }
 
     _graph_loaded() {
