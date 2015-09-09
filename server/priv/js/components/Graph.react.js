@@ -61,13 +61,15 @@ class Graph extends React.Component {
     }
 
     renderGraphSpinner() {
+        const ratio = (this.props.graphiteOpts.height / this.props.graphiteOpts.width) * 100;
         return (
             <div className="spinner-wrapper">
                 <div className="text-center spinner-main">
-                    <span className="glyphicon glyphicon-refresh glyphicon-spin">
-                    </span>&nbsp;
+                    <span className="glyphicon glyphicon-refresh glyphicon-spin" />
                 </div>
-            </div>);
+                <div style={{paddingTop: ratio + "%"}} />
+            </div>
+        );
     }
 
     render() {

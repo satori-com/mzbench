@@ -204,13 +204,7 @@ iframe {
     width: 100%;
     display: inline-block;
     position: relative;
-}
-
-.spinner-wrapper:after {
-  /* ratio */
-  padding-top: 79.20%;
-  display: block;
-  content: '';
+    padding: 10px 0;
 }
 
 .spinner-main {
