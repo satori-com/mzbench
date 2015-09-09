@@ -9,9 +9,12 @@ import sys
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(dirname, "../../../lib"))
+sys.path.append(os.path.join(dirname, "../../../acceptance_tests"))
 sys.dont_write_bytecode = True
 
 hostname = socket.gethostname()
+
+import mzb_test_utils
 
 import util
 
@@ -35,6 +38,24 @@ def main():
                 print("Please stop MZBench server before running local mode")
                 sys.exit()
             run_command = ['../../bin/mzbench', 'run_local']
+
+            with server.background_server():
+                subprocess.check_call(
+                    run_command +
+                    [ 'examples/http_post.erl'
+                    , '--env=host=' + hostname
+                    , '--env=port=' + str(server.port)
+                    , '--env=max_rps=2'
+                    , '--env=endpoint=/update-db'
+                    ])
+                subprocess.check_call(
+                    run_command +
+                    [ 'examples/http_get.erl'
+                    , '--env=host=' + hostname
+                    , '--env=port=' + str(server.port)
+                    , '--env=max_rps=2'
+                    , '--env=endpoint=/update-db'
+                    ])
         else:
             if serverStatus == -1:
                 print("Non-MZBench server is listening on 4800")
@@ -51,28 +72,24 @@ def main():
                 subprocess.check_call(['../../bin/mzbench', 'start_server', '--config', dirname + '/mzbench_server.config'])
 
             run_command = ['../../bin/mzbench', 'run']
-            if 'NODE_COMMIT' in os.environ:
-                run_command += ['--node_commit=' + os.environ['NODE_COMMIT']]
 
-        with server.background_server():
-            subprocess.check_call(
-                run_command +
-                [ 'examples/http_post.erl'
-                , '--env=host=' + hostname
-                , '--env=port=' + str(server.port)
-                , '--env=max_rps=2'
-                , '--env=endpoint=/update-db'
-                ])
-            subprocess.check_call(
-                run_command +
-                [ 'examples/http_get.erl'
-                , '--env=host=' + hostname
-                , '--env=port=' + str(server.port)
-                , '--env=max_rps=2'
-                , '--env=endpoint=/index.html'
-                ])
-        if ('--local' not in sys.argv) and (serverStatus == 0):
-            subprocess.check_call(['../../bin/mzbench', 'stop_server'])
+            with server.background_server():
+                mzb_test_utils.run_successful_bench(
+                    'examples/http_post.erl',
+                    env={ 'host': hostname
+                        , 'port': str(server.port)
+                        , 'max_rps': '2'
+                        , 'endpoint': '/update-db'
+                        })
+                mzb_test_utils.run_successful_bench(
+                    'examples/http_get.erl',
+                    env={ 'host': hostname
+                        , 'port': str(server.port)
+                        , 'max_rps': '2'
+                        , 'endpoint': '/index.html'
+                        })
+            if ('--local' not in sys.argv) and (serverStatus == 0):
+                subprocess.check_call(['../../bin/mzbench', 'stop_server'])
 
 if __name__ == '__main__':
     main()
