@@ -5,6 +5,7 @@ import MZBenchWS from '../utils/MZBenchWS';
 
 export default {
     subscribeBenchTimeline () {
+        let notify = undefined;
         MZBenchWS.connect("/ws", {
             onopen: () => {
                 let opts = {};
@@ -13,12 +14,25 @@ export default {
                 if (benchId) { opts.bench_id = benchId; }
 
                 this.getTimeline(opts);
+                if (notify) {
+                    notify.update({message: 'The board has connected to the server', type: 'success'});
+                    setTimeout(() => {
+                            notify.close();
+                            notify = undefined;
+                        }, 5000);
+                }
             },
             onmessage: (data) => {
                 Dispatcher.dispatch(data);
             },
             onclose: () => {
                 this.hideTimelineLoadingMask();
+                if (!notify) {
+                    notify = $.notify(
+                                    { message: "The board is not connected to the server" },
+                                    { type: "danger", delay: 0 }
+                                  );
+                }
             }
         });
     },
