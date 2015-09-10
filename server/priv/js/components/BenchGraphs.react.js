@@ -60,7 +60,7 @@ class BenchGraphs extends React.Component {
                     });
 
                     return (
-                        <div key={idx} className="col-xs-6 col-md-6">
+                        <div key={idx} className="col-xs-12 col-md-6">
                             <Graph
                                 url={graphiteUrl + "/render/"}
                                 bench={this.props.bench}
