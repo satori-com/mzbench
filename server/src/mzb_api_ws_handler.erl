@@ -107,14 +107,14 @@ normalize(BenchInfos) ->
     lists:map(fun normalize_bench/1, Sorted).
 
 normalize_bench({Id, Status = #{config:= Config}}) ->
-    StatusFields =  maps:with([status, metrics], Status),
+    StatusFields =  mzb_bc:maps_with([status, metrics], Status),
 
     TimeFields = maps:fold(fun (K, V, AccIn) when is_number(V) ->
                                    maps:put(K, mzb_string:iso_8601_fmt(V), AccIn);
                                (_, _, AccIn) -> AccIn
                            end,
                            #{},
-                           maps:with([finish_time, start_time], Status)),
+                           mzb_bc:maps_with([finish_time, start_time], Status)),
 
     #{script:= #{body:= ScriptBody, name:= ScriptName}} = Config,
     ScriptFields = #{script_body => ScriptBody, script_name => ScriptName},
@@ -126,14 +126,14 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
 %% Filtering
 
 apply_filter(TimelineOpts, BenchInfos) -> 
-    Query = maps:get(<<"q">>, TimelineOpts, undefined),
+    Query = mzb_bc:maps_get(<<"q">>, TimelineOpts, undefined),
     case Query of
         undefined -> BenchInfos;
         Q -> [Bench || Bench <- BenchInfos, is_satisfy_filter(Q, Bench)]
     end.
 
 get_searchable_fields(BenchInfo) ->
-    SearchFields = maps:with([id, status, script_name, start_time, finish_time], BenchInfo),
+    SearchFields = mzb_bc:maps_with([id, status, script_name, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
     lists:map(fun (X) when is_atom(X) -> atom_to_list(X);
                   (X) when is_integer(X) -> integer_to_list(X);
@@ -173,10 +173,10 @@ index_of(Id, [#{id:= Id}|_], Index) -> Index;
 index_of(Id, [_|Tl], Index) -> index_of(Id, Tl, Index+1).
 
 apply_pagination(Pagination, BenchInfos) ->
-    Limit = maps:get(<<"limit">>, Pagination, 10),
-    MaxId = maps:get(<<"max_id">>, Pagination, undefined),
-    MinId = maps:get(<<"min_id">>, Pagination, undefined),
-    BenchId = maps:get(<<"bench_id">>, Pagination, undefined),
+    Limit = mzb_bc:maps_get(<<"limit">>, Pagination, 10),
+    MaxId = mzb_bc:maps_get(<<"max_id">>, Pagination, undefined),
+    MinId = mzb_bc:maps_get(<<"min_id">>, Pagination, undefined),
+    BenchId = mzb_bc:maps_get(<<"bench_id">>, Pagination, undefined),
 
     Bounded = apply_boundaries({MinId, MaxId}, BenchInfos, fun(A, B) -> A < B end),
     Limited = apply_limit({BenchId, MinId, MaxId}, Limit, Bounded),

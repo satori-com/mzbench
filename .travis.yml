@@ -2,7 +2,7 @@ language: erlang
 
 otp_release:
  - 18.0
- - 17.5
+ - 17.0
 
 env:
  - TASK=lint
@@ -16,11 +16,6 @@ env:
  - TASK=acceptance-signal-tests
  - TASK=acceptance-negative-tests
  - TASK=http-worker-tests
-
-matrix:
- exclude:
-  - otp_release: 17.3
-    env: TASK=lint
 
 script:
  - ./bin/rebar3 update

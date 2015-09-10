@@ -355,7 +355,7 @@ get_graphite_url(Env) ->
 extract_metrics(Groups) ->
     [{Name, Type, Opts} || {group, _GroupName, Graphs} <- Groups,
                            {graph, GraphOpts}          <- Graphs,
-                           {Name, Type, Opts}          <- maps:get(metrics, GraphOpts, [])].
+                           {Name, Type, Opts}          <- mzb_bc:maps_get(metrics, GraphOpts, [])].
 
 is_derived_metric({_Name, derived, _}) -> true;
 is_derived_metric({_Name, _Type,   _}) -> false.
@@ -386,7 +386,7 @@ get_exometer_metrics({Name, histogram, Opts}) ->
 build_metric_groups(Groups) ->
     lists:map(fun ({group, Name, Graphs}) ->
         NewGraphs = lists:flatmap(fun ({graph, Opts}) ->
-            Metrics = maps:get(metrics, Opts, []),
+            Metrics = mzb_bc:maps_get(metrics, Opts, []),
             MetricsGroups = build_metric_graphs(Metrics),
             [{graph, Opts#{metrics => MG}} || MG <- MetricsGroups]
         end, Graphs),

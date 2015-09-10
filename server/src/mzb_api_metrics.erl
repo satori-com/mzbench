@@ -21,14 +21,14 @@ get_graphite_image_links(#{<<"graphite_url">>:= GraphiteUrl,
                            <<"graphite_prefix">>:= GraphitePrefix,
                            <<"groups">>:= Groups}, BenchTime) ->
     [make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) || Group <- Groups,
-                                                                          Graph <- maps:get(<<"graphs">>, Group, [])];
+                                                                          Graph <- mzb_bc:maps_get(<<"graphs">>, Group, [])];
 get_graphite_image_links(_UnknownGraphite, _BenchTime) -> [].
 
 
 make_graphite_link(GraphiteUrl, GraphitePrefix, BenchTime, Graph) ->
-    GraphTargets = maps:get(<<"metrics">>, Graph, []),
-    Title = maps:get(<<"title">>, Graph, <<>>),
-    Units = maps:get(<<"units">>, Graph, <<>>),
+    GraphTargets = mzb_bc:maps_get(<<"metrics">>, Graph, []),
+    Title = mzb_bc:maps_get(<<"title">>, Graph, <<>>),
+    Units = mzb_bc:maps_get(<<"units">>, Graph, <<>>),
 
     {From, To} = get_graphite_from_and_to(BenchTime),
 

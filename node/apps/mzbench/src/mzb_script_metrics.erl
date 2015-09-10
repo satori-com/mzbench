@@ -90,7 +90,7 @@ normalize_group(UnknownFormat) ->
     erlang:error({unknown_group_format, UnknownFormat}).
 
 normalize_graph({graph, Opts}) when is_map(Opts) ->
-    Metrics = maps:get(metrics, Opts, []),
+    Metrics = mzb_bc:maps_get(metrics, Opts, []),
     NormalizedMetrics = [normalize_metric(M) || M <- Metrics],
     {graph, Opts#{metrics => NormalizedMetrics}};
 normalize_graph(OneMetric) when is_tuple(OneMetric) ->
@@ -122,10 +122,10 @@ normalize_metric_opts(#{} = Opts) ->
         end, maps:to_list(Opts))).
 
 maybe_append_rps_units(GraphOpts, Metrics) ->
-    IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not maps:get(rps, Opts, false)]),
+    IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not mzb_bc:maps_get(rps, Opts, false)]),
     case IsRPSGraph of
         true ->
-            Units = case maps:get(units, GraphOpts, "") of
+            Units = case mzb_bc:maps_get(units, GraphOpts, "") of
                 "" -> "rps";
                 U -> U ++ "/sec"
             end,
@@ -137,11 +137,11 @@ build_metric_groups_json(Groups) ->
     MetricGroups = mzb_metrics:build_metric_groups(Groups),
     lists:map(fun ({group, GroupName, Graphs}) ->
         NewGraphs = lists:map(fun ({graph, GraphOpts}) ->
-            Metrics = maps:get(metrics, GraphOpts, []),
+            Metrics = mzb_bc:maps_get(metrics, GraphOpts, []),
 
             MetricMap = lists:flatmap(fun({Name, Type, Opts}) ->
                 DPs = [mzb_metrics:datapoint2str(DP) || DP <- mzb_metrics:datapoints(Type)],
-                Opts1 = maps:without([rps, worker], Opts),
+                Opts1 = mzb_bc:maps_without([rps, worker], Opts),
                 [Opts1#{name => (Name ++ "."++ S)} || S <- DPs]
             end, Metrics),
 
