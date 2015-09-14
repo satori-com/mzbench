@@ -66,8 +66,15 @@ init([Id, Params]) ->
                 mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
             Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
         end,
+    BenchName =
+        case maps:find(benchmark_name, Params) of
+            {ok, undefined} -> ScriptName;
+            {ok, BN} -> BN;
+            error -> ScriptName
+        end,
     Config = #{
         id => Id,
+        benchmark_name => BenchName,
         nodes_arg => maps:get(nodes, Params),
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,

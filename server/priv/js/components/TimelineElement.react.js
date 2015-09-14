@@ -18,7 +18,7 @@ class TimelineElement extends React.Component {
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
                     <h6>
-                        #{bench.id} {bench.script_name}
+                        #{bench.id} {bench.benchmark_name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                     </h6>
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
