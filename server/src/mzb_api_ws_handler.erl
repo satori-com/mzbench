@@ -137,7 +137,7 @@ apply_filter(TimelineOpts, BenchInfos) ->
     end.
 
 get_searchable_fields(BenchInfo) ->
-    SearchFields = mzb_bc:maps_with([id, status, script_name, start_time, finish_time], BenchInfo),
+    SearchFields = mzb_bc:maps_with([id, status, benchmark_name, script_name, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
     lists:map(fun (X) when is_atom(X) -> atom_to_list(X);
                   (X) when is_integer(X) -> integer_to_list(X);
