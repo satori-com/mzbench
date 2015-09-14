@@ -85,20 +85,56 @@ def start(host, script_file, script_content,
 
 
 def restart(host, bench_id):
+    """Creates a copy of a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id to copy
+    :type host: int
+    :returns: operation status
+    :rtype: dict
+    """
     return assert_successful_get(host, '/restart', {'id': bench_id})
 
 
 def logs(host, bench_id):
+    """Outputs logs for a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :returns: logs
+    :rtype: generator of str
+    """
     for x in stream_lines(host, '/logs', {'id': bench_id}):
         yield x
 
 
 def data(host, bench_id):
+    """Outputs CSV data for a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :returns: CSV data
+    :rtype: generator of str
+    """
     for x in stream_lines(host, '/data', {'id': bench_id}):
         yield x
 
 
 def status(host, bench_id, wait=False):
+    """Get bench status
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :returns: benchmark status
+    :rtype: dict
+    """
     return assert_successful_get(
         host,
         '/status',
@@ -107,6 +143,15 @@ def status(host, bench_id, wait=False):
 
 
 def stop(host, bench_id):
+    """Stop a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :returns: operation status
+    :rtype: dict
+    """
     return assert_successful_get(
         host,
         '/stop',

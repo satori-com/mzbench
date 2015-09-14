@@ -4,33 +4,35 @@
     create_cluster/3,
     destroy_cluster/1,
 
-    lock_localhost/0,
-    unlock_localhost/0
+    lock_hosts/2,
+    unlock_hosts/1
 ]).
 
-create_cluster(Name, N, _Config) ->
-    case lock_localhost() of
-        ok -> {ok, {Name, N}, undefined, ["localhost"]};
-        {error, locked} -> erlang:error(localhost_is_busy)
+create_cluster(_Name, N, _Config) ->
+    Hosts = application:get_env(mzbench_api, dummycloud_hosts, ["localhost"]),
+
+    case lock_hosts(N, Hosts) of
+        {ok, L} -> {ok, L, undefined, L};
+        {error, locked} -> erlang:error(hosts_are_busy)
     end.
 
-destroy_cluster(_) ->
-    unlock_localhost(),
+destroy_cluster(Hosts) ->
+    unlock_hosts(Hosts),
     ok.
 
 % Tmp functions
 % We need to block second allocation on localhost somehow
 % to prevent localhost parallel benchmarks.
-lock_localhost() -> lock_localhost(60).
+lock_hosts(N, Hosts) -> lock_hosts(N, Hosts, 60).
 
-lock_localhost(Attempts) when Attempts =< 0 -> {error, locked};
-lock_localhost(Attempts) ->
-    case gen_server:call(mzb_api_server, lock_localhost) of
-        ok -> ok;
+lock_hosts(_, Hosts, Attempts) when Attempts =< 0 -> {error, locked};
+lock_hosts(N, Hosts, Attempts) ->
+    case gen_server:call(mzb_api_server, {lock_hosts, N, Hosts}) of
+        {ok, L} when is_list(L) -> {ok, L};
         {error, locked} ->
             timer:sleep(1000),
-            lock_localhost(Attempts - 1)
+            lock_hosts(N, Hosts, Attempts - 1)
     end.
 
-unlock_localhost() ->
-    gen_server:call(mzb_api_server, unlock_localhost).
+unlock_hosts(Hosts) ->
+    gen_server:call(mzb_api_server, {unlock_hosts, Hosts}).
