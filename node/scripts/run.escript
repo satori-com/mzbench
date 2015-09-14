@@ -23,17 +23,12 @@ run(NodeStr, Script, ReportFile, EnvFile) ->
     Node = erlang:list_to_atom(NodeStr),
     mzb_escript_shared:start_and_connect(Node),
     Env = mzb_escript_shared:read_env(EnvFile),
-    case rpc:call(Node, mzb_bench_sup, run_script, [Script, Env, ReportFile]) of
-        {ok, Ref} ->
-            case rpc:call(Node, mzb_bench_sup, get_results, [Ref], infinity) of
-                {ok, Str} ->
-                    io:format("~s~n", [Str]);
-                {error, _, Str} ->
-                    io:format("~s~n", [Str]),
-                    erlang:halt(1)
-            end;
-        {error, _, _E, _ST, Messages} -> 
-            lists:map(fun(X) -> io:format(standard_error, X ++ "~n", []) end, Messages),
+
+    case rpc:call(Node, mzb_bench_sup, run_bench, [Script, Env]) of
+        {ok, R} ->
+            io:format("~s~n", [R]);
+        {error, Messages} -> 
+            io:format(standard_error, string:join(Messages, "\n"), []),
             erlang:halt(1)
     end.
 

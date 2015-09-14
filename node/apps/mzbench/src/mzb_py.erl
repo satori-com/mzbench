@@ -231,7 +231,18 @@ eval_erlang_term(String) ->
     end.
 
 -spec encode_for_python(term()) -> string().
-encode_for_python(Term) when is_list(Term) -> "'" ++ encode_str_for_python(Term) ++ "'";
+encode_for_python(Term) when is_list(Term) ->
+    case io_lib:printable_list(Term) of
+        true -> "'" ++ encode_str_for_python(Term) ++ "'";
+        false ->
+            Col = [encode_for_python(T) || T <- Term],
+            "[" ++ string:join(Col, ", ") ++ "]"
+    end;
+encode_for_python(Term) when is_tuple(Term) ->
+    List = [element(I,Term) || I <- lists:seq(1,tuple_size(Term))],
+    Encoded = [encode_for_python(T) || T <- List],
+    "(" ++ string:join(Encoded, ", ") ++ ")";
+encode_for_python(Term) when is_binary(Term) -> "'" ++ erlang:binary_to_list(Term) ++ "'";
 encode_for_python(Term) when is_atom(Term) -> "'" ++ encode_str_for_python(erlang:atom_to_list(Term)) ++ "'";
 encode_for_python(Term) when is_integer(Term) -> erlang:integer_to_list(Term);
 encode_for_python(Term) when is_float(Term) -> erlang:float_to_list(Term).

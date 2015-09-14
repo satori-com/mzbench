@@ -1,7 +1,7 @@
 -module(dummy_worker).
 
 -export([initial_state/0, metrics/0,
-         print/3, test_method/3, doubled_print_counter/0]).
+         print/3, test_method/3, test_pre_hook/1, doubled_print_counter/0]).
 
 -type state() :: string().
 
@@ -26,3 +26,6 @@ print(State, _Meta, Text) ->
 
 test_method(State, _Meta, Text) ->
     {nil, Text ++ State}.
+
+test_pre_hook(Env) ->
+    {ok, [{"foo", "bar"} | Env]}.

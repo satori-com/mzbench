@@ -65,7 +65,7 @@ numvar(State, Env, Meta, Name) ->
 
 var(State, Env, _Meta, Name) ->
     case proplists:is_defined(Name, Env) of
-        false -> erlang:error({var_is_undefined, Name});
+        false -> erlang:error({var_is_unbounded, Name});
         true -> {proplists:get_value(Name, Env), State}
     end.
 
