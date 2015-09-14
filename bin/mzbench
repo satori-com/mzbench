@@ -15,6 +15,7 @@ Usage:
     [--deallocate_after_bench=<deallocate_after_bench>]
     [--provision_nodes=<provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
+    [--name=<benchmark_name>]
     <script_file>
   mzbench [--host=<host>] restart <bench_id>
   mzbench [--host=<host>] status [--wait] <bench_id>
@@ -69,7 +70,9 @@ Options:
                      Either "true" or "false". Default is "true".
                      If set to true mzbench will request exclusive physical
                      hosts for each worker node.
-    --env <name=value>  
+    --name <benchmark_name>
+                     Set benchmark name.
+    --env <name=value>
                      Pass a variable to script
     --template <template> 
                      Choose a template for new worker, default is 'empty'
@@ -210,17 +213,19 @@ def pretty_print(data):
     json.dump(data, sys.stdout, indent=4)
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
-        node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage, env):
+        node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,
+        name, env):
     bench_id = start(host, script_file, script_content, email, node_commit,
-        nodes, workers_per_node, deallocate_after_bench, provision_nodes, 
-        exclusive_node_usage, env)
+        nodes, workers_per_node, deallocate_after_bench, provision_nodes,
+        exclusive_node_usage, name, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
         sys.exit(3)
 
-def start(host, script_file, script_content, email, node_commit, nodes, workers_per_node,
-        deallocate_after_bench, provision_nodes, exclusive_node_usage, env):
+def start(host, script_file, script_content, email, node_commit, nodes,
+          workers_per_node, deallocate_after_bench, provision_nodes,
+          exclusive_node_usage, name, env):
     import erl_utils
     import erl_terms
         
@@ -240,6 +245,7 @@ def start(host, script_file, script_content, email, node_commit, nodes, workers_
             deallocate_after_bench=deallocate_after_bench,
             provision_nodes=provision_nodes,
             exclusive_node_usage=exclusive_node_usage,
+            benchmark_name=name,
             env=env,
             nodes=nodes)
         pretty_print(response)

@@ -116,8 +116,12 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                            #{},
                            mzb_bc:maps_with([finish_time, start_time], Status)),
 
-    #{script:= #{body:= ScriptBody, name:= ScriptName}} = Config,
-    ScriptFields = #{script_body => ScriptBody, script_name => ScriptName},
+    #{script:= #{body:= ScriptBody,
+                 name:= ScriptName},
+      benchmark_name:= BenchName} = Config,
+    ScriptFields = #{script_body => ScriptBody,
+                     script_name => ScriptName,
+                     benchmark_name => BenchName},
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,
                 #{id => Id},

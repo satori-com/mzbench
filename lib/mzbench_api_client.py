@@ -10,8 +10,9 @@ class MZBenchAPIException(Exception):
     pass
 
 def start(host, script_file, script_content,
-         node_commit = None, nodes = None, deallocate_after_bench = None, provision_nodes = None,
-         exclusive_node_usage = None, emails=[], includes=[], env={}
+          node_commit = None, nodes = None, deallocate_after_bench = None,
+          provision_nodes = None, exclusive_node_usage = None, benchmark_name = None,
+          emails=[], includes=[], env={}
         ):
     """Starts a bench
 
@@ -31,6 +32,8 @@ def start(host, script_file, script_content,
     :type provision_nodes: "true" or "false"
     :param exclusive_node_usage: Allocate exclusive nodes if allocator supports this mode
     :type exclusive_node_usage: "true" or "false"
+    :param benchmark_name: Set benchmark name
+    :type benchmark_name: str or unicode
     :param emails: Emails to notify on bench results
     :type emails: List of strings
     :param includes: List of files to include
@@ -55,6 +58,8 @@ def start(host, script_file, script_content,
         params += [('provision_nodes', provision_nodes)]
     if exclusive_node_usage is not None:
         params += [('exclusive_node_usage', exclusive_node_usage)]
+    if benchmark_name is not None:
+        params += [('benchmark_name', benchmark_name)]
     if node_commit is not None:
         params += [('node_commit', node_commit)]
     

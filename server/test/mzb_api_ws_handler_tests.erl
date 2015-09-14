@@ -8,14 +8,16 @@ normalize_test() ->
                metrics => metrics,
                id => 1,
                start_time => 1437549842,
-               config => #{script => #{body => script_body, name => "script_name.erl"}}}},
+               config => #{script => #{body => script_body, name => "script_name.erl"},
+                           benchmark_name => "Test bench"}}},
 
         {2, #{ status => success,
                metrics => metrics,
                id => 2,
                start_time => 1437549842,
                finish_time => 1437549842,
-               config => #{script => #{body => script_body1, name => "another_name.erl"}}}}
+               config => #{script => #{body => script_body1, name => "another_name.erl"},
+                           benchmark_name => "Test bench"}}}
     ],
 
     Normalized = mzb_api_ws_handler:normalize(BenchInfos),
@@ -23,12 +25,14 @@ normalize_test() ->
     ?assertEqual([
         #{finish_time => "2015-07-22T07:24:02Z",
           id => 2,
+          benchmark_name => "Test bench",
           metrics => metrics,
           script_body => script_body1,
           script_name => "another_name.erl",
           start_time => "2015-07-22T07:24:02Z",
           status => success},
         #{id => 1,
+          benchmark_name => "Test bench",
           metrics => metrics,
           script_body => script_body,
           script_name => "script_name.erl",

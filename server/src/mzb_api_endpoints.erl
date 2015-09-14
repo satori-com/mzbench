@@ -245,6 +245,7 @@ parse_start_params(Req) ->
         {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},
         {provision_nodes,           single_value,   fun binary_to_bool/1,                                       true},
         {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true},
+        {benchmark_name,            single_value,   fun erlang:binary_to_list/1,                                undefined},
         {vm_args,                   list,           fun (List) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
@@ -257,7 +258,7 @@ parse_start_params(Req) ->
             V = proplists:get_all_values(K1, Acc),
             {{K, V}, proplists:delete(K1, Acc)}
         end,
-        cowboy_req:parse_qs(Req), 
+        cowboy_req:parse_qs(Req),
         [ParamName || {ParamName, _, _, _} <- ParamsDefs]),
 
     Params2 = lists:map(
