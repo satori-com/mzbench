@@ -24,6 +24,7 @@ Optional query parameters:
 * node_commit -- commit or branch to be used for node. It is useful when you need to run different versions of the node with one server.
 * deallocate_after_bench -- whether nodes require to be deallocated after the execution has finished. This option can be "true" or "false", default is "true".
 * provision_nodes -- whether software installation is required for nodes. In some cases, you already have MZBench installed and you do not need to reinstall it, default is "true".
+* benchmark_name -- set benchmark name.
 
 In a case of success, response is JSON object contains "id" and "status" fields.
 
