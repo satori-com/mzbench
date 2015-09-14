@@ -40,19 +40,26 @@ Options:
                      the director. If you provide preallocated nodes, you 
                      must provide at least two (one for director and one for
                      the workers).
+                     Note: If preallocated nodes are used they won't be
+                     deallocated after benchmark by any means, although the
+                     erlang nodes will be stopped automatically. If you want to
+                     prevent the erlang nodes from stopping (in case of
+                     debugging, for example) --deallocate_after_bench param
+                     could be used.
     --workers_per_node <workers_per_node>
                      Let the benchmarking system to allocate the number of
                      nodes needed so each node will run the requested number 
                      of workers. Beware that one additional node will be 
                      allocated for the director.
-    --nodes_file <filename>    
+    --nodes_file <filename>
                      Specify a file with hostnames of preallocated nodes
                      separated by newline.
     --deallocate_after_bench <deallocate_after_bench>
-                     Either "true" or "false". Default is "true". Setting
-                     this to "false" results in worker nodes still being
-                     alive and accessible after bench finishes. Can be useful
-                     for debugging purposes.
+                     Either "true" or "false". Default is "true". Setting it to
+                     false will force mzbench to skip deallocation phase of
+                     the benchmark and leave erlang worker nodes alive.
+                     *Warning* This parameter is for debugging purpose only.
+                     Could lead to serious resource leakage.
     --provision_nodes <provision_nodes>
                      Either "true" or "false". Default is "true". Setting this 
                      to "true" indicates to perform nodes provision. Disabling 
