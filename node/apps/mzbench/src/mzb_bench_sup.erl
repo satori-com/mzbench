@@ -1,6 +1,5 @@
 -module(mzb_bench_sup).
--export([start_link/0, is_ready/0, connect_nodes/1, run_script/1,
-         run_script/2, run_script/3, get_results/1, start_pool/1]).
+-export([start_link/0, is_ready/0, connect_nodes/1, run_bench/2, start_pool/1]).
 
 -behaviour(supervisor).
 -export([init/1]).
@@ -13,22 +12,46 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-run_script(ScriptFileName) ->
-    run_script(ScriptFileName, []).
-run_script(ScriptFileName, Env) ->
-    run_script(ScriptFileName, Env, undefined).
-run_script(ScriptFileName, Env, ReportFile) ->
+run_bench(ScriptFileName, Env) ->
+    Stages = [read_and_validate, pre_hook, read_and_validate, start_director, get_result, post_hook],
+    DefaultParams = #{path => ScriptFileName, env => mzbl_script:normalize_env(Env)},
+    Ret = lists:foldl(fun safely_run/2, DefaultParams, Stages),
+    case Ret of
+        #{result := Result} -> {ok, Result};
+        {error, _} = E -> E
+    end.
+
+safely_run(_, {error, _} = E) -> E;
+safely_run(Stage, Params) ->
+    try
+        run(Stage, Params)
+    catch C:E ->
+        ST = erlang:get_stacktrace(),
+        lager:error("Unable to run bench stage ~p ~p:~p~n~p", [Stage, C, E, ST]),
+        {error, [mzb_string:format("Unable to run bench stage ~p", [Stage])]}
+    end.
+
+run(read_and_validate, #{path:=Path, env:=Env} = Params) ->
+    case mzb_script_validator:read_and_validate(Path, Env) of
+        {ok, Body, NewEnv} -> Params#{body => Body, env => NewEnv};
+        {error, _, _, _, Errors} -> {error, Errors}
+    end;
+run(HookKind, #{body:= Body, env:=Env} = Params)
+        when HookKind == pre_hook; HookKind == post_hook ->
+    {ok, NewEnv} =  mzb_script_hooks:process_hooks_on_nodes(HookKind, Body, Env),
+    Params#{env => NewEnv};
+run(start_director, #{body:= Body, env:=Env} = Params) ->
     Nodes = retrieve_worker_nodes(),
-    Env2 = normalize_env(Env),
-    case mzb_script_validator:read_and_validate(ScriptFileName, Env2) of
-        {ok, Body, Env3} ->
-            ok = case start_director(Body, Nodes, Env3, ReportFile) of
-                {ok, _, _} -> ok;
-                {ok, _} -> ok;
-                Error -> Error
-            end,
-            {ok, whereis(?MODULE)};
-        {error, _, _, _, _} = E -> E
+    case start_director(Body, Nodes, Env) of
+        {ok, _, _} -> Params;
+        {ok, _} -> Params;
+        {error, Error} -> {error, ["Unable to start director supervisor"]}
+    end;
+run(get_result, Params) ->
+    case get_results() of
+        {error, _, Error} -> {error, [Error]};
+        {ok, Result} ->
+            Params#{result => Result}
     end.
 
 is_ready() ->
@@ -53,8 +76,9 @@ get_director(Sup) ->
         false -> erlang:error(no_director)
     end.
 
-get_results(Pid) ->
+get_results() ->
     try
+        Pid = whereis(?MODULE),
         D = get_director(Pid),
         mzb_director:attach(D)
     catch
@@ -82,12 +106,12 @@ init([]) ->
 child_spec(Name, Module, Args, Restart) ->
     {Name, {Module, start_link, Args}, Restart, 5000, worker, [Module]}.
 
-start_director(Body, Nodes, Env, ReportFile) ->
+start_director(Body, Nodes, Env) ->
     BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
     lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
     supervisor:start_child(?MODULE, 
                             child_spec(director, mzb_director, 
-                                       [whereis(?MODULE), BenchName, Body, Nodes, Env, ReportFile],
+                                       [whereis(?MODULE), BenchName, Body, Nodes, Env, undefined],
                                        transient)).
 
 retrieve_worker_nodes() ->
@@ -96,15 +120,3 @@ retrieve_worker_nodes() ->
         0   ->  [erlang:node()];    % If no worker node is available, use the director node
         _ -> Nodes
     end.
-
-normalize_env(Env) ->
-    lists:map(
-        fun ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
-        end, Env).
-
-normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
-normalize_env_(V) when is_list(V) -> V;
-normalize_env_(V) when is_integer(V) -> V;
-normalize_env_(U) ->
-    Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
-    erlang:error({error, {validation, [Msg]}}).

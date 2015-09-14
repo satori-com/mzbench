@@ -47,6 +47,10 @@ validate(Script) ->
             (#operation{name = assert} = Op, Acc) ->
                 mzb_asserts:validate(Op) ++ Acc;
             (#operation{name = make_install}, Acc) -> Acc;
+            (#operation{name = pre_hook} = Op, Acc) ->
+                mzb_script_hooks:validate(Op) ++ Acc;
+            (#operation{name = post_hook} = Op, Acc) ->
+                mzb_script_hooks:validate(Op) ++ Acc;
             (#operation{name = use_graphite, args = _}, Acc) -> 
                 ["use_graphite is deprecated and shouldn't be used anymore."
                     ++ " Use \"graphite\" environment variable instead."] 

@@ -46,23 +46,16 @@ run_script(Script, Env) ->
     ok = application:load(setup),
     ok = application:set_env(setup, data_dir, "."),
     ok = application:set_env(setup, log_dir, "."),
-    {ok, _} = ensure_all_started(setup),
+    {ok, _} = application:ensure_all_started(setup),
+    {ok, _} = application:ensure_all_started(mzbench),
 
-    {ok, _} = ensure_all_started(mzbench),
-
-    Ref =
-        case mzb_bench_sup:run_script(filename:absname(Script), Env) of
-            {ok, R} -> R;
-            {error, _, _E, _ST, Messages} ->
-                terminate_node(1, string:join(Messages, "\n"))
-        end,
-
-    case mzb_bench_sup:get_results(Ref) of
-        {ok, Str} ->
-            terminate_node(0, Str);
-        {error, _, Str} ->
-            terminate_node(1, Str)
+    case mzb_bench_sup:run_bench(filename:absname(Script), Env) of
+        {ok, R} ->
+            io:format("~s~n", [R]);
+        {error, Messages} ->
+            terminate_node(1, string:join(Messages, "\n"))
     end.
+
 parse_args([], Res) -> Res;
 parse_args(["--validate"|T], Res) -> parse_args(T, [{validate, true}|Res]);
 parse_args(["--env", KV | T], Res) ->
@@ -95,42 +88,11 @@ setup_logger(Handlers) ->
     ok = application:load(lager),
     ok = application:set_env(lager, handlers, Handlers),
     ok = application:set_env(lager, crash_log, undefined),
-    {ok, _} = ensure_all_started(lager),
+    {ok, _} = application:ensure_all_started(lager),
 
     application:load(sasl),
     application:set_env(sasl, sasl_error_logger, {file, "/dev/null"}),
-    {ok, _} = ensure_all_started(sasl).
-
-%% backported from R17
-
-ensure_all_started(Application) ->
-    ensure_all_started(Application, temporary).
-
-ensure_all_started(Application, Type) ->
-    case ensure_all_started(Application, Type, []) of
-        {ok, Started} ->
-            {ok, lists:reverse(Started)};
-        {error, Reason, Started} ->
-            _ = [application:stop(App) || App <- Started],
-            {error, Reason}
-    end.
-
-ensure_all_started(Application, Type, Started) ->
-    case application:start(Application, Type) of
-        ok ->
-            {ok, [Application | Started]};
-        {error, {already_started, Application}} ->
-            {ok, Started};
-        {error, {not_started, Dependency}} ->
-            case ensure_all_started(Dependency, Type, Started) of
-                {ok, NewStarted} ->
-                    ensure_all_started(Application, Type, NewStarted);
-                Error ->
-                    Error
-            end;
-        {error, Reason} ->
-            {error, {Application, Reason}, Started}
-    end.
+    {ok, _} = application:ensure_all_started(sasl).
 
 terminate_node(ExitCode, Message) ->
     application:stop(lager),

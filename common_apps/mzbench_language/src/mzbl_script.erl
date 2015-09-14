@@ -7,11 +7,13 @@
          read_from_string/2,
          get_benchname/1,
          meta_to_location_string/1,
+         normalize_env/1,
          substitute/2,
          extract_pools_and_env/2,
          extract_install_specs/1,
          enumerate_pools/1,
          extract_worker/1,
+         resolve_worker_provider/1,
          make_git_install_spec/3,
          make_rsync_install_spec/3]).
 
@@ -54,10 +56,7 @@ substitute(#operation{name = OpName, args = Args, meta = Meta} = Op, Env, Iterat
     [VarName|Rest] = substitute(Args, Env, Iterators),
     case {proplists:get_value(VarName, Env), lists:member(VarName, Iterators), Rest} of
         {undefined, false, [DefaultValue]} -> DefaultValue;
-        {undefined, false, _} ->
-            erlang:error({substitution_error,
-                variable_name_is_unbound, VarName,
-                at_location, meta_to_location_string(Meta)});
+        {undefined, false, _} -> Op#operation{args = [VarName]};
         {Value, false, []} ->
             case OpName of
                 numvar -> mzb_utility:any_to_num(Value);
@@ -233,7 +232,12 @@ get_benchname(ScriptName) ->
 
 -spec extract_worker([operation()]) -> {worker_provider(), worker_name()}.
 extract_worker(PoolOpts) ->
-    case mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]) of
+    WorkerType = mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]),
+    resolve_worker_provider(WorkerType).
+
+-spec resolve_worker_provider([atom()]) -> {worker_provider(), worker_name()}.
+resolve_worker_provider(Worker) ->
+    case Worker of
         [WorkerName] -> {mzb_erl_worker, WorkerName};
         [WorkerName, erlang] -> {mzb_erl_worker, WorkerName};
         [WorkerName, lua] -> {mzb_lua_worker, WorkerName};
@@ -300,3 +304,16 @@ make_rsync_install_spec(Remote, Subdir, Excludes) ->
 to_string(X) when is_binary(X) -> binary_to_list(X);
 to_string(X) when is_list(X) -> X;
 to_string(Y) -> erlang:error({not_a_stringy_thing, Y}).
+
+-spec normalize_env([term()]) -> [term()].
+normalize_env(Env) ->
+    lists:map(
+        fun ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
+        end, Env).
+
+normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
+normalize_env_(V) when is_list(V) -> V;
+normalize_env_(V) when is_integer(V) -> V;
+normalize_env_(U) ->
+    Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
+    erlang:error({error, {validation, [Msg]}}).

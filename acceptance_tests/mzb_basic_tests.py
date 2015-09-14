@@ -154,8 +154,10 @@ def assertions_succ_test():
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
 
+
 def comb_test():
     run_successful_bench(mzbench_dir + 'examples/comb.erl')
+
 
 def workers_per_node_test():
     workers_per_node = 3

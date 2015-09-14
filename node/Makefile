@@ -8,6 +8,7 @@ SERVICE_PREFIX=/mz
 SERVICE_NAME=mzbench
 SERVICE_LOG_DIR=/var/log/${SERVICE_NAME}
 GIT_HEAD := $(shell git rev-parse HEAD)
+OS_VERSION := $(shell uname -sr | awk '{gsub(/ /, "-"); print tolower($$0)}')
 RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
 # all files not in ebin or .eunit
@@ -59,6 +60,10 @@ generate_tgz: generate
 	cp -rf _build/default/rel/mzbench pkgroot/
 	cd pkgroot && tar czf ../node.tgz ./mzbench && cd ..
 	rm -rf pkgroot
+
+.PHONY: local_tgz
+local_tgz: generate_tgz
+	cp node.tgz ../server/packages/node-$(GIT_HEAD)-$(OS_VERSION).tgz
 
 .PHONY: clean
 clean:

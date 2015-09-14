@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 import nose
+import re
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
@@ -23,6 +24,10 @@ def devtool_run_local_tests():
     cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'loop_rate.erl')
 
     cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'data_script.erl')
+
+    log = cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'hooks.erl')
+    regex = re.compile(r"\[ EXEC \] echo pre_hook_1(.*)\[ EXEC \] echo pre_hook_2(.*)Dummy print: \"bar\"(.*)\[ EXEC \] echo post_hook_1", re.DOTALL)
+    assert regex.search(log)
 
     try:
         cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'syntax_error.erl')

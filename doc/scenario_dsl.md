@@ -47,6 +47,21 @@ If no `dir` is specified, `.` is used by default.
 
 Instructs the benchmarking system to include additional resource files in your scenario. See [Resource files](#resource-files) for more details on this functionality.
 
+### `{pre_hook, Opts}` and `{post_hook, Opts}` 
+
+    Opts = [Opt]
+    Opt = {target, Target} | {command, Command}
+    Target = all | director
+    Command = ExecCmd  | WorkerCallCmd
+    ExecCmd = {exec, BashCommand}
+    WorkerCallCmd = {worker_call, WorkerMethod, WorkerModule} | {worker_call, WorkerMethod, WorkerModule, WorkerType}
+
+Instruct the benchmark system to run some action before/after benchmark. Hooks could be applied on every nodes or on director only. Hooks could be implemented either via bash command or worker method call.
+
+You could change some environment values in your hooks if they are implemented as worker calls. Benchmark system passes current environment to your hook and gets new environment from it. You could get access to this value in your scenaria by using `var` directive.
+
+You could check [hooks example](../examples/hooks.erl) and review implementation of hook method in our [dummy worker](../node/apps/dummy_worker/src/dummy_worker.erl) for addition information. 
+
 ### `{assert, always, <Condition>}`
 
 Instructs the benchmarking system to check that specified condition is satisfied all the time while bench is running.

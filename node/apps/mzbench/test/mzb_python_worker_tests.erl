@@ -7,5 +7,8 @@ encode_str_for_python_test() ->
 encode_for_python_test() ->
     ?assertEqual("'hello\\'world'", mzb_py:encode_for_python("hello'world")),
     ?assertEqual("'hello'", mzb_py:encode_for_python(hello)),
+    ?assertEqual("'hello'", mzb_py:encode_for_python(hello)),
     ?assertEqual("2", mzb_py:encode_for_python(2)),
+    ?assertEqual("[('nodes_num', 1), ('bench_hosts', ['p1', 1, 'one'])]",
+                 mzb_py:encode_for_python([{"nodes_num",1}, {"bench_hosts",["p1", 1, <<"one">>]}])),
     ?assertEqual("2.50000000000000000000e+00", mzb_py:encode_for_python(2.5)).
