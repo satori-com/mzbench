@@ -1,6 +1,6 @@
 {application, mzbench_api, [
     {description, "MZ Bench API server"},
-    {vsn, git},
+    {vsn, string:strip(os:cmd("git rev-parse HEAD"), both, $\n)},
     {modules, []},
     {registered, [mzb_api_sup]},
     {applications, [
