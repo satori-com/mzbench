@@ -149,7 +149,7 @@ is_satisfy_filter(Query, BenchInfo) ->
         QueryString = binary_to_list(Query),
         SearchFields = get_searchable_fields(BenchInfo),
         lists:any(fun(Field) ->
-                      case re:run(Field, QueryString, []) of
+                      case re:run(Field, QueryString, [caseless]) of
                           {match, _} -> true;
                           _ -> false
                       end
