@@ -426,7 +426,7 @@ run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
             end
     end.
 
-allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, _) when is_integer(N), N > 0 ->
+allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer(N), N > 0 ->
     #{purpose:= Purpose,
       initial_user:= User,
       exclusive_node_usage:= Exclusive} = Config,
@@ -438,6 +438,7 @@ allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, _) when is_integer(N), 
         exclusive_node_usage => Exclusive
     },
     % Allocate one supplementary node for the director
+    Logger(info, "Allocating ~p hosts in ~p cloud...", [N + 1, Cloud]),
     {ok, ClusterId, UserName, Hosts} = mzb_api_cloud:create_cluster(Cloud, N + 1, ClusterConfig),
     Deallocator =
         fun () ->

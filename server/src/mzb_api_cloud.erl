@@ -88,6 +88,6 @@ init_plugin({Name, Opts}) ->
                 lager:error("Either module or application param must be specified for ~p cloud plugin", [Name]),
                 erlang:error({bad_cloud_plugin, Name})
         end,
-    Instance = Provider:start(Opts),
+    Instance = Provider:start(Name, Opts),
     {Name, {Provider, Instance}}.
 
