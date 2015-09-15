@@ -87,8 +87,8 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         for k, v in env.iteritems()))
 
     def run():
-        if 'NODE_COMMIT' in os.environ:
-            node_commit_arg = '--node_commit={0}'.format(os.environ['NODE_COMMIT'])
+        if 'worker_branch' in env:
+            node_commit_arg = '--node_commit={0}'.format(env['worker_branch'])
         else:
             node_commit_arg = ''
 
