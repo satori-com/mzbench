@@ -92,7 +92,8 @@ init([Id, Params]) ->
         metrics_file => get_env(bench_metrics_file),
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
-        vm_args => VMArgs
+        vm_args => VMArgs,
+        cloud => mzb_bc:maps_get(cloud, Params, undefined)
     },
     Data = #{
         includes => Includes
@@ -380,10 +381,6 @@ send_email_report(_Emails, Status) ->
 status(State) ->
     mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics], State).
 
-get_cloud_provider() ->
-    {ok, {_Type, Name}} = application:get_env(mzbench_api, cloud_plugin),
-    Name.
-
 add_env([], Env) -> Env;
 add_env([H | T], Env) ->
     case application:get_env(H) of
@@ -429,22 +426,22 @@ run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
             end
     end.
 
-allocate_hosts(#{nodes_arg:= N} = Config, _) when is_integer(N), N > 0 ->
+allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, _) when is_integer(N), N > 0 ->
     #{purpose:= Purpose,
       initial_user:= User,
       exclusive_node_usage:= Exclusive} = Config,
     Description = mzb_string:format("MZ-Bench cluster:~n~p", [Config]),
-    CloudProvider = get_cloud_provider(),
     ClusterConfig = #{
+        purpose => Purpose,
         user => User, 
         description => Description, 
         exclusive_node_usage => Exclusive
     },
     % Allocate one supplementary node for the director
-    {ok, ClusterId, UserName, Hosts} = CloudProvider:create_cluster(Purpose, N + 1, ClusterConfig),
+    {ok, ClusterId, UserName, Hosts} = mzb_api_cloud:create_cluster(Cloud, N + 1, ClusterConfig),
     Deallocator =
         fun () ->
-            CloudProvider:destroy_cluster(ClusterId)
+            mzb_api_cloud:destroy_cluster(ClusterId)
         end,
     {Hosts, UserName, Deallocator};
 

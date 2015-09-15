@@ -20,6 +20,7 @@ start_benchmarks_sup() ->
 init([main]) ->
     Procs = [
         {firehose, {gen_event, start_link, [{local, mzb_api_firehose}]}, permanent, 10000, supervisor, []},
+        {cloud_plugins, {mzb_api_cloud, start_link, []}, permanent, 10000, worker, [mzb_api_cloud]},
         {server, {mzb_api_server, start_link, []}, permanent, 10000, worker, [mzb_api_server]},
         {benchmarks, {?MODULE, start_benchmarks_sup, []}, permanent, infinity, supervisor, [?MODULE]}
     ],

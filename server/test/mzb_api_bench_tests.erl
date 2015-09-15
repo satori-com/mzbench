@@ -2,10 +2,11 @@
 -include_lib("eunit/include/eunit.hrl").
 
 cloud_plugin_test() ->
-    application:set_env(mzbench_api, cloud_plugin, {module, dummy_plugin}),
+    application:set_env(mzbench_api, cloud_plugins, [{test_plugin, #{module => dummy_plugin}}]),
     ok = meck:new(dummy_plugin, [non_strict]),
     try
-        ok = meck:expect(dummy_plugin, create_cluster, fun ("purpose", 2, ConfigMap) ->
+        ok = meck:expect(dummy_plugin, start, fun (test_plugin, #{}) -> instance end),
+        ok = meck:expect(dummy_plugin, create_cluster, fun (instance, 2, ConfigMap) ->
                                                                ?assertMatch(#{user := "user",
                                                                               description := _,
                                                                               exclusive_node_usage := false
@@ -14,8 +15,9 @@ cloud_plugin_test() ->
                                                        end),
         ok = meck:expect(dummy_plugin, destroy_cluster, fun (dummy_cluster) -> ok end),
         ok = meck:expect(dummy_plugin, foo, fun (clusterId) -> ok end),
-        Config = #{initial_user => "user", purpose => "purpose", nodes_arg => 1, exclusive_node_usage => false},
-        {dummy_hosts, dummy_user, Deallocator} = mzb_api_bench:allocate_hosts(Config, logger),
+        Config = #{cloud => undefined, initial_user => "user", purpose => "purpose", nodes_arg => 1, exclusive_node_usage => false},
+        mzb_api_cloud:start_link(),
+        {dummy_hosts, dummy_user, Deallocator} = (catch mzb_api_bench:allocate_hosts(Config, fun (_, _, _) -> ok end)),
         ok = Deallocator(),
         ?assert(meck:called(dummy_plugin, create_cluster, '_')),
         ?assert(meck:called(dummy_plugin, destroy_cluster, '_')),

@@ -17,7 +17,7 @@
     ]},
     {mod, {mzb_api_app, []}},
     {env, [
-        {cloud_plugin, {module, mzb_dummycloud_plugin}},
+        {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}]},
         {aws_config, [{ec2_host, "ec2.us-west-2.amazonaws.com"},
                       {access_key_id, "-"},
                       {secret_access_key, "-"}]},
