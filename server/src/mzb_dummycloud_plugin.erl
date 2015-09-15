@@ -1,38 +1,87 @@
 -module(mzb_dummycloud_plugin).
 
--export([
-    create_cluster/3,
-    destroy_cluster/1,
+-behaviour(gen_server).
 
-    lock_hosts/2,
-    unlock_hosts/1
+-export([
+    start/2,
+    create_cluster/3,
+    destroy_cluster/1
 ]).
 
-create_cluster(_Name, N, _Config) ->
-    Hosts = application:get_env(mzbench_api, dummycloud_hosts, ["localhost"]),
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
-    case lock_hosts(N, Hosts) of
-        {ok, L} -> {ok, L, undefined, L};
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+start(Name, Opts) ->
+    Spec = {Name,
+            _MFA = {gen_server, start_link, [?MODULE, [Opts], []]},
+            permanent, 5000, worker, [?MODULE]},
+    {ok, Child} = supervisor:start_child(mzb_api_sup, Spec),
+    Child.
+
+create_cluster(Pid, N, _Config) ->
+    case lock_hosts(Pid, N) of
+        {ok, L} -> {ok, {Pid, L}, undefined, L};
         {error, locked} -> erlang:error(hosts_are_busy)
     end.
 
-destroy_cluster(Hosts) ->
-    unlock_hosts(Hosts),
+destroy_cluster({Pid, Hosts}) ->
+    gen_server:call(Pid, {unlock_hosts, Hosts}).
+
+%%%===================================================================
+%%% gen_server callbacks
+%%%===================================================================
+
+init([Opts]) ->
+    Hosts = mzb_bc:maps_get(hosts, Opts, ["localhost"]),
+    {ok, #{hosts => Hosts, hosts_locked => []}}.
+
+handle_call({lock_hosts, _}, _, #{hosts:= [Host], hosts_locked:= []} = State) ->
+    {reply, {ok, [Host]}, State#{hosts_locked => [Host]}};
+
+handle_call({lock_hosts, N}, _, #{hosts:= Hosts, hosts_locked:= Locked} = State) ->
+    Available = lists:subtract(Hosts, Locked),
+    case erlang:length(Available) of
+        A when A < N -> {reply, {error, locked}, State};
+        _ -> {Result, _} = lists:split(N, Available),
+            {reply, {ok, Result}, State#{hosts_locked => Locked ++ Result}}
+    end;
+
+handle_call({unlock_hosts, Hosts}, _, #{hosts_locked := Locked} = State) ->
+    {reply, ok, State#{hosts_locked => lists:subtract(Locked, Hosts)}};
+
+handle_call(Request, _From, State) ->
+    lager:error("Unhandled call: ~p ~p", [Request, State]),
+    {noreply, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
     ok.
 
-% Tmp functions
-% We need to block second allocation on localhost somehow
-% to prevent localhost parallel benchmarks.
-lock_hosts(N, Hosts) -> lock_hosts(N, Hosts, 60).
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
-lock_hosts(_, Hosts, Attempts) when Attempts =< 0 -> {error, locked};
-lock_hosts(N, Hosts, Attempts) ->
-    case gen_server:call(mzb_api_server, {lock_hosts, N, Hosts}) of
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+lock_hosts(Pid, N) -> lock_hosts(Pid, N, 60).
+
+lock_hosts(_Pid, _, Attempts) when Attempts =< 0 -> {error, locked};
+lock_hosts(Pid, N, Attempts) ->
+    case gen_server:call(Pid, {lock_hosts, N}) of
         {ok, L} when is_list(L) -> {ok, L};
         {error, locked} ->
             timer:sleep(1000),
-            lock_hosts(N, Hosts, Attempts - 1)
+            lock_hosts(Pid, N, Attempts - 1)
     end.
 
-unlock_hosts(Hosts) ->
-    gen_server:call(mzb_api_server, {unlock_hosts, Hosts}).

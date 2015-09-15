@@ -116,7 +116,6 @@ init([]) ->
            status => active,
            data_dir => ServerDir,
            user => User,
-           hosts_locked => [],
            max_bench_num => MaxBenchNum})}.
 
 server_data_dir() ->
@@ -185,19 +184,6 @@ handle_call({stop_bench, Id}, _, #{} = State) ->
         [] ->
             {reply, {error, not_found}, State}
     end;
-
-handle_call({lock_hosts, _, [Host]}, _, #{hosts_locked := []} = State) ->
-    {reply, {ok, [Host]}, State#{hosts_locked => [Host]}};
-handle_call({lock_hosts, N, Hosts}, _, #{hosts_locked := Locked} = State) ->
-    Available = lists:subtract(Hosts, Locked),
-    case erlang:length(Available) of
-        A when A < N -> {reply, {error, locked}, State};
-        _ -> {Result, _} = lists:split(N, Available),
-            {reply, {ok, Result}, State#{hosts_locked => Locked ++ Result}}
-    end;
-
-handle_call({unlock_hosts, Hosts}, _, #{hosts_locked := Locked} = State) ->
-    {reply, ok, State#{hosts_locked => lists:subtract(Locked, Hosts)}};
 
 handle_call(is_ready, _, #{status:= active} = State) ->
     {reply, true, State};
