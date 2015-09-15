@@ -55,6 +55,7 @@ generate: $(RELEASE_BINARY)
 
 $(RELEASE_BINARY): .make/compilation-up-to-date rel/files/sys.config rel/files/vm.args
 	$(REBAR) release
+	touch $(RELEASE_BINARY)
 
 BUILD_PLT_FLAGS := --apps deps/cowboy
 -include ../lib/dialyzer.mk

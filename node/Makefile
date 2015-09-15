@@ -73,6 +73,7 @@ DIALYZABLE_EBINS := apps/*/ebin
 
 $(RELEASE_BINARY): .make/compilation-up-to-date rel/files/sys.config rel/files/vm.args
 	$(REBAR) release
+	touch $(RELEASE_BINARY)
 
 .make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
 	$(REBAR) compile
