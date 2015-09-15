@@ -2,7 +2,7 @@
 -behaviour(application).
 
 %% API.
--export([start/2, prep_stop/1, stop/1, default_logger/0]).
+-export([start/2, prep_stop/1, stop/1, default_logger/0, load_config/1]).
 
 %% API.
 
@@ -101,18 +101,7 @@ load_cloud_plugin() ->
     PluginPaths = mzb_file:wildcard(filename:join([Dir, "*", "ebin"])),
     ok = code:add_pathsa(PluginPaths),
     lager:info("PATHS: ~p", [code:get_path()]),
-    case application:get_env(cloud_plugin) of
-        {ok, {application, Name}} ->
-            lager:info("Loading cloud plugin: ~p...", [Name]),
-            ok = application:load(Name),
-            ok = load_config(Name),
-            {ok, _} = application:ensure_all_started(Name),
-            ok;
-        {ok, {module, _}} -> ok;
-        undefined ->
-            lager:error("A cloud plugin must be specified in the \"cloud_plugin\" environment variable!"),
-            erlang:error(no_cloud_plugin)
-    end.
+    ok.
 
 % We can't call lager:Severity(...) because lager uses parse_transform
 default_logger() ->

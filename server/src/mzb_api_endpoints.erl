@@ -246,6 +246,7 @@ parse_start_params(Req) ->
         {provision_nodes,           single_value,   fun binary_to_bool/1,                                       true},
         {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true},
         {benchmark_name,            single_value,   fun erlang:binary_to_list/1,                                undefined},
+        {cloud,                     single_value,   fun (N) -> erlang:binary_to_atom(N, latin1) end,            undefined},
         {vm_args,                   list,           fun (List) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
