@@ -75,7 +75,7 @@ $(RELEASE_BINARY): .make/compilation-up-to-date rel/files/sys.config rel/files/v
 	$(REBAR) release
 	touch $(RELEASE_BINARY)
 
-.make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD)
+.make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD) $(MZBENCH_COMMON_SOURCES)
 	$(REBAR) compile
 	make -C _build/default/deps/jiffy
 	mkdir -p .make && touch $@
