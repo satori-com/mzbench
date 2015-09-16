@@ -21,8 +21,13 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
                 exec_format("bash -c \"export PATH='~s'; source /etc/profile;~s ~s\"",
                     [OrigPath, Executable, string:join(Args2, " ")], Opts, Logger);
             (Host) ->
-                exec_format("ssh -A -o StrictHostKeyChecking=no ~s@~s \"source /etc/profile; ~s ~s\"", 
-                    [UserName, Host, Executable, string:join(Args2, " ")], Opts, Logger)
+                UserNameParam =
+                    case UserName of
+                        undefined -> "";
+                        _ -> io_lib:format("~s@", [UserName])
+                    end,
+                exec_format("ssh -A -o StrictHostKeyChecking=no ~s~s \"source /etc/profile; ~s ~s\"", 
+                    [UserNameParam, Host, Executable, string:join(Args2, " ")], Opts, Logger)
         end, Hosts).
 
 exec_format(Format, Args, Opts, Logger) ->

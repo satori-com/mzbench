@@ -108,7 +108,12 @@ ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
         fun ("localhost") ->
                 mzb_subprocess:exec_format("cp ~s ~s", [LocalPath, RemotePath], [stderr_to_stdout], Logger);
             (Host) ->
-                mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s@~s:~s", [LocalPath, UserName, Host, RemotePath], [stderr_to_stdout], Logger)
+                UserNameParam =
+                    case UserName of
+                        undefined -> "";
+                        _ -> io_lib:format("~s@", [UserName])
+                    end,
+                mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s", [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], Logger)
         end, Hosts),
     ok.
 
@@ -126,8 +131,14 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
     TmpFile = mzb_file:tmp_filename(),
     _ = case Host of
         "localhost" -> mzb_subprocess:exec_format("cp ~s ~s", [FromFile, TmpFile], [stderr_to_stdout], Logger);
-        _ -> mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s@~s:~s ~s",
-            [User, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger)
+        _ ->
+            UserNameParam =
+                case User of
+                    undefined -> "";
+                    _ -> io_lib:format("~s@", [User])
+                end,
+            mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s~s:~s ~s",
+            [UserNameParam, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger)
     end,
     _ = mzb_subprocess:exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger),
     ok.
