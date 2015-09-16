@@ -82,7 +82,7 @@ init_plugin({Name, Opts}) ->
                 end,
                 ok = mzb_api_app:load_config(App),
                 {ok, _} = application:ensure_all_started(App),
-                ok;
+                App;
             #{module:= M} -> M;
             #{} ->
                 lager:error("Either module or application param must be specified for ~p cloud plugin", [Name]),
