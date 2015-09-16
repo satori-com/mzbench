@@ -25,7 +25,7 @@ start(Name, Opts) ->
 
 create_cluster(Pid, N, _Config) ->
     case lock_hosts(Pid, N) of
-        {ok, L} -> {ok, {Pid, L}, undefined, L};
+        {ok, User, L} -> {ok, {Pid, L}, User, L};
         {error, locked} -> erlang:error(hosts_are_busy)
     end.
 
@@ -38,17 +38,18 @@ destroy_cluster({Pid, Hosts}) ->
 
 init([Opts]) ->
     Hosts = mzb_bc:maps_get(hosts, Opts, ["localhost"]),
-    {ok, #{hosts => Hosts, hosts_locked => []}}.
+    {Hostnames, Username} = parse_hosts(Hosts),
+    {ok, #{hosts => Hostnames, user_name => Username, hosts_locked => []}}.
 
-handle_call({lock_hosts, _}, _, #{hosts:= [Host], hosts_locked:= []} = State) ->
-    {reply, {ok, [Host]}, State#{hosts_locked => [Host]}};
+handle_call({lock_hosts, _}, _, #{hosts:= [Host], hosts_locked:= [], user_name:= User} = State) ->
+    {reply, {ok, User, [Host]}, State#{hosts_locked => [Host]}};
 
-handle_call({lock_hosts, N}, _, #{hosts:= Hosts, hosts_locked:= Locked} = State) ->
+handle_call({lock_hosts, N}, _, #{hosts:= Hosts, hosts_locked:= Locked, user_name:= User} = State) ->
     Available = lists:subtract(Hosts, Locked),
     case erlang:length(Available) of
         A when A < N -> {reply, {error, locked}, State};
         _ -> {Result, _} = lists:split(N, Available),
-            {reply, {ok, Result}, State#{hosts_locked => Locked ++ Result}}
+            {reply, {ok, User, Result}, State#{hosts_locked => Locked ++ Result}}
     end;
 
 handle_call({unlock_hosts, Hosts}, _, #{hosts_locked := Locked} = State) ->
@@ -74,12 +75,21 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+parse_hosts(Hosts) ->
+    lists:mapfoldl(
+        fun (Host, Acc) ->
+            case string:tokens(Host, "@") of
+                [U, H] -> {H, U};
+                [H] -> {H, Acc}
+            end
+        end, undefined, lists:reverse(Hosts)).
+
 lock_hosts(Pid, N) -> lock_hosts(Pid, N, 60).
 
 lock_hosts(_Pid, _, Attempts) when Attempts =< 0 -> {error, locked};
 lock_hosts(Pid, N, Attempts) ->
     case gen_server:call(Pid, {lock_hosts, N}) of
-        {ok, L} when is_list(L) -> {ok, L};
+        {ok, U, L} when is_list(L) -> {ok, U, L};
         {error, locked} ->
             timer:sleep(1000),
             lock_hosts(Pid, N, Attempts - 1)
