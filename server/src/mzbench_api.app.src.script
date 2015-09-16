@@ -18,21 +18,25 @@
     {mod, {mzb_api_app, []}},
     {env, [
         {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}]},
-        {aws_config, [{ec2_host, "ec2.us-west-2.amazonaws.com"},
-                      {access_key_id, "-"},
-                      {secret_access_key, "-"}]},
-        {ec2_instance_spec, [
-                      {image_id, "ami-3b90a80b"},
-                      {group_set, ""},
-                      {key_name, "-"},
-                      {subnet_id, "-"},
-                      {instance_type, "t2.micro"},
-                      {availability_zone, "us-west-2a"}]},
-        {ec2_instance_user, "ec2-user"},
-
+        %{cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
+        %                         instance_spec => [
+        %                              {image_id, "ami-3b90a80b"},
+        %                              {group_set, ""},
+        %                              {key_name, "-"},
+        %                              {subnet_id, "-"},
+        %                              {instance_type, "t2.micro"},
+        %                              {availability_zone, "us-west-2a"}
+        %                            ],
+        %                         config => [
+        %                              {ec2_host, "ec2.us-west-2.amazonaws.com"},
+        %                              {access_key_id, "-"},
+        %                              {secret_access_key, "-"}
+        %                             ]
+        %                         instance_user => "ec2-user",
+        %                        }}]},
         {mail, [{from, <<"mz-bench-api@localhost">>}
-            %,   {smtp, [{relay, "smtp.gmail.com"}, {port, 587}, 
-              %  {username, "user"}, {password, "password"}, {ssl, true}]}
+            %,  {smtp, [{relay, "smtp.gmail.com"}, {port, 587},
+            %           {username, "user"}, {password, "password"},{ssl, true}]}
         ]},
         {network_interface, "127.0.0.1"},
         {listen_port, 4800},

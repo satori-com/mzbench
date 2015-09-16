@@ -433,8 +433,8 @@ allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer
     Description = mzb_string:format("MZ-Bench cluster:~n~p", [Config]),
     ClusterConfig = #{
         purpose => Purpose,
-        user => User, 
-        description => Description, 
+        user => User,
+        description => Description,
         exclusive_node_usage => Exclusive
     },
     % Allocate one supplementary node for the director
