@@ -16,6 +16,7 @@ Usage:
     [--provision_nodes=<provision_nodes>]
     [--exclusive_node_usage=<exclusive_node_usage>]
     [--name=<benchmark_name>]
+    [--cloud=<cloud_provider_name>]
     <script_file>
   mzbench [--host=<host>] restart <bench_id>
   mzbench [--host=<host>] status [--wait] <bench_id>
@@ -72,6 +73,9 @@ Options:
                      hosts for each worker node.
     --name <benchmark_name>
                      Set benchmark name.
+    --cloud <cloud_provider_name>
+                     Specify cloud provider to use. If not set server will use
+                     first available provider.
     --env <name=value>
                      Pass a variable to script
     --template <template> 
@@ -214,10 +218,10 @@ def pretty_print(data):
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,
-        name, env):
+        name, cloud, env):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
-        exclusive_node_usage, name, env)
+        exclusive_node_usage, name, cloud, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
@@ -225,7 +229,7 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          exclusive_node_usage, name, env):
+          exclusive_node_usage, name, cloud, env):
     import erl_utils
     import erl_terms
         
@@ -246,6 +250,7 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             provision_nodes=provision_nodes,
             exclusive_node_usage=exclusive_node_usage,
             benchmark_name=name,
+            cloud=cloud,
             env=env,
             nodes=nodes)
         pretty_print(response)
