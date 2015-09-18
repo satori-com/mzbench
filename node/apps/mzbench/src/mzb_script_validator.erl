@@ -88,20 +88,20 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
       fun(Msg) -> Name ++ ": " ++ Msg end,
       case Provider:validate(Worker) of
           [] ->
-              case Size of
+              SizeErr = case Size of
                 #operation{name = N, args = A} ->
-                    mzb_string:format(
-                    "can't use operation ~p with args ~p as pool size.", [N, A]);
+                    [mzb_string:format("can't use operation ~p with args ~p as pool size.", [N, A])];
                 _ -> [mzb_string:format(
                           "size option: expected something integer-like but got ~p.", [Size])
                           || mzb_utility:to_integer_with_default(Size, fail) == fail] ++
                       ["zero size is not allowed." || mzb_utility:to_integer_with_default(Size, fail) == 0]
-              end ++
-              case mzb_worker_script_validator:validate_worker_script(Script, {Provider, Worker}) of
+              end,
+              ScriptErr = case mzb_worker_script_validator:validate_worker_script(Script, {Provider, Worker}) of
                   ok -> [];
                   {invalid_script, Errors} -> Errors
-              end ++
-              validate_worker_start_type(WorkerStartType);
+              end,
+              StartTypeErr = validate_worker_start_type(WorkerStartType),
+              SizeErr ++ ScriptErr ++ StartTypeErr;
           Messages -> Messages
       end).
 
