@@ -9,16 +9,14 @@ add_libs() ->
     code:add_pathsz(CodePaths).
 
 main([Node, ScriptName]) ->
-    run(Node, ScriptName, undefined, undefined);
-main([Node, ScriptName, ReportFile]) ->
-    run(Node, ScriptName, ReportFile, undefined);
-main([Node, ScriptName, ReportFile, EnvFile]) ->
-    run(Node, ScriptName, ReportFile, EnvFile);
+    run(Node, ScriptName, undefined);
+main([Node, ScriptName, EnvFile]) ->
+    run(Node, ScriptName, EnvFile);
 
 main(_) ->
     usage().
 
-run(NodeStr, Script, ReportFile, EnvFile) ->
+run(NodeStr, Script, EnvFile) ->
     add_libs(),
     Node = erlang:list_to_atom(NodeStr),
     mzb_escript_shared:start_and_connect(Node),
