@@ -11,7 +11,9 @@
          random_number/5,
          sprintf/5,
          var/4,
+         var/5,
          numvar/4,
+         numvar/5,
          seq/5,
          resource/4,
          round_robin/4,
@@ -59,15 +61,17 @@ random_number(State, _Env, _Meta, N, M) ->
 sprintf(State, _Env, _Meta, Str, Vars) ->
     {mzb_string:format(Str, Vars), State}.
 
-numvar(State, Env, Meta, Name) ->
-    {Value, NewState} = var(State, Env, Meta, Name),
-    {mzb_utility:any_to_num(Value), NewState}.
+numvar(State, Env, _Meta, Name) ->
+    {mzb_compiler:var_eval(numvar, Env, [Name]), State}.
+
+numvar(State, Env, _Meta, Name, Default) ->
+    {mzb_compiler:var_eval(numvar, Env, [Name, Default]), State}.
 
 var(State, Env, _Meta, Name) ->
-    case proplists:is_defined(Name, Env) of
-        false -> erlang:error({var_is_unbounded, Name});
-        true -> {proplists:get_value(Name, Env), State}
-    end.
+    {mzb_compiler:var_eval(var, Env, [Name]), State}.
+
+var(State, Env, _Meta, Name, Default) ->
+    {mzb_compiler:var_eval(var, Env, [Name, Default]), State}.
 
 seq(State, _Env, _Meta, From, To) ->
     {lists:seq(From, To), State} .

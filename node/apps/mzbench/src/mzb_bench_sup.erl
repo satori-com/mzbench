@@ -102,8 +102,8 @@ child_spec(Name, Module, Args, Restart) ->
 start_director(Body, Nodes, Env) ->
     BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
     lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
-    supervisor:start_child(?MODULE, 
-                            child_spec(director, mzb_director, 
+    supervisor:start_child(?MODULE,
+                            child_spec(director, mzb_director,
                                        [whereis(?MODULE), BenchName, Body, Nodes, Env],
                                        transient)).
 

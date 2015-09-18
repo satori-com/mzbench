@@ -74,7 +74,9 @@ handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = Sta
         {mzb_metrics,
          {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes, self()]},
          transient, 5000, worker, [mzb_metrics]}),
-    StartedPools = start_pools(Pools, Env, Nodes, []),
+    {NewPools, ModulesToLoad} = mzb_compiler:compile(Pools, Env),
+    ok = load_modules(ModulesToLoad, Nodes),
+    StartedPools = start_pools(NewPools, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
@@ -196,3 +198,12 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str}.
+
+load_modules(Binaries, Nodes) ->
+    mzb_lists:pmap(fun(Node) ->
+        lists:foreach(fun ({Mod, Bin}) ->
+            {module, _} = rpc:call(Node, code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin])
+        end, Binaries)
+    end, Nodes),
+    ok.
+
