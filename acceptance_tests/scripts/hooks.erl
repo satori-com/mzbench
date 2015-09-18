@@ -10,7 +10,7 @@
     {pool, [{size, 3}, {worker_type, dummy_worker}], [
         {loop, [{time, {1, sec}},
                 {rate, {ramp, linear, {10, rps}, {50, rps}}}],
-            [{print, {var, "foo"}}]}]},
+            [{print, {var, "foo", "default"}}]}]},
 
     {post_hook, [{target, director},
                  {command, {exec, "echo post_hook_1"}}]}
