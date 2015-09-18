@@ -111,7 +111,7 @@ start_director(Body, Nodes, Env) ->
     lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
     supervisor:start_child(?MODULE, 
                             child_spec(director, mzb_director, 
-                                       [whereis(?MODULE), BenchName, Body, Nodes, Env, undefined],
+                                       [whereis(?MODULE), BenchName, Body, Nodes, Env],
                                        transient)).
 
 retrieve_worker_nodes() ->

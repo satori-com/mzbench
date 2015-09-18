@@ -210,7 +210,7 @@ handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = St
     ScriptFilePath = script_path(Script),
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost],
         "~/mz/mzbench/bin/run.escript",
-        [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "report.txt", "environ.txt"]],
+        [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "environ.txt"]],
         get_logger(State)),
     ok;
 

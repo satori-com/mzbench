@@ -1,6 +1,6 @@
 -module(mzb_director).
 
--export([start_link/6,
+-export([start_link/5,
          pool_report/4,
          attach/1]).
 
@@ -20,7 +20,6 @@
     super_pid  = undefined,
     failed     = 0,
     succeed    = 0,
-    reportfile = undefined,
     pools      = [],
     owner      = undefined,
     bench_name = undefined,
@@ -31,8 +30,8 @@
 %%% API
 %%%===================================================================
 
-start_link(SuperPid, BenchName, Script, Nodes, Env, ReportFile) ->
-    gen_server:start_link(?MODULE, [SuperPid, BenchName, Script, Nodes, Env, ReportFile], []).
+start_link(SuperPid, BenchName, Script, Nodes, Env) ->
+    gen_server:start_link(?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
 
 pool_report(DirectorPid, PoolPid, Info, IsFinal) ->
     gen_server:cast(DirectorPid, {pool_report, PoolPid, Info, IsFinal}).
@@ -47,7 +46,7 @@ stop_benchmark(DirectorPid, Reason) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([SuperPid, BenchName, Script, Nodes, Env, ReportFile]) ->
+init([SuperPid, BenchName, Script, Nodes, Env]) ->
     lager:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     lager:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
@@ -55,8 +54,7 @@ init([SuperPid, BenchName, Script, Nodes, Env, ReportFile]) ->
     gen_server:cast(self(), {start_pools, Pools, Env2, Nodes}),
     {ok, #state{
         bench_name = BenchName,
-        super_pid = SuperPid,
-        reportfile = ReportFile
+        super_pid = SuperPid
     }}.
 
 handle_call(attach, From, State) ->
@@ -184,7 +182,6 @@ maybe_report_and_stop(#state{owner = undefined} = State) ->
     {noreply, State};
 maybe_report_and_stop(#state{owner = Owner} = State) ->
     lager:info("[ director ] Reporting benchmark results to ~p", [Owner]),
-    ok = report_file(State),
     Res = format_results(State),
     gen_server:reply(Owner, Res),
     erlang:spawn(fun mzb_sup:stop_bench/0),
@@ -200,10 +197,6 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str}.
-
-report_file(#state{reportfile = undefined}) -> ok;
-report_file(#state{reportfile = File, succeed = Ok, failed = NOk}) ->
-    file:write_file(File, io_lib:fwrite("~p/~p", [Ok, NOk])).
 
 get_metric_names(Pools, Nodes) ->
     mzb_script_metrics:script_metrics(Pools, Nodes)
