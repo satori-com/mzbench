@@ -45,7 +45,7 @@ run(start_director, #{body:= Body, env:=Env} = Params) ->
     case start_director(Body, Nodes, Env) of
         {ok, _, _} -> Params;
         {ok, _} -> Params;
-        {error, Error} -> {error, ["Unable to start director supervisor"]}
+        {error, _Error} -> {error, ["Unable to start director supervisor"]}
     end;
 run(get_result, Params) ->
     case get_results() of
