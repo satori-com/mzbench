@@ -56,7 +56,7 @@ Instructs the benchmarking system to include additional resource files in your s
     ExecCmd = {exec, BashCommand}
     WorkerCallCmd = {worker_call, WorkerMethod, WorkerModule} | {worker_call, WorkerMethod, WorkerModule, WorkerType}
 
-Instruct the benchmark system to run some action before/after benchmark. Hooks could be applied on every nodes or on director only. Hooks could be implemented either via bash command or worker method call.
+Instruct the benchmark system to run actions before or after benchmark. Hooks could be applied on every nodes or on director only. Hooks could be declared either via bash command or worker method call.
 
 You could change some environment values in your hooks if they are implemented as worker calls. Benchmark system passes current environment to your hook and gets new environment from it. You could get access to this value in your scenaria by using `var` directive.
 

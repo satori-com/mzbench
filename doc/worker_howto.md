@@ -170,6 +170,25 @@ Typical example of the derived metrics is the current number of pending requests
     pending_requests() ->
         mzb_metrics:get_value("requests_sent") - mzb_metrics:get_value("responses_received").
 
+## Hooks
+
+Pre and post hooks allow to run a custom code before or after benchmark. Hooks could be applied on every nodes or on the director node only. You are able to change any environment variable in your hook handler and use it in your scenario.
+
+Scenario:
+
+    {pre_hook, [{target, director},
+                {command, {worker_call, pre_hook, dummy_worker}}]},
+    {pool, [{size, 3}, {worker_type, dummy_worker}], [
+        {loop, [{time, {1, sec}},
+                {rate, {ramp, linear, {10, rps}, {50, rps}}}],
+            [{print, {var, "pre_hook_var", "default"}}]}]},
+
+Worker:
+
+    pre_hook(Env) ->
+        {ok, [{"pre_hook_var", "foo"} | Env]}.
+
+
 ## Updating metrics
 
 You can update a declared metric from anywhere inside your _worker_. Simply call the following function:
