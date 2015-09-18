@@ -56,7 +56,10 @@ substitute(#operation{name = OpName, args = Args, meta = Meta} = Op, Env, Iterat
     [VarName|Rest] = substitute(Args, Env, Iterators),
     case {proplists:get_value(VarName, Env), lists:member(VarName, Iterators), Rest} of
         {undefined, false, [DefaultValue]} -> DefaultValue;
-        {undefined, false, _} -> Op#operation{args = [VarName]};
+        {undefined, false, _} ->
+            erlang:error({substitution_error,
+                variable_name_is_unbound, VarName,
+                at_location, meta_to_location_string(Meta)});
         {Value, false, []} ->
             case OpName of
                 numvar -> mzb_utility:any_to_num(Value);
