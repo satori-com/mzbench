@@ -81,6 +81,8 @@ eval_std_function(Profile, Args, _, State, Env, WorkerProvider)
     when Profile == ramp; Profile == comb; Profile == think_time ->
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     {#operation{name = Profile, args = Params}, NextState};
+eval_std_function('compiled-var', [Name], _, State, _, _) ->
+    {mzb_compiled_vars:Name(), State};
 eval_std_function(ignore_failure, Args, _, State, Env, WorkerProvider) ->
     try eval_expr(Args, State, Env, WorkerProvider)
     catch

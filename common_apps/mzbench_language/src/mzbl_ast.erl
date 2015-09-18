@@ -4,6 +4,7 @@
     transform/1,
     add_meta/2,
     map_meta/2,
+    mapfold/3,
     fold/3,
     find_operation_and_extract_args/2,
     find_operation_and_extract_args/3]).
@@ -28,6 +29,23 @@ fold(Fun, Acc, L) when is_list(L) ->
 fold(Fun, Acc, #constant{value = Val} = C) ->
     fold(Fun, Fun(C, Acc), Val);
 fold(Fun, Acc, C) ->
+    Fun(C, Acc).
+
+-spec mapfold(Fun, Acc, Tree) -> {Res, AccRes} when
+    Fun :: fun((abstract_expr(), term()) -> term()),
+    Acc :: term(),
+    Tree :: abstract_expr(),
+    Res :: abstract_expr(),
+    AccRes :: term().
+mapfold(Fun, Acc, #operation{args = Args} = Op) ->
+    {NewArgs, NewAcc} = mapfold(Fun, Acc, Args),
+    Fun(Op#operation{args = NewArgs}, NewAcc);
+mapfold(Fun, Acc, #constant{value = Val} = C) ->
+    {NewVal, NewAcc} = mapfold(Fun, Acc, Val),
+    Fun(C#constant{value = NewVal}, NewAcc);
+mapfold(Fun, Acc, L) when is_list(L) ->
+    lists:mapfoldl(fun(X, Acc2) -> mapfold(Fun, Acc2, X) end, Acc, L);
+mapfold(Fun, Acc, C) ->
     Fun(C, Acc).
 
 -spec markup(abstract_expr()) -> abstract_expr().

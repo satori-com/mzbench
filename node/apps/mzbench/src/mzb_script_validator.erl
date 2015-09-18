@@ -12,7 +12,7 @@ read_and_validate(ScriptFileName, Env) ->
                    {"bench_hosts", [mzbl_script:hostname(N) || N <- Nodes]},
                    {"bench_script_dir", filename:dirname(ScriptFileName)},
                    {"bench_workers_dir", WorkerDirs}],
-        Body = mzbl_script:read(ScriptFileName, AutoEnv ++ Env),
+        Body = mzbl_script:read(ScriptFileName),
         ok = validate(Body),
         {ok, Body, AutoEnv ++ Env}
     catch
