@@ -1,0 +1,8 @@
+%% Comb with different rates
+[
+    {pool, [{size, 3},
+         {worker_type, dummy_worker}],
+        [{loop, [{time, {12, sec}},
+           {rate, {comb, {10, rps}, {1, sec}, {0, rps}, {2, sec}}}],
+            [{print, "Foo"}]}]}
+].

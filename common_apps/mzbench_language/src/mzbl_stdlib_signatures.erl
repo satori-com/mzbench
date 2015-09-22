@@ -4,6 +4,8 @@
 
 -spec is_std_function(atom(), integer()) -> boolean().
 is_std_function(t, _) -> true;
+is_std_function(comb, _) -> true;
+is_std_function(ramp, 3) -> true;
 is_std_function(loop, 2) -> true;
 is_std_function(parallel, 1) -> true;
 is_std_function(ignore_failure, 1) -> true;
