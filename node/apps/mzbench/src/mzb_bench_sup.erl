@@ -12,46 +12,39 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-run_bench(ScriptFileName, Env) ->
-    Stages = [read_and_validate, pre_hook, read_and_validate, start_director, get_result, post_hook],
-    DefaultParams = #{path => ScriptFileName, env => mzbl_script:normalize_env(Env)},
-    Ret = lists:foldl(fun safely_run/2, DefaultParams, Stages),
-    case Ret of
-        #{result := Result} -> {ok, Result};
-        {error, _} = E -> E
-    end.
-
-safely_run(_, {error, _} = E) -> E;
-safely_run(Stage, Params) ->
+run_bench(ScriptPath, DefaultEnv) ->
     try
-        run(Stage, Params)
-    catch C:E ->
-        ST = erlang:get_stacktrace(),
-        lager:error("Unable to run bench stage ~p ~p:~p~n~p", [Stage, C, E, ST]),
-        {error, [mzb_string:format("Unable to run bench stage ~p", [Stage])]}
+        {Body0, Env0} = read_and_validate(ScriptPath, DefaultEnv),
+        Env1 = mzb_script_hooks:pre_hooks(Body0, Env0),
+        {Body2, Env2} = read_and_validate(ScriptPath, Env1),
+        Result = run_director(Body2, Env2),
+        mzb_script_hooks:post_hooks(Body2, Env2),
+        {ok, Result}
+    catch _C:{error, Errors} = E when is_list(Errors) -> E;
+          C:E ->
+              ST = erlang:get_stacktrace(),
+              lager:error("Failed to run benchmark ~p:~p~n~p", [C, E, ST]),
+              {error, [mzb_string:format("Failed to run benchmark", [])]}
     end.
 
-run(read_and_validate, #{path:=Path, env:=Env} = Params) ->
+read_and_validate(Path, Env) ->
     case mzb_script_validator:read_and_validate(Path, Env) of
-        {ok, Body, NewEnv} -> Params#{body => Body, env => NewEnv};
-        {error, _, _, _, Errors} -> {error, Errors}
-    end;
-run(HookKind, #{body:= Body, env:=Env} = Params)
-        when HookKind == pre_hook; HookKind == post_hook ->
-    {ok, NewEnv} =  mzb_script_hooks:process_hooks_on_nodes(HookKind, Body, Env),
-    Params#{env => NewEnv};
-run(start_director, #{body:= Body, env:=Env} = Params) ->
+        {ok, Body, NewEnv} -> {Body, NewEnv};
+        {error, _, _, _, Errors} -> erlang:error({error, Errors})
+    end.
+
+run_director(Body, Env) ->
     Nodes = retrieve_worker_nodes(),
+
     case start_director(Body, Nodes, Env) of
-        {ok, _, _} -> Params;
-        {ok, _} -> Params;
-        {error, _Error} -> {error, ["Unable to start director supervisor"]}
-    end;
-run(get_result, Params) ->
+        {ok, _, _} -> ok;
+        {ok, _} -> ok;
+        {error, _Error} -> erlang:error({error, ["Unable to start director supervisor"]})
+    end,
+
     case get_results() of
-        {error, _, Error} -> {error, [Error]};
-        {ok, Result} ->
-            Params#{result => Result}
+        {error, _, Error} -> erlang:error({error, [Error]});
+        {ok, Result} -> Result
     end.
 
 is_ready() ->
