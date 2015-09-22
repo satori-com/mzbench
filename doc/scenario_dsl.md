@@ -47,18 +47,17 @@ If no `dir` is specified, `.` is used by default.
 
 Instructs the benchmarking system to include additional resource files in your scenario. See [Resource files](#resource-files) for more details on this functionality.
 
-### `{pre_hook, Opts}` and `{post_hook, Opts}` 
+### `{pre_hook, Commands}` and `{post_hook, Commands}`
 
-    Opts = [Opt]
-    Opt = {target, Target} | {command, Command}
+    Commands = [Command]
+    Command = {exec, Target, BashCommand} | {worker_call, WorkerMethod, WorkerModule} | {worker_call, WorkerMethod, WorkerModule, WorkerType}
     Target = all | director
-    Command = ExecCmd  | WorkerCallCmd
-    ExecCmd = {exec, BashCommand}
-    WorkerCallCmd = {worker_call, WorkerMethod, WorkerModule} | {worker_call, WorkerMethod, WorkerModule, WorkerType}
 
-Instruct the benchmark system to run actions before or after benchmark. Hooks could be applied on every nodes or on director only. Hooks could be declared either via bash command or worker method call.
+Instructs the benchmarking system to run some actions before or after the benchmark. There two supported kind of hooks: exec commands and worker calls.
 
-You could change some environment values in your hooks if they are implemented as worker calls. Benchmark system passes current environment to your hook and gets new environment from it. You could get access to this value in your scenaria by using `var` directive.
+Exec commands allow you to run any bash command on every nodes or on director only. Worker calls could be executed on the director node only.
+
+You could change any environment values in your hooks if they are implemented as worker calls. Benchmark system passes current environment to your hooks and gets new environment from it. You could get access to this value in your scenario by using `var` directive.
 
 You could check [hooks example](../examples/hooks.erl) and review implementation of hook method in our [dummy worker](../node/apps/dummy_worker/src/dummy_worker.erl) for addition information. 
 

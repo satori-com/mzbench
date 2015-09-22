@@ -176,17 +176,20 @@ Pre and post hooks allow to run a custom code before or after benchmark. Hooks c
 
 Scenario:
 
-    {pre_hook, [{target, director},
-                {command, {worker_call, pre_hook, dummy_worker}}]},
+    {pre_hook, [
+        {exec, all, "yum install zlib"},
+        {worker_call, fetch_commit, my_worker}
+    ]}
+
     {pool, [{size, 3}, {worker_type, dummy_worker}], [
         {loop, [{time, {1, sec}},
                 {rate, {ramp, linear, {10, rps}, {50, rps}}}],
-            [{print, {var, "pre_hook_var", "default"}}]}]},
+            [{print, {var, "commit", "default"}}]}]},
 
 Worker:
 
-    pre_hook(Env) ->
-        {ok, [{"pre_hook_var", "foo"} | Env]}.
+    fetch_commit(Env) ->
+        {ok, [{"commit", "0123456"} | Env]}.
 
 
 ## Updating metrics
