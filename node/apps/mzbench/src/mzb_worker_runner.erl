@@ -52,10 +52,6 @@ eval_expr(ExprList, State, Env, WorkerProvider) when is_list(ExprList) ->
 eval_expr(#constant{value=V} = C, State, Env,  WorkerProvider) -> 
     {Value, NewState} = eval_expr(V, State, Env, WorkerProvider),
     {C#constant{value=Value}, NewState};
-eval_expr(#ramp{from=F, to=T} = R, State, Env,  WorkerProvider) ->
-    {F2, State2} = eval_expr(F, State, Env, WorkerProvider),
-    {T2, NewState} = eval_expr(T, State2, Env, WorkerProvider),
-    {R#ramp{from=F2, to=T2}, NewState};
 eval_expr(Value, State, _Env,  _) -> {Value, State}.
 
 eval_function(Name, [], Meta, State, _, WorkerProvider) ->
@@ -81,6 +77,10 @@ eval_std_function(loop, [LoopSpec, Body], _, State, Env, WorkerProvider) ->
 eval_std_function(t, Args, _, State, Env, WorkerProvider) ->
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     {list_to_tuple(Params), NextState};
+eval_std_function(Profile, Args, _, State, Env, WorkerProvider)
+    when Profile == ramp; Profile == comb; Profile == think_time ->
+    {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
+    {#operation{name = Profile, args = Params}, NextState};
 eval_std_function(ignore_failure, Args, _, State, Env, WorkerProvider) ->
     try eval_expr(Args, State, Env, WorkerProvider)
     catch
@@ -92,7 +92,6 @@ eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     %% Eager left-to-right evaluation of parameters.
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     apply(mzb_stdlib, Name, [NextState, Env, Meta | Params]).
-
 
 -spec eval_loop([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
@@ -108,9 +107,14 @@ eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
         [#constant{value = 0, units = rps}] -> {nil, State};
         [#constant{value = Rps, units = rps}] ->
             looprun(ProcNum, Time, Iterator, Spawn, {constant, Rps}, Body, WorkerProvider, State, Env);
-        [#ramp{curve_type = linear,
-               from = #constant{value = From, units = rps},
-               to = #constant{value = To, units = rps}}] ->
+        [#operation{name = think_time, args = [#constant{units = rps} = Rate,
+                #constant{units = ms} = ThinkTime]}] ->
+            superloop(ProcNum, Time, Iterator, Spawn,
+                [Rate, #constant{value = 1000, units = ms}, #constant{value = 0, units = rps}, ThinkTime], Body, WorkerProvider, State, Env);
+        [#operation{name = comb, args = RatesANDPeriods}] ->
+            superloop(ProcNum, Time, Iterator, Spawn, RatesANDPeriods, Body, WorkerProvider, State, Env);
+        [#operation{name = ramp, args = [linear, #constant{value = From, units = rps},
+               #constant{value = To, units = rps}]}] ->
             if
                 From == To -> looprun(ProcNum, Time, Iterator, Spawn, {constant, From}, Body, WorkerProvider, State, Env);
                 true -> looprun(ProcNum, Time, Iterator, Spawn, {linear, From, To}, Body, WorkerProvider, State, Env)
@@ -149,6 +153,15 @@ time_of_next_iteration_in_ramp(StartRPS, FinishRPS, RampDuration, IterationNumbe
     1000000 * (math:sqrt(Discriminant) - StartRPS * Time)
         / DRPS.
 
+superloop(_, Time, _, _, _, _, _, State, _) when Time =< 0 -> {nil, State};
+superloop(_, Time, _, _, [], _, _, State, _) -> timer:sleep(Time), {nil, State};
+superloop(N, Time, Iterator, Spawn, [#constant{value = Rate, units = rps} = R,
+    #constant{value = PTime, units = ms} = T | Tail], Body, WorkerProvider, State, Env) ->
+    LocalStart = mknow(),
+    looprun(N, PTime, Iterator, Spawn, {constant, Rate}, Body, WorkerProvider, State, Env),
+    superloop(N, Time - ((mknow() - LocalStart) div 1000), Iterator, Spawn, Tail ++ [R, T],
+        Body, WorkerProvider, State, Env).
+
 looprun(1, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
     timerun(mknow(), 1, Time * 1000, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, 0);
 looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
@@ -160,6 +173,7 @@ looprun(N, Time, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
 timerun(Start, Step, Time, Iterator, Spawn, Rate, Body, WorkerProvider, Env, Batch, State, Done) ->
     ShouldBe = case Rate of
         {constant, undefined} -> 0;
+        {constant, 0} -> Time * 2; % ShouldBe should be more than loop length "2" does not stand for anything important
         {constant, RPS} -> (Done * 1000000) / RPS;
         {linear, From, To} ->
             time_of_next_iteration_in_ramp(From, To, Time, Done)

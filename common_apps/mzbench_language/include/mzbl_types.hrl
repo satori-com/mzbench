@@ -24,14 +24,6 @@
         }).
 -type constant() :: #constant{}.
 
--record(ramp, {
-        curve_type = linear :: linear,
-        from :: #constant{},
-        to :: #constant{},
-        meta = [] :: meta()
-        }).
--type ramp() :: #ramp{}.
-
 -record(git_install_spec, {
         repo :: string(),
         branch :: string(),

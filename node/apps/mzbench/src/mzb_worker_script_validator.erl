@@ -109,11 +109,15 @@ validate_rate(_) -> ["Unexpected rate."].
 
 -spec validate_loop_rate(any()) -> [string()].
 validate_loop_rate(#constant{} = C) -> validate_rate(C);
-validate_loop_rate(#ramp{
-    curve_type = linear,
-    from = F,
-    to = T}) -> validate_rate(F) ++ validate_rate(T);
+validate_loop_rate(#operation{name = comb, args = RatesANDPeriods}) -> validate_rates_and_periods(RatesANDPeriods);
+validate_loop_rate(#operation{name = ramp, args = [linear, F, T]}) -> validate_rate(F) ++ validate_rate(T);
+validate_loop_rate(#operation{name = think_time, args = [T, R]}) -> validate_rate(R) ++ validate_time(T);
 validate_loop_rate(_) -> ["Unexpected rate."].
+
+-spec validate_rates_and_periods(list()) -> [string()].
+validate_rates_and_periods([R, P | T]) -> validate_rate(R) ++ validate_time(P) ++ validate_rates_and_periods(T);
+validate_rates_and_periods([_]) -> ["Number of Rate and Time should always be even"];
+validate_rates_and_periods([]) -> [].
 
 -spec validate_string_literal(any()) -> [string()].
 validate_string_literal(Name) when is_list(Name) -> [];

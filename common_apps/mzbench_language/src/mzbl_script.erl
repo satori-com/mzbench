@@ -82,8 +82,6 @@ substitute(#operation{args = Args} = Op, Env, Iterators) ->
     Op#operation{args = substitute(Args, Env, Iterators)};
 substitute(#constant{value = V} = C, Env, Iterators) ->
     C#constant{value = substitute(V, Env, Iterators)};
-substitute(#ramp{from = F, to = T} = R, Env, Iterators) ->
-    R#ramp{from = substitute(F, Env, Iterators), to = substitute(T, Env, Iterators)};
 substitute(L, Env, Iterators) when is_list(L) ->
     lists:map(fun(X) -> substitute(X, Env, Iterators) end, L);
 substitute(S, _, _) -> S.

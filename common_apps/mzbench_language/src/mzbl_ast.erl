@@ -55,11 +55,6 @@ records(T) when is_tuple(T) ->
         % FIXME: this doesn't handle {var, {{var, "name"}, float}}
         [VarName, VarType] when is_list(VarName) -> {VarName, VarType};
         [T2, Units] when is_tuple(T2) -> #constant{value = records(T2), units = Units};
-        [ramp, Meta, CurveType, From, To] ->
-            #ramp{curve_type = CurveType,
-                  from = records(From),
-                  to = records(To),
-                  meta = Meta};
         [Name, Meta | Params] ->
             IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
             #operation{

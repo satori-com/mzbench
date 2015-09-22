@@ -24,8 +24,8 @@ transform_ramp_test() ->
                        {tuple,2,[{integer,2,30}, {atom,2,rpm}]},
                        {tuple,2,[{integer,2,2}, {atom,2,rps}]}]},
              {nil,2}},
-  Output = [#ramp{curve_type = linear,
-                  from = #constant{value = 0.5, units = rps},
-                  to = #constant{value = 2, units = rps},
+  Output = [#operation{name = ramp, args = [linear,
+                  #constant{value = 0.5, units = rps},
+                  #constant{value = 2, units = rps}],
                   meta = [{line, 2}]}],
   ?assertEqual(Output, mzbl_literals:convert(mzbl_ast:transform(Input))).
