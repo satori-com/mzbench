@@ -5,6 +5,7 @@ import shlex
 import subprocess
 import sys
 import nose
+import re
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
@@ -47,6 +48,19 @@ def env_param_missing_test():
 def signal_timeout_test():
     run_failing_bench(scripts_dir + 'signal_count_neg.erl', env={},
         expected_log_message_regex=r'\[error\].*Worker.*has crashed: {timeout,{wait_signal,"A"}}')
+
+def worker_provisioning_fail_test():
+    worker_commit = 'this_revision_does_not_exist'
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    run_failing_bench(
+        scripts_dir + 'worker_from_git.erl',
+        env={'worker_branch': worker_commit,
+             'mzbench_repo':  mzbench_repo},
+        expected_log_message_regex=r"Stage 'pipeline - provisioning': failed",
+        check_log_function=lambda log:\
+            "Error: tried to stop mzbench node, but it didn't even start!"\
+            if len(re.findall('mzbench stop', log)) > len(re.findall('mzbench stop; true', log))\
+            else None)
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},

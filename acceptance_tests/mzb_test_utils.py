@@ -54,24 +54,29 @@ def start_mzbench_server():
         cmd('{0} stop_server'.format(mzbench_script))
 
 def run_successful_bench(name, nodes=None, workers_per_node=None, env={}, 
-        email=None, exclusive_node_usage=False, expected_log_message_regex=None):
+        email=None, exclusive_node_usage=False, expected_log_message_regex=None,
+        check_log_function=None):
     return run_bench(name, should_fail=False,
         nodes=nodes, workers_per_node=workers_per_node, env=env, email=email,
         exclusive_node_usage=exclusive_node_usage,
-        expected_log_message_regex=expected_log_message_regex)
+        expected_log_message_regex=expected_log_message_regex,
+        check_log_function=check_log_function)
 
 
 def run_failing_bench(name, nodes=None, workers_per_node=None, env={}, 
-        email=None, exclusive_node_usage=False, expected_log_message_regex=None):
+        email=None, exclusive_node_usage=False, expected_log_message_regex=None,
+        check_log_function=None):
     return run_bench(name, should_fail=True,
         nodes=nodes, workers_per_node=workers_per_node, env=env,
         exclusive_node_usage=exclusive_node_usage,
-        expected_log_message_regex=expected_log_message_regex)
+        expected_log_message_regex=expected_log_message_regex,
+        check_log_function=check_log_function)
 
 
 def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None, 
         workers_per_node=None, env={}, email=None, should_fail=False, max_retries=2,
-        exclusive_node_usage=False, expected_log_message_regex=None):
+        exclusive_node_usage=False, expected_log_message_regex=None,
+        check_log_function=None):
 
     email_option = ('--email=' + email) if email else ''
 
@@ -139,19 +144,34 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             bench_id, success = (None, False)
 
         if xor(success, should_fail):
+            if not expected_log_message_regex and not check_log_function:
+                # no need to check the log
+                return bench_id
+
+            log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
+            log = cmd(log_cmd)
+
+            re_match = None
             if expected_log_message_regex:
-                log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
-                log = cmd(log_cmd)
                 if isinstance(expected_log_message_regex, str):
                     regex = re.compile(expected_log_message_regex, re.S)
                 else:
                     regex = expected_log_message_regex
-                if not regex.search(log):
-                    print
-                    print "Log doesn't contain expected log message '{0}':".format(regex.pattern)
-                    print
-                    print log
-                    raise RuntimeError
+                re_match = regex.search(log)
+
+            maybe_error = None
+            if check_log_function:
+                maybe_error = check_log_function(log)
+
+            if not re_match or maybe_error:
+                print
+                if maybe_error:
+                    print "Log doesn't pass custom check:\n{0}\n\n".format(maybe_error)
+                if not re_match:
+                    print "Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
+                print log
+                raise RuntimeError
+
             return bench_id
 
         print 'Attempt #{0} for bench-id {1} unexpectedly {2}, retrying.'.format(attempt, bench_id, 'succeeded' if should_fail else 'failed')

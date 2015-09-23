@@ -2,7 +2,7 @@
 
 -export([
     provision_nodes/2,
-    clean_nodes/2,
+    clean_nodes/3,
     ensure_file_content/5,
     ensure_dir/4
 ]).
@@ -48,14 +48,25 @@ provision_nodes(Config, Logger) ->
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mzbench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
     DirNode.
 
-clean_nodes(Config, Logger) ->
+-spec clean_nodes(term(), fun(), need_to_stop_nodes|dont_need_to_stop_nodes) -> ok.
+clean_nodes(Config, Logger, NeedToStopNodes) ->
     #{
         user_name:= UserName,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
     RootDir = mzb_api_bench:remote_path("", Config),
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]), [], Logger),
-    length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger).
+    case NeedToStopNodes of
+        need_to_stop_nodes ->
+            _ = mzb_subprocess:remote_cmd(
+                UserName,
+                [DirectorHost|WorkerHosts],
+                io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]),
+                [],
+                Logger);
+        dont_need_to_stop_nodes -> ok
+    end,
+    length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger),
+    ok.
 
 ntp_check(_, [_], Logger) ->
     Logger(info, "There's only one host, no need to make ntp check", []),
