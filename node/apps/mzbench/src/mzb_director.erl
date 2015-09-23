@@ -68,7 +68,7 @@ handle_cast({start_pools, _Pools, _Env, []}, State) ->
     lager:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
 handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = State) ->
-    Metrics = get_metric_names(Pools, Nodes),
+    Metrics = mzb_script_metrics:script_metrics(Pools, Nodes, erlang:node()),
     Prefix = proplists:get_value("graphite_prefix", Env),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
@@ -197,11 +197,3 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str}.
-
-get_metric_names(Pools, Nodes) ->
-    mzb_script_metrics:script_metrics(Pools, Nodes)
-    ++ case lists:member(erlang:node(), Nodes) of
-        true -> [];
-        false -> mzb_system_load_monitor:metric_names([erlang:node()])
-    end.
-
