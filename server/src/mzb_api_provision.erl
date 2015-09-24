@@ -53,6 +53,9 @@ clean_nodes(Config, Logger) ->
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]), [], Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger).
 
+ntp_check(_, [_], Logger) ->
+    Logger(info, "There's only one host, no need to make ntp check", []),
+    ok;
 ntp_check(UserName, Hosts, Logger) ->
     Offsets = lists:map(fun(X) ->
         Logger(info, "ntpdate response: ~p", [X]),
