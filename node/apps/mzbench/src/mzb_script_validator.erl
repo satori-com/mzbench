@@ -89,6 +89,7 @@ validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
       case Provider:validate(Worker) of
           [] ->
               SizeErr = case Size of
+                #operation{name = Var} when Var == var; Var == numvar -> [];
                 #operation{name = N, args = A} ->
                     [mzb_string:format("can't use operation ~p with args ~p as pool size.", [N, A])];
                 _ -> [mzb_string:format(

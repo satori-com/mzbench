@@ -1,7 +1,8 @@
 -module(mzb_pool).
 
 -export([start_link/5,
-         stop/1
+         stop/1,
+         extract_pool_args/4
         ]).
 
 -behaviour(gen_server).
@@ -33,6 +34,12 @@ start_link(Director, Pool, Env, NumNodes, Offset) ->
 
 stop(Pid) ->
     gen_server:call(Pid, stop).
+
+extract_pool_args(Name, Pool, Env, Default) ->
+    #operation{args = [PoolOpts, _]} = Pool,
+    Opts = mzbl_ast:find_operation_and_extract_args(Name, PoolOpts, Default),
+    {Res, _} = mzb_worker_runner:eval_expr(Opts, undefined, Env, undefined),
+    Res.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -123,9 +130,9 @@ code_change(_OldVsn, State, _Extra) ->
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
     Name = proplists:get_value(pool_name, Meta),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
-    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
-    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
+    [Size] = extract_pool_args(size, Pool, Env, [undefined]),
+    [PerNode] = extract_pool_args(per_node, Pool, Env, [undefined]),
+    [StartDelay] = extract_pool_args(worker_start, Pool, Env, [undefined]),
     Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
                         [undefined, undefined] -> 1;
                         [undefined, PN] -> PN * NumNodes;
