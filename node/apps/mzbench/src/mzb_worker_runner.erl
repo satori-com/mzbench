@@ -20,9 +20,9 @@ run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
 
             InitialState = WorkerProvider:init(Worker),
             {WorkerResult, WorkerResultState} = eval_expr(Script, InitialState, Env, WorkerProvider),
-            _ = WorkerProvider:terminate(WorkerResult, WorkerResultState),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [PoolName]), 1),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.ended", [PoolName, NodeName]), 1),
+            _ = (catch  WorkerProvider:terminate(WorkerResult, WorkerResultState)),
             {ok, WorkerResult}
         catch
             C:E ->
@@ -30,6 +30,7 @@ run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
                 ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.ended", [PoolName, NodeName]), 1),
                 ok = mzb_metrics:notify(mzb_string:format("workers.~s.failed", [PoolName]), 1),
                 ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.failed", [PoolName, NodeName]), 1),
+                _ = (catch WorkerProvider:terminate({C, E, erlang:get_stacktrace()}, undefined)),
                 {exception, node(), {C, E, erlang:get_stacktrace()}}
         end,
 
