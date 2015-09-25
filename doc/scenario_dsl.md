@@ -386,7 +386,11 @@ This statements returns the return value of the `<statement>` if it was successf
 
 ### `{random_number, <max>}`
 
-This statement is substituted by a random integer between 0 and `<max>`.
+Equivalent to `{random_number, 0, <max>}`
+
+### `{random_number, <min>, <max>}`
+
+This statement is substituted by a random number N, <min> =< N < <max>. <max> must be larger than <min>.
 
 ### `{random_list, <size>}`
 
