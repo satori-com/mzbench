@@ -52,20 +52,7 @@ init([Id, Params]) ->
     end,
     #{name := ScriptName} = maps:get(script, Params),
     MetricPrefix = generate_graphite_prefix(mzbl_script:get_benchname(ScriptName)),
-    NodeInstallSpec =
-        case application:get_env(mzbench_api, mzbench_rsync, undefined) of
-            undefined ->
-                GitRepo = application:get_env(mzbench_api, mzbench_git, undefined),
-                GitBranch = maps:get(node_commit, Params),
-                Branch = case GitBranch of
-                    undefined ->
-                        {ok, GitRev} = application:get_key(mzbench_api, vsn),
-                        GitRev;
-                    _ -> GitBranch
-                end,
-                mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
-            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
-        end,
+    NodeInstallSpec = extract_node_install_spec(Params),
     BenchName =
         case maps:find(benchmark_name, Params) of
             {ok, undefined} -> ScriptName;
@@ -349,6 +336,42 @@ handle_pipeline_status_ll({final, Final}, State) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+extract_node_install_spec(Params) ->
+    Get = fun (N) ->
+            case maps:find(N, Params) of
+                {ok, Value} -> Value;
+                _ -> application:get_env(mzbench_api, N, undefined)
+            end
+          end,
+
+    % BC CODE:
+        case Get(mzbench_git) of
+            undefined -> ok;
+            _ -> lager:error("mzbench_git param is obsolete, use node_git instead"),
+                 erlang:error(mzbench_git_is_obsolete)
+        end,
+        case Get(mzbench_rsync) of
+            undefined -> ok;
+            _ -> lager:error("mzbench_rsync param is obsolete, use node_rsync instead"),
+                 erlang:error(mzbench_rsync_is_obsolete)
+        end,
+    % END OF BC CODE
+
+    case Get(node_rsync) of
+        undefined ->
+            GitRepo = Get(node_git),
+            GitBranch =
+                case Get(node_commit) of
+                    undefined ->
+                        {ok, GitRev} = application:get_key(mzbench_api, vsn),
+                        GitRev;
+                    B -> B
+                end,
+            mzbl_script:make_git_install_spec(GitRepo, GitBranch, "node");
+        Remote ->
+            mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
+    end.
 
 send_email_report(Emails, #{id:= Id,
                             status:= Status,

@@ -240,6 +240,7 @@ parse_start_params(Req) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
                                                     end,                                                        []},
+        {node_git,                  single_value,   fun erlang:binary_to_list/1,                                undefined},
         {node_commit,               single_value,   fun erlang:binary_to_list/1,                                undefined},
         {emulate_bench_crash,       single_value,   fun binary_to_bool/1,                                       false},
         {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},

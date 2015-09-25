@@ -62,7 +62,7 @@ def main():
                 sys.exit()
             if serverStatus == 0:
                 if 'MZBENCH_REPO' in  os.environ:
-                    mzbench_git_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
+                    mzbench_git_param = '{{node_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
                 else:
                     mzbench_git_param = ''
 
