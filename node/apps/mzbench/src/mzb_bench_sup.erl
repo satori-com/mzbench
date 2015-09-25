@@ -14,7 +14,7 @@ start_link() ->
 
 run_bench(ScriptPath, DefaultEnv) ->
     try
-        {Body0, Env0} = read_and_validate(ScriptPath, DefaultEnv),
+        {Body0, Env0} = read_and_validate(ScriptPath, mzbl_script:normalize_env(DefaultEnv)),
         Env1 = mzb_script_hooks:pre_hooks(Body0, Env0),
         {Body2, Env2} = read_and_validate(ScriptPath, Env1),
         Result = run_director(Body2, Env2),

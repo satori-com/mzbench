@@ -340,7 +340,7 @@ handle_pipeline_status_ll({final, Final}, State) ->
 extract_node_install_spec(Params) ->
     Get = fun (N) ->
             case maps:find(N, Params) of
-                {ok, Value} -> Value;
+                {ok, Value} when Value /= undefined -> Value;
                 _ -> application:get_env(mzbench_api, N, undefined)
             end
           end,
