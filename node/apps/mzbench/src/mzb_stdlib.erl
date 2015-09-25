@@ -62,16 +62,16 @@ sprintf(State, _Env, _Meta, Str, Vars) ->
     {mzb_string:format(Str, Vars), State}.
 
 numvar(State, Env, _Meta, Name) ->
-    {mzb_compiler:var_eval(numvar, Env, [Name]), State}.
+    {mzbl_ast:var_eval(numvar, Env, [Name]), State}.
 
 numvar(State, Env, _Meta, Name, Default) ->
-    {mzb_compiler:var_eval(numvar, Env, [Name, Default]), State}.
+    {mzbl_ast:var_eval(numvar, Env, [Name, Default]), State}.
 
 var(State, Env, _Meta, Name) ->
-    {mzb_compiler:var_eval(var, Env, [Name]), State}.
+    {mzbl_ast:var_eval(var, Env, [Name]), State}.
 
 var(State, Env, _Meta, Name, Default) ->
-    {mzb_compiler:var_eval(var, Env, [Name, Default]), State}.
+    {mzbl_ast:var_eval(var, Env, [Name, Default]), State}.
 
 seq(State, _Env, _Meta, From, To) ->
     {lists:seq(From, To), State} .

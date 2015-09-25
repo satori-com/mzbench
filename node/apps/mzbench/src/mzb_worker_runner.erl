@@ -100,12 +100,12 @@ eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     -> {script_value(), worker_state()}.
 eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
     [#constant{value = Time, units = ms}] =
-        mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(time, LoopSpec, [#constant{value = undefined, units = ms}])),
-    [Iterator] = mzbl_ast:find_operation_and_extract_args(iterator, LoopSpec, [undefined]),
-    [ProcNum] = mzbl_ast:find_operation_and_extract_args(parallel, LoopSpec, [1]),
-    [Spawn] = mzbl_ast:find_operation_and_extract_args(spawn, LoopSpec, [false]),
-
-    case mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, 
+        mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(time, LoopSpec, Env, [#constant{value = undefined, units = ms}])),
+    [Iterator] = mzbl_ast:find_operation_and_extract_args(iterator, LoopSpec, Env, [undefined]),
+    [ProcNum] = mzbl_ast:find_operation_and_extract_args(parallel, LoopSpec, Env, [1]),
+    [Spawn] = mzbl_ast:find_operation_and_extract_args(spawn, LoopSpec, Env, [false]),
+    lager:info("TIME: ~p", [Time]),
+    case mzbl_literals:convert(mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, Env,
                                         [#constant{value = undefined, units = rps}])) of
         [#constant{value = 0, units = rps}] -> {nil, State};
         [#constant{value = Rps, units = rps}] ->

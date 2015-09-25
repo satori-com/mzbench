@@ -10,7 +10,7 @@
          normalize_env/1,
          %substitute/2,
          extract_pools_and_env/2,
-         extract_install_specs/1,
+         extract_install_specs/2,
          enumerate_pools/1,
          extract_worker/1,
          resolve_worker_provider/1,
@@ -180,7 +180,7 @@ get_benchname(ScriptName) ->
 
 -spec extract_worker([operation()]) -> {worker_provider(), worker_name()}.
 extract_worker(PoolOpts) ->
-    WorkerType = mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]),
+    WorkerType = mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [], [undefined]),
     resolve_worker_provider(WorkerType).
 
 -spec resolve_worker_provider([atom()]) -> {worker_provider(), worker_name()}.
@@ -197,22 +197,22 @@ hostname(Node) ->
     [_, H] = string:tokens(erlang:atom_to_list(Node), "@"),
     H.
 
--spec extract_install_specs(abstract_expr()) -> [install_spec()].
-extract_install_specs(AST) ->
+-spec extract_install_specs(abstract_expr(), [term()]) -> [install_spec()].
+extract_install_specs(AST, Env) ->
     Convert =
         fun(#operation{args = [Args]}) ->
-            case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
+            case mzbl_ast:find_operation_and_extract_args(git, Args, Env, undefined) of
                 undefined ->
-                    case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
+                    case mzbl_ast:find_operation_and_extract_args(rsync, Args, Env, undefined) of
                         undefined -> erlang:error({install_spec_error, missed_mandatory_option, git});
                         [Remote] ->
-                            [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, [[]]),
-                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
+                            [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, Env, [[]]),
+                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, Env, [""]),
                             make_rsync_install_spec(Remote, Subdir, Excludes)
                     end;
                 [Repo] ->
-                    [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
-                    [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
+                    [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, Env, [""]),
+                    [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, Env, ["."]),
                     make_git_install_spec(Repo, Branch, Subdir)
             end
         end,
@@ -246,6 +246,7 @@ normalize_env(Env) ->
 normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
 normalize_env_(V) when is_list(V) -> V;
 normalize_env_(V) when is_integer(V) -> V;
+normalize_env_(V) when is_atom(V) -> V;
 normalize_env_(U) ->
     Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
     erlang:error({error, {validation, [Msg]}}).

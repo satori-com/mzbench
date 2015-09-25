@@ -82,8 +82,12 @@ validate_resource_filename(Filename) ->
 validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
     Name = proplists:get_value(pool_name, Op#operation.meta),
     {Provider, Worker} = mzbl_script:extract_worker(Opts),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, Opts),
-    [WorkerStartType] = mzbl_ast:find_operation_and_extract_args(worker_start, Opts, [undefined]),
+    #operation{args = [Size]} = lists:keyfind(size, #operation.name, Opts),
+    WorkerStartType =
+        case lists:keyfind(worker_start, #operation.name, Opts) of
+            #operation{args = [V]} -> V;
+            false -> undefined
+        end,
     lists:map(
       fun(Msg) -> Name ++ ": " ++ Msg end,
       case Provider:validate(Worker) of

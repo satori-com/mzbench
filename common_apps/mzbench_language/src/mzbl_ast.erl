@@ -6,8 +6,10 @@
     map_meta/2,
     mapfold/3,
     fold/3,
-    find_operation_and_extract_args/2,
-    find_operation_and_extract_args/3]).
+    var_eval/3,
+    var_mapfold/4,
+    find_operation_and_extract_args/3,
+    find_operation_and_extract_args/4]).
 
 -include("mzbl_types.hrl").
 
@@ -88,10 +90,64 @@ records(S) -> S.
 transform(AST) ->
     records(erl_parse:normalise(markup(AST))).
 
--spec find_operation_and_extract_args(term(), [tuple()]) -> term().
-find_operation_and_extract_args(Key, L) -> find_operation_and_extract_args(Key, L, undefined).
+-spec find_operation_and_extract_args(term(), [tuple()], [term()]) -> term().
+find_operation_and_extract_args(Key, L, Env) -> find_operation_and_extract_args(Key, L, Env, undefined).
 
--spec find_operation_and_extract_args(term(), [tuple()], term()) -> term().
-find_operation_and_extract_args(_, [], Default) -> Default;
-find_operation_and_extract_args(Key, [#operation{name = Key} = Op | _], _) -> Op#operation.args;
-find_operation_and_extract_args(Key, [_ | T], Default) -> find_operation_and_extract_args(Key, T, Default).
+-spec find_operation_and_extract_args(term(), [tuple()], [term()], term()) -> term().
+find_operation_and_extract_args(_, [], _Env, Default) -> Default;
+find_operation_and_extract_args(Key, [#operation{name = Key} = Op | _], Env,  _) -> substitute_vars(Op#operation.args, Env);
+find_operation_and_extract_args(Key, [_ | T], Env, Default) -> find_operation_and_extract_args(Key, T, Env, Default).
+
+substitute_vars(AST, Env) ->
+    {NewAST, _} = var_mapfold(
+        fun (Name, undefined, _Acc) -> erlang:error({var_is_unbound, Name});
+            (_Name, Val, Acc) -> {change, Val, Acc}
+        end, [], AST, Env),
+    NewAST.
+
+var_mapfold(Fun, AccStart, Script, Env) ->
+    NormEnv = mzbl_script:normalize_env(Env),
+    mapfold(
+        fun (#operation{name = VarType, args = [VarName | Defaults] = Args} = Op, Acc) when VarType == var; VarType == numvar ->
+                ReplaceFun = fun (N, V, A) ->
+                        case Fun(N, V, A) of
+                            {change, NewV, NewA} -> {NewV, NewA};
+                            {nochange, NewA} -> {Op, NewA}
+                        end
+                    end,
+                case is_list(VarName) and (Defaults == [] orelse is_value(hd(Defaults))) of
+                    true ->
+                        try var_eval(VarType, NormEnv, Args) of
+                            Value -> ReplaceFun(VarName, Value, Acc)
+                        catch
+                            error:{var_is_unbound, _} -> ReplaceFun(VarName, undefined, Acc)
+                        end;
+                    false ->
+                        {Op, Acc}
+                end;
+            (#operation{name = 'compiled-var', args = [Name]}, Acc) ->
+                {mzb_compiled_vars:Name(), Acc};
+            (Op, Acc) ->
+                {Op, Acc}
+        end, AccStart, Script).
+
+var_eval(var, Env, [Name, Default]) ->
+    case proplists:is_defined(Name, Env) of
+        false -> Default;
+        true -> mzb_utility:cast_to_type(proplists:get_value(Name, Env), Default)
+    end;
+var_eval(var, Env, [Name]) ->
+    case proplists:is_defined(Name, Env) of
+        false -> erlang:error({var_is_unbound, Name});
+        true -> proplists:get_value(Name, Env)
+    end;
+var_eval(numvar, Env, Args) ->
+    case var_eval(var, Env, Args) of
+        undefined -> undefined;
+        Value -> mzb_utility:any_to_num(Value)
+    end.
+
+is_value(#constant{}) -> false;
+is_value(#operation{}) -> false;
+is_value(_) -> true.
+
