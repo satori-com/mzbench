@@ -205,13 +205,19 @@ def assert_successful_request(perform_request):
             if response.status_code == 200:
                 return response.json()
             else:
-                print 'Server call with arguments {0} failed with code {1}'.format(args, response.status_code)
-                print 'Response body:'
                 try:
                     data = json.loads(response.text)
-                    json.dump(data, sys.stdout, indent=4)
                 except:
-                    raise MZBenchAPIException(response.text)
+                    raise MZBenchAPIException('Server call with arguments {0} failed with code {1} respose body:\n{2}'.format(args, response.status_code, response.text))
+
+                if ('reason_code' in data and 'reason' in data):
+                    raise MZBenchAPIException('Server call with arguments {0} failed with code {1} and reason: {2}\n{3}'.format(args, response.status_code, data['reason_code'], data['reason']))
+                else:
+                    from StringIO import StringIO
+                    io = StringIO()
+                    json.dump(data, io, indent=4)
+                    raise MZBenchAPIException('Server call with arguments {0} failed with code {1} respose body:\n{2}'.format(args, response.status_code, io.getvalue()))
+
         except requests.exceptions.ConnectionError as e:
             raise MZBenchAPIException('Connect to "{0}" failed with message: {1}'.format(args[0], e))
     return wrapped
