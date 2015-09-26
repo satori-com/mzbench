@@ -15,7 +15,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
         fun (A) when is_atom(A) -> erlang:atom_to_list(A);
             (A) -> A
         end, Args),
-    _ = mzb_lists:pmap(
+    mzb_lists:pmap(
         fun ("localhost") ->
                 OrigPath = os:getenv("ORIG_PATH"),
                 exec_format("bash -c \"export PATH='~s'; source /etc/profile;~s ~s\"",
@@ -38,14 +38,18 @@ exec_format(Format, Args, Opts, Logger) ->
 
 exec_format(Format, Args, Opts, Handler, InitState, Logger) ->
     Command = io_lib:format(Format, Args),
+    BeforeExec = os:timestamp(),
     Logger(info, "[ EXEC ] ~s", [Command]),
     Port = open_port({spawn, lists:flatten(Command)}, [stream, eof, exit_status | Opts]),
     case get_data(Port, Handler, InitState) of
         {0, Output} ->
-            Logger(debug, "[ EXEC ] OK~nCmd output: ~s", [Output]),
+            Duration = timer:now_diff(os:timestamp(), BeforeExec),
+            Logger(info, "[ EXEC ] OK in ~p ms~nCmd output: ~s", [Duration / 1000, Output]),
             string:strip(Output, right, $\n);
         {Code, Output} ->
-            Logger(error, "[ EXEC ] Command execution failed~nCmd: ~s~nExit code: ~p~nOutput: ~s", [Command, Code, Output]),
+            Duration = timer:now_diff(os:timestamp(), BeforeExec),
+            Logger(error, "[ EXEC ] Command execution failed in ~p ms~nCmd: ~s~nExit code: ~p~nOutput: ~s",
+                [Duration / 1000, Command, Code, Output]),
             erlang:error({cmd_failed, lists:flatten(Command), Code, Output})
     end.
 

@@ -3,7 +3,8 @@
 -export([
     provision_nodes/2,
     clean_nodes/2,
-    ensure_file_content/5
+    ensure_file_content/5,
+    ensure_dir/4
 ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -20,12 +21,15 @@ provision_nodes(Config, Logger) ->
     UniqHosts = lists:usort([DirectorHost|WorkerHosts]),
     Logger(info, "Provisioning nodes: ~p~nWith config: ~p", [UniqHosts, Config]),
     RootDir = mzb_api_bench:remote_path("", Config),
-    _ = mzb_subprocess:remote_cmd(UserName, UniqHosts, io_lib:format("mkdir -p ~s", [RootDir]), [], Logger),
+    ok = ensure_dir(UserName, UniqHosts, RootDir, Logger),
 
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
     Logger(info, "NTP check result: ~p", [CheckResult]),
 
-    catch mzb_subprocess:remote_cmd(UserName, UniqHosts, "~/mz/mzbench/bin/mzbench stop; true", [], Logger),
+    catch mzb_subprocess:remote_cmd(
+        UserName, UniqHosts,
+        "ps -ef | grep beam | grep -v grep | grep -v mzbench_api && ~/mz/mzbench/bin/mzbench stop; true",
+        [], Logger),
 
     case ProvisionNodes of
         true ->
@@ -109,7 +113,8 @@ ensure_file_content(Hosts, Content, Filepath,
 ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
     _ = mzb_lists:pmap(
         fun ("localhost") ->
-                mzb_subprocess:exec_format("cp ~s ~s", [LocalPath, RemotePath], [stderr_to_stdout], Logger);
+                Logger(info, "[ COPY ] ~s -> ~s", [LocalPath, RemotePath]),
+                {ok, _} = file:copy(LocalPath, RemotePath);
             (Host) ->
                 UserNameParam =
                     case UserName of
@@ -118,6 +123,16 @@ ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
                     end,
                 mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s", [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], Logger)
         end, Hosts),
+    ok.
+
+-spec ensure_dir(undefined | string(), [string()], string(), fun((atom(), string(), [term()]) -> ok)) -> ok.
+ensure_dir(_User, ["localhost"], Dir, Logger) ->
+    Logger(info, "[ MKDIR ] ~s", [Dir]),
+    % The trailing slash is needed, otherwise it will only
+    % create Dir's parent, but not Dir itself
+    ok = filelib:ensure_dir(Dir ++ "/");
+ensure_dir(User, Hosts, Dir, Logger) ->
+    _ = mzb_subprocess:remote_cmd(User, Hosts, "mkdir", ["-p", Dir], Logger, [stderr_to_stdout]),
     ok.
 
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
@@ -131,19 +146,22 @@ get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
 
 download_file(User, Host, FromFile, ToFile, Logger) ->
-    TmpFile = mzb_file:tmp_filename(),
     _ = case Host of
-        "localhost" -> mzb_subprocess:exec_format("cp ~s ~s", [FromFile, TmpFile], [stderr_to_stdout], Logger);
+        "localhost" ->
+            Logger(info, "[ COPY ] ~s <- ~s", [ToFile, FromFile]),
+            {ok, _} = file:copy(FromFile, ToFile);
         _ ->
             UserNameParam =
                 case User of
                     undefined -> "";
                     _ -> io_lib:format("~s@", [User])
                 end,
-            mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s~s:~s ~s",
-            [UserNameParam, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger)
+            TmpFile = mzb_file:tmp_filename(),
+            _ = mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s~s:~s ~s",
+                [UserNameParam, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger),
+            Logger(info, "[ MV ] ~s -> ~s", [TmpFile, ToFile]),
+            ok = file:rename(TmpFile, ToFile)
     end,
-    _ = mzb_subprocess:exec_format("mv ~s ~s", [TmpFile, ToFile], [stderr_to_stdout], Logger),
     ok.
 
 -spec install_package([string()], string(), install_spec(), string(), term(), fun()) -> ok.
@@ -158,7 +176,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     #{user_name:= User} = Config,
     HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_os_id(User, Host, Logger)} end, Hosts),
     PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
-    _ = mzb_subprocess:exec_format("mkdir -p ~s", [PackagesDir], [stderr_to_stdout], Logger),
+    ok = filelib:ensure_dir(PackagesDir ++ "/"),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
     NeededTarballs =
         [{OS, filename:join(PackagesDir, mzb_string:format("~s-~s-~s.tgz", [PackageName, Version, OS]))}
