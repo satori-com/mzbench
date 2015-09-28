@@ -107,9 +107,11 @@ init([Id, Params]) ->
         log_file_handler => LogHandler,
         metrics_file_handler => MetricsHandler,
         collectors => [],
+        cluster_connection => undefined,
         deallocator => undefined,
         metrics => #{},
-        emails => maps:get(email, Params)
+        emails => maps:get(email, Params),
+        self => self() % stages are spawned, so we can't get pipeline pid from callback
     },
     info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
@@ -180,11 +182,22 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
-handle_stage(pipeline, starting_collectors, #{config:= Config} = State) ->
+handle_stage(pipeline, starting_collectors, #{config:= Config, self:= Self} = State) ->
     #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
-    LogsCollectors = start_collectors(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port), maps:get(log_file_handler, State)),
-    MetricsCollectors = start_collectors(metrics, [DirectorHost], get_env(bench_metrics_port), maps:get(metrics_file_handler, State)),
-    fun (S) -> S#{collectors => LogsCollectors ++ MetricsCollectors} end;
+    FileHandler = maps:get(log_file_handler, State),
+    LogsCollectors = mzb_api_connection:start_link(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port),
+        fun ({message, Msg}) -> FileHandler({write, Msg});
+            (_) -> ok
+        end),
+    MetricsHandler = maps:get(metrics_file_handler, State),
+    [Connection] = mzb_api_connection:start_link(management, [DirectorHost], get_env(bench_metrics_port),
+        fun ({message, Msg}) ->
+            case erlang:binary_to_term(Msg) of
+                {metric_values, Values} -> MetricsHandler({write, Values});
+                Any -> mzb_pipeline:cast(Self, {director_message, Any})
+            end
+        end),
+    fun (S) -> S#{collectors => LogsCollectors, cluster_connection => Connection} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
@@ -243,18 +256,15 @@ handle_stage(finalize, deallocating_hosts, #{deallocator:= Deallocator} = State)
     end,
     run_periodically(seconds(), 3 * 60, 10, DeallocWrapper);
 
-handle_stage(finalize, stopping_collectors, #{collectors:= Collectors}) ->
-    lists:foreach(fun ({Pid, Socket, _, _}) ->
-                          monitor(process, Pid),
-                          gen_tcp:send(Socket, "close_me")
-                  end, Collectors),
-    lists:foreach(fun ({Pid, _, Purpose, Host}) ->
-                      receive
-                          {'DOWN', _Ref, process, Pid, _Info} -> ok
-                      after 30000 ->
-                          erlang:error({collector_close_timeout, Purpose, Host})
-                      end
-                  end, Collectors).
+handle_stage(finalize, stopping_collectors,
+            #{collectors:= Collectors,
+              cluster_connection:= ClusterConnection}) ->
+    lists:foreach(fun (C) ->
+            catch mzb_api_connection:send_message(C, close_req)
+        end, [ClusterConnection|Collectors]),
+    lists:foreach(fun (C) ->
+            mzb_api_connection:wait_close(C, 30000)
+        end, [ClusterConnection|Collectors]).
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -265,6 +275,10 @@ handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
+
+handle_cast({director_message, Unknown}, State) ->
+    lager:error("Unknown director message ~p", [Unknown]),
+    {noreply, State};
 
 handle_cast(_Msg, State) ->
     error("Unhandled cast: ~p", [_Msg], State),
@@ -530,50 +544,6 @@ init_data_dir(Config) ->
     case filelib:ensure_dir(filename:join(BenchDataDir, ".")) of
         ok -> ok;
         {error, Reason} -> erlang:error({ensure_dir_error, BenchDataDir, Reason})
-    end.
-
-start_collectors(Purpose, Hosts, Port, FileHandler) ->
-    Self = self(),
-    Pids = lists:map(fun (Host) ->
-        Pid = spawn_link(fun () ->
-            try gen_tcp:connect(Host, Port, [{active, false}, {packet, 4}]) of
-                {ok, Socket} ->
-                    lager:info("Collector is started for ~p on ~s", [Purpose, Host]),
-                    Self ! {self(), connected, Socket},
-                    process_data(Purpose, Host, Socket, FileHandler);
-                {error, Reason} ->
-                    Self ! {self(), failed, Reason}
-            catch
-                C:E ->
-                    ST = erlang:get_stacktrace(),
-                    Self ! {self(), failed, {C, E, ST}}
-            end
-        end),
-        {Pid, Purpose, Host}
-    end, Hosts),
-    wait_collectors(Pids, []).
-
-wait_collectors([], Acc) -> Acc;
-wait_collectors([{Pid, Purpose, Host} | Tail], Acc) ->
-    receive
-        {Pid, connected, Socket} -> wait_collectors(Tail, [{Pid, Socket, Purpose, Host} | Acc]);
-        {Pid, failed, Reason} ->
-            lager:error("Collector '~p' is failed to start on host ~s with reason ~p", [Purpose, Host, Reason]),
-            erlang:error({catch_collector_connect_failed, Host, Reason})
-    after 30000 ->
-        lager:error("Collector '~p' is timed-out to start on host ~s", [Purpose, Host]),
-        erlang:error({catch_collector_connect_timedout, Host})
-    end.
-
-process_data(Purpose, Host, Socket, FileHandler) ->
-    case gen_tcp:recv(Socket, 0) of
-        {ok, Data} ->
-            ok = FileHandler({write, Data}),
-            process_data(Purpose, Host, Socket, FileHandler);
-        {error, closed} ->
-            lager:info("Collector '~p' is closed on host ~s", [Purpose, Host]);
-        {error, Reason} ->
-            lager:error("Collector '~p' is failed on host ~s with reason ~p", [Purpose, Host, Reason])
     end.
 
 generate_mail_body(Id, Status, Links, Config) ->

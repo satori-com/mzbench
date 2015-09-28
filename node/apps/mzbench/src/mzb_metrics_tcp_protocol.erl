@@ -32,7 +32,7 @@ init([State]) -> {ok, State}.
 init(Ref, Socket, Transport, _Opts = []) ->
     ok = proc_lib:init_ack({ok, self()}),
     ok = ranch:accept_ack(Ref),
-    ok = Transport:setopts(Socket, [{active, once}, {packet, 4}]),
+    ok = Transport:setopts(Socket, [{active, once}, {packet, 4}, binary]),
 
     gen_event:add_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, [self()]),
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}, ?TIMEOUT).
@@ -43,9 +43,8 @@ handle_info({tcp_closed, _Socket}, State) ->
 handle_info(timeout, State) ->
     {stop, normal, State};
 
-handle_info({tcp, Socket, <<"close_me">>}, State = #state{socket = Socket, transport=Transport}) ->
-    Transport:close(Socket),
-    {stop, normal, State};
+handle_info({tcp, Socket, Msg}, State = #state{socket = Socket}) ->
+    dispatch(erlang:binary_to_term(Msg), State);
 
 handle_info({tcp_error, _, Reason}, State) ->
     lager:warning("~p was closed with error: ~p", [?MODULE, Reason]),
@@ -62,7 +61,7 @@ handle_cast(Msg, State) ->
 handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{socket=Socket, transport=Transport}) ->
     Name = name([P || P <- Probe, P /= []], DataPoint),
     Metric = io_lib:format("~B\t~s\t~p~n", [unix_time(), Name, Value]),
-    Transport:send(Socket, Metric),
+    Transport:send(Socket, erlang:term_to_binary({metric_values, Metric})),
     {reply, ok, State};
 
 handle_call(Request, _From, State) ->
@@ -86,3 +85,11 @@ str(V) when is_list(V) -> V.
 unix_time() ->
     {Mega, Secs, _} = os:timestamp(),
     Mega * 1000000 + Secs.
+
+dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
+    Transport:close(Socket),
+    {stop, normal, State};
+
+dispatch(Unhandled, State) ->
+    lager:error("Unhandled tcp message: ~p", [Unhandled]),
+    {noreply, State}.
