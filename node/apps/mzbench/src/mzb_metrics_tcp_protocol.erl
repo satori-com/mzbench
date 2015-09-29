@@ -27,6 +27,14 @@
 start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
+dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
+    Transport:close(Socket),
+    {stop, normal, State};
+
+dispatch(Unhandled, State) ->
+    lager:error("Unhandled tcp message: ~p", [Unhandled]),
+    {noreply, State}.
+
 init([State]) -> {ok, State}.
 
 init(Ref, Socket, Transport, _Opts = []) ->
@@ -58,10 +66,10 @@ handle_cast(Msg, State) ->
     lager:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
-handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{socket=Socket, transport=Transport}) ->
+handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
     Name = name([P || P <- Probe, P /= []], DataPoint),
     Metric = io_lib:format("~B\t~s\t~p~n", [unix_time(), Name, Value]),
-    Transport:send(Socket, erlang:term_to_binary({metric_values, Metric})),
+    send_message({metric_values, Metric}, State),
     {reply, ok, State};
 
 handle_call(Request, _From, State) ->
@@ -86,10 +94,5 @@ unix_time() ->
     {Mega, Secs, _} = os:timestamp(),
     Mega * 1000000 + Secs.
 
-dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
-    Transport:close(Socket),
-    {stop, normal, State};
-
-dispatch(Unhandled, State) ->
-    lager:error("Unhandled tcp message: ~p", [Unhandled]),
-    {noreply, State}.
+send_message(Msg, #state{socket = Socket, transport = Transport}) ->
+    Transport:send(Socket, erlang:term_to_binary(Msg)).

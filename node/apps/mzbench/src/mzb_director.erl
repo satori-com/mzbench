@@ -1,8 +1,10 @@
 -module(mzb_director).
 
 -export([start_link/5,
-         pool_report/4,
-         attach/1]).
+         pool_report/3,
+         attach/0,
+         stop_benchmark/1
+         ]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -10,8 +12,7 @@
          handle_call/3,
          handle_info/2,
          terminate/2,
-         code_change/3,
-         stop_benchmark/2
+         code_change/3
         ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -31,16 +32,16 @@
 %%%===================================================================
 
 start_link(SuperPid, BenchName, Script, Nodes, Env) ->
-    gen_server:start_link(?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
 
-pool_report(DirectorPid, PoolPid, Info, IsFinal) ->
-    gen_server:cast(DirectorPid, {pool_report, PoolPid, Info, IsFinal}).
+pool_report(PoolPid, Info, IsFinal) ->
+    gen_server:cast(?MODULE, {pool_report, PoolPid, Info, IsFinal}).
 
-attach(DirectorPid) ->
-    gen_server:call(DirectorPid, attach, infinity).
+attach() ->
+    gen_server:call(?MODULE, attach, infinity).
 
-stop_benchmark(DirectorPid, Reason) ->
-    gen_server:cast(DirectorPid, {stop_benchmark, Reason}).
+stop_benchmark(Reason) ->
+    gen_server:cast(?MODULE, {stop_benchmark, Reason}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -133,10 +134,9 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
     [SizeU] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, Env, [undefined]),
     Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
-    Self = self(),
     Results = mzb_lists:pmap(fun({Num, Node}) ->
-            rpc:call(Node, mzb_bench_sup, start_pool, 
-                [[Self, Pool, Env, length(Nodes), Num]])
+            rpc:call(Node, mzb_bench_sup, start_pool,
+                [[Pool, Env, length(Nodes), Num]])
         end, NumberedNodes),
     lager:info("Start pool results: ~p", [Results]),
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
