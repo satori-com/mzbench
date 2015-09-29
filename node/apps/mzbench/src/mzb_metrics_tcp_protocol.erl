@@ -27,6 +27,10 @@
 start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
+dispatch({change_env, Env, Ref}, State) ->
+    send_message({change_env_res, mzb_director:change_env(Env), Ref}, State),
+    {noreply, State};
+
 dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
     Transport:close(Socket),
     {stop, normal, State};
@@ -40,7 +44,7 @@ init([State]) -> {ok, State}.
 init(Ref, Socket, Transport, _Opts = []) ->
     ok = proc_lib:init_ack({ok, self()}),
     ok = ranch:accept_ack(Ref),
-    ok = Transport:setopts(Socket, [{active, once}, {packet, 4}, binary]),
+    ok = Transport:setopts(Socket, [{active, true}, {packet, 4}, binary]),
 
     gen_event:add_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, [self()]),
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}, ?TIMEOUT).

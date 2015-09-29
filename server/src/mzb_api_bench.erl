@@ -6,6 +6,7 @@
     start_link/2,
     interrupt_bench/1,
     get_status/1,
+    change_env/2,
     seconds/0,
     send_email_report/2,
     request_report/2,
@@ -31,6 +32,12 @@ start_link(Id, Params) ->
 
 get_status(Pid) ->
     mzb_pipeline:call(Pid, status).
+
+change_env(Pid, Env) ->
+    case mzb_pipeline:call(Pid, {change_env, Env}, 30000) of
+        ok -> ok;
+        {error, Reason} -> erlang:error(Reason)
+    end.
 
 interrupt_bench(Pid) ->
     mzb_pipeline:stop(Pid).
@@ -184,18 +191,19 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
 
 handle_stage(pipeline, starting_collectors, #{config:= Config, self:= Self} = State) ->
     #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
-    FileHandler = maps:get(log_file_handler, State),
+    LogFileHandler = maps:get(log_file_handler, State),
     LogsCollectors = mzb_api_connection:start_link(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port),
-        fun ({message, Msg}) -> FileHandler({write, Msg});
+        fun ({message, Msg}) -> LogFileHandler({write, Msg});
             (_) -> ok
         end),
-    MetricsHandler = maps:get(metrics_file_handler, State),
+    MetricsFileHandler = maps:get(metrics_file_handler, State),
     [Connection] = mzb_api_connection:start_link(management, [DirectorHost], get_env(bench_metrics_port),
         fun ({message, Msg}) ->
             case erlang:binary_to_term(Msg) of
-                {metric_values, Values} -> MetricsHandler({write, Values});
+                {metric_values, Values} -> MetricsFileHandler({write, Values});
                 Any -> mzb_pipeline:cast(Self, {director_message, Any})
-            end
+            end;
+            ({error, _}) -> ok
         end),
     fun (S) -> S#{collectors => LogsCollectors, cluster_connection => Connection} end;
 
@@ -259,12 +267,9 @@ handle_stage(finalize, deallocating_hosts, #{deallocator:= Deallocator} = State)
 handle_stage(finalize, stopping_collectors,
             #{collectors:= Collectors,
               cluster_connection:= ClusterConnection}) ->
-    lists:foreach(fun (C) ->
-            catch mzb_api_connection:send_message(C, close_req)
-        end, [ClusterConnection|Collectors]),
-    lists:foreach(fun (C) ->
-            mzb_api_connection:wait_close(C, 30000)
-        end, [ClusterConnection|Collectors]).
+    Cons = [ClusterConnection|Collectors],
+    _ = [catch mzb_api_connection:send_message(C, close_req) || C <- Cons, C /= undefined],
+    _ = [mzb_api_connection:wait_close(C, 30000) || C <- Cons, C /= undefined].
 
 handle_call(status, _From, State) ->
     {reply, status(State), State};
@@ -272,9 +277,23 @@ handle_call(status, _From, State) ->
 handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
     {reply, ok, State#{emails:= OldEmails ++ Emails}};
 
+handle_call({change_env, Env}, From, #{status:= running, cluster_connection:= Connection} = State) ->
+    info("Change env req received: ~p", [Env], State),
+    mzb_api_connection:send_message(Connection,
+        {change_env, Env, fun (Res) -> mzb_pipeline:reply(From, Res) end}),
+    {noreply, State};
+
+handle_call({change_env, _Env}, _From, #{} = State) ->
+    {reply, {error, not_running}, State};
+
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
+
+handle_cast({director_message, {change_env_res, Res, Continuation}}, State) ->
+    info("Received change_env response: ~p", [Res], State),
+    Continuation(Res),
+    {noreply, State};
 
 handle_cast({director_message, Unknown}, State) ->
     lager:error("Unknown director message ~p", [Unknown]),
