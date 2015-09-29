@@ -11,9 +11,9 @@
          apply_pagination/2 ]).
 
 -record(state, {
-          ref = undefined,
-          timeline_opts = undefined,
-          timeline_bounds = undefined
+          ref = undefined :: undefined | reference(),
+          timeline_opts = undefined :: undefined | map(),
+          timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()}
        }).
 
 init(Req, _Opts) ->

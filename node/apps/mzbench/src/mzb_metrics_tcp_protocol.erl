@@ -17,7 +17,10 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {socket, transport}).
+-record(state, {
+    socket :: any(),
+    transport :: module()
+    }).
 
 %% API.
 

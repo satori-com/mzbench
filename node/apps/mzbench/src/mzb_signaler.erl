@@ -18,8 +18,8 @@
          code_change/3]).
 
 -record(s, {
-    nodes = [],
-    queue = []
+    nodes = [] :: [node()],
+    queue = [] :: [{string(), node(), non_neg_integer()}]
 }).
 
 %%%===================================================================

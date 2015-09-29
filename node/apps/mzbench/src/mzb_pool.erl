@@ -16,12 +16,12 @@
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
 -record(s, {
-    director = undefined,
-    workers  = [],
-    succeed  = 0,
-    failed   = 0,
-    name     = undefined,
-    worker_starter = undefined
+    director = undefined :: pid(),
+    workers  = [] :: ets:tid(),
+    succeed  = 0 :: non_neg_integer(),
+    failed   = 0 :: non_neg_integer(),
+    name     = undefined :: string(),
+    worker_starter = undefined :: undefined | {pid(), reference()}
 }).
 
 %%%===================================================================
