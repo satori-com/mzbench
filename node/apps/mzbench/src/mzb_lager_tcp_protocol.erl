@@ -20,6 +20,14 @@
 start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
+dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
+    Transport:close(Socket),
+    {stop, normal, State};
+
+dispatch(Unhandled, State) ->
+    lager:error("Unhandled tcp message: ~p", [Unhandled]),
+    {noreply, State}.
+
 init([State]) -> {ok, State}.
 
 init(Ref, Socket, Transport, _Opts = []) ->
@@ -62,12 +70,4 @@ terminate(_Reason, #state{socket = Socket}) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
-    Transport:close(Socket),
-    {stop, normal, State};
-
-dispatch(Unhandled, State) ->
-    lager:error("Unhandled tcp message: ~p", [Unhandled]),
-    {noreply, State}.
 

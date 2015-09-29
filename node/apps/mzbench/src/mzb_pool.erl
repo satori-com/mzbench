@@ -1,6 +1,6 @@
 -module(mzb_pool).
 
--export([start_link/5,
+-export([start_link/4,
          stop/1
         ]).
 
@@ -16,7 +16,6 @@
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
 -record(s, {
-    director = undefined :: pid(),
     workers  = [] :: ets:tid(),
     succeed  = 0 :: non_neg_integer(),
     failed   = 0 :: non_neg_integer(),
@@ -28,8 +27,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Director, Pool, Env, NumNodes, Offset) ->
-    gen_server:start_link(?MODULE, [Director, Pool, Env, NumNodes, Offset], []).
+start_link(Pool, Env, NumNodes, Offset) ->
+    gen_server:start_link(?MODULE, [Pool, Env, NumNodes, Offset], []).
 
 stop(Pid) ->
     gen_server:call(Pid, stop).
@@ -38,10 +37,10 @@ stop(Pid) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Director, Pool, Env, NumNodes, Offset]) ->
+init([Pool, Env, NumNodes, Offset]) ->
     Tid = ets:new(pool_workers, [public, {keypos, 1}]),
     _ = random:seed(now()),
-    State = #s{workers = Tid, director = Director},
+    State = #s{workers = Tid},
     {ok, start_workers(Pool, Env, NumNodes, Offset, State)}.
 
 handle_call(stop, _From, #s{workers = Tid, name = Name} = State) ->
@@ -166,13 +165,13 @@ load_worker({WorkerProvider, Worker}) ->
             erlang:error({application_start_failed, Worker, Reason})
     end.
 
-maybe_stop(#s{workers = Workers, name = Name, director = Director, worker_starter = undefined} = State) ->
+maybe_stop(#s{workers = Workers, name = Name, worker_starter = undefined} = State) ->
     case ets:first(Workers) == '$end_of_table' of
         true ->
             lager:info("[ ~p ] All workers have finished", [Name]),
             Info = [{succeed_workers, State#s.succeed},
                     {failed_workers,  State#s.failed}],
-            mzb_director:pool_report(Director, self(), Info, true),
+            mzb_director:pool_report(self(), Info, true),
             {stop, normal, State};
         false ->
             {noreply, State}

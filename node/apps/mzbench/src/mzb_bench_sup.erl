@@ -63,17 +63,9 @@ connect_nodes(Nodes) ->
             pong == net_adm:ping(N)
         end, Nodes).
 
-get_director(Sup) ->
-    case lists:keyfind(director, 1, supervisor:which_children(Sup)) of
-        {_, Pid, _, _} -> Pid;
-        false -> erlang:error(no_director)
-    end.
-
 get_results() ->
     try
-        Pid = whereis(?MODULE),
-        D = get_director(Pid),
-        mzb_director:attach(D)
+        mzb_director:attach()
     catch
         _:E ->
             ST = erlang:get_stacktrace(),

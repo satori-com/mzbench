@@ -7,6 +7,7 @@
     call/2,
     cast/2,
     stop/1,
+    reply/2,
     init/1,
     handle_call/3,
     handle_cast/2,
@@ -61,6 +62,9 @@ cast(ServerRef, Msg) ->
 
 stop(ServerRef) ->
     gen_server:call(ServerRef, {workflow, stop}).
+
+reply(Client, Reply) ->
+    gen_server:reply(Client, Reply).
 
 init([Module, UserArgs]) ->
     Ref = make_ref(),
