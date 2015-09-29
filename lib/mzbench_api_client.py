@@ -2,7 +2,6 @@
 from urllib import urlencode
 import json
 import os
-import sys
 import requests
 import multipart
 
@@ -128,6 +127,20 @@ def logs(host, bench_id):
     """
     for x in stream_lines(host, '/logs', {'id': bench_id}):
         yield x
+
+
+def change_env(host, bench_id, env):
+    """Changes environment variables for existing benchmark on the fly
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :param env: Dictionary of environment variables to substitute
+    :type env: Dictionary
+    """
+    env['id'] = bench_id
+    return assert_successful_get(host, '/change_env', env)
 
 
 def data(host, bench_id):

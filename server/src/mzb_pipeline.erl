@@ -5,6 +5,7 @@
 -export([
     start_link/3,
     call/2,
+    call/3,
     cast/2,
     stop/1,
     reply/2,
@@ -56,6 +57,9 @@ start_link(Module, Args, Options) ->
 
 call(ServerRef, Request) ->
     gen_server:call(ServerRef, {user_call, Request}).
+
+call(ServerRef, Request, Timeout) ->
+    gen_server:call(ServerRef, {user_call, Request}, Timeout).
 
 cast(ServerRef, Msg) ->
     gen_server:cast(ServerRef, {user_cast, Msg}).

@@ -2,6 +2,7 @@
 
 -export([start_link/5,
          pool_report/3,
+         change_env/1,
          attach/0,
          stop_benchmark/1
          ]).
@@ -24,7 +25,10 @@
     pools      = [],
     owner      = undefined,
     bench_name = undefined,
-    stop_reason = undefined
+    stop_reason = undefined,
+    script     = undefined,
+    env        = undefined,
+    nodes      = []
 }).
 
 %%%===================================================================
@@ -36,6 +40,9 @@ start_link(SuperPid, BenchName, Script, Nodes, Env) ->
 
 pool_report(PoolPid, Info, IsFinal) ->
     gen_server:cast(?MODULE, {pool_report, PoolPid, Info, IsFinal}).
+
+change_env(Env) ->
+    gen_server:call(?MODULE, {change_env, Env}, infinity).
 
 attach() ->
     gen_server:call(?MODULE, attach, infinity).
@@ -52,11 +59,30 @@ init([SuperPid, BenchName, Script, Nodes, Env]) ->
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     lager:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
     _ = mzb_signaler:set_nodes(Nodes),
-    gen_server:cast(self(), {start_pools, Pools, Env2, Nodes}),
+    gen_server:cast(self(), start_pools),
     {ok, #state{
+        script = Pools,
+        env = Env2,
+        nodes = Nodes,
         bench_name = BenchName,
         super_pid = SuperPid
     }}.
+
+handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, nodes = Nodes} = State) ->
+    lager:info("Changing env: ~p", [NewEnv]),
+    MergedEnv = lists:foldl(
+        fun ({K, V}, Acc) ->
+            lists:keystore(K, 1, Acc, {K, V})
+        end, Env, mzbl_script:normalize_env(NewEnv)),
+    try
+        {_, ModulesToLoad} = mzb_compiler:compile(Script, MergedEnv),
+        ok = load_modules(ModulesToLoad, Nodes),
+        {reply, ok, State}
+    catch
+        _:E ->
+            lager:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
+            {reply, {error, {internal_error, E}}, State}
+    end;
 
 handle_call(attach, From, State) ->
     maybe_report_and_stop(State#state{owner = From});
@@ -65,19 +91,20 @@ handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
-handle_cast({start_pools, _Pools, _Env, []}, State) ->
+    handle_cast(start_pools, #state{nodes = []} = State) ->
     lager:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
-handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = State) ->
-    Metrics = mzb_script_metrics:script_metrics(Pools, Nodes),
+
+handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
+    Metrics = mzb_script_metrics:script_metrics(Script, Nodes),
     Prefix = proplists:get_value("graphite_prefix", Env),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes, self()]},
+         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
-    {NewPools, ModulesToLoad} = mzb_compiler:compile(Pools, Env),
+    {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
     ok = load_modules(ModulesToLoad, Nodes),
-    StartedPools = start_pools(NewPools, Env, Nodes, []),
+    StartedPools = start_pools(NewScript, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
