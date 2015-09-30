@@ -4,6 +4,8 @@ otp_release:
  - 18.0
  - 17.0
 
+sudo: false
+
 env:
  - TASK=lint
  - TASK=dialyzer
@@ -17,26 +19,38 @@ env:
  - TASK=acceptance-negative-tests
  - TASK=http-worker-tests
 
+addons:
+  apt:
+    packages:
+      - python-virtualenv
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.cache/rebar3
+
 script:
+ - virtualenv venv
+ - source venv/bin/activate
  - ./bin/rebar3 update
  - export PROJECTS="node server common_apps/mzbench_language common_apps/mzbench_utils";
  - case "$TASK" in
-     lint) sudo pip install pyflakes && ./bin/lint.py . ;;
-     validate-examples) sudo pip install -r requirements.txt && make -C examples check;;
-     error-messages) sudo pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
-     http-worker-tests) sudo pip install -r requirements.txt &&
+     lint) pip install pyflakes && ./bin/lint.py . ;;
+     validate-examples) pip install -r requirements.txt && make -C examples check;;
+     error-messages) pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
+     http-worker-tests) pip install -r requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`pwd` &&
                        cd workers/http &&
                        make && make check-local;;
-     acceptance-*-tests) sudo pip install -r requirements.txt &&
-                       sudo pip install -r acceptance_tests/requirements.txt &&
+     acceptance-*-tests) pip install -r requirements.txt &&
+                       pip install -r acceptance_tests/requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`pwd` &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
-     development-with-rsync) sudo pip install -r requirements.txt &&
-                       sudo pip install -r acceptance_tests/requirements.txt &&
+     development-with-rsync) pip install -r requirements.txt &&
+                       pip install -r acceptance_tests/requirements.txt &&
                        export MZBENCH_RSYNC=$PWD/ &&
                        rm node/Makefile &&
                        make -C acceptance_tests quick-test >/dev/null; [ $? -ne 0 ] &&
