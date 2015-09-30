@@ -14,11 +14,11 @@
     code_change/3
 ]).
 
--record(state, {stage       = undefined,
-                module      = undefined,
-                ref         = undefined,
-                user_state  = undefined,
-                active      = true}).
+-record(state, {stage       = undefined :: undefined | {pid(), atom(), atom()},
+                module      = undefined :: undefined | module(),
+                ref         = undefined :: undefined | reference(),
+                user_state  = undefined :: term(),
+                active      = true :: boolean()}).
 
 -callback init(Args :: term()) ->
     {ok, State :: term()} | {ok, State :: term(), timeout() | hibernate} |
@@ -98,7 +98,7 @@ handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, S
     gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
     NewState = change_pipeline_status({exception, Phase, Stage, E, ST}, State),
     NewState1 = change_pipeline_status({final, failed}, NewState),
-    {noreply, NewState1#state{stage = undefine}};
+    {noreply, NewState1#state{stage = undefined}};
 
 handle_cast({workflow, complete, Phase, Stage, Ref, Fn}, State = #state{ref = Ref}) ->
     NewState0 = migrate_state(Fn, State),

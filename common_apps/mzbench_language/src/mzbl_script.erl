@@ -36,6 +36,7 @@ meta_to_location_string(Meta) ->
 -spec substitute(abstract_expr(), [proplists:property()]) -> abstract_expr().
 substitute(Tree, Env) -> substitute(Tree, Env, []).
 
+-spec substitute(abstract_expr(), [proplists:property()], [string()]) -> abstract_expr().
 substitute(#operation{name = loop, args = [Spec, Body]} = Op, Env, Iterators) ->
     NewSpec = substitute(Spec, Env, Iterators),
     NewIterators =

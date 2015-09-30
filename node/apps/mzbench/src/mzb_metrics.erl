@@ -22,19 +22,21 @@
          terminate/2,
          code_change/3]).
 
+-type metric_type() :: counter | histogram | gauge.
+
 -record(s, {
     prefix = "undefined" :: string(),
-    nodes = [],
+    nodes = [] :: [node()],
     director_pid = undefined :: pid(),
     graphite_reporter_ref = undefined :: reference(),
-    last_tick_time = undefined,
-    start_time = undefined,
-    stop_time = undefined,
-    previous_counter_values = [],
-    last_rps_calculation_time = undefined,
-    asserts = [],
+    last_tick_time = undefined :: erlang:timestamp(),
+    start_time = undefined :: erlang:timestamp(),
+    stop_time = undefined :: erlang:timestamp(),
+    previous_counter_values = [] :: [{string(), non_neg_integer()}],
+    last_rps_calculation_time = undefined :: erlang:timestamp(),
+    asserts = [] :: [map()],
     active = true :: true | false,
-    metrics = []
+    metrics = [] :: [{string(), metric_type(), term()}]
 }).
 
 -define(INTERVAL, 10000). % in ms
