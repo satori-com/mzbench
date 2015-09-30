@@ -13,7 +13,7 @@
 % Public API
 % ===========================================================
 
-start(Name, Opts) ->
+start(_Name, Opts) ->
     Opts.
 
 -spec create_cluster(#{}, NumNodes :: pos_integer(), Config :: #{}) -> {ok, term(), string(), [string()]}.

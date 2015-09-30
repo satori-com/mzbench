@@ -22,7 +22,7 @@ clean:
 	$(REBAR) clean
 
 .make/compilation-up-to-date: $(SOURCES) rebar.config
-	$(REBAR) compile
+	$(REBAR) as pedantic compile
 	make -C _build/default/deps/jiffy
 	mkdir -p .make && touch $@
 

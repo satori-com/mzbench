@@ -4,7 +4,7 @@ SERVICE_NAME=mzbench_api
 GIT_HEAD := $(shell git rev-parse HEAD)
 
 SOURCES := $(shell find src priv test -name .eunit -prune -o -type f -print)
-MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*)
+MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*) $(wildcard ../common_apps/*/rebar.config)
 RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
 .PHONY: compile

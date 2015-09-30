@@ -9,7 +9,7 @@
                 formatter :: atom(),
                 format_config :: any(),
                 colors=[] :: list(),
-                cowboy_proc}).
+                cowboy_proc :: pid()}).
 
 -define(TERSE_FORMAT,[time, " ", color, "[", severity,"] ", pid , " ", message]).
 

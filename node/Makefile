@@ -13,7 +13,7 @@ RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
 # all files not in ebin or .eunit
 SOURCES := $(shell find apps -name .eunit -prune -o -name ebin -prune -o -type f -print)
-MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*)
+MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*) $(wildcard ../common_apps/*/rebar.config)
 
 .PHONY: compile
 compile: .make/compilation-up-to-date
