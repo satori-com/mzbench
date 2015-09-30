@@ -7,17 +7,17 @@ otp_release:
 sudo: false
 
 env:
+ - TASK=acceptance-basic-tests
  - TASK=lint
  - TASK=dialyzer
  - TASK=unit-tests
- - TASK=validate-examples
- - TASK=error-messages
- - TASK=acceptance-local-tests
- - TASK=acceptance-basic-tests
  - TASK=development-with-rsync
  - TASK=acceptance-signal-tests
  - TASK=acceptance-negative-tests
  - TASK=http-worker-tests
+ - TASK=validate-examples
+ - TASK=error-messages
+ - TASK=acceptance-local-tests
 
 addons:
   apt:
