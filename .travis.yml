@@ -23,6 +23,7 @@ addons:
   apt:
     packages:
       - python-virtualenv
+      - parallel
 
 cache:
   directories:
@@ -45,17 +46,19 @@ script:
                        make && make check-local;;
      acceptance-*-tests) pip install -r requirements.txt &&
                        pip install -r acceptance_tests/requirements.txt &&
+                       parallel -j2 --arg-sep ,, ,, "make -C" ,, node server ,, generate  &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`pwd` &&
                        cd acceptance_tests &&
                        make ${TASK/acceptance-/};;
      development-with-rsync) pip install -r requirements.txt &&
                        pip install -r acceptance_tests/requirements.txt &&
+                       parallel -j2 --arg-sep ,, ,, "make -C" ,, node server ,, generate &&
                        export MZBENCH_RSYNC=$PWD/ &&
                        rm node/Makefile &&
                        make -C acceptance_tests quick-test >/dev/null; [ $? -ne 0 ] &&
                        git checkout -- node/Makefile &&
                        make -C acceptance_tests quick-test;;
-     unit-tests) for prj in $(echo $PROJECTS); do make -C $prj test-unit || exit 1; done;;
-     dialyzer) for prj in $(echo $PROJECTS); do make -C $prj dialyzer.log || exit 1; done;;
+     unit-tests) parallel -j4 --arg-sep ,, ,, "make -C" ,, $PROJECTS ,, test-unit ;;
+     dialyzer) parallel -j4 --arg-sep ,, ,, "make -C" ,, $PROJECTS ,, dialyzer.log ;;
    esac
