@@ -23,7 +23,8 @@ def lint_python(root):
     pyflakes = find_executable('pyflakes')
 
     python_files = [os.path.join(root, 'bin/mzbench')] + list(files_with_extension('.py', root))
-    return subprocess.call([pyflakes] + python_files)
+    return subprocess.call([pyflakes] +
+        [f for f in python_files if '/venv/' not in f])
 
 
 def lint_escript(root):
