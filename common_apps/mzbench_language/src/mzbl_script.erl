@@ -245,7 +245,7 @@ normalize_env(Env) ->
 
 normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
 normalize_env_(V) when is_list(V) -> V;
-normalize_env_(V) when is_integer(V) -> V;
+normalize_env_(V) when is_number(V) -> V;
 normalize_env_(V) when is_atom(V) -> V;
 normalize_env_(U) ->
     Msg = mzb_string:format("Env value of unknown type: ~p", [U]),

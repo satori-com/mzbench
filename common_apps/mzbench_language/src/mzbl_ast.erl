@@ -105,6 +105,14 @@ substitute_vars(AST, Env) ->
         end, [], AST, Env),
     NewAST.
 
+-spec var_mapfold(Fun, Acc, Script, Env) -> {NewScript, NewAcc}
+        when Fun :: fun((Name :: string(), Val :: term(), Acc) ->
+                         {change, NewVal :: term(), NewAcc} |
+                         {nochange, NewAcc :: term()}),
+             Acc :: term(),
+             Script :: abstract_expr(),
+             NewScript :: abstract_expr(),
+             Env :: [{Name :: string(), Val :: term()}].
 var_mapfold(Fun, AccStart, Script, Env) ->
     NormEnv = mzbl_script:normalize_env(Env),
     mapfold(
@@ -131,6 +139,10 @@ var_mapfold(Fun, AccStart, Script, Env) ->
                 {Op, Acc}
         end, AccStart, Script).
 
+-spec var_eval(var | numvar, Env, Args) -> Value
+        when Env :: [{string(), any()}],
+             Args :: [any()],
+             Value :: any().
 var_eval(var, Env, [Name, Default]) ->
     case proplists:is_defined(Name, Env) of
         false -> Default;
