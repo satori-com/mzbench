@@ -69,7 +69,7 @@ print_loop_iterator_test() ->
                   {iterator, \"i\"},
                   {rate, {4, rps}}],
            [{test_method, {sprintf, \"~p~w\", [{var, \"i\"}, {numvar, \"i\"}]}}]}].",
-    ?assertEqual("4433221100", run(Script)).
+    ?assertEqual("4433221100", catch run(Script)).
 
 empty_loop_test() ->
     Script =
@@ -155,14 +155,14 @@ run(Script, Meta, Env) ->
 
 ramp_solver_test() ->
     ?assertEqual(
-        3000000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 6, 3000000, 12))),
+        3000,
+        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 6, 3000, 12))),
     ?assertEqual(
         0,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000000, 0))),
+        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000, 0))),
     ?assertEqual(
-        4000000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000000, 20))).
+        4000,
+        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000, 20))).
 
 validation_ok_simple_test() ->
     ?assertEqual(check("[{print, \"NaNNaNNaNNaNNaNNaN\"},
