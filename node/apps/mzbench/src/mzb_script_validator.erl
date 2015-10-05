@@ -71,6 +71,7 @@ validate(Script) ->
     mzb_signal_validation:validate(Script2),
     ok.
 
+validate_resource_filename(#operation{name = 'var'}) -> [];
 validate_resource_filename(Filename) ->
     case filename:split(Filename) of
         [_] -> [];

@@ -9,7 +9,8 @@
     var_eval/3,
     var_mapfold/4,
     find_operation_and_extract_args/3,
-    find_operation_and_extract_args/4]).
+    find_operation_and_extract_args/4,
+    substitute_vars/2]).
 
 -include("mzbl_types.hrl").
 
@@ -98,6 +99,10 @@ find_operation_and_extract_args(_, [], _Env, Default) -> Default;
 find_operation_and_extract_args(Key, [#operation{name = Key} = Op | _], Env,  _) -> substitute_vars(Op#operation.args, Env);
 find_operation_and_extract_args(Key, [_ | T], Env, Default) -> find_operation_and_extract_args(Key, T, Env, Default).
 
+-spec substitute_vars(AST, Env) -> NewAST
+        when AST :: abstract_expr(),
+             Env :: [{string(), term()}],
+             NewAST :: abstract_expr().
 substitute_vars(AST, Env) ->
     {NewAST, _} = var_mapfold(
         fun (Name, undefined, _Acc) -> erlang:error({var_is_unbound, Name});
