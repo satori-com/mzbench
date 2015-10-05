@@ -39,12 +39,12 @@ exec_format(Format, Args, Opts, Logger) ->
 exec_format(Format, Args, Opts, Handler, InitState, Logger) ->
     Command = io_lib:format(Format, Args),
     BeforeExec = os:timestamp(),
-    Logger(info, "[ EXEC ] ~s", [Command]),
+    Logger(info, "[ EXEC ] ~s (~p)", [Command, self()]),
     Port = open_port({spawn, lists:flatten(Command)}, [stream, eof, exit_status | Opts]),
     case get_data(Port, Handler, InitState) of
         {0, Output} ->
             Duration = timer:now_diff(os:timestamp(), BeforeExec),
-            Logger(info, "[ EXEC ] OK in ~p ms~nCmd output: ~s", [Duration / 1000, Output]),
+            Logger(info,  "[ EXEC ] OK in ~p ms (~p)", [Duration / 1000, self()]),
             string:strip(Output, right, $\n);
         {Code, Output} ->
             Duration = timer:now_diff(os:timestamp(), BeforeExec),
