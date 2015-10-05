@@ -64,7 +64,7 @@ init([Id, Params]) ->
                     _ -> GitBranch
                 end,
                 mzbl_script:make_git_install_spec(GitRepo, Branch, "node");
-            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", ["deps", "ebin", ".make"])
+            Remote -> mzbl_script:make_rsync_install_spec(Remote, "node", [])
         end,
     BenchName =
         case maps:find(benchmark_name, Params) of
