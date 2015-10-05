@@ -82,10 +82,10 @@ parse(Body) ->
     {[#operation{}], [proplists:property()]}.
 extract_pools_and_env(Script, Env) ->
     Env2 = lists:foldl(
-            fun (#operation{name = include_resource, args = [Name, Path]}, Acc) ->
-                    [{{resource, Name}, import_resource(Env, Path, erlang)} | Acc];
-                (#operation{name = include_resource, args = [Name, Path, Type]}, Acc) ->
-                    [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
+            fun (#operation{name = include_resource, args = [Name, PathExpr]}, Acc) ->
+                    [{{resource, Name}, import_resource(Env, PathExpr, erlang)} | Acc];
+                (#operation{name = include_resource, args = [Name, PathExpr, Type]}, Acc) ->
+                    [{{resource, Name}, import_resource(Env, PathExpr, Type)} | Acc];
                 (#operation{name = assert, args = [Time, Expr]}, Acc) ->
                     {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
                     [{asserts, [{Time, normalize_assert(Expr)}|Asserts]}|Acc2];
@@ -106,7 +106,8 @@ opposite_op(lt) -> gt;
 opposite_op(gte) -> lte;
 opposite_op(lte) -> gte.
 
-import_resource(Env, File, Type) ->
+import_resource(Env, Expr, Type) ->
+    File = filename:basename(mzbl_ast:substitute_vars(Expr, Env)),
     Root = proplists:get_value("bench_script_dir", Env),
     WorkerDirs = proplists:get_value("bench_workers_dir", Env),
     try
@@ -240,13 +241,14 @@ to_string(Y) -> erlang:error({not_a_stringy_thing, Y}).
 -spec normalize_env([term()]) -> [term()].
 normalize_env(Env) ->
     lists:map(
-        fun ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
+        fun ({{resource, _} = K, V}) -> {K, V};
+            ({asserts = K, V}) -> {K, V};
+            ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
         end, Env).
 
 normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
 normalize_env_(V) when is_list(V) -> V;
 normalize_env_(V) when is_number(V) -> V;
-normalize_env_(V) when is_atom(V) -> V;
 normalize_env_(U) ->
     Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
     erlang:error({error, {validation, [Msg]}}).
