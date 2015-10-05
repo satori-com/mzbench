@@ -3,6 +3,7 @@ from urllib import urlencode
 import json
 import os
 import sys
+import re
 import requests
 import multipart
 
@@ -84,15 +85,19 @@ def start(host, script_file, script_content,
         {'filename': os.path.basename(script_file),
          'content': script_content})]
 
-    for inc in includes:
+    for (incname, incurl) in includes:
         script_dir = os.path.dirname(script_file)
-        filename = os.path.join(script_dir, inc)
-        try:
-            with open(filename) as fi:
-                files.append(
-                    ('include', {'filename': inc, 'content': fi.read()}))
-        except IOError:
-            print "Warning: resource file '%s' is not found on the local machine" % filename
+
+        if not re.search(r'^https?://', incurl):
+            filename = os.path.join(script_dir, incurl)
+            try:
+                with open(filename) as fi:
+                    files.append(('include',
+                        {'filename': incurl, 'content': fi.read()}))
+            except IOError as e:
+                print >>sys.stderr, "Failed to get content for resource ({0}, {1}): {2}".format(
+                        incname, incurl, e)
+                raise
 
     body, headers = multipart.encode_multipart({}, files)
 

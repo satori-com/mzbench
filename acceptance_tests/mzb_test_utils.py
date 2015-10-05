@@ -153,8 +153,8 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
 
             re_match = None
             if expected_log_message_regex:
-                if isinstance(expected_log_message_regex, str):
-                    regex = re.compile(expected_log_message_regex, re.S)
+                if isinstance(expected_log_message_regex, str) or isinstance(expected_log_message_regex, unicode):
+                    regex = re.compile(expected_log_message_regex, re.DOTALL + re.UNICODE)
                 else:
                     regex = expected_log_message_regex
                 re_match = regex.search(log)
@@ -168,7 +168,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
                 if maybe_error:
                     print "Log doesn't pass custom check:\n{0}\n\n".format(maybe_error)
                 if not re_match:
-                    print "Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
+                    print u"Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
                 print log
                 raise RuntimeError
 

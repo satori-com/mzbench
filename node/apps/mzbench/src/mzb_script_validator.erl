@@ -75,6 +75,8 @@ validate_resource_filename(Filename) ->
     case filename:split(Filename) of
         [_] -> [];
         [".", _] -> [];
+        ["http:" | _] -> [];
+        ["https:" | _] -> [];
         _ -> [mzb_string:format("Invalid resource filename: ~s", [Filename])]
     end.
 
