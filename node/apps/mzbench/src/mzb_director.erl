@@ -68,7 +68,7 @@ handle_cast({start_pools, _Pools, _Env, []}, State) ->
     lager:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
 handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = State) ->
-    Metrics = mzb_script_metrics:script_metrics(Pools, Nodes, erlang:node()),
+    Metrics = mzb_script_metrics:script_metrics(Pools, Nodes),
     Prefix = proplists:get_value("graphite_prefix", Env),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,

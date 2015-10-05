@@ -1,10 +1,10 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/3, metrics/2, normalize/1, build_metric_groups_json/1]).
+-export([script_metrics/2, metrics/2, normalize/1, build_metric_groups_json/1]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
-script_metrics(Pools, Nodes, DirectorNode) ->
+script_metrics(Pools, WorkerNodes) ->
     PoolMetrics = pool_metrics(Pools),
 
     WorkerStatusGraphs = lists:map(fun (P) ->
@@ -12,7 +12,7 @@ script_metrics(Pools, Nodes, DirectorNode) ->
                   metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]] ++
                              [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), mzb_utility:hostname_str(N), X]), counter} ||
                                     X <- ["started", "ended", "failed"],
-                                    N <- Nodes]}}
+                                    N <- WorkerNodes]}}
         end, Pools),
 
     MZBenchInternal = [{group, "MZBench Internals",
@@ -25,11 +25,7 @@ script_metrics(Pools, Nodes, DirectorNode) ->
                                     metrics => [{"errors", counter}]}}
                         ]}],
 
-    SystemLoadMetricsNodes = case lists:member(DirectorNode, Nodes) of
-        true -> Nodes;
-        false -> Nodes ++ [DirectorNode]
-    end,
-    SystemLoadMetrics = mzb_system_load_monitor:metric_names(SystemLoadMetricsNodes),
+    SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | nodes()]),
 
     normalize(PoolMetrics ++ SystemLoadMetrics ++ MZBenchInternal).
 
@@ -55,7 +51,7 @@ metrics(Path, EnvFromClient) ->
     Nodes = erlang:nodes(),
     {Pools, Env} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
-    ScriptMetrics = script_metrics(Pools, Nodes, erlang:node()),
+    ScriptMetrics = script_metrics(Pools, Nodes),
 
     MetricJson = #{ groups => build_metric_groups_json(ScriptMetrics) },
 
