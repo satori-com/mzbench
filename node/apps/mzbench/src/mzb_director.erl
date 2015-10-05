@@ -76,7 +76,7 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
         end, Env, mzbl_script:normalize_env(NewEnv)),
     try
         {_, ModulesToLoad} = mzb_compiler:compile(Script, MergedEnv),
-        ok = load_modules(ModulesToLoad, Nodes),
+        ok = load_modules(ModulesToLoad, [node()|Nodes]),
         {reply, ok, State}
     catch
         _:E ->
@@ -103,7 +103,7 @@ handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super
          {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
     {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
-    ok = load_modules(ModulesToLoad, Nodes),
+    ok = load_modules(ModulesToLoad, [node()|Nodes]),
     StartedPools = start_pools(NewScript, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});
 
@@ -229,8 +229,9 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
 load_modules(Binaries, Nodes) ->
     mzb_lists:pmap(fun(Node) ->
         lists:foreach(fun ({Mod, Bin}) ->
+            lager:info("Loading ~p module on ~p...", [Mod, Node]),
             {module, _} = rpc:call(Node, code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin])
         end, Binaries)
-    end, Nodes),
+    end, lists:usort(Nodes)),
     ok.
 
