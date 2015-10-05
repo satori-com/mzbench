@@ -9,18 +9,18 @@ The language is using a slightly Lisp-like notation. It consists of lists and tu
   * A list is a comma separated list of items enclosed in brackets. For example: `[A, B, C]`;
   * A tuple is a comma separated list of items enclosed in braces. For example: `{A, B, C}`.
 
-A MZBench scenario is a list of top-level sentences and a dot. For example: 
+A MZBench scenario is a list of top-level statements and a dot. For example:
 
     [
-        Sentence1, 
-        Sentence2
+        Statement1,
+        Statement2
     ].
 
-Each sentence is a tuple. The first element of this tuple indicates the name of a function to call, for example `pool` or `assert`. The other elements are the parameters to pass to this function. They can be atoms, tuples or lists. For example: `{print, "Hello, world!"}` or `{add, 2, 3}`.
+Each statement is a tuple. The first element of this tuple indicates the name of a function to call, for example `pool` or `assert`. The other elements are the parameters to pass to this function. They can be atoms, tuples or lists. For example: `{print, "Hello, world!"}` or `{add, 2, 3}`.
 
-# Top-level sentences
+# Top-level statements
 
-Top-level sentences are the sentences that can appear in the top-level list describing the scenario. They are of two kinds:
+Top-level statements are the statements that can appear in the top-level list describing the scenario. They are of two kinds:
 
   * Top-level directives allow to tell the system some general facts about the scenario or define some global parameters;
   * The pools allow to describe the actual work to perform.
@@ -31,17 +31,19 @@ The top-level directives are as follows:
 
 ### `{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`
 
-Instructs the benchmarking system to install some piece of software from a remote git repository on the working nodes before executing the bench. Specifically it performs the following actions:
+Instructs the benchmarking system to install some piece of software from a remote git repository on the working nodes before executing the bench. MZBench executes 'make generate_tgz' when specific version of a package is installed to a specific system for the first time:
 
     git clone <URL> temp_dir
     cd temp_dir
     git checkout <Branch>
     cd <Dir>
-    sudo make install
+    make generate_tgz
 
 If no `branch` is specified, `master` is used by default.
 
 If no `dir` is specified, `.` is used by default.
+
+After that, a worker package is installed from tgz file. Please use [simple_http](../workers/simple_http) worker as an example.
 
 ### `{include_resource, handle, "filename.txt"}` 
 
@@ -53,7 +55,7 @@ Instructs the benchmarking system to include additional resource files in your s
     Command = {exec, Target, BashCommand} | {worker_call, WorkerMethod, WorkerModule} | {worker_call, WorkerMethod, WorkerModule, WorkerType}
     Target = all | director
 
-Instructs the benchmarking system to run some actions before or after the benchmark. There two supported kind of hooks: exec commands and worker calls.
+Instructs the benchmarking system to run some actions before or after the benchmark. There two supported kinds of hooks: exec commands and worker calls.
 
 Exec commands allow you to run any bash command on every nodes or on director only. Worker calls could be executed on the director node only.
 
@@ -360,7 +362,7 @@ This statement is substituted with the numerical value of the environment variab
 
 ### `{parallel, [<statement>]}`
 
-Execute statements in parallel.
+Execute statements in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
 
 ### `{set_signal, <term> [, <count>]}`
 
