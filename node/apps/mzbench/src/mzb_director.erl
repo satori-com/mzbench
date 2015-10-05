@@ -74,9 +74,8 @@ handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = Sta
         {mzb_metrics,
          {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes, self()]},
          transient, 5000, worker, [mzb_metrics]}),
-    {noreply, State#state{
-        pools = start_pools(Pools, Env, Nodes, [])
-    }};
+    StartedPools = start_pools(Pools, Env, Nodes, []),
+    maybe_stop(State#state{pools = StartedPools});
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
     NewState = handle_pool_report(Info, State),
