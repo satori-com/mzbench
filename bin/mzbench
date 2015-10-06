@@ -95,7 +95,6 @@ import re
 import subprocess
 import sys
 import time
-import math
 
 def check_module_version(module, required_version):
     import distutils.version
@@ -230,29 +229,21 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
           exclusive_node_usage, name, cloud, env):
-    import erl_utils
     import erl_terms
-        
     try:
-        script_terms = erl_utils.convert(script_content, env)
-        include = erl_utils.get_includes(script_terms)
-        
-        if workers_per_node is not None:
-            nodes = int(math.ceil(float(erl_utils.get_num_of_workers(script_terms))/float(workers_per_node)))
-        
         response = api.start(host,
             script_file,
             script_content,
             emails=email,
             node_commit=node_commit,
-            includes=include,
             deallocate_after_bench=deallocate_after_bench,
             provision_nodes=provision_nodes,
             exclusive_node_usage=exclusive_node_usage,
             benchmark_name=name,
             cloud=cloud,
             env=env,
-            nodes=nodes)
+            nodes=nodes,
+            workers_per_node=workers_per_node)
         pretty_print(response)
         return response['id']
     except erl_terms.ParseError as e:
