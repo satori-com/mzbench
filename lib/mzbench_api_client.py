@@ -10,7 +10,7 @@ class MZBenchAPIException(Exception):
     pass
 
 def start(host, script_file, script_content,
-          node_commit = None, nodes = None, deallocate_after_bench = None,
+          node_commit = None, nodes = None, workers_per_node = None, deallocate_after_bench = None,
           provision_nodes = None, exclusive_node_usage = None, benchmark_name = None,
           cloud = None, emails=[], includes=[], env={}
         ):
@@ -26,6 +26,8 @@ def start(host, script_file, script_content,
     :type node_commit: str
     :param nodes: Number of nodes to allocate or node list, 1 by default
     :type nodes: int or list of strings
+    :param workers_per_node: Number of workers to start on one node
+    :type workers_per_node: int
     :param deallocate_after_bench: Deallocate nodes after bench is over
     :type deallocate_after_bench: "true" or "false"
     :param provision_nodes: Install required software
@@ -38,19 +40,27 @@ def start(host, script_file, script_content,
     :type cloud: str or unicode
     :param emails: Emails to notify on bench results
     :type emails: List of strings
-    :param includes: List of files to include
-    :type includes: List of strings
     :param env: Dictionary of environment variables to substitute
     :type env: Dictionary
     :returns: Operation status
     :rtype: Dictionary
     """
+    import erl_utils
+    import math
+
+    script_terms = erl_utils.convert(script_content, env)
+    includes = erl_utils.get_includes(script_terms)
+
+    if workers_per_node is not None:
+        desired_num_nodes = int(math.ceil(float(erl_utils.get_num_of_workers(script_terms))/float(workers_per_node)))
+    else:
+        desired_num_nodes = None
 
     if nodes is not None:
         if isinstance(nodes, int):
-            params = [('nodes', nodes)]
+            params = [('nodes', desired_num_nodes if desired_num_nodes is not None else nodes)]
         else:
-            params = [('nodes', ','.join(nodes))]
+            params = [('nodes', ','.join(nodes[:desired_num_nodes] if desired_num_nodes is not None else nodes))]
     else:
         params = []
 
