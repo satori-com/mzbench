@@ -156,13 +156,16 @@ run(Script, Meta, Env) ->
 ramp_solver_test() ->
     ?assertEqual(
         3000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 6, 3000, 12))),
+        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 6}, 3000, 12))),
     ?assertEqual(
         0,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000, 0))),
+        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 0))),
     ?assertEqual(
         4000,
-        round(mzb_worker_runner:time_of_next_iteration_in_ramp(2, 8, 4000, 20))).
+        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 20))),
+    ?assertEqual(
+        2000,
+        round(mzb_loop:time_of_next_iteration({const_rate, undefined, 10}, 5000, 20))).
 
 validation_ok_simple_test() ->
     ?assertEqual(check("[{print, \"NaNNaNNaNNaNNaNNaN\"},

@@ -1,9 +1,6 @@
 -module(mzb_worker_runner).
 
--export([run_worker_script/5]).
-
-% For Common and EUnit tests
--export([eval_expr/4]).
+-export([run_worker_script/5, eval_expr/4]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 -include("mzb_types.hrl").
