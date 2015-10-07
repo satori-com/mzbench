@@ -14,6 +14,9 @@
                       "xmpp.example.com",
                       5222},
 
+            % send initial presence
+            {initial_presence},
+
             % wait until everyone is connected to the xmpp server
             {set_signal, init, 1},
             {wait_signal, init, {numvar, "users-number", 1000}},
