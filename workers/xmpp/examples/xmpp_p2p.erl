@@ -30,7 +30,7 @@
             {loop, [{time, {{numvar, "duration", 5}, min}},
                     {rate, {ramp, linear, {{numvar, "min-msgs-rps", 1}, rps},
                                           {{numvar, "max-msgs-rps", 10}, rps}}}],
-                [{send_message, {recepient, "user", {numvar, "users-number", 1000}}, {marker, 50}, skip}]
+                [{send_message, {recipient, "user", {numvar, "users-number", 1000}}, {marker, 50}, skip}]
             },
 
             % close socket and halt stream parser

@@ -23,7 +23,7 @@
             {multi_enter_room, "room", {get_room_ids, {numvar, "rooms-per-user", 10},
                                                       {numvar, "total-rooms", 6000}}},
 
-            % spawn stream parser in the seperate thread and enable message's latency and muc_message count
+            % spawn stream parser in the seperate thread and enable latency and muc_message parsers
             {spawn_stream_parser, 0, 120000, [{t, latency},
                                               {t, muc_message}]},
 
