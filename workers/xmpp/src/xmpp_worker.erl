@@ -23,7 +23,7 @@
     pool_id/2,
     iname/4,
     get_room_ids/4,
-    recepient/4,
+    recipient/4,
     marker/2,
     marker/3
 ]).
@@ -159,7 +159,7 @@ iname(State, _Meta, Name, Id) -> {[Name, "-", integer_to_list(Id)], State}.
 get_room_ids(State, _Meta, N, MaxId) ->
     {choose_random_ll(N, MaxId, sets:new()), State}.
 
-recepient(#state{username = Me} = State, Meta, Name, MaxId) ->
+recipient(#state{username = Me} = State, Meta, Name, MaxId) ->
     Id = random:uniform(MaxId),
     case iname(State, Meta, Name, Id) of
         {Me, _} ->
