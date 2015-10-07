@@ -23,7 +23,7 @@
     pool_id/2,
     iname/4,
     get_room_ids/4,
-    recepient/5,
+    recepient/4,
     marker/2,
     marker/3
 ]).
@@ -69,7 +69,9 @@ metrics() ->
                       metrics => [{"xmpp.parser.error-msg", counter}]}}]}
     ].
 
-initial_state() -> #state{}.
+initial_state() ->
+    random:seed(os:timestamp()),
+    #state{}.
 
 connect(State, _Meta, Username, Domain, Host, Port) ->
     Socket = xmpp_protocol:connect(Host, Port),
@@ -155,14 +157,14 @@ pool_id(State, Meta) ->
 iname(State, _Meta, Name, Id) -> {[Name, "-", integer_to_list(Id)], State}.
 
 get_room_ids(State, _Meta, N, MaxId) ->
-    {choose_random_ll(N, 1, MaxId, sets:new()), State}.
+    {choose_random_ll(N, MaxId, sets:new()), State}.
 
-recepient(#state{username = Me} = State, Meta, Name, MinId, MaxId) ->
-    Id = crypto:rand_uniform(MinId, MaxId),
+recepient(#state{username = Me} = State, Meta, Name, MaxId) ->
+    Id = random:uniform(MaxId),
     case iname(State, Meta, Name, Id) of
         {Me, _} ->
             NewId = case (Id + 1) of
-                MaxId -> MinId;
+                MaxId -> 1;
                 I -> I
             end,
             iname(State, Meta, Name, NewId);
@@ -172,14 +174,14 @@ recepient(#state{username = Me} = State, Meta, Name, MinId, MaxId) ->
 marker(State, Meta) -> marker(State, Meta, ?XMPP_DEFAULT_MSG_SIZE).
 marker(State, _Meta, Size) -> {xmpp_protocol:generate_marker(Size), State}.
 
-choose_random_ll(0, _, _, Set) -> sets:to_list(Set);
-choose_random_ll(N, MinId, MaxId, Set) ->
-    Id = crypto:rand_uniform(MinId, MaxId),
+choose_random_ll(0, _, Set) -> sets:to_list(Set);
+choose_random_ll(N, MaxId, Set) ->
+    Id = random:uniform(MaxId),
     case sets:is_element(Id, Set) of
-        true -> choose_random_ll(N, MinId, MaxId, Set);
+        true -> choose_random_ll(N, MaxId, Set);
         false ->
             Set1 = sets:add_element(Id, Set),
-            choose_random_ll(N - 1, MinId, MaxId, Set1)
+            choose_random_ll(N - 1, MaxId, Set1)
     end.
 
 close_stream_reader(undefined) -> ok;
