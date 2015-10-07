@@ -88,6 +88,9 @@ eval_std_function(Name, Args, Meta, State, Env, WorkerProvider) ->
     {Params, NextState} = eval_expr(Args, State, Env, WorkerProvider),
     apply(mzb_stdlib, Name, [NextState, Env, Meta | Params]).
 
+-record(const_rate, {rate_fun, prev_value = undefined}).
+-record(linear_rate, {from_fun, to_fun, prev_from, prev_to}).
+
 -spec eval_loop([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
 eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
@@ -118,10 +121,10 @@ eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
             {nil, State3};
         false ->
             RPSFun = fun (S) -> {undefined, S} end,
-            looprun(ProcNum, TimeFun, Iterator, Spawn, {constant, RPSFun}, Body, WorkerProvider, State3, Env);
+            looprun(ProcNum, TimeFun, Iterator, Spawn, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env);
         #operation{args = [#constant{value = _, units = _} = RPS]} ->
             RPSFun = Evaluator(RPS),
-            looprun(ProcNum, TimeFun, Iterator, Spawn, {constant, RPSFun}, Body, WorkerProvider, State3, Env);
+            looprun(ProcNum, TimeFun, Iterator, Spawn, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env);
         #operation{args = [#operation{name = think_time,
                                       args = [#constant{units = _} = Rate,
                                               #constant{units = _} = ThinkTime]}]} ->
@@ -139,8 +142,8 @@ eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
                                         #constant{value = _, units = _} = From,
                                         #constant{value = _, units = _} = To]}]} ->
             if
-                From == To -> looprun(ProcNum, TimeFun, Iterator, Spawn, {constant, Evaluator(From)}, Body, WorkerProvider, State3, Env);
-                true -> looprun(ProcNum, TimeFun, Iterator, Spawn, {linear, Evaluator(From), Evaluator(To)}, Body, WorkerProvider, State3, Env)
+                From == To -> looprun(ProcNum, TimeFun, Iterator, Spawn, #const_rate{rate_fun = Evaluator(From)}, Body, WorkerProvider, State3, Env);
+                true -> looprun(ProcNum, TimeFun, Iterator, Spawn, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State3, Env)
             end
     end.
 
@@ -185,7 +188,7 @@ superloop(N, TimeFun, Iterator, Spawn, Rates, Body, WorkerProvider, State, Env) 
         {_, NewState} ->
             [PRateFun, PTimeFun | Tail] = Rates,
             LocalStart = msnow(),
-            looprun(N, PTimeFun, Iterator, Spawn, {constant, PRateFun}, Body, WorkerProvider, NewState, Env),
+            looprun(N, PTimeFun, Iterator, Spawn, #const_rate{rate_fun = PRateFun}, Body, WorkerProvider, NewState, Env),
             LoopTime = msnow() - LocalStart,
             NewTimeFun =
                 fun (S) ->
@@ -197,87 +200,95 @@ superloop(N, TimeFun, Iterator, Spawn, Rates, Body, WorkerProvider, State, Env) 
     end.
 
 looprun(1, TimeFun, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env)  ->
-    timerun(msnow(), 1, TimeFun, Iterator, Spawn, Rate, undefined, Body, WorkerProvider, Env, 1, State, 0);
+    timerun(msnow(), 1, TimeFun, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, 0);
 looprun(N, TimeFun, Iterator, Spawn, Rate, Body, WorkerProvider, State, Env) ->
     _ = mzb_lists:pmap(fun (I) ->
-        timerun(msnow(), N, TimeFun, Iterator, Spawn, Rate, undefined, Body, WorkerProvider, Env, 1, State, I)
+        timerun(msnow(), N, TimeFun, Iterator, Spawn, Rate, Body, WorkerProvider, Env, 1, State, I)
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, Step, TimeFun, Iterator, Spawn, Rate, PrevRate, Body, WorkerProvider, Env, Batch, State, OldDone) ->
+
+timerun(Start, Step, TimeFun, Iterator, Spawn, Rate, Body, WorkerProvider, Env, Batch, State, OldDone) ->
     LocalStart = msnow(),
-    {Time, NewState} = TimeFun(State),
-
-    {RateVal, Done, NewState2} = case Rate of
-        {constant, RateFun} ->
-            {R, S} = RateFun(NewState),
-            case PrevRate of
-                {constant, R} -> {{constant, R}, OldDone, S};
-                undefined -> {{constant, R}, OldDone, S};
-                {constant, OldR} -> {{constant, R}, OldDone * R / OldR, S}
-            end;
-        {linear, FromFun, ToFun} ->
-            %{linear, OldF, OldT} = PrevRate,
-            {F, S1} = FromFun(NewState),
-            {T, S2} = ToFun(S1),
-            case PrevRate of
-                {linear, F, T} -> {{linear, F, T}, OldDone, S2};
-                undefined ->  {{linear, F, T}, OldDone, S2};
-                {linear, OldF, OldT} ->
-                    Tm = (LocalStart - Start),
-                    A = F + (T - F) * Tm / (2 * Time),
-                    B = OldF + (OldT - OldF) * Tm / (2 * Time),
-                    {{linear, F, T}, OldDone *  A / B, S2}
-            end
-    end,
-
-    ShouldBe = case RateVal of
-        {constant, undefined} -> 0;
-        {constant, 0} -> Time * 2; % ShouldBe should be more than loop length "2" does not stand for anything important
-        {constant, RPS} -> (Done * 1000) / RPS;
-        {linear, From, To} ->
-            time_of_next_iteration_in_ramp(From, To, Time, Done)
-    end,
+    {Time, State1} = TimeFun(State),
+    {ShouldBe, NewRate, Done, State2} = should_be(Rate, OldDone, LocalStart - Start, Time, State1),
 
     Remain = Start + trunc(ShouldBe) - LocalStart,
     GotTime = Start + trunc(Time) - LocalStart,
 
     Sleep = max(0, min(Remain, GotTime)),
     if
-        Sleep > 1 -> timer:sleep(Sleep);
+        Sleep > 0 -> timer:sleep(Sleep);
         true -> ok
     end,
-    %io:format("Time: ~p, Start: ~p, LocalStart: ~p, Sleep: ~p~n", [Time, Start, LocalStart, Sleep]),
     case Time + Start =< LocalStart + Sleep of
-        true -> {nil, State};
+        true ->
+            {nil, State2};
         false ->
             BatchStart = msnow(),
             NextState =
                 case Spawn of
                     false ->
                         case Iterator of
-                            undefined -> k_times(Body, WorkerProvider, Env, Step, NewState2, Done, Batch);
-                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, NewState2, Done, Batch)
+                            undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
+                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
                         end;
                     true ->
-                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, NewState2, Done, Batch)
+                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
                 end,
             BatchEnd = msnow(),
-            TimePerIter = max(0, (BatchEnd - BatchStart) div Batch),
-            NewBatch =
-                if (BatchEnd - BatchStart) * 4 > GotTime -> Batch div 2 + 1;
-                   (Sleep == 0) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
-                   Sleep > 2*TimePerIter -> max(Batch - Batch div 16 - 1, 1);
-                   true -> Batch
-                end,
+            NewBatch = batch_size(BatchEnd - BatchStart, GotTime, Sleep, Batch),
 
-            timerun(Start, Step, TimeFun, Iterator, Spawn, Rate, RateVal, Body, WorkerProvider, Env, NewBatch, NextState, Done + Step*Batch)
+            timerun(Start, Step, TimeFun, Iterator, Spawn, NewRate, Body, WorkerProvider, Env, NewBatch, NextState, Done + Step*Batch)
     end.
 
-k_times(_, _, _, _, S, _, 0) -> S;
-k_times(Expr, Provider, Env, Step, S, Done, N) ->
+%-compile({inline, [should_be/5]}).
+should_be(#const_rate{rate_fun = F, prev_value = Prev} = RateState, Done, CurTime, Time, State) ->
+    {Rate, State1} = F(State),
+    NewDone =
+        case {Rate, Prev} of
+            {Prev, _} -> Done;
+            {undefined, _} -> Rate * CurTime / 1000;
+            {New, 0} -> New * CurTime / 1000;
+            {New, undefined} -> New * CurTime / 1000;
+            {New, _} -> Done * New / Prev
+        end,
+    ShouldBe =
+        case Rate of
+            undefined -> 0;
+            0 -> Time * 2; % ShouldBe should be more than loop length "2" does not stand for anything important
+            _ -> (NewDone * 1000) / Rate
+        end,
+    {ShouldBe, RateState#const_rate{prev_value = Rate}, NewDone, State1};
+should_be(#linear_rate{from_fun = FFun, to_fun = ToFun, prev_from = OldF, prev_to = OldT} = RateState, Done, CurTime, Time, State) ->
+    {F, State1} = FFun(State),
+    {T, State2} = ToFun(State1),
+    NewDone =
+        case {F, T} of
+            {OldF, OldT} -> Done;
+            {_, _} when OldF == undefined -> Done;
+            {_, _} ->
+                Tm = CurTime,
+                A = F + (T - F) * Tm / (2 * Time),
+                B = OldF + (OldT - OldF) * Tm / (2 * Time),
+                Done *  A / B
+        end,
+    ShouldBe = time_of_next_iteration_in_ramp(F, T, Time, NewDone),
+    {ShouldBe, RateState#linear_rate{prev_from = F, prev_to = T}, NewDone, State2}.
+
+%-compile({inline,[batch_size/4]}).
+batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
+    TimePerIter = max(0, BatchTime div Batch),
+    if BatchTime * 4 > TimeLeft -> Batch div 2 + 1;
+       (Sleep == 0) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
+       Sleep > 2*TimePerIter -> max(Batch - Batch div 16 - 1, 1);
+       true -> Batch
+    end.
+
+k_times(_, _, _, S, 0) -> S;
+k_times(Expr, Provider, Env, S, N) ->
     {_, NewS} = eval_expr(Expr, S, Env, Provider),
-    k_times(Expr, Provider, Env, Step, NewS, Done + Step, N-1).
+    k_times(Expr, Provider, Env, NewS, N-1).
 
 k_times_iter(_, _, _, _, _, S, _, 0) -> S;
 k_times_iter(Expr, Provider, I, Env, Step, S, Done, N) ->
