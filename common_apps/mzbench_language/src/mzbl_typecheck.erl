@@ -225,6 +225,8 @@ check_loop_spec_element(#operation{name = parallel, args = [N]}, Env) ->
     check(N, integer, Env);
 check_loop_spec_element(#operation{name = iterator, args = [Name]}, Env) ->
     check(Name, string, Env);
+check_loop_spec_element(#operation{name = poisson, args = [Flag]}, Env) ->
+    check(Flag, boolean, Env);
 check_loop_spec_element(X, _Env) ->
     {false, mzb_string:format("Bad loop spec element ~p", [X]), undefined}.
 

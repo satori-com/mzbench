@@ -23,7 +23,8 @@
 -record(opts, {
     spawn = false        :: true | false,
     iterator = undefined :: undefined | string(),
-    parallel = 1         :: pos_integer()
+    parallel = 1         :: pos_integer(),
+    poisson = false      :: true | false
 }).
 
 -spec eval([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
@@ -70,17 +71,19 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
     {Iterator, State1} = (ArgEvaluator(iterator, LoopSpec, undefined))(State),
     {ProcNum, State2} = (ArgEvaluator(parallel, LoopSpec, 1))(State1),
     {Spawn, State3} = (ArgEvaluator(spawn, LoopSpec, false))(State2),
+    {Poisson, State4} = (ArgEvaluator(poisson, LoopSpec, false))(State3),
     Opts = #opts{
             spawn = Spawn,
             iterator = Iterator,
-            parallel = ProcNum
+            parallel = ProcNum,
+            poisson = Poisson
         },
     case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
         [#constant{value = 0, units = rps}] ->
-            {nil, State3};
+            {nil, State4};
         [#constant{value = _, units = _} = RPS] ->
             RPSFun = Evaluator(RPS),
-            looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env, Opts);
+            looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State4, Env, Opts);
         [#operation{name = think_time,
                     args = [#constant{units = _} = ThinkTime,
                             #constant{units = _} = Rate]}] ->
@@ -89,15 +92,15 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
             RPSFun2 = fun (S) -> {0, S} end,
             PeriodFun2 = Evaluator(ThinkTime),
             superloop(TimeFun, [RPSFun1, PeriodFun1, RPSFun2, PeriodFun2], Body,
-                      WorkerProvider, State3, Env, Opts);
+                      WorkerProvider, State4, Env, Opts);
         [#operation{name = comb, args = RatesAndPeriods}] ->
             RatesAndPeriodsFuns = [Evaluator(E) || E <- RatesAndPeriods],
-            superloop(TimeFun, RatesAndPeriodsFuns, Body, WorkerProvider, State3, Env, Opts);
+            superloop(TimeFun, RatesAndPeriodsFuns, Body, WorkerProvider, State4, Env, Opts);
         [#operation{name = ramp, args = [
                             linear,
                             #constant{value = _, units = _} = From,
                             #constant{value = _, units = _} = To]}] ->
-            looprun(TimeFun, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State3, Env, Opts)
+            looprun(TimeFun, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State4, Env, Opts)
     end.
 
 -spec msnow() -> integer().
@@ -175,7 +178,12 @@ timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, Old
     Remain = round(ShouldBe) - LocalTime,
     GotTime = round(Time) - LocalTime,
 
-    Sleep = max(0, min(Remain, GotTime)),
+    NeedToSleep = max(0, min(Remain, GotTime)),
+    Sleep =
+        case Opts#opts.poisson of
+            true -> max(0, min(round(-Remain * math:log(random:uniform())), GotTime));
+            false -> NeedToSleep
+        end,
     if
         Sleep > 0 -> timer:sleep(Sleep);
         true -> ok
@@ -197,7 +205,7 @@ timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, Old
                         k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
                 end,
             BatchEnd = msnow(),
-            NewBatch = batch_size(BatchEnd - BatchStart, GotTime, Sleep, Batch),
+            NewBatch = batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch),
 
             timerun(Start, TimeFun, NewRate, Body, WorkerProvider, Env, Opts, NewBatch, NextState, Done + Step*Batch)
     end.
