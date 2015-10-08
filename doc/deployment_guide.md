@@ -85,16 +85,18 @@ Here, we specify two parameters: `graphite` and `listen_port`. `graphite` specif
 
 These parameters are going to the `mzbench_api` category.
 
-### `{cloud_plugin, {module, <name>} | {application, <name>}}`
+### `{cloud_plugins, [{Name :: atom(), Opts :: #{}}]}`
 
-A plugin responsible for node allocation, {module, mzb_api_dummycloud_plugin} by default.
-mzb_api_dummycloud_plugin does not allocate any hosts, localhost will be used for node application.
-mzb_api_ec2_plugin module allocates hosts in EC2 and requires additional configuration.
-Application should be a valid erlang application with its own configuration and dependencies.
+Plugins responsible for node allocation, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}] by default.
+Opts must contain either module or application key, other keys in Opts depend on particular plugin type.
+It is possible to specify several plugins. The actually used plugin can be specified with --cloud option of the bin/mzbench utility.
+There are two cloud plugins available in mzbench so far. See below for configuration details and a few examples.
+See also: [Cloud plugin creation guide](doc/cloud_plugin.md)
 
-### `{aws_config, [{key, value}]}` `{ec2_instance_spec, [{key, value}]}`
+#### Configuration of the AWS EC2 cloud plugin
 
-AWS specific configuration, for details, see [erlcloud documentation](https://github.com/gleber/erlcloud).
+mzb_api_ec2_plugin module allocates hosts in EC2 and requires 'instance_spec' and 'config' keys to be specified in Opts (see above).
+For AWS specific configuration details, see [erlcloud documentation](https://github.com/gleber/erlcloud).
 AWS image tips: an image should contain Erlang R17, gcc, gcc-c++, git, sudo.
 sudo shoud be available for non-tty execution (put "Defaults !requiretty" to /etc/sudoers).
 It is also required to have ssh and tcp 4801/4802 ports connectivity between server and nodes for
@@ -102,6 +104,35 @@ logs and metrics. Please refer EC2 documentation on image publish process, it ca
 web AWS console within few clicks. We prepared such image with Amazon Linux (ami-3b90a80b), but you
 may require some additional software. For this image you need to register and specify your keypair name
 with your AWS credentials.
+
+Configuration example:
+
+    {cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
+                             instance_spec => [
+                              {image_id, "ami-2c03b22c"},
+                              {group_set, ""},
+                              {key_name, "-"},
+                              {subnet_id, "-"},
+                              {instance_type, "t2.micro"},
+                              {availability_zone, "us-west-2a"}
+                            ],
+                            config => [
+                              {ec2_host, "ec2.us-west-2.amazonaws.com"},
+                              {access_key_id, "-"},
+                              {secret_access_key, "-"}
+                             ]
+                            instance_user => "ec2-user",
+                        }}]},
+
+#### Configuration of dummy cloud plugin
+
+mzb_api_dummycloud_plugin does not allocate any hosts, the specified list of hosts is used instead.
+
+Configuration example:
+
+    {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin,
+                               hosts => ["host1", "host2"]
+                               }}]}
 
 ### `{bench_data_dir, "<path>"}`
 

@@ -188,7 +188,8 @@ In it most general form, the `loop` statement is defined as follow:
             {time, <time>},
             {rate, <rate>},
             {parallel, <N>},
-            {iterator, <name>}
+            {iterator, <name>},
+            {spawn, <spawn>}
         ],
         [
             <Statement1>,
@@ -234,6 +235,11 @@ This option is optional. By default the iterations are performed one by one.
 ### `{iterator, <name>}`
 
 Defines a variable named `<name>` inside the repeated block of instructions that contain the current iteration number. It can be accessed with the following instruction: `{var, <name>}`. See [Environment variables](#environment_variables) for more information.
+
+### `{spawn, <spawn>}`
+
+If true every iteration of the loop will be executed in spawned process.
+Default: false
 
 ## Examples
 
