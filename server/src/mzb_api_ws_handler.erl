@@ -87,6 +87,7 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
 
     Event = #{
                type => "INIT_TIMELINE",
+               server_date => mzb_string:iso_8601_fmt(mzb_api_bench:seconds()),
                data => TimelineItems,
                pager => Pager
              },

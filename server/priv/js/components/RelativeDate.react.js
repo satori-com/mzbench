@@ -11,23 +11,22 @@ class RelativeDate extends React.Component {
     }
 
     _formatAbs(date) {
-        const target = moment(date);
         const today = moment();
 
-        if ((today.dayOfYear() == target.dayOfYear()) && (today.year() == target.year())) {
-            return target.format("LT");
+        if ((today.dayOfYear() == date.dayOfYear()) && (today.year() == date.year())) {
+            return date.format("LT");
         }
 
-        if (today.year() == target.year()) {
-            return target.format("MMM D");
+        if (today.year() == date.year()) {
+            return date.format("MMM D");
         }
 
-        return target.format("ll");
+        return date.format("ll");
     }
 
     render() {
         const absDate = this._formatAbs(this.props.date);
-        const relativeDate = moment(this.props.date).fromNow();
+        const relativeDate = this.props.date.fromNow();
 
         return (
             <span>{absDate} ({relativeDate})</span>
@@ -36,7 +35,7 @@ class RelativeDate extends React.Component {
 };
 
 RelativeDate.propTypes = {
-    date: React.PropTypes.string.isRequired,
+    date: React.PropTypes.object.isRequired,
     updateInterval: React.PropTypes.number,
 };
 
