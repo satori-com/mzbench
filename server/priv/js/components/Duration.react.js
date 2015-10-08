@@ -32,9 +32,8 @@ class Duration extends React.Component {
     }
 
     _calculate(bench) {
-        let startTime = moment(bench.start_time);
-        let lastActiveTime = bench.isRunning() ? moment() : moment(bench.finish_time);
-        return lastActiveTime.diff(startTime);
+        const lastActiveTime = bench.isRunning() ? moment() : bench.finish_time_client;
+        return lastActiveTime.diff(bench.start_time_client);
     }
 
 

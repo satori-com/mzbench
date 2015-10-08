@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
@@ -6,6 +7,7 @@ const CHANGE_EVENT = 'change';
 
 const defaultData = {
     benchmarks: [],
+    server_date_diff: moment.duration(0),
     filter: "",
     pager: {},
     currentPage: new Map(),
@@ -30,6 +32,18 @@ class Bench {
                 return false;
         }
         return true;
+    }
+    
+    get start_time_client() {
+        return moment(this.start_time).add(data.server_date_diff);
+    }
+
+    get finish_time_client() {
+        if (this.finish_time) {
+            return moment(this.finish_time).add(data.server_date_diff);
+        } else {
+            return undefined;
+        }
     }
 }
 
@@ -119,6 +133,8 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             break;
 
         case ActionTypes.INIT_TIMELINE:
+            data.server_date_diff = moment().diff(moment(action.server_date));
+            
             _BenchStore.loadAll(action.data);
             data.pager = action.pager;
             data.isShowTimelineLoadingMask = false;

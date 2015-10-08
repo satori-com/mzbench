@@ -37,7 +37,7 @@ class BenchSummary extends React.Component {
                                 </tr>
                                 <tr>
                                     <th scope="row">Date</th>
-                                    <td>{moment(bench.start_time).format("lll")}</td>
+                                    <td>{bench.start_time_client.format("lll")}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Status</th>
