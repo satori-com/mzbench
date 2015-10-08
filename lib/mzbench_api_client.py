@@ -62,7 +62,7 @@ def start(host, script_file, script_content,
         else:
             params = [('nodes', ','.join(nodes[:desired_num_nodes] if desired_num_nodes is not None else nodes))]
     else:
-        params = []
+        params = [] if desired_num_nodes is None else [('nodes', desired_num_nodes)]
 
     if deallocate_after_bench is not None:
         params += [('deallocate_after_bench', deallocate_after_bench)]
