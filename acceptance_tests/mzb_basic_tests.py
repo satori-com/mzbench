@@ -59,6 +59,10 @@ def worker_from_git_test():
              'mzbench_repo':  mzbench_repo})
 
 
+def poisson_loop_test():
+    run_successful_bench(scripts_dir + 'loop_poisson.erl')
+
+
 def env_test():
     run_successful_bench(scripts_dir + 'env.erl', env={
         'jozin': 'bazin',
