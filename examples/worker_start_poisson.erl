@@ -1,4 +1,4 @@
-[ % "poisson" worker start -- something that couldn't be done with loop
+[ % "poisson" worker start
     {pool, [{size, 60},
             % Syntax: {poisson, <L>}
             %  <L> - parameter λ, which is the expected number of "events" or "arrivals" that occur per second
