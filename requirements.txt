@@ -1,4 +1,4 @@
 
 docopt>=0.6.2
 requests>=2.7.0
--e git://github.com/machinezone/python_etf.git#egg=erl_terms
+erl_terms>=0.1.1
