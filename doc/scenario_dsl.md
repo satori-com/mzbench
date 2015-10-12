@@ -31,7 +31,9 @@ The top-level directives are as follows:
 
 ### `{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`
 
-Instructs the benchmarking system to install some piece of software from a remote git repository on the working nodes before executing the bench. MZBench executes 'make generate_tgz' when specific version of a package is installed to a specific system for the first time:
+Instructs the benchmarking system to install external worker from a remote git repository on the nodes before executing the benchmark. MZBench builds worker application and creates tar archive at the first time. MZBench server stores this archive and uses it to install workers on the nodes in a further provisionings.
+
+The following actions are executed during make_install:
 
     git clone <URL> temp_dir
     cd temp_dir
@@ -39,7 +41,7 @@ Instructs the benchmarking system to install some piece of software from a remot
     cd <Dir>
     make generate_tgz
 
-If no `branch` is specified, `master` is used by default.
+If no branch is specified, default git branch is used.
 
 If no `dir` is specified, `.` is used by default.
 
