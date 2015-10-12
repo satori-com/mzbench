@@ -75,9 +75,11 @@ validate_resource_filename(Filename) ->
     case filename:split(Filename) of
         [_] -> [];
         [".", _] -> [];
-        ["http:" | _] -> [];
-        ["https:" | _] -> [];
-        _ -> [mzb_string:format("Invalid resource filename: ~s", [Filename])]
+        [S | _] ->
+            case re:run(S, "^https?:", [{capture, first}, caseless]) of
+                nomatch -> [mzb_string:format("Invalid resource filename: ~s", [Filename])];
+                {match, _} -> []
+            end
     end.
 
 -spec validate_pool(#operation{}) -> [string()].

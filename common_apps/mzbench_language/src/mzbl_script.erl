@@ -163,12 +163,12 @@ opposite_op(gte) -> lte;
 opposite_op(lte) -> gte.
 
 import_resource(Env, File, Type) ->
-    {ok, Content} = case 1 == string:str(File, "http://") orelse 1 == string:str(File, "https://") of
-        true ->
+    {ok, Content} = case re:run(File, "^https?://", [{capture, first}, caseless]) of
+        {match, _} ->
             {ok, Result} = httpc:request(File),
             {_, _, Body} = Result,
             {ok, Body};
-        false ->
+        nomatch ->
             Root = proplists:get_value("bench_script_dir", Env),
             WorkerDirs = proplists:get_value("bench_workers_dir", Env),
             try

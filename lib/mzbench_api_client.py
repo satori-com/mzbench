@@ -88,7 +88,7 @@ def start(host, script_file, script_content,
     for (incname, incurl) in includes:
         script_dir = os.path.dirname(script_file)
 
-        if not re.search(r'^https?://', incurl):
+        if not re.search(r'^https?://', incurl, re.IGNORECASE):
             filename = os.path.join(script_dir, incurl)
             try:
                 with open(filename) as fi:
