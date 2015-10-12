@@ -163,55 +163,47 @@ opposite_op(gte) -> lte;
 opposite_op(lte) -> gte.
 
 import_resource(Env, File, Type) ->
-    Root = proplists:get_value("bench_script_dir", Env),
-    WorkerDirs = proplists:get_value("bench_workers_dir", Env),
-    try
-        import_resource(filename:join(Root, File), Type)
-    catch
-        error:{read_file_error, _, enoent} = E ->
-            Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
-            case lists:append([mzb_file:wildcard(M) || M <- Masks])  of
-                [] -> erlang:error(E);
-                [Path|_] -> import_resource(Path, Type)
-            end
-    end.
-
-import_resource(Path, erlang) ->
-    case file:consult(Path) of
-        {ok, [Content]} -> Content;
-        {error, E} -> erlang:error({read_file_error, Path, E})
-    end;
-import_resource(Path, binary) ->
-    case file:read_file(Path) of
-        {ok, Binary} -> Binary;
-        {error, E} -> erlang:error({read_file_error, Path, E})
-    end;
-import_resource(Path, json) ->
-    Binary = import_resource(Path, binary),
-    jiffy:decode(Binary, [return_maps]);
-import_resource(Path, text) ->
-    erlang:binary_to_list(import_resource(Path, binary));
-import_resource(Path, tsv) ->
-    case file:open(Path, [read]) of
-        {ok, H} ->
+    {ok, Content} = case re:run(File, "^https?://", [{capture, first}, caseless]) of
+        {match, _} ->
+            {ok, Result} = httpc:request(File),
+            {_, _, Body} = Result,
+            {ok, Body};
+        nomatch ->
+            Root = proplists:get_value("bench_script_dir", Env),
+            WorkerDirs = proplists:get_value("bench_workers_dir", Env),
             try
-                import_tsv_(Path, file:read_line(H), H, [])
-            after
-                catch file:close(H)
-            end;
-        {error, E} -> erlang:error({read_file_error, Path, E})
-    end;
-import_resource(_Path, Type) ->
-    lager:error("Unknown resource file type: ~p", [Type]),
-    erlang:error({unknown_resource_type, Type}).
+                file:read_file(filename:join(Root, File))
+            catch
+                error:{read_file_error, _, enoent} = E ->
+                    Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
+                    case lists:append([mzb_file:wildcard(M) || M <- Masks])  of
+                        [] -> erlang:error(E);
+                        [Path|_] -> file:read_file(Path)
+                    end
+            end
+    end,
+    convert(Content, Type).
 
-import_tsv_(Path, {ok, Data}, H, Res) ->
-    List = string:tokens(string:strip(Data, right, $\n), "\t"),
-    import_tsv_(Path, file:read_line(H), H, [List|Res]);
-import_tsv_(_Path, eof, _H, Res) ->
-    lists:reverse(Res);
-import_tsv_(Path, {error, E}, _H, _Res) ->
-    erlang:error({read_file_error, Path, E}).
+-spec convert(string() | binary(), erlang) -> term();
+             (string() | binary(), binary) -> binary();
+             (string() | binary(), text) -> string();
+             (string() | binary(), json) -> list() | map();
+             (string() | binary(), tsv) -> [string()].
+convert(X, binary) when is_binary(X) -> X;
+convert(X, binary) -> list_to_binary(X);
+convert(X, text) when is_binary(X) -> binary_to_list(X);
+convert(X, text) -> X;
+convert(X, erlang) ->
+    S = case is_binary(X) of
+        true -> binary_to_list(X);
+        false -> X
+    end,
+    {ok, Tokens, _} = erl_scan:string(S),
+    {ok, Term} = erl_parse:parse_term(Tokens),
+    Term;
+convert(X, json) -> jiffy:decode(X, [return_maps]);
+convert(X, tsv) -> lists:map(fun(L) -> string:tokens(L, "\t") end, string:tokens(X, "\n"));
+convert(X, T) -> erlang:error({invalid_conversion, T, X}).
 
 -spec enumerate_pools([script_expr()]) -> [script_expr()].
 enumerate_pools(Pools) ->

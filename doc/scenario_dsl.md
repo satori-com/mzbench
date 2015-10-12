@@ -296,8 +296,11 @@ If you need to include a huge amount of data inside your benchmarking scenario y
 First, you need to declare your resource file using the `include_resource` top-level directive. It is defined as follow:
 
     {include_resource, <resource_name>, <file_name>, <type>}
+    {include_resource, <resource_name>, <http_url>, <type>}
 
 Where `<resource_name>` is an atom that will identify this resource file inside the scenario, for example `my_resource`, `<file_name>` is a string of characters providing the file name of the resource file and, finally, the `<type>` parameter is an atom indicating how the content of the file should be interpreted.
+
+Every resource name in a script must be unique.
 
 Currently supported file types are the following:
 

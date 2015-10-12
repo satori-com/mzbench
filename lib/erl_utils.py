@@ -70,7 +70,7 @@ def substitute_vars(term_tree_root, env):
 
 
 def get_includes(mlist):
-    return [x[2] for x in get_tuples(mlist, "include_resource")]
+    return [x[1:3] for x in get_tuples(mlist, "include_resource")]
 
 
 def get_num_of_workers(mlist):

@@ -3,5 +3,5 @@
   {description, ""},
   {vsn, "1.0.0"},
   {registered, []},
-  {applications, [kernel, stdlib, lager, sasl, pretty_errors, mzbench_utils]}
+  {applications, [kernel, stdlib, inets, lager, sasl, pretty_errors, mzbench_utils]}
  ]}.
