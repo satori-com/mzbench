@@ -8,16 +8,22 @@
          get_benchname/1,
          meta_to_location_string/1,
          normalize_env/1,
-         %substitute/2,
          extract_pools_and_env/2,
          extract_install_specs/2,
          enumerate_pools/1,
          extract_worker/1,
          resolve_worker_provider/1,
          make_git_install_spec/3,
-         make_rsync_install_spec/3]).
+         make_rsync_install_spec/3,
+         eval_opts/2]).
 
 -include("mzbl_types.hrl").
+
+eval_opts(Opts, Env) ->
+    lists:map(
+        fun (#operation{args = Args} = Op) ->
+            Op#operation{args = mzbl_interpreter:eval_std(Args, Env)}
+        end, Opts).
 
 -spec get_real_script_name([proplists:property()]) -> string().
 get_real_script_name(Env) ->
@@ -82,10 +88,14 @@ parse(Body) ->
     {[#operation{}], [proplists:property()]}.
 extract_pools_and_env(Script, Env) ->
     Env2 = lists:foldl(
-            fun (#operation{name = include_resource, args = [Name, PathExpr]}, Acc) ->
-                    [{{resource, Name}, import_resource(Env, PathExpr, erlang)} | Acc];
-                (#operation{name = include_resource, args = [Name, PathExpr, Type]}, Acc) ->
-                    [{{resource, Name}, import_resource(Env, PathExpr, Type)} | Acc];
+            fun (#operation{name = include_resource, args = [NameExpr, PathExpr]}, Acc) ->
+                    Name = mzbl_interpreter:eval_std(NameExpr, Env),
+                    Path = mzbl_interpreter:eval_std(PathExpr, Env),
+                    [{{resource, Name}, import_resource(Env, Path, erlang)} | Acc];
+                (#operation{name = include_resource, args = [NameExpr, PathExpr, Type]}, Acc) ->
+                    Name = mzbl_interpreter:eval_std(NameExpr, Env),
+                    Path = mzbl_interpreter:eval_std(PathExpr, Env),
+                    [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
                 (#operation{name = assert, args = [Time, Expr]}, Acc) ->
                     {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
                     [{asserts, [{Time, normalize_assert(Expr)}|Asserts]}|Acc2];
@@ -106,8 +116,7 @@ opposite_op(lt) -> gt;
 opposite_op(gte) -> lte;
 opposite_op(lte) -> gte.
 
-import_resource(Env, Expr, Type) ->
-    File = filename:basename(mzbl_ast:substitute_vars(Expr, Env)),
+import_resource(Env, File, Type) ->
     Root = proplists:get_value("bench_script_dir", Env),
     WorkerDirs = proplists:get_value("bench_workers_dir", Env),
     try
@@ -181,7 +190,7 @@ get_benchname(ScriptName) ->
 
 -spec extract_worker([operation()]) -> {worker_provider(), worker_name()}.
 extract_worker(PoolOpts) ->
-    WorkerType = mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [], [undefined]),
+    WorkerType = mzbl_ast:find_operation_and_extract_args(worker_type, PoolOpts, [undefined]),
     resolve_worker_provider(WorkerType).
 
 -spec resolve_worker_provider([atom()]) -> {worker_provider(), worker_name()}.
@@ -201,19 +210,20 @@ hostname(Node) ->
 -spec extract_install_specs(abstract_expr(), [term()]) -> [install_spec()].
 extract_install_specs(AST, Env) ->
     Convert =
-        fun(#operation{args = [Args]}) ->
-            case mzbl_ast:find_operation_and_extract_args(git, Args, Env, undefined) of
+        fun(#operation{args = [Expr]}) ->
+            Args = mzbl_interpreter:eval_std(Expr, Env),
+            case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
                 undefined ->
-                    case mzbl_ast:find_operation_and_extract_args(rsync, Args, Env, undefined) of
+                    case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
                         undefined -> erlang:error({install_spec_error, missed_mandatory_option, git});
                         [Remote] ->
-                            [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, Env, [[]]),
-                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, Env, [""]),
+                            [Excludes] = mzbl_ast:find_operation_and_extract_args(excludes, Args, [[]]),
+                            [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, [""]),
                             make_rsync_install_spec(Remote, Subdir, Excludes)
                     end;
                 [Repo] ->
-                    [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, Env, [""]),
-                    [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, Env, ["."]),
+                    [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
+                    [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
                     make_git_install_spec(Repo, Branch, Subdir)
             end
         end,

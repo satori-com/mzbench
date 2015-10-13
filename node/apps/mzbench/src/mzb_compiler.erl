@@ -39,4 +39,3 @@ generate_var_module(Vars) ->
 fun_name(VarName, undefined) -> erlang:list_to_atom(VarName);
 fun_name(VarName, Type) -> erlang:list_to_atom(mzb_string:format("~s_~s", [VarName, Type])).
 
-
