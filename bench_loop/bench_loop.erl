@@ -53,13 +53,13 @@ make_script(RateProfile, TargetRPS) ->
 
 run(Script) ->
     AST = mzbl_script:parse(Script),
-    TimeBefore = mzb_loop:msnow(),
+    TimeBefore = mzbl_loop:msnow(),
     InitialState = mzb_erl_worker:init(counter_worker),
-    X = mzb_worker_runner:eval_expr(
+    X = mzbl_interpreter:eval(
         AST,
         InitialState,
         [],
         mzb_erl_worker),
     {_, {counter_worker, R}} = X,
-    TimeAfter = mzb_loop:msnow(),
+    TimeAfter = mzbl_loop:msnow(),
     {R, TimeAfter - TimeBefore}.

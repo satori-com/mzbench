@@ -1,4 +1,4 @@
--module(mzb_loop).
+-module(mzbl_loop).
 
 -compile({inline, [msnow/0, eval_rates/5, time_of_next_iteration/3, batch_size/4, k_times/5, k_times_iter/8, k_times_spawn/8]}).
 
@@ -6,8 +6,8 @@
 
 % For Common and EUnit tests
 -export([time_of_next_iteration/3, msnow/0]).
--include_lib("mzbench_language/include/mzbl_types.hrl").
--include("mzb_types.hrl").
+
+-include("mzbl_types.hrl").
 
 -record(const_rate, {
     rate_fun = undefined :: fun((State :: term()) -> {Rate :: integer(), NewState :: term()}),
@@ -32,7 +32,7 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
     Evaluator =
         fun (Expr) ->
             fun (S) ->
-                {Value, NewS} = mzb_worker_runner:eval_expr(Expr, S, Env, WorkerProvider),
+                {Value, NewS} = mzbl_interpreter:eval(Expr, S, Env, WorkerProvider),
                 case mzbl_literals:convert(Value) of
                     #constant{value = R} -> {R, NewS};
                     R -> {R, NewS}
@@ -56,31 +56,28 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
             iterator = Iterator,
             parallel = ProcNum
         },
-    case lists:keyfind(rate, #operation.name, LoopSpec) of
-        #operation{args = [#constant{value = 0, units = rps}]} ->
+    case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
+        [#constant{value = 0, units = rps}] ->
             {nil, State3};
-        false ->
-            RPSFun = fun (S) -> {undefined, S} end,
-            looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env, Opts);
-        #operation{args = [#constant{value = _, units = _} = RPS]} ->
+        [#constant{value = _, units = _} = RPS] ->
             RPSFun = Evaluator(RPS),
             looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env, Opts);
-        #operation{args = [#operation{name = think_time,
-                                      args = [#constant{units = _} = Rate,
-                                              #constant{units = _} = ThinkTime]}]} ->
+        [#operation{name = think_time,
+                    args = [#constant{units = _} = Rate,
+                            #constant{units = _} = ThinkTime]}] ->
             RPSFun1 = Evaluator(Rate),
             PeriodFun1 = fun (S) -> {1000, S} end,
             RPSFun2 = fun (S) -> {0, S} end,
             PeriodFun2 = Evaluator(ThinkTime),
             superloop(TimeFun, [RPSFun1, PeriodFun1, RPSFun2, PeriodFun2], Body,
                       WorkerProvider, State3, Env, Opts);
-        #operation{args = [#operation{name = comb, args = RatesAndPeriods}]} ->
+        [#operation{name = comb, args = RatesAndPeriods}] ->
             RatesAndPeriodsFuns = [Evaluator(E) || E <- RatesAndPeriods],
             superloop(TimeFun, RatesAndPeriodsFuns, Body, WorkerProvider, State3, Env, Opts);
-        #operation{args = [#operation{name = ramp, args = [
-                                        linear,
-                                        #constant{value = _, units = _} = From,
-                                        #constant{value = _, units = _} = To]}]} ->
+        [#operation{name = ramp, args = [
+                            linear,
+                            #constant{value = _, units = _} = From,
+                            #constant{value = _, units = _} = To]}] ->
             looprun(TimeFun, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State3, Env, Opts)
     end.
 
@@ -222,16 +219,16 @@ batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
 
 k_times(_, _, _, S, 0) -> S;
 k_times(Expr, Provider, Env, S, N) ->
-    {_, NewS} = mzb_worker_runner:eval_expr(Expr, S, Env, Provider),
+    {_, NewS} = mzbl_interpreter:eval(Expr, S, Env, Provider),
     k_times(Expr, Provider, Env, NewS, N-1).
 
 k_times_iter(_, _, _, _, _, S, _, 0) -> S;
 k_times_iter(Expr, Provider, I, Env, Step, S, Done, N) ->
-    {_, NewS} = mzb_worker_runner:eval_expr(Expr, S, [{I, Done}|Env], Provider),
+    {_, NewS} = mzbl_interpreter:eval(Expr, S, [{I, Done}|Env], Provider),
     k_times_iter(Expr, Provider, I, Env, Step, NewS, Done + Step, N-1).
 
 k_times_spawn(_, _, _, _, _, S, _, 0) -> S;
 k_times_spawn(Expr, Provider, I, Env, Step, S, Done, N) ->
-    spawn_link(fun() -> mzb_worker_runner:eval_expr(Expr, S, [{I, Done}|Env], Provider) end),
+    spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, Done}|Env], Provider) end),
     k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, N-1).
 

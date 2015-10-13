@@ -1,4 +1,4 @@
--module(mzb_stdlib).
+-module(mzbl_stdlib).
 
 -export([wait/4,
          choose/5,
@@ -25,7 +25,7 @@
          dump/4
          ]).
 
--include_lib("mzbench_language/include/mzbl_types.hrl").
+-include("mzbl_types.hrl").
 
 wait(State, _Env, _Meta, C) ->
     #constant{value = Time, units = ms} = mzbl_literals:convert(C),

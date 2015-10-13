@@ -120,11 +120,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
-    #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
+    #operation{name = pool, args = [PoolOptsExpr, Script], meta = Meta} = Pool,
+    PoolOpts = mzbl_script:eval_opts(PoolOptsExpr, Env),
     Name = proplists:get_value(pool_name, Meta),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, Env, [undefined]),
-    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, Env, [undefined]),
-    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, Env, [undefined]),
+    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
+    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
     Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
                         [undefined, undefined] -> 1;
                         [undefined, PN] -> PN * NumNodes;

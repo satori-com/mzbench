@@ -8,9 +8,9 @@
     fold/3,
     var_eval/3,
     var_mapfold/4,
-    find_operation_and_extract_args/3,
-    find_operation_and_extract_args/4,
-    substitute_vars/2]).
+    find_operation_and_extract_args/2,
+    find_operation_and_extract_args/3
+    ]).
 
 -include("mzbl_types.hrl").
 
@@ -91,28 +91,17 @@ records(S) -> S.
 transform(AST) ->
     records(erl_parse:normalise(markup(AST))).
 
--spec find_operation_and_extract_args(term(), [tuple()], [term()]) -> term().
-find_operation_and_extract_args(Key, L, Env) -> find_operation_and_extract_args(Key, L, Env, undefined).
+-spec find_operation_and_extract_args(term(), [tuple()]) -> term().
+find_operation_and_extract_args(Key, L)  -> find_operation_and_extract_args(Key, L, undefined).
 
--spec find_operation_and_extract_args(term(), [tuple()], [term()], term()) -> term().
-find_operation_and_extract_args(_, [], _Env, Default) -> Default;
-find_operation_and_extract_args(Key, [#operation{name = Key} = Op | _], Env,  _) -> substitute_vars(Op#operation.args, Env);
-find_operation_and_extract_args(Key, [_ | T], Env, Default) -> find_operation_and_extract_args(Key, T, Env, Default).
-
--spec substitute_vars(AST, Env) -> NewAST
-        when AST :: abstract_expr(),
-             Env :: [{string(), term()}],
-             NewAST :: abstract_expr().
-substitute_vars(AST, Env) ->
-    {NewAST, _} = var_mapfold(
-        fun (Name, undefined, _Acc) -> erlang:error({var_is_unbound, Name});
-            (_Name, Val, Acc) -> {change, Val, Acc}
-        end, [], AST, Env),
-    NewAST.
+-spec find_operation_and_extract_args(term(), [tuple()], term()) -> term().
+find_operation_and_extract_args(_, [], Default) -> Default;
+find_operation_and_extract_args(Key, [#operation{name = Key, args = Args} | _], _) -> Args;
+find_operation_and_extract_args(Key, [_ | T], Default) -> find_operation_and_extract_args(Key, T, Default).
 
 -spec var_mapfold(Fun, Acc, Script, Env) -> {NewScript, NewAcc}
         when Fun :: fun((Name :: string(), Val :: term(), Acc) ->
-                         {change, NewVal :: term(), NewAcc} |
+                         {change, NewVal :: abstract_expr(), NewAcc} |
                          {nochange, NewAcc :: term()}),
              Acc :: term(),
              Script :: abstract_expr(),
@@ -138,8 +127,6 @@ var_mapfold(Fun, AccStart, Script, Env) ->
                     false ->
                         {Op, Acc}
                 end;
-            (#operation{name = 'compiled-var', args = [Name]}, Acc) ->
-                {mzb_compiled_vars:Name(), Acc};
             (Op, Acc) ->
                 {Op, Acc}
         end, AccStart, Script).

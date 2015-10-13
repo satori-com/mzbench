@@ -13,7 +13,7 @@
     start_accepter/3
 ]).
 
--include("../../node/apps/mzbench/include/mzb_types.hrl").
+-include("../../common_apps/mzbench_language/include/mzbl_types.hrl").
 -include("../../node/apps/mzbench/include/mzb_ast.hrl").
 
 -define(default_connect_timeout, 10000).
