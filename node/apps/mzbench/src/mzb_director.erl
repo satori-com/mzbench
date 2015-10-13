@@ -77,7 +77,7 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
     try
         {_, ModulesToLoad} = mzb_compiler:compile(Script, MergedEnv),
         ok = load_modules(ModulesToLoad, [node()|Nodes]),
-        {reply, ok, State}
+        {reply, ok, State#state{env = MergedEnv}}
     catch
         _:E ->
             lager:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
