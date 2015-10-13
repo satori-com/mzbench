@@ -107,8 +107,8 @@ eval_loop(LoopSpec, Body, State, Env, WorkerProvider) ->
         [#constant{value = 0, units = rps}] -> {nil, State};
         [#constant{value = Rps, units = rps}] ->
             looprun(ProcNum, Time, Iterator, Spawn, {constant, Rps}, Body, WorkerProvider, State, Env);
-        [#operation{name = think_time, args = [#constant{units = rps} = Rate,
-                #constant{units = ms} = ThinkTime]}] ->
+        [#operation{name = think_time, args = [#constant{units = ms} = ThinkTime,
+                #constant{units = rps} = Rate]}] ->
             superloop(ProcNum, Time, Iterator, Spawn,
                 [Rate, #constant{value = 1000, units = ms}, #constant{value = 0, units = rps}, ThinkTime], Body, WorkerProvider, State, Env);
         [#operation{name = comb, args = RatesANDPeriods}] ->
