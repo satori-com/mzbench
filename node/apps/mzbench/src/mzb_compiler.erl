@@ -6,9 +6,9 @@
 
 compile(Pools, Env) ->
     ReplaceFun =
-        fun (_Name, undefined, Acc) -> {nochange, Acc};
+        fun (_Name, unbound, Acc) -> {nochange, Acc};
             (Name, Value, Acc) ->
-                FunName = fun_name(Name, mzb_utility:type_of(Value)),
+                FunName = erlang:list_to_atom(Name),
                 NewOp = #operation{name = 'compiled-var',
                                    args = [FunName]},
                 NewAcc =
@@ -36,6 +36,4 @@ generate_var_module(Vars) ->
     {ok, Mod, Bin} = compile:forms(AST),
     {Mod, Bin}.
 
-fun_name(VarName, undefined) -> erlang:list_to_atom(VarName);
-fun_name(VarName, Type) -> erlang:list_to_atom(mzb_string:format("~s_~s", [VarName, Type])).
 

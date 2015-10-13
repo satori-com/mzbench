@@ -157,9 +157,9 @@ start_pools([], _, _, Acc) ->
     lager:info("[ director ] Started all pools"),
     Acc;
 start_pools([Pool | Pools], Env, Nodes, Acc) ->
-    #operation{args = [PoolOptsExpr, _]} = Pool,
-    PoolOpts = mzbl_script:eval_opts(PoolOptsExpr, Env),
-    [SizeU] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    #operation{args = [PoolOpts, _]} = Pool,
+    [SizeExpr] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    SizeU = mzbl_interpreter:eval_std(SizeExpr, Env),
     Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
     Results = mzb_lists:pmap(fun({Num, Node}) ->
