@@ -263,6 +263,7 @@ install_worker(Hosts, InstallSpec, Config, Logger) ->
 install_workers(Hosts, #{script:= Script} = Config, Logger, Env) ->
     #{ body := Body } = Script,
     AST = mzbl_script:read_from_string(binary_to_list(Body)),
-    _ = [install_worker(Hosts, IS, Config, Logger) || IS <- mzbl_script:extract_install_specs(AST, Env)],
+    NormEnv = mzbl_script:normalize_env(Env),
+    _ = [install_worker(Hosts, IS, Config, Logger) || IS <- mzbl_script:extract_install_specs(AST, NormEnv)],
     ok.
 

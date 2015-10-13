@@ -120,23 +120,27 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
-    #operation{name = pool, args = [PoolOptsExpr, Script], meta = Meta} = Pool,
-    PoolOpts = mzbl_script:eval_opts(PoolOptsExpr, Env),
+    #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
+    Eval = fun (E) -> mzbl_interpreter:eval_std(E, Env) end,
     Name = proplists:get_value(pool_name, Meta),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
-    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
-    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
-    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
-                        [undefined, undefined] -> 1;
-                        [undefined, PN] -> PN * NumNodes;
-                        [S, undefined] -> S;
-                        [S, PN] when PN * Offset > S -> 0;
-                        [S, PN] when NumNodes * PN >= S -> S;
-                        [S, PN] ->
-                            lager:error("Need more nodes, required = ~p, actual = ~p", 
-                                [mzb_utility:int_ceil(S/PN), NumNodes]),
-                            erlang:error({not_enough_nodes})
-                    end,
+    [Size] = Eval(mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined])),
+    [PerNode] = Eval(mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined])),
+    StartDelay = case mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]) of
+            [undefined] -> undefined;
+            [#operation{args = SArgs} = Op] -> Op#operation{args = Eval(SArgs)}
+        end,
+    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined),
+                  mzb_utility:to_integer_with_default(PerNode, undefined)] of
+                [undefined, undefined] -> 1;
+                [undefined, PN] -> PN * NumNodes;
+                [S, undefined] -> S;
+                [S, PN] when PN * Offset > S -> 0;
+                [S, PN] when NumNodes * PN >= S -> S;
+                [S, PN] ->
+                    lager:error("Need more nodes, required = ~p, actual = ~p", 
+                        [mzb_utility:int_ceil(S/PN), NumNodes]),
+                    erlang:error({not_enough_nodes})
+            end,
     lager:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
         [Size, PerNode, Size2, Offset, NumNodes]),
     Worker = mzbl_script:extract_worker(PoolOpts),

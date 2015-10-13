@@ -110,22 +110,17 @@ find_operation_and_extract_args(Key, [_ | T], Default) -> find_operation_and_ext
 var_mapfold(Fun, AccStart, Script, Env) ->
     NormEnv = mzbl_script:normalize_env(Env),
     mapfold(
-        fun (#operation{name = VarType, args = [VarName | Defaults] = Args} = Op, Acc) when VarType == var; VarType == numvar ->
+        fun (#operation{name = VarType, args = [VarName | _] = Args} = Op, Acc) when VarType == var; VarType == numvar ->
                 ReplaceFun = fun (N, V, A) ->
                         case Fun(N, V, A) of
                             {change, NewV, NewA} -> {NewV, NewA};
                             {nochange, NewA} -> {Op, NewA}
                         end
                     end,
-                case is_list(VarName) and (Defaults == [] orelse is_value(hd(Defaults))) of
-                    true ->
-                        try var_eval(VarType, NormEnv, Args) of
-                            Value -> ReplaceFun(VarName, Value, Acc)
-                        catch
-                            error:{var_is_unbound, _} -> ReplaceFun(VarName, undefined, Acc)
-                        end;
-                    false ->
-                        {Op, Acc}
+                try var_eval(VarType, NormEnv, Args) of
+                    Value -> ReplaceFun(VarName, Value, Acc)
+                catch
+                    error:{var_is_unbound, _} -> ReplaceFun(VarName, unbound, Acc)
                 end;
             (Op, Acc) ->
                 {Op, Acc}
@@ -150,8 +145,4 @@ var_eval(numvar, Env, Args) ->
         undefined -> undefined;
         Value -> mzb_utility:any_to_num(Value)
     end.
-
-is_value(#constant{}) -> false;
-is_value(#operation{}) -> false;
-is_value(_) -> true.
 
