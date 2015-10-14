@@ -19,6 +19,10 @@
 
 -include("mzbl_types.hrl").
 
+-spec eval_opts([Operation], Env) -> [NewOperation]
+    when Operation :: script_expr(),
+         NewOperation :: script_expr(),
+         Env :: [proplists:property()].
 eval_opts(Opts, Env) ->
     lists:map(
         fun (#operation{args = Args} = Op) ->
