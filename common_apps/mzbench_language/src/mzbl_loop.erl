@@ -10,19 +10,19 @@
 -include("mzbl_types.hrl").
 
 -record(const_rate, {
-    rate_fun = undefined :: fun((State :: term()) -> {Rate :: integer(), NewState :: term()}),
-    value    = undefined :: integer()
+    rate_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
+    value    = undefined :: undefined | integer()
 }).
 -record(linear_rate, {
-    from_fun = undefined :: fun((State :: term()) -> {Rate :: integer(), NewState :: term()}),
-    to_fun   = undefined :: fun((State :: term()) -> {Rate :: integer(), NewState :: term()}),
-    from     = undefined :: integer(),
-    to       = undefined :: integer()
+    from_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
+    to_fun   = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
+    from     = undefined :: undefined | integer(),
+    to       = undefined :: undefined | integer()
 }).
 
 -record(opts, {
     spawn = false        :: true | false,
-    iterator = undefined :: string(),
+    iterator = undefined :: undefined | string(),
     parallel = 1         :: pos_integer()
 }).
 
@@ -188,7 +188,7 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
     NewDone =
         case {Rate, Prev} of
             {Prev, _} -> Done;
-            {undefined, _} -> round(Rate * CurTime / 1000);
+            {undefined, _} -> Done;
             {New, 0} -> round(New * CurTime / 1000);
             {New, undefined} -> round(New * CurTime / 1000);
             {New, _} -> round(Done * New / Prev)

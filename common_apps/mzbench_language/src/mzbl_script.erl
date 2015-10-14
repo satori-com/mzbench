@@ -211,7 +211,7 @@ hostname(Node) ->
 extract_install_specs(AST, Env) ->
     Convert =
         fun(#operation{args = [Expr]}) ->
-            Args = mzbl_interpreter:eval_std(Expr, Env),
+            Args = eval_opts(Expr, Env),
             case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
                 undefined ->
                     case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
