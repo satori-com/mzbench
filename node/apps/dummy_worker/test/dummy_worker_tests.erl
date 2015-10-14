@@ -141,7 +141,7 @@ run(Script, Meta, Env) ->
         meck:expect(exometer, update_or_create, fun(_,_,_,_) -> ok end),
         meck:new(mz_histogram),
         meck:expect(mz_histogram, notify, fun(_,_) -> ok end),
-        {_, {dummy_worker, R}} = mzb_worker_runner:eval_expr(
+        {_, {dummy_worker, R}} = mzbl_interpreter:eval(
             AST,
             mzb_erl_worker:init(dummy_worker),
             Env,
@@ -156,16 +156,16 @@ run(Script, Meta, Env) ->
 ramp_solver_test() ->
     ?assertEqual(
         3000,
-        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 6}, 3000, 12))),
+        round(mzbl_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 6}, 3000, 12))),
     ?assertEqual(
         0,
-        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 0))),
+        round(mzbl_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 0))),
     ?assertEqual(
         4000,
-        round(mzb_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 20))),
+        round(mzbl_loop:time_of_next_iteration({linear_rate, undefined, undefined, 2, 8}, 4000, 20))),
     ?assertEqual(
         2000,
-        round(mzb_loop:time_of_next_iteration({const_rate, undefined, 10}, 5000, 20))).
+        round(mzbl_loop:time_of_next_iteration({const_rate, undefined, 10}, 5000, 20))).
 
 validation_ok_simple_test() ->
     ?assertEqual(check("[{print, \"NaNNaNNaNNaNNaNNaN\"},

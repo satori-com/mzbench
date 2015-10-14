@@ -12,7 +12,7 @@ compile_var_string_test() ->
         [{"foo", "bar"}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(true , lists:member({foo_list, 0}, Functions)).
+    ?assertEqual(true , lists:member({foo, 0}, Functions)).
 
 compile_var_int_test() ->
     _ = compile_check(
@@ -20,7 +20,7 @@ compile_var_int_test() ->
         [{"foo", 42}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(true , lists:member({foo_integer, 0}, Functions)).
+    ?assertEqual(true , lists:member({foo, 0}, Functions)).
 
 compile_numvar_test() ->
     _ = compile_check(
@@ -28,7 +28,7 @@ compile_numvar_test() ->
         [{"foo", "42"}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(42, mzb_compiled_vars:foo_integer()).
+    ?assertEqual(42, mzb_compiled_vars:foo()).
 
 compile_rate_test() ->
     _ = compile_check(
@@ -36,7 +36,7 @@ compile_rate_test() ->
         [{"foo", 42}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(true , lists:member({foo_integer, 0}, Functions)).
+    ?assertEqual(true , lists:member({foo, 0}, Functions)).
 
 
 compile_var_string_to_int_default_test() ->
@@ -46,7 +46,7 @@ compile_var_string_to_int_default_test() ->
 
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(42, mzb_compiled_vars:foo_integer()).
+    ?assertEqual(42, mzb_compiled_vars:foo()).
 
 compile_var_string_to_int_default2_test() ->
     _ = compile_check(
@@ -55,7 +55,7 @@ compile_var_string_to_int_default2_test() ->
 
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(1, mzb_compiled_vars:foo_integer()).
+    ?assertEqual(1, mzb_compiled_vars:foo()).
 
 compile_var_int_to_atom_default_test() ->
     _ = compile_check(
@@ -63,7 +63,7 @@ compile_var_int_to_atom_default_test() ->
         [{"foo", 1}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(1, mzb_compiled_vars:foo_integer()).
+    ?assertEqual(1, mzb_compiled_vars:foo()).
 
 compile_var_float_to_atom_default_test() ->
     _ = compile_check(
@@ -71,7 +71,7 @@ compile_var_float_to_atom_default_test() ->
         [{"foo", 3.14}]),
     Functions = mzb_compiled_vars:module_info(exports),
     io:format("~p", [Functions]),
-    ?assertEqual(3.14, mzb_compiled_vars:foo_float()).
+    ?assertEqual(3.14, mzb_compiled_vars:foo()).
 
 compile_missing_var_is_a_failure_test() ->
     _ = compile_check("{print, {var, \"foo\"}}.", []),
