@@ -22,6 +22,7 @@ start(_Type, _Args) ->
             Static("js"),
             {"/",    cowboy_static, {priv_file, mzbench_api, "/index.html"}},
             {"/dev", cowboy_static, {priv_file, mzbench_api, "/index.dev.html"}},
+            {"/favicon.ico", cowboy_static, {priv_file, mzbench_api, "/favicon.ico"}},
             {"/ws", mzb_api_ws_handler, []},
             {'_', mzb_api_endpoints, []}
         ]}
