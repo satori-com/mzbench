@@ -75,14 +75,14 @@ empty_loop_test() ->
     Script =
         "[{loop, [{time, {0, ms}},
                   {rate, {4, rps}}],
-           [{print, \"foo\"}]}].",
+           [{test_method, \"foo\"}]}].",
     ?assertEqual("", run(Script)).
 
 empty_ramp_test() ->
     Script =
         "[{loop, [{time, {0, ms}},
                   {rate, {ramp, linear, {1, rps}, {4, rps}}}],
-           [{print, \"foo\"}]}].",
+           [{test_method, \"foo\"}]}].",
     ?assertEqual("", run(Script)).
 
 empty_loop2_test() ->
@@ -96,7 +96,7 @@ empty_loop3_test() ->
     Script =
         "[{loop, [{time, {1100, ms}},
                   {rate, {0, rps}}],
-           [{print, \"FOO\"}]}].",
+           [{test_method, \"FOO\"}]}].",
     ?assertEqual("", run(Script)).
 
 parallel_loop_test() ->
@@ -104,14 +104,14 @@ parallel_loop_test() ->
         "[{loop, [{time, {1100, ms}},
                   {parallel, 2},
                   {rate, {4, rps}}],
-           [{print, \"ohai\"}]}].",
+           [{test_method, \"ohai\"}]}].",
     ?assertEqual("", run(Script)).
 
 error_test() ->
-    Script = "[{print, \"FOO\"},
-               {print, \"BAR\"},
+    Script = "[{test_method, \"FOO\"},
+               {test_method, \"BAR\"},
                {error, \"Error successfully failed.\"},
-               {print, \"BAZ\"}].",
+               {test_method, \"BAZ\"}].",
     ?assertError("Error successfully failed.", run(Script)).
 
 tuple_test() ->
@@ -128,6 +128,42 @@ sequence_test() ->
     Script = "[{test_method, {sprintf, \"~p\", [{seq, 1, 7}]}}].",
     ?assertEqual("[1,2,3,4,5,6,7]", catch run(Script)).
 
+eval_std_test() ->
+    Script = "{seq, {numvar, \"V1\"}, {round_robin, [10,11]}}.",
+    Meta = [{worker_id, 3}],
+    Env = [{"V1", "5"}],
+    AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
+    R = mzbl_interpreter:eval_std(AST, Env),
+    ?assertEqual([5,6,7,8,9,10,11], R).
+
+eval_std_compiled_test() ->
+    Script = "{seq, {numvar, \"V1\"}, {round_robin, [10,11]}}.",
+    Meta = [{worker_id, 3}],
+    Env = [{"V1", "5"}],
+    AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
+    NewAST = compile_and_load(AST, Env),
+    R = mzbl_interpreter:eval_std(NewAST, []),
+    ?assertEqual([5,6,7,8,9,10,11], R).
+
+eval_replace_int_with_float_test() ->
+    Script = "{sprintf, \"~p\", [{numvar, \"V1\"}]}.",
+    AST = mzbl_script:parse(Script),
+    Env1 = [{"V1", "5"}],
+    NewAST = compile_and_load(AST, Env1),
+    R1 = mzbl_interpreter:eval_std(NewAST, []),
+    ?assertEqual("5", R1),
+    Env2 = [{"V1", "5.6"}],
+    _ = compile_and_load(AST, Env2),
+    R2 = mzbl_interpreter:eval_std(NewAST, []),
+    ?assertEqual("5.6", R2).
+
+compile_and_load(AST, Env) ->
+    {NewAST, Modules} = mzb_compiler:compile(AST, Env),
+    lists:foreach(fun ({Mod, Bin}) ->
+            {module, _} = code:load_binary(Mod, mzb_string:format("~s.erl", [Mod]), Bin)
+        end, Modules),
+    NewAST.
+
 run(Script) ->
     run(Script, []).
 
@@ -135,23 +171,13 @@ run(Script, Meta) ->
     run(Script, Meta, []).
 
 run(Script, Meta, Env) ->
-    try
-        AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
-        meck:new(exometer),
-        meck:expect(exometer, update_or_create, fun(_,_,_,_) -> ok end),
-        meck:new(mz_histogram),
-        meck:expect(mz_histogram, notify, fun(_,_) -> ok end),
-        {_, {dummy_worker, R}} = mzbl_interpreter:eval(
-            AST,
-            mzb_erl_worker:init(dummy_worker),
-            Env,
-            mzb_erl_worker),
-        R
-    after
-%        catch meck:unload(folsom_metrics),
-        catch meck:unload(exometer),
-        catch meck:unload(mz_histogram)
-    end.
+    AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
+    {_, {dummy_worker, R}} = mzbl_interpreter:eval(
+        AST,
+        mzb_erl_worker:init(dummy_worker),
+        Env,
+        mzb_erl_worker),
+    R.
 
 ramp_solver_test() ->
     ?assertEqual(

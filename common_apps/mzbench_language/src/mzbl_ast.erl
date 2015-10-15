@@ -35,7 +35,7 @@ fold(Fun, Acc, C) ->
     Fun(C, Acc).
 
 -spec mapfold(Fun, Acc, Tree) -> {Res, AccRes} when
-    Fun :: fun((abstract_expr(), term()) -> term()),
+    Fun :: fun((abstract_expr(), term()) -> {abstract_expr(), term()}),
     Acc :: term(),
     Tree :: abstract_expr(),
     Res :: abstract_expr(),

@@ -4,6 +4,8 @@
 compile_id_test() ->
     Simple = "[{pool, [{size, 1}], []}].",
     _ = compile_check(Simple, []),
+    Functions = mzb_compiled_vars:module_info(exports),
+    io:format("~p", [Functions]),
     ?assertEqual(0 + 2, length(mzb_compiled_vars:module_info(exports))).
 
 compile_var_string_test() ->
@@ -75,14 +77,20 @@ compile_var_float_to_atom_default_test() ->
 
 compile_missing_var_is_a_failure_test() ->
     _ = compile_check("{print, {var, \"foo\"}}.", []),
+    Functions = mzb_compiled_vars:module_info(exports),
+    io:format("~p", [Functions]),
     ?assertEqual(0 + 2, length(mzb_compiled_vars:module_info(exports))).
 
 compile_using_iterator_as_var_test() ->
     _ = compile_check("{loop, [{iterator, \"i\"}], {var, \"i\"}}.", []),
+    Functions = mzb_compiled_vars:module_info(exports),
+    io:format("~p", [Functions]),
     ?assertEqual(0 + 2, length(mzb_compiled_vars:module_info(exports))).
 
 compile_using_iterator_as_numvar_test() ->
     _ = compile_check("{loop, [{iterator, \"i\"}], {numvar, \"i\"}}.", []),
+    Functions = mzb_compiled_vars:module_info(exports),
+    io:format("~p", [Functions]),
     ?assertEqual(0 + 2, length(mzb_compiled_vars:module_info(exports))).
 
 
