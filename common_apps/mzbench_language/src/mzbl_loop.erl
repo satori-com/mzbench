@@ -242,7 +242,7 @@ batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
     TimePerIter = max(0, BatchTime div Batch),
     if BatchTime * 4 > TimeLeft -> Batch div 2 + 1;
        (Sleep == 0) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
-       Sleep > 2*TimePerIter -> max(Batch - Batch div 16 - 1, 1);
+       Sleep > 2*TimePerIter -> max(Batch - Batch div 2 - 1, 1);
        true -> Batch
     end.
 
