@@ -29,6 +29,12 @@
 -spec eval([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
 eval(LoopSpec, Body, State, Env, WorkerProvider) ->
+    % Evaluator returns fun for evaluation of specific expression
+    % For example:
+    %     F = Evaluator(Expr),
+    %     {Res1, State2} = F(State1), % evaluates expression Expr
+    %     {Res2, State3} = F(State2)  % evaluates expression Expr again
+
     Evaluator =
         fun (Expr) ->
             fun (S) ->
@@ -39,6 +45,19 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
                 end
             end
         end,
+
+    % ArgEvaluator returns fun for finding specific operation in list and evaluation
+    % of it's args
+    % For example:
+    %    Specs = [#operation{name = rate, args = RateArgs}, #operation{name = time, args = TimeArgs}],
+    %    F = ArgEvaluator(time, Specs, undefined),
+    %    {ArgsRes, State2} = F(State1) % Evaluates TimeArgs and returns results as ArgsRes
+    %
+    % We use these funs in order to reevaluate some key loop parameters (like
+    % rate) while executing loop because vars values could be changed at any
+    % moment. So, for instance, instead of passing Rate to a loop function, we
+    % pass function that evaluates Rate as soon as we need it.
+
     ArgEvaluator =
         fun (Name, Spec, Default) ->
             case lists:keyfind(Name, #operation.name, Spec) of
@@ -185,6 +204,7 @@ timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, Old
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
     {Rate, State1} = F(State),
+    % If rate changes we have to change number of "done" iterations accordingly
     NewDone =
         case {Rate, Prev} of
             {Prev, _} -> Done;
@@ -197,14 +217,16 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
 eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT} = RateState, Done, CurTime, Time, State) ->
     {F, State1} = FFun(State),
     {T, State2} = ToFun(State1),
+    % If rate changes we have to change number of "done" iterations accordingly
     NewDone =
         case {F, T} of
             {OldF, OldT} -> Done;
             {_, _} when OldF == undefined -> Done;
             {_, _} ->
-                Tm = CurTime,
-                A = F + (T - F) * Tm / (2 * Time),
-                B = OldF + (OldT - OldF) * Tm / (2 * Time),
+                % Calculating areas under new and old ramp graphs (which are trapeziums)
+                % Kinematic equations also could be used (S = v0*t + a*t^2/2)
+                A = F + (T - F) * CurTime / (2 * Time),
+                B = OldF + (OldT - OldF) * CurTime / (2 * Time),
                 round(Done *  A / B)
         end,
     {RateState#linear_rate{from = F, to = T}, NewDone, State2}.
