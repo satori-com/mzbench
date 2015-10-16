@@ -1,11 +1,16 @@
 #!/usr/bin/env python
-"""mzbench CLI interface
+from __future__ import print_function
+try:
+    import mzbench_server_marker
+    assert(mzbench_server_marker)
+    server_functions = True
+except ImportError:
+    server_functions = False
+
+# Client-only functions
+doc_acc = """mzbench CLI interface
 
 Usage:
-  mzbench clean
-  mzbench start_server [--config=<config>]
-  mzbench stop_server
-  mzbench restart_server [--config=<config>]
   mzbench [--host=<host>] (start|run)
     [--nodes=<nodes>|--workers_per_node=<workers_per_node>]
     [--nodes_file=<filename>]
@@ -22,18 +27,25 @@ Usage:
   mzbench [--host=<host>] status [--wait] <bench_id>
   mzbench [--host=<host>] stop <bench_id>
   mzbench [--host=<host>] log <bench_id>
-  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
+  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>"""
+
+if server_functions:
+    doc_acc += """
+  mzbench clean
+  mzbench start_server [--config=<config>]
+  mzbench stop_server
+  mzbench restart_server [--config=<config>]
   mzbench run_local <script> [--env=<name=value>...]
   mzbench validate <script> [--env=<name=value>...]
   mzbench list_templates
   mzbench new_worker [--template=<template>] <name>
-  mzbench selfcheck
+  mzbench selfcheck"""
+
+doc_acc += """
   mzbench -h | --help
 
 Options:
     -h, --help       Show this help
-    --skip_install   Skip stage with building and deploying RPMs
-    --tests <tests>  Execute only the specified tests
     --host <host>    Specify host providing mzbench api. Alternatively,
                      you can set environment variable MZBENCH_API_HOST.
     --nodes <nodes>  Specify either an amount of nodes to be allocated or a
@@ -77,14 +89,14 @@ Options:
                      Specify cloud provider to use. If not set server will use
                      first available provider.
     --env <name=value>
-                     Pass a variable to script
+                     Pass a variable to script"""
+
+if server_functions:
+    doc_acc += """
     --template <template> 
                      Choose a template for new worker, default is 'empty'
     --config <config>
-                     Configuation file to use
-"""
-
-from __future__ import print_function
+                     Configuation file to use"""
 
 from shutil import copytree
 import csv
@@ -504,7 +516,7 @@ def apply_args(fun, kwargs):
     return fun(**dict((k, get_arg(k, kwargs)) for k in argnames))
 
 def main():
-    args = docopt.docopt(__doc__, version='0.1.0')
+    args = docopt.docopt(doc_acc, version='0.1.0')
     augment_args(args)
 
     known_commands = [k for k in args
