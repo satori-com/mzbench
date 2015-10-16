@@ -211,7 +211,7 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
             {undefined, _} -> Done;
             {New, 0} -> round(New * CurTime / 1000);
             {New, undefined} -> round(New * CurTime / 1000);
-            {New, _} -> round(Done * New / Prev)
+            {New, _} -> round(New * CurTime / 1000)
         end,
     {RateState#const_rate{value = Rate}, NewDone, State1};
 eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT} = RateState, Done, CurTime, Time, State) ->
@@ -223,11 +223,10 @@ eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT}
             {OldF, OldT} -> Done;
             {_, _} when OldF == undefined -> Done;
             {_, _} ->
-                % Calculating areas under new and old ramp graphs (which are trapeziums)
+                % Calculating area under new ramp graph (which is trapezium)
                 % Kinematic equations also could be used (S = v0*t + a*t^2/2)
-                A = F + (T - F) * CurTime / (2 * Time),
-                B = OldF + (OldT - OldF) * CurTime / (2 * Time),
-                round(Done *  A / B)
+                A = F * CurTime  + (T - F) * CurTime * CurTime / (2 * Time),
+                round(A)
         end,
     {RateState#linear_rate{from = F, to = T}, NewDone, State2}.
 
