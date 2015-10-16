@@ -9,7 +9,8 @@
     to_integer_with_default/2,
     int_ceil/1,
     any_to_num/1,
-    hostname_str/1
+    hostname_str/1,
+    cast_to_type/2
    ]).
 
 random_binary(N) -> crypto:rand_bytes(N).
@@ -57,4 +58,20 @@ hostname_str(Node) when is_atom(Node) ->
     hostname_str(atom_to_list(Node));
 hostname_str(NodeStr) ->
     hd(tl(string:tokens(NodeStr, "@"))).
+
+cast_to_type(Value, TypedValue) when is_binary(Value) and not is_binary(TypedValue) ->
+    cast_to_type(binary_to_list(Value), TypedValue);
+cast_to_type(Value, TypedValue) when is_list(Value) and is_integer(TypedValue) ->
+    list_to_integer(Value);
+cast_to_type(Value, TypedValue) when is_integer(Value) and is_float(TypedValue) ->
+    float(Value);
+cast_to_type(Value, TypedValue) when is_list(Value) and is_float(TypedValue) ->
+    try
+        list_to_float(Value)
+    catch error:badarg ->
+        float(list_to_integer(Value))
+    end;
+cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
+    list_to_binary(Value);
+cast_to_type(Value, _) -> Value.
 

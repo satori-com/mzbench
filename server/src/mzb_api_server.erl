@@ -9,6 +9,7 @@
     start_bench/1,
     restart_bench/1,
     stop_bench/1,
+    change_env/2,
     get_info/0,
     bench_finished/2,
     status/1,
@@ -54,6 +55,16 @@ stop_bench(Id) ->
     case gen_server:call(?MODULE, {stop_bench, Id}, infinity) of
         ok -> ok;
         {error, not_found} ->
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
+
+change_env(Id, Env) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, B, undefined}] ->
+            mzb_api_bench:change_env(B, Env);
+        [{_, _, _}] ->
+            erlang:error({badarg, io_lib:format("Benchmark ~p is finished", [Id])});
+        [] ->
             erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
     end.
 

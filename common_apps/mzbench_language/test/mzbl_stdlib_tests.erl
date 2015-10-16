@@ -1,4 +1,4 @@
--module(mzb_stdlib_tests).
+-module(mzbl_stdlib_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
@@ -6,12 +6,12 @@
   VAR(Fun, Expected, Env, Input),
   ?assertEqual(
       {Expected, state},
-      mzb_stdlib:Fun(state, Env, meta, Input))).
+      mzbl_stdlib:Fun(state, Env, meta, Input))).
 -define(
   VAR(Fun, Expected, Env, Input, Default),
   ?assertEqual(
       {Expected, state},
-      mzb_stdlib:Fun(state, Env, meta, Input, Default))).
+      mzbl_stdlib:Fun(state, Env, meta, Input, Default))).
 
 var_test() ->
   ?VAR(var, 42, [{"foo", 42}], "foo"),

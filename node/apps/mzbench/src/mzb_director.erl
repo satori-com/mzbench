@@ -1,8 +1,11 @@
 -module(mzb_director).
 
 -export([start_link/5,
-         pool_report/4,
-         attach/1]).
+         pool_report/3,
+         change_env/1,
+         attach/0,
+         stop_benchmark/1
+         ]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -10,8 +13,7 @@
          handle_call/3,
          handle_info/2,
          terminate/2,
-         code_change/3,
-         stop_benchmark/2
+         code_change/3
         ]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -23,7 +25,10 @@
     pools      = [],
     owner      = undefined,
     bench_name = undefined,
-    stop_reason = undefined
+    stop_reason = undefined,
+    script     = undefined,
+    env        = undefined,
+    nodes      = []
 }).
 
 %%%===================================================================
@@ -31,16 +36,19 @@
 %%%===================================================================
 
 start_link(SuperPid, BenchName, Script, Nodes, Env) ->
-    gen_server:start_link(?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
 
-pool_report(DirectorPid, PoolPid, Info, IsFinal) ->
-    gen_server:cast(DirectorPid, {pool_report, PoolPid, Info, IsFinal}).
+pool_report(PoolPid, Info, IsFinal) ->
+    gen_server:cast({global, ?MODULE}, {pool_report, PoolPid, Info, IsFinal}).
 
-attach(DirectorPid) ->
-    gen_server:call(DirectorPid, attach, infinity).
+change_env(Env) ->
+    gen_server:call({global, ?MODULE}, {change_env, Env}, infinity).
 
-stop_benchmark(DirectorPid, Reason) ->
-    gen_server:cast(DirectorPid, {stop_benchmark, Reason}).
+attach() ->
+    gen_server:call({global, ?MODULE}, attach, infinity).
+
+stop_benchmark(Reason) ->
+    gen_server:cast({global, ?MODULE}, {stop_benchmark, Reason}).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -51,11 +59,30 @@ init([SuperPid, BenchName, Script, Nodes, Env]) ->
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     lager:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
     _ = mzb_signaler:set_nodes(Nodes),
-    gen_server:cast(self(), {start_pools, Pools, Env2, Nodes}),
+    gen_server:cast(self(), start_pools),
     {ok, #state{
+        script = Pools,
+        env = Env2,
+        nodes = Nodes,
         bench_name = BenchName,
         super_pid = SuperPid
     }}.
+
+handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, nodes = Nodes} = State) ->
+    lager:info("Changing env: ~p", [NewEnv]),
+    MergedEnv = lists:foldl(
+        fun ({K, V}, Acc) ->
+            lists:keystore(K, 1, Acc, {K, V})
+        end, Env, mzbl_script:normalize_env(NewEnv)),
+    try
+        {_, ModulesToLoad} = mzb_compiler:compile(Script, MergedEnv),
+        ok = load_modules(ModulesToLoad, [node()|Nodes]),
+        {reply, ok, State#state{env = MergedEnv}}
+    catch
+        _:E ->
+            lager:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
+            {reply, {error, {internal_error, E}}, State}
+    end;
 
 handle_call(attach, From, State) ->
     maybe_report_and_stop(State#state{owner = From});
@@ -64,17 +91,20 @@ handle_call(Req, _From, State) ->
     lager:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
-handle_cast({start_pools, _Pools, _Env, []}, State) ->
+    handle_cast(start_pools, #state{nodes = []} = State) ->
     lager:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
-handle_cast({start_pools, Pools, Env, Nodes}, #state{super_pid = SuperPid} = State) ->
-    Metrics = mzb_script_metrics:script_metrics(Pools, Nodes),
+
+handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
+    Metrics = mzb_script_metrics:script_metrics(Script, Nodes),
     Prefix = proplists:get_value("graphite_prefix", Env),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes, self()]},
+         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
-    StartedPools = start_pools(Pools, Env, Nodes, []),
+    {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
+    ok = load_modules(ModulesToLoad, [node()|Nodes]),
+    StartedPools = start_pools(NewScript, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
@@ -128,13 +158,13 @@ start_pools([], _, _, Acc) ->
     Acc;
 start_pools([Pool | Pools], Env, Nodes, Acc) ->
     #operation{args = [PoolOpts, _]} = Pool,
-    [SizeU] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    [SizeExpr] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
+    SizeU = mzbl_interpreter:eval_std(SizeExpr, Env),
     Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
-    Self = self(),
     Results = mzb_lists:pmap(fun({Num, Node}) ->
-            rpc:call(Node, mzb_bench_sup, start_pool, 
-                [[Self, Pool, Env, length(Nodes), Num]])
+            rpc:call(Node, mzb_bench_sup, start_pool,
+                [[Pool, Env, length(Nodes), Num]])
         end, NumberedNodes),
     lager:info("Start pool results: ~p", [Results]),
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
@@ -196,3 +226,13 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str}.
+
+load_modules(Binaries, Nodes) ->
+    mzb_lists:pmap(fun(Node) ->
+        lists:foreach(fun ({Mod, Bin}) ->
+            lager:info("Loading ~p module on ~p...", [Mod, Node]),
+            {module, _} = rpc:call(Node, code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin])
+        end, Binaries)
+    end, lists:usort(Nodes)),
+    ok.
+

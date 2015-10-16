@@ -1,6 +1,6 @@
 -module(mzb_pool).
 
--export([start_link/5,
+-export([start_link/4,
          stop/1
         ]).
 
@@ -16,7 +16,6 @@
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
 -record(s, {
-    director = undefined :: pid(),
     workers  = [] :: ets:tid(),
     succeed  = 0 :: non_neg_integer(),
     failed   = 0 :: non_neg_integer(),
@@ -28,8 +27,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Director, Pool, Env, NumNodes, Offset) ->
-    gen_server:start_link(?MODULE, [Director, Pool, Env, NumNodes, Offset], []).
+start_link(Pool, Env, NumNodes, Offset) ->
+    gen_server:start_link(?MODULE, [Pool, Env, NumNodes, Offset], []).
 
 stop(Pid) ->
     gen_server:call(Pid, stop).
@@ -38,10 +37,10 @@ stop(Pid) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Director, Pool, Env, NumNodes, Offset]) ->
+init([Pool, Env, NumNodes, Offset]) ->
     Tid = ets:new(pool_workers, [public, {keypos, 1}]),
     _ = random:seed(now()),
-    State = #s{workers = Tid, director = Director},
+    State = #s{workers = Tid},
     {ok, start_workers(Pool, Env, NumNodes, Offset, State)}.
 
 handle_call(stop, _From, #s{workers = Tid, name = Name} = State) ->
@@ -122,21 +121,26 @@ code_change(_OldVsn, State, _Extra) ->
 
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
+    Eval = fun (E) -> mzbl_interpreter:eval_std(E, Env) end,
     Name = proplists:get_value(pool_name, Meta),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined]),
-    [PerNode] = mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined]),
-    [StartDelay] = mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]),
-    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined), mzb_utility:to_integer_with_default(PerNode, undefined)] of
-                        [undefined, undefined] -> 1;
-                        [undefined, PN] -> PN * NumNodes;
-                        [S, undefined] -> S;
-                        [S, PN] when PN * Offset > S -> 0;
-                        [S, PN] when NumNodes * PN >= S -> S;
-                        [S, PN] ->
-                            lager:error("Need more nodes, required = ~p, actual = ~p", 
-                                [mzb_utility:int_ceil(S/PN), NumNodes]),
-                            erlang:error({not_enough_nodes})
-                    end,
+    [Size] = Eval(mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined])),
+    [PerNode] = Eval(mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined])),
+    StartDelay = case mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]) of
+            [undefined] -> undefined;
+            [#operation{args = SArgs} = Op] -> Op#operation{args = Eval(SArgs)}
+        end,
+    Size2 = case [mzb_utility:to_integer_with_default(Size, undefined),
+                  mzb_utility:to_integer_with_default(PerNode, undefined)] of
+                [undefined, undefined] -> 1;
+                [undefined, PN] -> PN * NumNodes;
+                [S, undefined] -> S;
+                [S, PN] when PN * Offset > S -> 0;
+                [S, PN] when NumNodes * PN >= S -> S;
+                [S, PN] ->
+                    lager:error("Need more nodes, required = ~p, actual = ~p", 
+                        [mzb_utility:int_ceil(S/PN), NumNodes]),
+                    erlang:error({not_enough_nodes})
+            end,
     lager:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
         [Size, PerNode, Size2, Offset, NumNodes]),
     Worker = mzbl_script:extract_worker(PoolOpts),
@@ -166,13 +170,13 @@ load_worker({WorkerProvider, Worker}) ->
             erlang:error({application_start_failed, Worker, Reason})
     end.
 
-maybe_stop(#s{workers = Workers, name = Name, director = Director, worker_starter = undefined} = State) ->
+maybe_stop(#s{workers = Workers, name = Name, worker_starter = undefined} = State) ->
     case ets:first(Workers) == '$end_of_table' of
         true ->
             lager:info("[ ~p ] All workers have finished", [Name]),
             Info = [{succeed_workers, State#s.succeed},
                     {failed_workers,  State#s.failed}],
-            mzb_director:pool_report(Director, self(), Info, true),
+            mzb_director:pool_report(self(), Info, true),
             {stop, normal, State};
         false ->
             {noreply, State}

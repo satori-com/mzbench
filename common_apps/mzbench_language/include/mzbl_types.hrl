@@ -8,6 +8,8 @@
 -type named_pool() :: {atom(), [script_expr()], [tuple()]}.
 -type worker_provider() :: mzb_erl_worker | mzb_lua_worker| mzb_python_worker.
 -type worker_name() :: atom().
+-type worker_state() :: term().
+-type worker_env() :: [{Key :: any(), Value :: any()}].
 
 -record(operation, {
         is_std = true :: true | false,

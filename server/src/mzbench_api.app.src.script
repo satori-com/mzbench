@@ -51,7 +51,7 @@
 %        {graphite, "172.21.6.181"},
 %        {graphite_api_key, ""}, % only for hostedgraphite
 %        {graphite_url, ""}, % only for hostedgraphite
-        {mzbench_git, "https://github.com/machinezone/mzbench.git"},
+        {node_git, "https://github.com/machinezone/mzbench.git"},
         {node_deployment_path, "~/mz"},
         {worker_deployment_path, "~/mz/mzbench_workers"},
         {plugins_dir, "../../../../plugins"},

@@ -12,7 +12,7 @@ read_and_validate(ScriptFileName, Env) ->
                    {"bench_hosts", [mzbl_script:hostname(N) || N <- Nodes]},
                    {"bench_script_dir", filename:dirname(ScriptFileName)},
                    {"bench_workers_dir", WorkerDirs}],
-        Body = mzbl_script:read(ScriptFileName, AutoEnv ++ Env),
+        Body = mzbl_script:read(ScriptFileName),
         ok = validate(Body),
         {ok, Body, AutoEnv ++ Env}
     catch
@@ -71,6 +71,7 @@ validate(Script) ->
     mzb_signal_validation:validate(Script2),
     ok.
 
+validate_resource_filename(#operation{name = 'var'}) -> [];
 validate_resource_filename(Filename) ->
     case filename:split(Filename) of
         [_] -> [];
@@ -86,13 +87,18 @@ validate_resource_filename(Filename) ->
 validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
     Name = proplists:get_value(pool_name, Op#operation.meta),
     {Provider, Worker} = mzbl_script:extract_worker(Opts),
-    [Size] = mzbl_ast:find_operation_and_extract_args(size, Opts),
-    [WorkerStartType] = mzbl_ast:find_operation_and_extract_args(worker_start, Opts, [undefined]),
+    #operation{args = [Size]} = lists:keyfind(size, #operation.name, Opts),
+    WorkerStartType =
+        case lists:keyfind(worker_start, #operation.name, Opts) of
+            #operation{args = [V]} -> V;
+            false -> undefined
+        end,
     lists:map(
       fun(Msg) -> Name ++ ": " ++ Msg end,
       case Provider:validate(Worker) of
           [] ->
               SizeErr = case Size of
+                #operation{name = Var} when Var == var; Var == numvar -> [];
                 #operation{name = N, args = A} ->
                     [mzb_string:format("can't use operation ~p with args ~p as pool size.", [N, A])];
                 _ -> [mzb_string:format(

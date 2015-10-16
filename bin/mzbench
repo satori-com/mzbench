@@ -27,7 +27,8 @@ Usage:
   mzbench [--host=<host>] status [--wait] <bench_id>
   mzbench [--host=<host>] stop <bench_id>
   mzbench [--host=<host>] log <bench_id>
-  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>"""
+  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
+  mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>"""
 
 if server_functions:
     doc_acc += """
@@ -319,6 +320,11 @@ def log(host, bench_id):
         else:
             print(line)
     print('End of log for bench {0}'.format(bench_id))
+
+
+def change_env(host, bench_id, env):
+    response = api.change_env(host, bench_id, env)
+    pretty_print(response)
 
 def data(host, bench_id, target, format):
     def data_generator():

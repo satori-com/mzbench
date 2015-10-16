@@ -178,15 +178,74 @@ def workers_per_node_test():
         print 'Err: ', err
         raise RuntimeError("The bench should have allocated 4 worker nodes")
 
+
 def log_compression_test():
     bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')
     log_cmd = 'curl --head -X GET http://localhost:4800/logs?id={0}'.format(bench_id)
     assert("content-encoding: deflate" in cmd(log_cmd))
 
+
+def env_change_test():
+
+    def change_var(bid):
+        print "Changing env for {0}".format(bid)
+        change_env_process = subprocess.Popen(
+            [mzbench_script,
+                '--host=localhost:4800',
+                'change_env',
+                str(bid),
+                '--env=message=zzz'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        change_env_res, change_env_err = change_env_process.communicate()
+        print 'Change env output: {0}\n{1}'.format(change_env_res, change_env_err)
+        assert('set' == json.loads(change_env_res)['status'])
+        time.sleep(20)
+        change_env_process = subprocess.Popen(
+            [mzbench_script,
+                '--host=localhost:4800',
+                'change_env',
+                str(bid),
+                '--env=rate=5'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        change_env_res, change_env_err = change_env_process.communicate()
+        print 'Change env output: {0}\n{1}'.format(change_env_res, change_env_err)
+        assert('set' == json.loads(change_env_res)['status'])
+
+    bench_id = run_successful_bench(
+                scripts_dir + 'loop_with_vars.erl',
+                post_start=change_var,
+                expected_log_message_regex=r'zzz',
+                env={'time': '60', 'rate': '1', 'message':'zzz'})
+
+    json_data_process = subprocess.Popen(
+        [mzbench_script,
+            '--host=localhost:4800',
+            '--format=json',
+            'data',
+            str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    json_out, json_err = json_data_process.communicate()
+
+    time.sleep(3)
+
+    json_data_ret_code = json_data_process.poll()
+    assert json_data_ret_code == 0
+    datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps.value'][0]
+    values = [d[0] for d in datapoints]
+    print "Datapoints: {0}".format(values)
+    assert(0.8 < values[2] < 1.2)
+    assert(4.8 < values[5] < 5.2)
+
+
 def main():
     with start_mzbench_server():
         if not nose.run(defaultTest=__name__):
             raise RuntimeError("some tests failed")
+
 
 if __name__ == '__main__':
     main()
