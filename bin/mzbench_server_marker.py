@@ -1,0 +1,1 @@
+# Fake module just to make sure that CLI is started from a complete environment
