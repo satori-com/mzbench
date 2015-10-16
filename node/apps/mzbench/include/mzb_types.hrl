@@ -1,2 +1,0 @@
--type worker_state() :: term().
--type worker_env() :: [{Key :: any(), Value :: any()}].

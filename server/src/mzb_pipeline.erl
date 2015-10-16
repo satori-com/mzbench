@@ -5,7 +5,10 @@
 -export([
     start_link/3,
     call/2,
+    call/3,
+    cast/2,
     stop/1,
+    reply/2,
     init/1,
     handle_call/3,
     handle_cast/2,
@@ -53,10 +56,19 @@ start_link(Module, Args, Options) ->
     gen_server:start_link(?MODULE, [Module, Args], Options).
 
 call(ServerRef, Request) ->
-    gen_server:call(ServerRef, Request).
+    gen_server:call(ServerRef, {user_call, Request}).
+
+call(ServerRef, Request, Timeout) ->
+    gen_server:call(ServerRef, {user_call, Request}, Timeout).
+
+cast(ServerRef, Msg) ->
+    gen_server:cast(ServerRef, {user_cast, Msg}).
 
 stop(ServerRef) ->
     gen_server:call(ServerRef, {workflow, stop}).
+
+reply(Client, Reply) ->
+    gen_server:reply(Client, Reply).
 
 init([Module, UserArgs]) ->
     Ref = make_ref(),
@@ -86,8 +98,11 @@ handle_call({workflow, stop}, _From, State = #state{stage = Stage}) ->
     NewState = change_pipeline_status({final, stopped}, State),
     {reply, ok, NewState#state{ref = NewRef}};
 
-handle_call(Msg, From, #state{module = Module, user_state = UserState} = State) ->
-    apply_user_state(Module:handle_call(Msg, From, UserState), State).
+handle_call({user_call, Msg}, From, #state{module = Module, user_state = UserState} = State) ->
+    apply_user_state(Module:handle_call(Msg, From, UserState), State);
+
+handle_call(_Unhandled, _From, State) ->
+    {noreply, State}.
 
 handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST} }, State = #state{ref = Ref}) ->
     gen_server:cast(self(), {workflow, next, finalize, Stage, Ref}),
@@ -142,8 +157,11 @@ handle_cast({workflow, start, Phase, Stage, Ref}, State = #state{ref = Ref, modu
     NewState = change_pipeline_status({start, Phase, Stage}, State),
     {noreply, NewState#state{stage = {Pid, Phase, Stage}}};
 
-handle_cast(Msg, #state{module = Module, user_state = UserState} = State) ->
-    apply_user_state(Module:handle_cast(Msg, UserState), State).
+handle_cast({user_cast, Msg}, #state{module = Module, user_state = UserState} = State) ->
+    apply_user_state(Module:handle_cast(Msg, UserState), State);
+
+handle_cast(_Unhandled, State) ->
+    {noreply, State}.
 
 handle_info(Msg, #state{module = Module, user_state = UserState} = State) ->
     apply_user_state(Module:handle_info(Msg, UserState), State).

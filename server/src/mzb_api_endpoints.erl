@@ -21,6 +21,10 @@ init(Req, _Opts) ->
             Req2 = reply_error(501, <<"not_supported">>, Reason, Req),
             {ok, Req2, #{}};
 
+        error:not_running ->
+            Req2 = reply_error(400, <<"not_running">>, "Benchmark is not running yet", Req),
+            {ok, Req2, #{}};
+
         error:{badarg, Reason} ->
             Req2 = reply_error(400, <<"badarg">>, Reason, Req),
             {ok, Req2, #{}};
@@ -64,6 +68,13 @@ handle(<<"GET">>, <<"/stop">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         ok = mzb_api_server:stop_bench(Id),
         {ok, reply_json(200, #{status => <<"stopped">>}, Req), #{}}
+    end);
+
+handle(<<"GET">>, <<"/change_env">>, Req) ->
+    with_bench_id(Req, fun (Id) ->
+        NewEnv = cowboy_req:parse_qs(Req),
+        ok = mzb_api_server:change_env(Id, proplists:delete(<<"id">>, NewEnv)),
+        {ok, reply_json(200, #{status => <<"set">>}, Req), #{}}
     end);
 
 handle(<<"GET">>, <<"/status">>, Req) ->
@@ -240,6 +251,7 @@ parse_start_params(Req) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
                                                     end,                                                        []},
+        {node_git,                  single_value,   fun erlang:binary_to_list/1,                                undefined},
         {node_commit,               single_value,   fun erlang:binary_to_list/1,                                undefined},
         {emulate_bench_crash,       single_value,   fun binary_to_bool/1,                                       false},
         {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},

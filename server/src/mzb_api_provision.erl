@@ -262,20 +262,8 @@ install_worker(Hosts, InstallSpec, Config, Logger) ->
 
 install_workers(Hosts, #{script:= Script} = Config, Logger, Env) ->
     #{ body := Body } = Script,
-
-    % AutoEnv here has dummy values, but they are sufficient
-    % for parsing the script and extracting make_install specs.
-    AutoEnv = [{"nodes_num", length(Hosts)},
-               {"bench_hosts", []},
-               {"bench_script_dir", ""},
-               {"bench_workers_dir", []}],
-    DeepBinaryToString =
-        fun Recur(L) when is_list(L) -> lists:map(Recur, L);
-            Recur({Key, Value}) -> {Recur(Key), Recur(Value)};
-            Recur(B) when is_binary(B) -> binary_to_list(B);
-            Recur(X) -> X
-        end,
-    AST = mzbl_script:read_from_string(binary_to_list(Body), AutoEnv ++ DeepBinaryToString(Env)),
-    _ = [install_worker(Hosts, IS, Config, Logger) || IS <- mzbl_script:extract_install_specs(AST)],
+    AST = mzbl_script:read_from_string(binary_to_list(Body)),
+    NormEnv = mzbl_script:normalize_env(Env),
+    _ = [install_worker(Hosts, IS, Config, Logger) || IS <- mzbl_script:extract_install_specs(AST, NormEnv)],
     ok.
 

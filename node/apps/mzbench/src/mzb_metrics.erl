@@ -1,6 +1,6 @@
 -module(mzb_metrics).
 
--export([start_link/5,
+-export([start_link/4,
          notify/2,
          get_value/1,
          get_graphite_host_and_port/1,
@@ -27,7 +27,6 @@
 -record(s, {
     prefix = "undefined" :: string(),
     nodes = [] :: [node()],
-    director_pid = undefined :: pid(),
     graphite_reporter_ref = undefined :: reference(),
     last_tick_time = undefined :: erlang:timestamp(),
     start_time = undefined :: erlang:timestamp(),
@@ -51,8 +50,8 @@
 %%% API
 %%%===================================================================
 
-start_link(MetricsPrefix, Env, MetricGroups, Nodes, DirPid) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, MetricGroups, Nodes, DirPid], [{spawn_opt, [{priority, high}]}]).
+start_link(MetricsPrefix, Env, MetricGroups, Nodes) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
@@ -80,7 +79,7 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([MetricsPrefix, Env, MetricGroups, Nodes, DirPid]) ->
+init([MetricsPrefix, Env, MetricGroups, Nodes]) ->
     {Host, Port} = get_graphite_host_and_port(Env),
     ApiKey = proplists:get_value("graphite_api_key", Env, []),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
@@ -92,7 +91,6 @@ init([MetricsPrefix, Env, MetricGroups, Nodes, DirPid]) ->
     {ok, #s{
         prefix = MetricsPrefix,
         nodes = Nodes,
-        director_pid = DirPid,
         graphite_reporter_ref = GraphiteReporterRef,
         last_tick_time = StartTime,
         start_time = StartTime,
@@ -209,7 +207,7 @@ evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
     lager:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
-check_assertions(TimePeriod, #s{director_pid = DirPid, asserts = Asserts} = State) ->
+check_assertions(TimePeriod, #s{asserts = Asserts} = State) ->
     lager:info("[ metrics ] CHECK ASSERTIONS:"),
     NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
     lager:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
@@ -219,7 +217,7 @@ check_assertions(TimePeriod, #s{director_pid = DirPid, asserts = Asserts} = Stat
         [] -> ok;
         _  ->
             lager:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
-            mzb_director:stop_benchmark(DirPid, {assertions_failed, FailedAsserts})
+            mzb_director:stop_benchmark({assertions_failed, FailedAsserts})
     end,
     State#s{asserts = NewAsserts}.
 

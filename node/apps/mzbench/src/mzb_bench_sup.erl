@@ -14,7 +14,7 @@ start_link() ->
 
 run_bench(ScriptPath, DefaultEnv) ->
     try
-        {Body0, Env0} = read_and_validate(ScriptPath, DefaultEnv),
+        {Body0, Env0} = read_and_validate(ScriptPath, mzbl_script:normalize_env(DefaultEnv)),
         Env1 = mzb_script_hooks:pre_hooks(Body0, Env0),
         {Body2, Env2} = read_and_validate(ScriptPath, Env1),
         Result = run_director(Body2, Env2),
@@ -63,17 +63,9 @@ connect_nodes(Nodes) ->
             pong == net_adm:ping(N)
         end, Nodes).
 
-get_director(Sup) ->
-    case lists:keyfind(director, 1, supervisor:which_children(Sup)) of
-        {_, Pid, _, _} -> Pid;
-        false -> erlang:error(no_director)
-    end.
-
 get_results() ->
     try
-        Pid = whereis(?MODULE),
-        D = get_director(Pid),
-        mzb_director:attach(D)
+        mzb_director:attach()
     catch
         _:E ->
             ST = erlang:get_stacktrace(),
@@ -102,8 +94,8 @@ child_spec(Name, Module, Args, Restart) ->
 start_director(Body, Nodes, Env) ->
     BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
     lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
-    supervisor:start_child(?MODULE, 
-                            child_spec(director, mzb_director, 
+    supervisor:start_child(?MODULE,
+                            child_spec(director, mzb_director,
                                        [whereis(?MODULE), BenchName, Body, Nodes, Env],
                                        transient)).
 

@@ -3,21 +3,31 @@
 -export([parse/1,
          hostname/1,
          get_real_script_name/1,
-         read/2,
-         read_from_string/2,
+         read/1,
+         read_from_string/1,
          get_benchname/1,
          meta_to_location_string/1,
          normalize_env/1,
-         substitute/2,
          extract_pools_and_env/2,
-         extract_install_specs/1,
+         extract_install_specs/2,
          enumerate_pools/1,
          extract_worker/1,
          resolve_worker_provider/1,
          make_git_install_spec/3,
-         make_rsync_install_spec/3]).
+         make_rsync_install_spec/3,
+         eval_opts/2]).
 
 -include("mzbl_types.hrl").
+
+-spec eval_opts([Operation], Env) -> [NewOperation]
+    when Operation :: script_expr(),
+         NewOperation :: script_expr(),
+         Env :: [proplists:property()].
+eval_opts(Opts, Env) ->
+    lists:map(
+        fun (#operation{args = Args} = Op) ->
+            Op#operation{args = mzbl_interpreter:eval_std(Args, Env)}
+        end, Opts).
 
 -spec get_real_script_name([proplists:property()]) -> string().
 get_real_script_name(Env) ->
@@ -33,66 +43,10 @@ meta_to_location_string(Meta) ->
         LineNumber -> "line " ++ integer_to_list(LineNumber) ++ ": "
     end.
 
--spec substitute(abstract_expr(), [proplists:property()]) -> abstract_expr().
-substitute(Tree, Env) -> substitute(Tree, Env, []).
-
--spec substitute(abstract_expr(), [proplists:property()], [string()]) -> abstract_expr().
-substitute(#operation{name = loop, args = [Spec, Body]} = Op, Env, Iterators) ->
-    NewSpec = substitute(Spec, Env, Iterators),
-    NewIterators =
-        case mzbl_ast:find_operation_and_extract_args(iterator, NewSpec, [undefined]) of
-            [undefined] -> Iterators;
-            [IterName] ->
-                case lists:member(IterName, Iterators) of
-                    false -> [IterName | Iterators];
-                    true ->
-                        erlang:error({substitution_error,
-                            iterator_is_shadowed_by_another_iterator, IterName})
-                end
-        end,
-    NewBody = substitute(Body, Env, NewIterators),
-    Op#operation{args = [NewSpec, NewBody]};
-substitute(#operation{name = OpName, args = Args, meta = Meta} = Op, Env, Iterators)
-        when OpName =:= var orelse OpName =:= numvar ->
-    [VarName|Rest] = substitute(Args, Env, Iterators),
-    case {proplists:get_value(VarName, Env), lists:member(VarName, Iterators), Rest} of
-        {undefined, false, [DefaultValue]} -> DefaultValue;
-        {undefined, false, _} ->
-            erlang:error({substitution_error,
-                variable_name_is_unbound, VarName,
-                at_location, meta_to_location_string(Meta)});
-        {Value, false, []} ->
-            case OpName of
-                numvar -> mzb_utility:any_to_num(Value);
-                var -> Value
-            end;
-        {Value, false, [DefaultValue]} ->
-            case OpName of
-                numvar -> mzb_utility:any_to_num(Value);
-                var -> cast_to_type(Value, DefaultValue)
-            end;
-        {undefined, true, []} -> Op#operation{args = [VarName]};
-        {undefined, true, _} ->
-            erlang:error({substitution_error,
-                default_value_supplied_for_iterator, VarName,
-                at_location, meta_to_location_string(Meta)});
-        {_, true, _} ->
-            erlang:error({substitution_error,
-                env_variable_is_shadowed_by_an_iterator, VarName,
-                at_location, meta_to_location_string(Meta)})
-    end;
-substitute(#operation{args = Args} = Op, Env, Iterators) ->
-    Op#operation{args = substitute(Args, Env, Iterators)};
-substitute(#constant{value = V} = C, Env, Iterators) ->
-    C#constant{value = substitute(V, Env, Iterators)};
-substitute(L, Env, Iterators) when is_list(L) ->
-    lists:map(fun(X) -> substitute(X, Env, Iterators) end, L);
-substitute(S, _, _) -> S.
-
--spec read_from_string(string(), [proplists:property()]) -> abstract_expr().
-read_from_string(String, Env) ->
+-spec read_from_string(string()) -> abstract_expr().
+read_from_string(String) ->
     try
-        mzbl_literals:convert(substitute(parse(String), Env))
+        mzbl_literals:convert(parse(String))
     catch
         C:{parse_error, {_, Module, ErrorInfo}} = E ->
             ST = erlang:get_stacktrace(),
@@ -101,15 +55,15 @@ read_from_string(String, Env) ->
         C:E ->
             ST = erlang:get_stacktrace(),
             lager:error(
-				"Failed to read script '~p' 'cause of ~p~nStacktrace: ~s",
+                "Failed to read script '~p' 'cause of ~p~nStacktrace: ~s",
                 [String, E, pretty_errors:stacktrace(ST)]),
             erlang:raise(C,E,ST)
     end.
 
--spec read(string(), [proplists:property()]) -> abstract_expr().
-read(Path, Env) ->
+-spec read(string()) -> abstract_expr().
+read(Path) ->
     try
-        read_from_string(read_file(Path), Env)
+        read_from_string(read_file(Path))
     catch
         C:E ->
             ST = erlang:get_stacktrace(),
@@ -138,9 +92,13 @@ parse(Body) ->
     {[#operation{}], [proplists:property()]}.
 extract_pools_and_env(Script, Env) ->
     Env2 = lists:foldl(
-            fun (#operation{name = include_resource, args = [Name, Path]}, Acc) ->
+            fun (#operation{name = include_resource, args = [NameExpr, PathExpr]}, Acc) ->
+                    Name = mzbl_interpreter:eval_std(NameExpr, Env),
+                    Path = mzbl_interpreter:eval_std(PathExpr, Env),
                     [{{resource, Name}, import_resource(Env, Path, erlang)} | Acc];
-                (#operation{name = include_resource, args = [Name, Path, Type]}, Acc) ->
+                (#operation{name = include_resource, args = [NameExpr, PathExpr, Type]}, Acc) ->
+                    Name = mzbl_interpreter:eval_std(NameExpr, Env),
+                    Path = mzbl_interpreter:eval_std(PathExpr, Env),
                     [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
                 (#operation{name = assert, args = [Time, Expr]}, Acc) ->
                     {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
@@ -245,26 +203,11 @@ hostname(Node) ->
     [_, H] = string:tokens(erlang:atom_to_list(Node), "@"),
     H.
 
-cast_to_type(Value, TypedValue) when is_binary(Value) and not is_binary(TypedValue) ->
-    cast_to_type(binary_to_list(Value), TypedValue);
-cast_to_type(Value, TypedValue) when is_list(Value) and is_integer(TypedValue) ->
-    list_to_integer(Value);
-cast_to_type(Value, TypedValue) when is_integer(Value) and is_float(TypedValue) ->
-    float(Value);
-cast_to_type(Value, TypedValue) when is_list(Value) and is_float(TypedValue) ->
-    try
-        list_to_float(Value)
-    catch error:badarg ->
-        float(list_to_integer(Value))
-    end;
-cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
-    list_to_binary(Value);
-cast_to_type(Value, _) -> Value.
-
--spec extract_install_specs(abstract_expr()) -> [install_spec()].
-extract_install_specs(AST) ->
+-spec extract_install_specs(abstract_expr(), [term()]) -> [install_spec()].
+extract_install_specs(AST, Env) ->
     Convert =
-        fun(#operation{args = [Args]}) ->
+        fun(#operation{args = [Expr]}) ->
+            Args = eval_opts(Expr, Env),
             case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
                 undefined ->
                     case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
@@ -304,12 +247,14 @@ to_string(Y) -> erlang:error({not_a_stringy_thing, Y}).
 -spec normalize_env([term()]) -> [term()].
 normalize_env(Env) ->
     lists:map(
-        fun ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
+        fun ({{resource, _} = K, V}) -> {K, V};
+            ({asserts = K, V}) -> {K, V};
+            ({K, V}) -> {normalize_env_(K), normalize_env_(V)}
         end, Env).
 
 normalize_env_(V) when is_binary(V) -> erlang:binary_to_list(V);
 normalize_env_(V) when is_list(V) -> V;
-normalize_env_(V) when is_integer(V) -> V;
+normalize_env_(V) when is_number(V) -> V;
 normalize_env_(U) ->
     Msg = mzb_string:format("Env value of unknown type: ~p", [U]),
     erlang:error({error, {validation, [Msg]}}).

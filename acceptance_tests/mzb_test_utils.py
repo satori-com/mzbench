@@ -22,9 +22,9 @@ mzbench_script = mzbench_dir + 'bin/mzbench'
 @contextmanager
 def start_mzbench_server():
     if 'MZBENCH_RSYNC' in os.environ:
-        node_location_param = '{{mzbench_rsync, "{0}"}}'.format(os.environ['MZBENCH_RSYNC'])
+        node_location_param = '{{node_rsync, "{0}"}}'.format(os.environ['MZBENCH_RSYNC'])
     elif 'MZBENCH_REPO' in os.environ:
-        node_location_param = '{{mzbench_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
+        node_location_param = '{{node_git, "{0}"}}'.format(os.environ['MZBENCH_REPO'])
     else:
         node_location_param = ''
 
@@ -55,28 +55,28 @@ def start_mzbench_server():
 
 def run_successful_bench(name, nodes=None, workers_per_node=None, env={}, 
         email=None, exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None):
+        check_log_function=None, post_start=None):
     return run_bench(name, should_fail=False,
         nodes=nodes, workers_per_node=workers_per_node, env=env, email=email,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex,
-        check_log_function=check_log_function)
+        check_log_function=check_log_function, post_start=post_start)
 
 
 def run_failing_bench(name, nodes=None, workers_per_node=None, env={}, 
         email=None, exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None):
+        check_log_function=None, post_start=None):
     return run_bench(name, should_fail=True,
         nodes=nodes, workers_per_node=workers_per_node, env=env,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex,
-        check_log_function=check_log_function)
+        check_log_function=check_log_function, post_start=post_start)
 
 
 def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None, 
         workers_per_node=None, env={}, email=None, should_fail=False, max_retries=2,
         exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None):
+        check_log_function=None, post_start=None):
 
     email_option = ('--email=' + email) if email else ''
 
@@ -122,6 +122,10 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
         except Exception:
             print 'mzbench returned invalid json: \nCommand: {0}\nOutput: {1}\nStderr: {2}'.format(invocation, start_out, start_err)
             raise
+
+        if (post_start is not None) and wait_status(bench_id, 'running', 50):
+            print "Calling post start for {0}".format(bench_id)
+            post_start(bench_id)
 
         wait = subprocess.Popen(shlex.split(
             mzbench_dir + 'bin/mzbench --host=localhost:4800 status --wait {0}'.format(bench_id)),
@@ -204,3 +208,32 @@ def restart_bench(bench_id):
     except Exception:
         print 'mzbench restart returned invalid json:\nOutput: {0}\nStderr: {1}'.format(restart_out, restart_err)
         raise
+
+def wait_status(bench_id, status, n):
+    if n <= 0:
+        return False
+
+    wait = subprocess.Popen(shlex.split(
+        mzbench_dir + 'bin/mzbench --host=localhost:4800 status {0}'.format(bench_id)),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    out, err = wait.communicate()
+
+    try:
+        current_status = json.loads(out)['status']
+    except Exception:
+        print 'mzbench status returned invalid json: \nOutput: {0}\nStderr: {1}'.format(out, err)
+        raise
+
+    print "current_status: {0}".format(current_status)
+    if current_status == status:
+        return True
+    elif current_status == 'failed':
+        return False
+    elif current_status == 'complete':
+        return False
+    else:
+        time.sleep(5)
+        return wait_status(bench_id, status, n - 1)
+
+

@@ -168,11 +168,15 @@ so the dashboard won't be available for any external connections. To open dashbo
  _Warning:_ mzbench doesn't provide any authentication and opening it
 to everyone would bring additional vulnerability to your server, mzbench dashboard should be protected with an external auth proxy like nginx.
 
-### `{mzbench_git, "<url>"}`
+### `{node_git, "<url>"}`
 
 Specifies the MZBench Git repository used to deploy the worker nodes.
 
 By default, the MZBench source code will be taken from `https://github.com/machinezone/mzbench.git`.
+
+### `{node_commit, "<string>"}`
+
+Specifies Git commit SHA or Git branch name used to deploy the worker nodes.
 
 ### `{ntp_max_timediff, <float>}`
 

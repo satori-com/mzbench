@@ -47,7 +47,7 @@ pool_name(Pool) ->
     proplists:get_value(pool_name, Meta).
 
 metrics(Path, EnvFromClient) ->
-    Script = mzbl_script:read(Path, EnvFromClient),
+    Script = mzbl_script:read(Path),
     Nodes = erlang:nodes(),
     {Pools, Env} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
