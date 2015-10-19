@@ -25,21 +25,13 @@ check(X, float, _) ->
         true -> true;
         _ -> {false, {X, is_not, float}, undefined}
     end;
-check(X, atom, _) ->
-    case is_atom(X) of
-        true -> true;
-        _ -> {false, {X, is_not, atom}, undefined}
-    end;
+check(X, atom, _) when is_atom(X) -> true;
 check(X, string, _) ->
     case io_lib:printable_unicode_list(X) of
         true -> true;
         _ -> {false, {X, is_not, string}, undefined}
     end;
-check(X, binary, _) ->
-    case is_binary(X) of
-        true -> true;
-        _ -> {false, {X, is_not, binary}, undefined}
-    end;
+check(X, binary, _) when is_binary(X) -> true;
 check(X, timeunit, _) ->
     case lists:member(X, [min, sec, ms, us]) of
         true -> true;
@@ -60,6 +52,7 @@ check(X, tuple, _) ->
         true -> true;
         _ -> {false, {X, is_not, tuple}, undefined}
     end;
+check(X, boolean, _) when is_boolean(X) -> true;
 check(L, any, Env) when is_list(L) ->
     all_([check(X, any, Env) || X <- L]);
 check(_, any, _) -> true;
@@ -73,10 +66,19 @@ check_env(Name, Type, Env) ->
     end.
 
 -spec check_op(atom(), [term()], type(), worker_env()) -> typecheck_result().
+check_op(undefined, _, _, _) ->
+    {false, "Empty operation", undefined};
 check_op(loop, [Spec, Body], T, Env) ->
-    and_(
+    all_([
         is(nil, T),
-        all_([check(X, any, Env) || X <- Spec ++ Body]));
+        all_([check(X, any, Env) || X <- Body]),
+        all_([check_loop_spec_element(X, Env) || X <- Spec]),
+        case lists:keyfind(time, #operation.name, Spec) of
+            false -> {false, "Loop spec must specify duration.", undefined};
+            _ -> true
+        end]);
+check_op(loop, _, _, _) ->
+    {false, "Loop must have a spec and a body.", undefined};
 check_op(var, [Name], T, Env) ->
     and_(check(Name, string, Env), check_env(Name, T, Env));
 check_op(var, [Name, Default], T, Env) ->
@@ -95,38 +97,14 @@ check_op(numvar, [Name, Default], T, Env) ->
         or_(is(integer, T), is(float, T)),
         check(Default, T, Env),
         check_env(Name, T, Env)]);
+check_op(size, [Size], _, Env) ->
+    check(Size, integer, Env);
 check_op(random_binary, [Size], T, Env) ->
     and_(is(binary, T), check(Size, integer, Env));
 check_op(random_list, [Size], T, Env) ->
     and_(is(list, T), check(Size, integer, Env));
-check_op(comb, Args, T, Env) ->
-    RatesAndTimes = every_other(lists:zip(Args, tl(Args))),
-    and_(
-        is(rate, T),
-        lists:foldl(
-            fun({Rate, Time}, Acc) ->
-                and_(
-                    and_(
-                        check(Rate, rate, Env),
-                        check(Time, time, Env)),
-                    Acc)
-            end,
-            true,
-            RatesAndTimes));
 check_op(t, [List], T, Env) ->
     and_(is(tuple, T), check(List, list, Env));
-check_op(think_time, [Rate, Time], T, Env) ->
-    and_(
-        is(rate, T),
-        and_(
-            check(Rate, rate, Env),
-            check(Time, time, Env)));
-check_op(ramp, [_, Rate1, Rate2], T, Env) ->
-    and_(
-        is(rate, T),
-        and_(
-            check(Rate1, rate, Env),
-            check(Rate2, rate, Env)));
 check_op(random_number, [N, M], T, Env) ->
     and_(
         is(integer, T),
@@ -216,6 +194,31 @@ check_op(_, Args, _, Env) ->
     % we don't know anything about it
     % but we can still look into its arguments
     and_(not_sure, all_([check(A, any, Env) || A <- Args])).
+
+check_loop_spec_element(#operation{name = comb, args = Args}, Env) ->
+    RatesAndTimes = every_other(lists:zip(lists:droplast(Args), tl(Args))),
+    all_([and_(check(Rate, rate, Env), check(Time, time, Env))
+        || {Rate, Time} <- RatesAndTimes]);
+check_loop_spec_element(#operation{name = time, args = [Time]}, Env) ->
+    check(Time, time, Env);
+check_loop_spec_element(#operation{name = rate, args = [Rate]}, Env) ->
+    check(Rate, rate, Env);
+check_loop_spec_element(#operation{name = spawn, args = [Arg]}, Env) ->
+    check(Arg, boolean, Env);
+check_loop_spec_element(#operation{name = think_time, args = [Rate, Time]}, Env) ->
+    and_(
+        check(Rate, rate, Env),
+        check(Time, time, Env));
+check_loop_spec_element(#operation{name = ramp, args = [linear, Rate1, Rate2]}, Env) ->
+    and_(
+        check(Rate1, rate, Env),
+        check(Rate2, rate, Env));
+check_loop_spec_element(#operation{name = parallel, args = [N]}, Env) ->
+    check(N, integer, Env);
+check_loop_spec_element(#operation{name = iterator, args = [Name]}, Env) ->
+    check(Name, string, Env);
+check_loop_spec_element(X, _Env) ->
+    {false, mzb_string:format("Bad loop spec element ~p", [X]), undefined}.
 
 -spec or_(typecheck_result(), typecheck_result()) -> typecheck_result().
 or_(true, _) -> true;

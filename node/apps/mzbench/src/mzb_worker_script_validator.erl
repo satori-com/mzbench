@@ -1,6 +1,6 @@
 -module(mzb_worker_script_validator).
 
--export([validate_worker_script/2, validate_time/1]).
+-export([validate_worker_script/2]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
@@ -34,16 +34,7 @@ validate_expr(#operation{} = Op, Worker) ->
                 Messages)
         end,
     case Op of
-        #operation{name = undefined} ->
-            AddLocation(["Empty instruction."]);
-        #operation{name = parallel, args = Body} -> ValidateList(Body);
-        #operation{name = loop, args = [Spec, Body]} ->
-            validate_loopspec(Spec, mzbl_script:meta_to_location_string(Meta)) ++
-            ValidateList(Body);
-        #operation{name = t, args = Args} ->
-            validate_expr(Args, Worker);
-        #operation{name = loop} ->
-            AddLocation(["Loop must have a spec and a body."]);
+        #operation{name = loop, args = [_Spec, Body]} -> ValidateList(Body);
         #operation{name = Fn, args = Args} ->
             Arity = length(Args),
             IsStdFun = mzbl_stdlib_signatures:is_std_function(Fn, Arity),
@@ -69,67 +60,3 @@ validate_expr(Ops, Worker) when is_list(Ops) ->
         end,
         Ops);
 validate_expr(_, _) -> [].
-
--spec validate_loopspec([#operation{}], string()) -> [string()].
-validate_loopspec(LoopSpec, LoopLocation) ->
-    case lists:keyfind(time, #operation.name, LoopSpec) of
-        false -> [LoopLocation ++ "Loop spec must specify duration."];
-        _ -> []
-    end
-    ++
-    lists:flatmap(
-        fun(#operation{name = Name, args = Args, meta = Meta}) ->
-            lists:map(
-                fun(Message) ->
-                        mzbl_script:meta_to_location_string(Meta) ++ Message
-                end,
-                case {Name, Args} of
-                    {time, [Value]} -> validate_time(Value);
-                    {rate, [Value]} -> validate_loop_rate(Value);
-                    {iterator, [Value]} -> validate_string_literal(Value);
-                    {parallel, [N]} -> validate_pos_int(N);
-                    {spawn, [Val]} -> validate_bool(Val);
-                    {Name, Args} ->
-                        [mzb_string:format(
-                            "Unexpected loop option {~p, ~p}.", [Name, Args])]
-                end);
-            (_) -> ["Unexpected loop option."]
-        end,
-        LoopSpec).
-
--spec validate_time(any()) -> [string()].
-validate_time(#constant{value = N, units = ms}) when is_number(N) -> [];
-validate_time(#constant{value = #operation{}}) -> [];
-validate_time(_) -> ["Unexpected time."].
-
--spec validate_rate(any()) -> [string()].
-validate_rate(#constant{value = N, units = rps}) when is_number(N) -> [];
-validate_rate(#constant{value = #operation{}}) -> [];
-validate_rate(_) -> ["Unexpected rate."].
-
--spec validate_loop_rate(any()) -> [string()].
-validate_loop_rate(#constant{} = C) -> validate_rate(C);
-validate_loop_rate(#operation{name = comb, args = RatesANDPeriods}) -> validate_rates_and_periods(RatesANDPeriods);
-validate_loop_rate(#operation{name = ramp, args = [linear, F, T]}) -> validate_rate(F) ++ validate_rate(T);
-validate_loop_rate(#operation{name = think_time, args = [T, R]}) -> validate_rate(R) ++ validate_time(T);
-validate_loop_rate(_) -> ["Unexpected rate."].
-
--spec validate_rates_and_periods(list()) -> [string()].
-validate_rates_and_periods([R, P | T]) -> validate_rate(R) ++ validate_time(P) ++ validate_rates_and_periods(T);
-validate_rates_and_periods([_]) -> ["Number of Rate and Time should always be even"];
-validate_rates_and_periods([]) -> [].
-
--spec validate_string_literal(any()) -> [string()].
-validate_string_literal(Name) when is_list(Name) -> [];
-validate_string_literal(_) -> ["Expression must be a string literal."].
-
--spec validate_bool(any()) -> [string()].
-validate_bool(true) -> [];
-validate_bool(false) -> [];
-validate_bool(V) -> [io_lib:format("Unexpected boolean: ~p", [V])].
-
--spec validate_pos_int(any()) -> [string()].
-validate_pos_int(N) when is_integer(N), N > 0 -> [];
-validate_pos_int(N) ->
-    [io_lib:format("Unexpected positive integer: ~p", [N])].
-

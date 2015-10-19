@@ -13,7 +13,11 @@
 validate(#operation{name = assert, args = [always, Expression], meta = M}) ->
     validate_assert_expr(Expression, M);
 validate(#operation{name = assert, args = [Time, Expression], meta = M}) ->
-    mzb_worker_script_validator:validate_time(Time) ++
+    case mzbl_typecheck:check(Time, time) of
+        {false, Reason, _Location} -> [Reason];
+        _ -> []
+    end
+    ++
     validate_assert_expr(Expression, M).
 
 validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) when is_list(Op1), is_number(Op2) ->
