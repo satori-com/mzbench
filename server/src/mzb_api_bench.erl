@@ -125,6 +125,7 @@ init([Id, Params]) ->
 
 workflow_config(_State) ->
     [{pipeline, [ init,
+                  checking_script,
                   allocating_hosts,
                   provisioning,
                   uploading_script,
@@ -149,6 +150,16 @@ handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State)
     end,
 
     info("Starting benchmark at ~b ~p", [StartTime, Config], State);
+
+handle_stage(pipeline, checking_script, #{config:= Config}) ->
+    #{script:= #{body:= ScriptBody}} = Config,
+    AST = mzbl_script:read_from_string(binary_to_list(ScriptBody)),
+    case mzbl_typecheck:check(AST, list) of
+        {false, Reason, Location} ->
+            erlang:error({type_error, Reason, Location});
+        _ -> ok
+    end,
+    fun (S) -> S end;
 
 handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     {Hosts, UserName, Deallocator} = allocate_hosts(Config, get_logger(State)),
