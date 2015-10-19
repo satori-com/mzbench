@@ -12,8 +12,10 @@
 
 -record(state, {
           ref = undefined :: undefined | reference(),
+          currently_selected_bench = undefined :: undefined | non_neg_integer(),
           timeline_opts = undefined :: undefined | map(),
-          timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()}
+          timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
+          metrics_reader_ref = undefined :: undefined | {pid(), reference()}
        }).
 
 init(Req, _Opts) ->
@@ -63,11 +65,32 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
+dispatch_info({update_metrics, BenchId, Values}, State = #state{metrics_reader_ref = MetricsReaderRef}) ->
+    case MetricsReaderRef of
+        undefined -> dispatch_info({transmit_metrics, BenchId, Values}, State);
+        _ -> {ok, State}
+    end;
+
+dispatch_info({transmit_metrics, BenchId, Values}, State = #state{currently_selected_bench = Id}) ->
+    case Id of
+        BenchId ->
+            Event = #{type => "METRICS_UPDATE", bench => BenchId, data => erlang:list_to_binary(Values)},
+            {reply, Event, State};
+        _ ->
+            {ok, State}
+    end;
+
 dispatch_info({notify, Severity, Msg}, State) ->
     Event = #{type => "NOTIFY",
               severity => atom_to_list(Severity),
               message => Msg},
     {reply, Event, State};
+
+dispatch_info({'DOWN', MonRef, process, MonPid, _}, State = #state{currently_selected_bench = Id, metrics_reader_ref = {MonPid, MonRef}}) ->
+    {reply, #{type => "METRICS_READING_IS_FINISHED", bench => Id}, State#state{metrics_reader_ref = undefined}};
+
+dispatch_info({'DOWN', _, process, _, _}, State) ->
+    {ok, State};
 
 dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
@@ -98,6 +121,12 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
 
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {MinId, MaxId}}};
+
+dispatch_request(#{<<"cmd">> := <<"set_bench_for_metrics_updates">>} = Cmd, State = #state{metrics_reader_ref = MetricsReaderRef}) ->
+    stop_reading_metrics(MetricsReaderRef),
+    #{<<"bench">> := Id} = Cmd,
+    NewMetricsReaderRef = start_reading_metrics(Id),
+    {ok, State#state{currently_selected_bench = Id, metrics_reader_ref = NewMetricsReaderRef}};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
@@ -224,3 +253,119 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                      IsAboveMin = undefined == MinId orelse Comparator(MinId, Id),
                      IsBelowMax andalso IsAboveMin
                  end, BenchInfos).
+
+%% Metrics reading process
+start_reading_metrics(BenchId) ->
+    erlang:spawn_monitor(fun() -> read_metrics_from_storage(BenchId) end).
+
+stop_reading_metrics(undefined) -> ok;
+stop_reading_metrics({Pid, Ref}) ->
+    erlang:demonitor(Ref),
+    erlang:exit(Pid, aborted).
+
+read_metrics_from_storage(BenchId) ->
+    #{config:= Config} = mzb_api_server:status(BenchId),
+    #{metrics_compression:= Compression} = Config,
+    Filename = mzb_api_bench:metrics_file(Config),
+    
+    FileReader = get_file_reader(Filename, Compression),
+    perform_reading(BenchId, FileReader),
+    FileReader(close).
+
+perform_reading(BenchId, FileReader) ->
+    perform_reading(BenchId, FileReader, "", 0).
+perform_reading(BenchId, FileReader, Buffer, LinesRead) ->
+    case FileReader(read_line) of
+        {ok, Data} when LinesRead > 50 ->
+            mzb_api_firehose:transmit_metrics(BenchId, string:concat(Buffer, Data)),
+            perform_reading(BenchId, FileReader, "", 0);
+        {ok, Data} ->
+            perform_reading(BenchId, FileReader, string:concat(Buffer, Data), LinesRead + 1);
+        eof ->
+            case Buffer of
+                "" -> ok;
+                _ -> mzb_api_firehose:transmit_metrics(BenchId, Buffer)
+            end;
+        {error, Reason} ->
+            case Buffer of
+                "" -> ok;
+                _ -> mzb_api_firehose:transmit_metrics(BenchId, Buffer)
+            end,
+            erlang:error(Reason)
+    end.
+
+get_file_reader(Filename, none) ->
+    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
+    {ok, H} = file:open(Filename, [raw, read, {read_ahead, ReadAtOnce}]),
+    fun (close) -> file:close(H);
+        (read_line) -> file:read_line(H)
+    end;
+get_file_reader(Filename, deflate) ->
+    P = erlang:spawn_link(fun () -> uncompressing_process(self(), Filename) end),
+    
+    fun (close) ->
+            Ref = erlang:monitor(process, P),
+            P ! close,
+            receive
+                {'DOWN', Ref, _, _, _} -> ok
+            end;
+        (read_line) ->
+            P ! read_line,
+            receive
+                Response -> Response
+            end
+    end.
+
+uncompressing_process(ParentPid, Filename) ->
+    erlang:process_flag(trap_exit, true),
+    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
+    {ok, H} = file:open(Filename, [raw, read, {read_ahead, ReadAtOnce}]),
+    Z = zlib:open(),
+    ok = zlib:inflateInit(Z),
+    Buffer = "",
+    uncompressing_process(ParentPid, H, Z, Buffer).
+
+uncompressing_process(ParentPid, File, ZStream, Buffer) ->
+    Close = 
+        fun() ->
+            try
+                ok = zlib:inflateEnd(ZStream),
+                ok = zlib:close(ZStream)
+            catch
+                _:data_error -> ok
+            end,
+            file:close(File)
+        end,
+    
+    receive
+        {'EXIT', _, _} ->
+            Close();
+        close ->
+            Close();
+        read_line ->
+            {Response, NewBuffer} = read_line_from_compressed_stream(File, ZStream, Buffer),
+            ParentPid ! Response,
+            uncompressing_process(ParentPid, File, ZStream, NewBuffer)
+    end.
+
+read_line_from_compressed_stream(File, ZStream, Buffer) ->
+    Lines = string:tokens(Buffer, "\n"),
+    case length(Lines) of
+        1 ->
+            case file:read(File, 255) of
+                {ok, Data} ->
+                    UncompressedData = zlib:inflate(ZStream, Data),
+                    NewBuffer = string:concat(Buffer, UncompressedData),
+            
+                    Lines2 = string:tokens(NewBuffer, "\n"),
+                    case length(Lines2) of
+                        1 -> read_line_from_compressed_stream(File, ZStream, NewBuffer);
+                        _ -> {{ok, hd(Lines2)}, string:join(tl(Lines2), "\n")}
+                    end;
+                eof ->
+                    {eof, Buffer};
+                {error, Reason} ->
+                    {{error, Reason}, Buffer}
+            end;
+        _ -> {{ok, hd(Lines)}, string:join(tl(Lines), "\n")}
+    end.

@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
 
-const CHANGE_EVENT = 'change';
+const CHANGE_EVENT = 'bench_change';
 
 const defaultData = {
     benchmarks: [],

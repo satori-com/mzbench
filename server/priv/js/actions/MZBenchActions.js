@@ -1,4 +1,5 @@
 import BenchStore from '../stores/BenchStore';
+import MetricsStore from '../stores/MetricsStore';
 import Constants from '../constants/ActionTypes';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import MZBenchWS from '../utils/MZBenchWS';
@@ -103,15 +104,18 @@ export default {
         Dispatcher.dispatch({ type: Constants.SELECT_ACTIVE_TAB, data: tab });
     },
 
-    resetMetrics() {
-        Dispatcher.dispatch({ type: Constants.METRIC_STORE_RESET });
-    },
-
     cloneBench(id) {
         Dispatcher.dispatch({ type: Constants.CLONE_BENCH, data: id });
     },
 
     newBench() {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
+    },
+
+    setBenchForMetricsUpdates(benchId) {
+        if(benchId != MetricsStore.getCurrentBenchId()) {
+            MetricsStore.changeCurrentBench(benchId);
+            MZBenchWS.send({cmd: "set_bench_for_metrics_updates", bench: benchId});
+        }
     }
 }
