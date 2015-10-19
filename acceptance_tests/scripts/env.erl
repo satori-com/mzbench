@@ -3,7 +3,6 @@
     [{print, {var, "jozin"}}, 
      {print, {var, "missing", "fallback"}}, 
      {wait, {{numvar, "wait_ms"}, ms}},
-     {wait, {{numvar, "wait_ms", undefined}, ms}},
      {wait, {{var, "wait_ms", 1}, ms}},
      {wait, {{var, "wait_ms_undefined", 5}, ms}},
      {set_signal, "A"}]

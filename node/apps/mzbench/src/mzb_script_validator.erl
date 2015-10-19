@@ -26,6 +26,10 @@ read_and_validate(ScriptFileName, Env) ->
                 "Failed to parse script ~s:~nline ~p: ~s",
                 [ScriptFileName, LineNumber, [E]]),
             {error, C, Error, erlang:get_stacktrace(), [Message]};
+        C:{invalid_operation_name, Name} = Error ->
+            {error, C, Error, erlang:get_stacktrace(),
+                [mzb_string:format("Script ~s is invalid:~nInvalid operation name ~p~n",
+                    [ScriptFileName, Name])]};
         C:{error, {validation, VM}} = Error when is_list(VM) ->
             Messages = [mzb_string:format("Script ~s is invalid:~n", [ScriptFileName]) | VM],
             {error, C, Error, erlang:get_stacktrace(), Messages};
@@ -39,6 +43,15 @@ read_and_validate(ScriptFileName, Env) ->
 
 validate(Script) ->
     Script2 = mzbl_script:enumerate_pools(Script),
+
+    case mzbl_typecheck:check(Script2, list) of
+        {false, Reason, undefined} ->
+            erlang:error({error, {validation, [mzb_string:format("Type error ~p", [Reason])]}});
+        {false, Reason, Location} ->
+            erlang:error({error, {validation, [mzb_string:format("~sType error ~p", [Location, Reason])]}});
+        _ -> []
+    end,
+
     Errors = lists:foldl(
         fun (#operation{name = include_resource, args = [_Name, Path]}, Acc) ->
                 validate_resource_filename(Path) ++ Acc;

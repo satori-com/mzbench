@@ -10,6 +10,15 @@
 -type worker_name() :: atom().
 -type worker_state() :: term().
 -type worker_env() :: [{Key :: any(), Value :: any()}].
+-type type() :: number | integer | float
+    | atom | string | binary
+    | list | tuple
+    | any | nil
+    | time | rate | timeunit | rateunit.
+-type typecheck_result()
+    :: true
+    | not_sure
+    | {false, Reason :: term(), Location :: string() | undefined}.
 
 -record(operation, {
         is_std = true :: true | false,
