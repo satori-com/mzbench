@@ -76,13 +76,14 @@ records(T) when is_tuple(T) ->
         % FIXME: this doesn't handle {var, {{var, "name"}, float}}
         [VarName, VarType] when is_list(VarName) -> {VarName, VarType};
         [T2, Units] when is_tuple(T2) -> #constant{value = records(T2), units = Units};
-        [Name, Meta | Params] ->
+        [Name, Meta | Params] when is_atom(Name) ->
             IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
             #operation{
                 name = Name,
                 meta = Meta,
                 args = records(Params),
                 is_std = IsStd};
+        [Name, _ | _] -> erlang:error({invalid_operation_name, Name});
         [Meta] -> #operation{name = undefined, meta = Meta, args = []}
     end;
 records(S) -> S.

@@ -26,13 +26,13 @@ to_integer_with_default(N, _) when is_integer(N) ->
 to_integer_with_default(S, Default) when is_binary(S) ->
     try
         list_to_integer(binary_to_list(S))
-    catch _ ->
+    catch _:_ ->
         Default
     end;
 to_integer_with_default(S, Default) when is_list(S) ->
     try
         list_to_integer(S)
-    catch _ ->
+    catch _:_ ->
         Default
     end;
 to_integer_with_default(_, Default) ->
