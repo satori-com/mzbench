@@ -220,7 +220,7 @@ This option specify how often the block of instructions must be repeated. The `<
    * `{N, rph}` - repeat N times per hour;
    * `{N, rpm}` - repeat N times per minute;
    * `{N, rps}` - repeat N times per second;
-   * `{think_time, {N, rp(s|m|h)}, {M, (ms|sec|min|h)}}` - keep this rate for 1 second and sleep for specified period of time in a loop, this option is similar to {comb, {N, rp(s|m|h)}, {1, sec}, {0, rps}, {M, (ms|sec|min|h)}} which is described below.
+   * `{think_time, {M, (ms|sec|min|h)}, {N, rp(s|m|h)}}` - keep this rate for 1 second and sleep for specified period of time in a loop, this option is similar to {comb, {N, rp(s|m|h)}, {1, sec}, {0, rps}, {M, (ms|sec|min|h)}} which is described below.
    * `{ramp, linear, <start-rate>, <end-rate>}` - linearly change the repeating rate from `<start-rate>` to `<end-rate>`.
    * `{comb, <rate1>, <time1>, <rate2>, <time2>...}` - use these rates for these periods of time in a loop, for example for {comb, {1, rps}, {1, sec}, {5, rps}, {5, sec}} these rates will be repeated until whole loop time is over.
 
