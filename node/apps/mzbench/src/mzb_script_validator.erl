@@ -97,10 +97,14 @@ validate_resource_filename(Filename) ->
     end.
 
 -spec validate_pool(#operation{}) -> [string()].
-validate_pool(#operation{name = pool, args = [Opts, Script]} = Op) ->
+validate_pool(#operation{name = pool, args = [Opts, Script], meta = Meta} = Op) ->
     Name = proplists:get_value(pool_name, Op#operation.meta),
     {Provider, Worker} = mzbl_script:extract_worker(Opts),
-    #operation{args = [Size]} = lists:keyfind(size, #operation.name, Opts),
+    Size = case lists:keyfind(size, #operation.name, Opts) of
+        #operation{args = [X]} -> X;
+        _ -> erlang:error({error, {validation,
+            [mzb_string:format("~spool without size", [mzbl_script:meta_to_location_string(Meta)])]}})
+    end,
     WorkerStartType =
         case lists:keyfind(worker_start, #operation.name, Opts) of
             #operation{args = [V]} -> V;
