@@ -189,30 +189,38 @@ check_op(set_signal, [Name, Count], T, Env) ->
         check(Count, integer, Env)]);
 check_op(dump, [X], T, Env) ->
     and_(is(atom, T), check(X, any, Env));
+check_op(think_time, [Rate, Time], T, Env) ->
+    all_([
+        is(rate, T),
+        check(Rate, rate, Env),
+        check(Time, time, Env)]);
+check_op(ramp, [Profile, Rate1, Rate2], T, Env) ->
+    all_([
+        case Profile of
+            linear -> true;
+            _ -> {false, mzb_string:format("~p is not a valid ramp profile", [Profile]), undefined}
+        end,
+        is(rate, T),
+        check(Rate1, rate, Env),
+        check(Rate2, rate, Env)]);
+check_op(comb, Args, T, Env) ->
+    RatesAndTimes = every_other(lists:zip(lists:droplast(Args), tl(Args))),
+    and_(
+        is(rate, T),
+        all_([and_(check(Rate, rate, Env), check(Time, time, Env))
+            || {Rate, Time} <- RatesAndTimes]));
 check_op(_, Args, _, Env) ->
     % this is probably worker's operation
     % we don't know anything about it
     % but we can still look into its arguments
     and_(not_sure, all_([check(A, any, Env) || A <- Args])).
 
-check_loop_spec_element(#operation{name = comb, args = Args}, Env) ->
-    RatesAndTimes = every_other(lists:zip(lists:droplast(Args), tl(Args))),
-    all_([and_(check(Rate, rate, Env), check(Time, time, Env))
-        || {Rate, Time} <- RatesAndTimes]);
 check_loop_spec_element(#operation{name = time, args = [Time]}, Env) ->
     check(Time, time, Env);
 check_loop_spec_element(#operation{name = rate, args = [Rate]}, Env) ->
     check(Rate, rate, Env);
 check_loop_spec_element(#operation{name = spawn, args = [Arg]}, Env) ->
     check(Arg, boolean, Env);
-check_loop_spec_element(#operation{name = think_time, args = [Rate, Time]}, Env) ->
-    and_(
-        check(Rate, rate, Env),
-        check(Time, time, Env));
-check_loop_spec_element(#operation{name = ramp, args = [linear, Rate1, Rate2]}, Env) ->
-    and_(
-        check(Rate1, rate, Env),
-        check(Rate2, rate, Env));
 check_loop_spec_element(#operation{name = parallel, args = [N]}, Env) ->
     check(N, integer, Env);
 check_loop_spec_element(#operation{name = iterator, args = [Name]}, Env) ->

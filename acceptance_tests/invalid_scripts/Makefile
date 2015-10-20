@@ -15,12 +15,13 @@ check: $(MATCHES)
 	diff $^ && touch $@
 
 %.expected_answer: %.expected_answer_template
-	sed -e "s#SCRIPT_NAME#$(abspath $*.erl)#" $< > $@
+	@sed -e "s#SCRIPT_NAME#$(abspath $*.erl)#" $< > $@
 
 %.got_answer: %.erl
 	-@../../bin/mzbench validate $< > $@ || true
 
 clean:
-	-@rm -rf data.* log.*
-	-@rm *.got_answer
-	-@rm *.expected_answer
+	@rm -rf data.* log.* || true
+	@rm *.got_answer || true
+	@rm *.expected_answer || true
+	@rm *.match || true
