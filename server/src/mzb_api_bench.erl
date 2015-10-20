@@ -215,9 +215,10 @@ handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config
 
 handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+    {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
     ScriptFilePath = script_path(Script),
     _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost],
-        "~/mz/mzbench/bin/run.escript",
+        io_lib:format("~s/mzbench/bin/run.escript", [NodeDeployPath]),
         [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "environ.txt"]],
         get_logger(State)),
     ok;
@@ -472,9 +473,10 @@ generate_bench_env(MetricPrefix, Params) ->
     end.
 
 script_path(Script) ->
+    {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
     case Script of
         #{filename := FileName} -> FileName;
-        Pkg -> "~/mz/mzbench_workers/" ++ Pkg ++ "/default.erl"
+        Pkg -> NodeDeployPath ++ "/mzbench_workers/" ++ Pkg ++ "/default.erl"
     end.
 
 run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->

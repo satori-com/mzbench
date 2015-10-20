@@ -107,7 +107,9 @@ handle_info(trigger,
     end,
 
     NewState = try
-        NetStatsString = os:cmd(mzb_file:expand_filename("~/mz/mzbench/bin/report_network_usage.py")),
+        {ok, NodeDeploymentPath} = application:get_env(mzbench, node_deployment_path),
+        NetStatsString = os:cmd(mzb_file:expand_filename(mzb_string:format(
+            "~s/mzbench/bin/report_network_usage.py", [NodeDeploymentPath]))),
         {ok, Tokens, _} = erl_scan:string(NetStatsString),
         {ok, NetStats} = erl_parse:parse_term(Tokens),
 
