@@ -51,8 +51,8 @@ check: test-unit test-network-usage-script dialyzer.log
 
 .PHONY: install
 install: generate
-	mkdir -p ~/mz
-	cp -rf _build/default/rel/mzbench ~/mz
+	mkdir -p ~/.local/share/mz
+	cp -rf _build/default/rel/mzbench ~/.local/share/mz
 
 .PHONY: generate_tgz
 generate_tgz: generate

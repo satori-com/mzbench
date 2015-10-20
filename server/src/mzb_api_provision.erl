@@ -26,9 +26,13 @@ provision_nodes(Config, Logger) ->
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
     Logger(info, "NTP check result: ~p", [CheckResult]),
 
+    {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
+
     catch mzb_subprocess:remote_cmd(
         UserName, UniqHosts,
-        "ps -ef | grep beam | grep -v grep | grep -v mzbench_api && ~/mz/mzbench/bin/mzbench stop; true",
+        io_lib:format(
+            "ps -ef | grep beam | grep -v grep | grep -v mzbench_api && ~s/mzbench/bin/mzbench stop; true",
+            [NodeDeployPath]),
         [], Logger),
 
     case ProvisionNodes of
@@ -43,9 +47,19 @@ provision_nodes(Config, Logger) ->
     WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
 
     ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench start", [RootDir]), [], Logger),
+    _ = mzb_subprocess:remote_cmd(
+        UserName,
+        [DirectorHost|WorkerHosts],
+        io_lib:format("cd ~s && ~s/mzbench/bin/mzbench start", [RootDir, NodeDeployPath]),
+        [],
+        Logger),
 
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mzbench/bin/wait_cluster_start.escript", ["30000", DirNode | WorkerNodes], Logger),
+    _ = mzb_subprocess:remote_cmd(
+        UserName,
+        [DirectorHost],
+        io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
+        ["30000", DirNode | WorkerNodes],
+        Logger),
     DirNode.
 
 -spec clean_nodes(term(), fun(), need_to_stop_nodes|dont_need_to_stop_nodes) -> ok.
@@ -57,10 +71,11 @@ clean_nodes(Config, Logger, NeedToStopNodes) ->
     RootDir = mzb_api_bench:remote_path("", Config),
     case NeedToStopNodes of
         need_to_stop_nodes ->
+            {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
             _ = mzb_subprocess:remote_cmd(
                 UserName,
                 [DirectorHost|WorkerHosts],
-                io_lib:format("cd ~s && ~~/mz/mzbench/bin/mzbench stop", [RootDir]),
+                io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop", [RootDir, NodeDeployPath]),
                 [],
                 Logger);
         dont_need_to_stop_nodes -> ok
