@@ -189,7 +189,7 @@ check_op(set_signal, [Name, Count], T, Env) ->
         check(Count, integer, Env)]);
 check_op(dump, [X], T, Env) ->
     and_(is(atom, T), check(X, any, Env));
-check_op(think_time, [Rate, Time], T, Env) ->
+check_op(think_time, [Time, Rate], T, Env) ->
     all_([
         is(rate, T),
         check(Rate, rate, Env),
