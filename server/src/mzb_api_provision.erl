@@ -2,7 +2,7 @@
 
 -export([
     provision_nodes/2,
-    clean_nodes/3,
+    clean_nodes/2,
     ensure_file_content/5,
     ensure_dir/4
 ]).
@@ -66,24 +66,20 @@ get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserNam
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
 
--spec clean_nodes(term(), fun(), need_to_stop_nodes|dont_need_to_stop_nodes) -> ok.
-clean_nodes(Config, Logger, NeedToStopNodes) ->
+-spec clean_nodes(term(), fun()) -> ok.
+clean_nodes(Config, Logger) ->
     #{
         user_name:= UserName,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
     RootDir = mzb_api_bench:remote_path("", Config),
-    case NeedToStopNodes of
-        need_to_stop_nodes ->
-            _ = mzb_subprocess:remote_cmd(
-                UserName,
-                [DirectorHost|WorkerHosts],
-                io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop",
-                    [RootDir, mzb_api_paths:node_deployment_path()]),
-                [],
-                Logger);
-        dont_need_to_stop_nodes -> ok
-    end,
+    _ = mzb_subprocess:remote_cmd(
+        UserName,
+        [DirectorHost|WorkerHosts],
+        io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop; true",
+            [RootDir, mzb_api_paths:node_deployment_path()]),
+        [],
+        Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger),
     ok.
 
