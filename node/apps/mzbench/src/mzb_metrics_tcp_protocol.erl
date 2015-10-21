@@ -13,7 +13,8 @@
          handle_cast/2,
          handle_info/2,
          terminate/2,
-         code_change/3]).
+         code_change/3,
+         get_port/0]).
 
 -define(TIMEOUT, 60000).
 
@@ -27,8 +28,12 @@
 start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
-dispatch({change_env, Env, Ref}, State) ->
-    send_message({change_env_res, mzb_director:change_env(Env), Ref}, State),
+dispatch({request, Ref, Msg}, State) ->
+    lager:info("Received request: ~p", [Msg]),
+    case handle_message(Msg) of
+        {ok, Res} -> send_message({response, Ref, Res}, State);
+        {error, Reason} -> lager:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
+    end,
     {noreply, State};
 
 dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
@@ -38,6 +43,26 @@ dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
 dispatch(Unhandled, State) ->
     lager:error("Unhandled tcp message: ~p", [Unhandled]),
     {noreply, State}.
+
+get_port() ->
+    ranch:get_port(metrics_tcp_server).
+
+handle_message({change_env, Env}) ->
+    {ok, mzb_director:change_env(Env)};
+
+handle_message(get_log_hosts) ->
+    Nodes = [node()|nodes()],
+    Hosts = lists:map(
+        fun (Node) ->
+            case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
+                {badrpc, Reason} -> erlang:error({badrpc, Node, Reason});
+                Port -> {mzbl_script:hostname(Node), Port}
+            end
+        end, Nodes),
+    {ok, Hosts};
+
+handle_message(Msg) ->
+    {error, {unhandled, Msg}}.
 
 init([State]) -> {ok, State}.
 
@@ -75,6 +100,10 @@ handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
     Metric = io_lib:format("~B\t~s\t~p~n", [unix_time(), Name, Value]),
     send_message({metric_values, Metric}, State),
     {reply, ok, State};
+
+handle_call(get_port, _From, State = #state{socket = Socket, transport = Transport}) ->
+    {ok, {_, Port}} = Transport:sockname(Socket),
+    {reply, Port, State};
 
 handle_call(Request, _From, State) ->
     lager:error("~p has received unexpected call: ~p", [?MODULE, Request]),
