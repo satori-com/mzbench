@@ -6,8 +6,8 @@
 
 node_deployment_path() ->
     {ok, Result} = application:get_env(mzbench_api, node_deployment_path),
-    mzb_file:expand_filename(Result).
+    Result.
 
 worker_deployment_path() ->
     {ok, Result} = application:get_env(mzbench_api, worker_deployment_path),
-    mzb_file:expand_filename(Result).
+    Result.
