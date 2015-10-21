@@ -45,7 +45,6 @@ provision_nodes(Config, Logger) ->
 
     [DirNode] = [nodename(director_sname(Config), H) || H <- get_hostnames(UserName, [DirectorHost], Logger)],
     WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
-
     ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
     _ = mzb_subprocess:remote_cmd(
         UserName,
@@ -60,7 +59,12 @@ provision_nodes(Config, Logger) ->
         io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
         ["30000", DirNode | WorkerNodes],
         Logger),
-    DirNode.
+    {DirNode, get_management_port(Config, Logger)}.
+
+get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->
+    [Res] = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mzbench/bin/nodetool",  ["-sname", director_sname(Config), "rpcterms", "mzb_metrics_tcp_protocol", "get_port", "\\\"\\\""], Logger),
+    Logger(info, "Management port: ~s", [Res]),
+    erlang:list_to_integer(Res).
 
 -spec clean_nodes(term(), fun(), need_to_stop_nodes|dont_need_to_stop_nodes) -> ok.
 clean_nodes(Config, Logger, NeedToStopNodes) ->
@@ -164,9 +168,13 @@ ensure_dir(User, Hosts, Dir, Logger) ->
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 
-vm_args_content(NodeName, #{vm_args:= Args}) ->
-    ArgsFormated = io_lib:format(string:join([A ++ "~n" || A <- Args], ""), []),
-    io_lib:format("-sname ~s~n", [NodeName]) ++ ArgsFormated.
+vm_args_content(NodeName, #{bench_log_port:= LogPort, bench_metrics_port:= MetricsPort, vm_args:= ConfigArgs}) ->
+    NewArgs =
+        [mzb_string:format("-sname ~s", [NodeName]),
+         mzb_string:format("-mzbench bench_metrics_port ~b", [MetricsPort]),
+         mzb_string:format("-mzbench bench_log_port ~b", [LogPort])],
+
+    io_lib:format(string:join([A ++ "~n" || A <- NewArgs ++ ConfigArgs], ""), []).
 
 get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).

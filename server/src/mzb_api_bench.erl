@@ -87,7 +87,9 @@ init([Id, Params]) ->
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
         vm_args => VMArgs,
-        cloud => mzb_bc:maps_get(cloud, Params, undefined)
+        cloud => mzb_bc:maps_get(cloud, Params, undefined),
+        bench_log_port => application:get_env(mzbench_api, bench_log_port, undefined),
+        bench_metrics_port => application:get_env(mzbench_api, bench_metrics_port, undefined)
     },
     Data = #{
         includes => Includes
@@ -128,9 +130,9 @@ workflow_config(_State) ->
                   checking_script,
                   allocating_hosts,
                   provisioning,
+                  starting_collectors,
                   uploading_script,
                   uploading_includes,
-                  starting_collectors,
                   gathering_metric_names,
                   running
                 ]},
@@ -174,9 +176,20 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
            deallocator => Deallocator }
     end;
 
-handle_stage(pipeline, provisioning, #{config:= Config} = State) ->
-    DirectorNode = mzb_api_provision:provision_nodes(Config, get_logger(State)),
-    fun (S) -> S#{director_node => DirectorNode} end;
+handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
+    {DirectorNode, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
+    #{director_host:= DirectorHost} = Config,
+    MetricsFileHandler = maps:get(metrics_file_handler, State),
+    Connection = mzb_api_connection:start_link(management, DirectorHost, Port,
+        fun ({message, Msg}) ->
+            case erlang:binary_to_term(Msg) of
+                {metric_values, Values} -> MetricsFileHandler({write, Values});
+                {response, Continuation, Res} -> Continuation(Res);
+                Any -> mzb_pipeline:cast(Self, {director_message, Any})
+            end;
+            ({error, _}) -> ok
+        end),
+    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection} end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
     #{script:= Script,
@@ -200,23 +213,17 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
-handle_stage(pipeline, starting_collectors, #{config:= Config, self:= Self} = State) ->
-    #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
+handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection} = State) ->
     LogFileHandler = maps:get(log_file_handler, State),
-    LogsCollectors = mzb_api_connection:start_link(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port),
-        fun ({message, Msg}) -> LogFileHandler({write, Msg});
-            (_) -> ok
-        end),
-    MetricsFileHandler = maps:get(metrics_file_handler, State),
-    [Connection] = mzb_api_connection:start_link(management, [DirectorHost], get_env(bench_metrics_port),
-        fun ({message, Msg}) ->
-            case erlang:binary_to_term(Msg) of
-                {metric_values, Values} -> MetricsFileHandler({write, Values});
-                Any -> mzb_pipeline:cast(Self, {director_message, Any})
-            end;
-            ({error, _}) -> ok
-        end),
-    fun (S) -> S#{collectors => LogsCollectors, cluster_connection => Connection} end;
+    Hosts = director_call(Connection, get_log_hosts),
+    info("Log collector servers: ~p", [Hosts], State),
+    LogsCollectors = mzb_lists:pmap(fun ({Host, Port}) ->
+        mzb_api_connection:start_link(logs, Host, Port,
+            fun ({message, Msg}) -> LogFileHandler({write, Msg});
+                (_) -> ok
+            end)
+    end, Hosts),
+    fun (S) -> S#{collectors => LogsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
@@ -290,8 +297,11 @@ handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
 
 handle_call({change_env, Env}, From, #{status:= running, cluster_connection:= Connection} = State) ->
     info("Change env req received: ~p", [Env], State),
-    mzb_api_connection:send_message(Connection,
-        {change_env, Env, fun (Res) -> mzb_pipeline:reply(From, Res) end}),
+    director_async_call(Connection, {change_env, Env},
+        fun (Res) ->
+            info("Received change_env response: ~p", [Res], State),
+            mzb_pipeline:reply(From, Res)
+        end),
     {noreply, State};
 
 handle_call({change_env, _Env}, _From, #{} = State) ->
@@ -300,11 +310,6 @@ handle_call({change_env, _Env}, _From, #{} = State) ->
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
-
-handle_cast({director_message, {change_env_res, Res, Continuation}}, State) ->
-    info("Received change_env response: ~p", [Res], State),
-    Continuation(Res),
-    {noreply, State};
 
 handle_cast({director_message, Unknown}, State) ->
     lager:error("Unknown director message ~p", [Unknown]),
@@ -732,4 +737,19 @@ generate_graphite_prefix(BenchName) ->
     _ = ets:insert_new(graphite_prefixes, {BenchName, -1}),
     N = ets:update_counter(graphite_prefixes, BenchName, {2, 1, Threshold - 1, 0}),
     mzb_string:format("~s.~b", [BenchName, N]).
+
+director_async_call(Connection, Msg, Continuation) ->
+    mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
+
+director_call(Connection, Msg) ->
+    Ref = erlang:make_ref(),
+    Self = self(),
+    Cont =
+        fun (Res) ->
+            Self ! {Ref, Res}
+        end,
+    director_async_call(Connection, Msg, Cont),
+    receive
+        {Ref, Res} -> Res
+    end.
 
