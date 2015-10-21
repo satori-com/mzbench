@@ -26,7 +26,7 @@ provision_nodes(Config, Logger) ->
     CheckResult = (catch ntp_check(UserName, UniqHosts, Logger)),
     Logger(info, "NTP check result: ~p", [CheckResult]),
 
-    {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
+    NodeDeployPath = mzb_api_paths:node_deployment_path(),
 
     catch mzb_subprocess:remote_cmd(
         UserName, UniqHosts,
@@ -71,11 +71,11 @@ clean_nodes(Config, Logger, NeedToStopNodes) ->
     RootDir = mzb_api_bench:remote_path("", Config),
     case NeedToStopNodes of
         need_to_stop_nodes ->
-            {ok, NodeDeployPath} = application:get_env(mzbench_api, node_deployment_path),
             _ = mzb_subprocess:remote_cmd(
                 UserName,
                 [DirectorHost|WorkerHosts],
-                io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop", [RootDir, NodeDeployPath]),
+                io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop",
+                    [RootDir, mzb_api_paths:node_deployment_path()]),
                 [],
                 Logger);
         dont_need_to_stop_nodes -> ok
