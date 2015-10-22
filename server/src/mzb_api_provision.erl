@@ -218,24 +218,32 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     _ = mzb_lists:pmap(fun({Host, OS}) ->
             {OS, LocalTarballPath} = lists:keyfind(OS, 1, NeededTarballs),
             RemoteTarballPath = mzb_file:tmp_filename() ++ ".tgz",
-            case lists:member(OS, OSsWithMissingTarballs) of
-                true ->
-                    Logger(info, "Building package ~s on ~s", [PackageName, Host]),
-                    build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
-                    case lists:keyfind(OS, 2, HostsAndOSs) of
-                        {Host, OS} ->
-                            Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
-                            download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
-                        _ ->
-                            Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
-                            ok
-                    end;
-                false ->
-                    Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
-                    ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
-            end,
-            InstallationCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath]),
-            _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
+            ExtractDir = mzb_file:tmp_filename(),
+            try
+                case lists:member(OS, OSsWithMissingTarballs) of
+                    true ->
+                        Logger(info, "Building package ~s on ~s", [PackageName, Host]),
+                        build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
+                        case lists:keyfind(OS, 2, HostsAndOSs) of
+                            {Host, OS} ->
+                                Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
+                                download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
+                            _ ->
+                                Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
+                                ok
+                        end;
+                    false ->
+                        Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
+                        ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
+                end,
+                ExtractCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [ExtractDir, ExtractDir, RemoteTarballPath]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], ExtractCmd, [], Logger),
+                InstallationCmd = mzb_string:format("mkdir -p ~s && rsync -aW ~s/ ~s", [InstallationDir, ExtractDir, InstallationDir]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
+            after
+                RemoveCmd = mzb_string:format("rm -rf ~s; rm -rf ~s; true", [RemoteTarballPath, ExtractDir]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], RemoveCmd, [], Logger)
+            end
         end,
         HostsAndOSs),
     ok.
