@@ -97,7 +97,7 @@ load_config(File, AppName) ->
     end.
 
 load_cloud_plugin() ->
-    {ok, Dir} = application:get_env(mzbench_api, plugins_dir),
+    Dir = mzb_api_paths:plugins_dir(),
     ok = filelib:ensure_dir(filename:join(Dir, ".")),
     PluginPaths = mzb_file:wildcard(filename:join([Dir, "*", "ebin"])),
     ok = code:add_pathsa(PluginPaths),

@@ -201,7 +201,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     end,
     #{user_name:= User} = Config,
     HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_os_id(User, Host, Logger)} end, Hosts),
-    PackagesDir = application:get_env(mzbench_api, tgz_packages_dir, undefined),
+    PackagesDir = mzb_api_paths:tgz_packages_dir(),
     ok = filelib:ensure_dir(PackagesDir ++ "/"),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
     NeededTarballs =
