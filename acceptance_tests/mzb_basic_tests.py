@@ -251,7 +251,7 @@ def websocket_available_test():
 def main():
     from nose.plugins.multiprocess import MultiProcess
     with start_mzbench_server():
-        if not nose.run(defaultTest=__name__, addplugins=[MultiProcess()]):
+        if not nose.run(defaultTest=[__name__, 'mzb_signal_tests', 'mzb_negative_tests'], addplugins=[MultiProcess()]):
             raise RuntimeError("some tests failed")
 
 

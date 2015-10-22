@@ -14,14 +14,6 @@ basic-tests:
 quick-test:
 	./mzb_quick_test.py -v
 
-.PHONY: negative-tests
-negative-tests:
-	./mzb_negative_tests.py -v --processes=30 --process-timeout=1200
-
-.PHONY: signal-tests
-signal-tests:
-	./mzb_signal_tests.py -v --processes=30 --process-timeout=1200
-
 .PHONY: clean
 clean:
 	-@rm -rf data.*
