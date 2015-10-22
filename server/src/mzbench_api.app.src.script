@@ -17,7 +17,8 @@
     ]},
     {mod, {mzb_api_app, []}},
     {env, [
-        {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}]},
+        {cloud_plugins, [{local, #{module => mzb_zero_cloud_plugin}}]},
+        %{cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["Host1", "Host2", ...]}}]},
         %{cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
         %                         instance_spec => [
         %                              {image_id, "ami-3b90a80b"},
