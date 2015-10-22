@@ -21,12 +21,31 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Opts), get_config(Opts)),
     Instances = proplists:get_value(instances_set, Data),
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
-    Hosts = [proplists:get_value(private_ip_address, X) || X <- Instances], %private_dns_name
-    lager:info("AWS ids: ~p, hosts: ~p", [Ids, Hosts]),
+    lager:info("AWS ids: ~p", [Ids]),
     wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
+    {ok, [NewData]} = erlcloud_ec2:describe_instances(Ids, get_config(Opts)),
+    lager:info("~p", [NewData]),
+    {Kind, Hosts} = get_hosts(Ids, NewData),
     wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
-    update_hostfiles(UserName, Hosts),
+    case Kind of
+        dns_name -> ok;
+        _ -> update_hostfiles(UserName, Hosts)
+    end,
     {ok, {Opts, Ids}, UserName, Hosts}.
+
+-spec get_hosts([string()], term()) -> {atom(), [string()]}.
+get_hosts(Ids, Data) ->
+    get_hosts(Ids, Data, [dns_name, ip_address, private_ip_address]).
+
+-spec get_hosts([string()], term(), [atom()]) -> {atom(), [string()]}.
+get_hosts(_, _, []) -> erlang:error({ec2_error, couldnt_obtain_hosts});
+get_hosts(Ids, Data, [H | T]) ->
+    Instances = proplists:get_value(instances_set, Data),
+    Hosts = [proplists:get_value(H, X) || X <- Instances],
+    case Hosts of
+        [R | _] when R =/= undefined -> {H, Hosts};
+        _ -> get_hosts(Ids, Data, T)
+    end.
 
 -spec destroy_cluster({#{}, [term()]}) -> ok.
 destroy_cluster({Opts, Ids}) ->
