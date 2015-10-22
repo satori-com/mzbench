@@ -130,7 +130,7 @@ init([]) ->
            max_bench_num => MaxBenchNum})}.
 
 server_data_dir() ->
-    DataDir = application:get_env(mzbench_api, bench_data_dir, undefined),
+    DataDir = mzb_api_paths:bench_data_dir(),
     filename:absname(DataDir).
 
 handle_call({start_bench, Params}, _From, #{status:= active} = State) ->
