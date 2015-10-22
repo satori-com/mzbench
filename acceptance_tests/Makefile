@@ -8,7 +8,7 @@ local-tests:
 
 .PHONY: basic-tests
 basic-tests:
-	./mzb_basic_tests.py -v
+	./mzb_basic_tests.py -v --processes=30 --process-timeout=1200
 
 .PHONY: quick-test
 quick-test:
@@ -16,12 +16,11 @@ quick-test:
 
 .PHONY: negative-tests
 negative-tests:
-	./mzb_negative_tests.py -v
+	./mzb_negative_tests.py -v --processes=30 --process-timeout=1200
 
 .PHONY: signal-tests
 signal-tests:
-	./mzb_signal_tests.py -v
-
+	./mzb_signal_tests.py -v --processes=30 --process-timeout=1200
 
 .PHONY: clean
 clean:

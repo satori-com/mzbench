@@ -185,8 +185,8 @@ handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
         fun ({message, Msg}) ->
             case erlang:binary_to_term(Msg) of
                 {metric_values, Values} -> MetricsFileHandler({write, Values});
-                {response, Continuation, Res} -> Continuation(Res);
-                Any -> mzb_pipeline:cast(Self, {director_message, Any})
+                {response, Continuation, Res} -> Continuation(Res), ok;
+                Any -> mzb_pipeline:cast(Self, {director_message, Any}), ok
             end;
             ({error, _}) -> ok
         end),
