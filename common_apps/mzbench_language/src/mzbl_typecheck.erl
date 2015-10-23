@@ -61,7 +61,7 @@ check(X, T, _) -> {false, {X, is_not, T}, undefined}.
 -spec check_env(string(), type(), worker_env()) -> typecheck_result().
 check_env(Name, Type, Env) ->
     case proplists:is_defined(Name, Env) of
-        false -> not_sure;
+        false -> true;
         true -> check(proplists:get_value(Name, Env), Type, Env)
     end.
 
@@ -213,7 +213,7 @@ check_op(_, Args, _, Env) ->
     % this is probably worker's operation
     % we don't know anything about it
     % but we can still look into its arguments
-    and_(not_sure, all_([check(A, any, Env) || A <- Args])).
+    all_([check(A, any, Env) || A <- Args]).
 
 check_loop_spec_element(#operation{name = time, args = [Time]}, Env) ->
     check(Time, time, Env);
@@ -229,16 +229,13 @@ check_loop_spec_element(X, _Env) ->
     {false, mzb_string:format("Bad loop spec element ~p", [X]), undefined}.
 
 -spec or_(typecheck_result(), typecheck_result()) -> typecheck_result().
-or_(true, _) -> true;
-or_(_, true) -> true;
 or_({false, Reason1, Location1}, {false, Reason2, _}) -> {false, {neither, Reason1, Reason2}, Location1};
-or_(_, _) -> not_sure.
+or_(_, _) -> true.
 
 -spec and_(typecheck_result(), typecheck_result()) -> typecheck_result().
 and_({false, Reason, Location}, _) -> {false, Reason, Location};
 and_(_, {false, Reason, Location}) -> {false, Reason, Location};
-and_(true, true) -> true;
-and_(_, _) -> not_sure.
+and_(_, _) -> true.
 
 -spec all_([typecheck_result()]) -> typecheck_result().
 all_(Xs) ->
@@ -254,7 +251,7 @@ is(X, X) -> true;
 is(_, any) -> true;
 is(nil, T) -> {false, {nil, is_not, T}, undefined};
 is(integer, number) -> true;
-is(list, string) -> not_sure;
+is(list, string) -> true;
 is(string, list) -> true;
 is(X, T) -> {false, {X, is_not, T}, undefined}.
 
