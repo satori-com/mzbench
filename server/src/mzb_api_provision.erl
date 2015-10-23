@@ -42,10 +42,10 @@ provision_nodes(Config, Logger) ->
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
+    NodeHosts = [{director_sname(Config),DirectorHost} | [{worker_sname(Config), H} || H <- WorkerHosts]],
+    Nodes = mzb_lists:pmap(fun ({N, H}) -> nodename(N, get_hostname(UserName, H, Logger)) end, NodeHosts),
 
-    [DirNode] = [nodename(director_sname(Config), H) || H <- get_hostnames(UserName, [DirectorHost], Logger)],
-    WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
-    ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
+    ensure_vm_args([DirectorHost|WorkerHosts], Nodes, Config, Logger),
     _ = mzb_subprocess:remote_cmd(
         UserName,
         [DirectorHost|WorkerHosts],
@@ -57,9 +57,9 @@ provision_nodes(Config, Logger) ->
         UserName,
         [DirectorHost],
         io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
-        ["30000", DirNode | WorkerNodes],
+        ["30000" | Nodes],
         Logger),
-    {DirNode, get_management_port(Config, Logger)}.
+    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), get_management_port(Config, Logger)}.
 
 get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->
     [Res] = mzb_subprocess:remote_cmd(UserName, [DirectorHost], "~/mz/mzbench/bin/nodetool",  ["-sname", director_sname(Config), "rpcterms", "mzb_metrics_tcp_protocol", "get_port", "\\\"\\\""], Logger),
@@ -100,13 +100,13 @@ ntp_check(UserName, Hosts, Logger) ->
     end.
 
 nodename(Name, Host) ->
-    Name ++ "@" ++ Host.
+    erlang:list_to_atom(Name ++ "@" ++ Host).
 
-get_hostnames(UserName, Hosts, Logger) ->
-    Hostnames = mzb_subprocess:remote_cmd(UserName, Hosts, "hostname", [], Logger, []),
-    Logger(debug, "fqdn for ~p: ~p", [Hosts, Hostnames]),
-    Res = [ hd(string:tokens(FName, ".")) || FName <- Hostnames],
-    Logger(info, "Shortnames for ~p are ~p", [Hosts, Res]),
+get_hostname(UserName, Host, Logger) ->
+    [Hostname] = mzb_subprocess:remote_cmd(UserName, [Host], "hostname", [], Logger, []),
+    Logger(debug, "fqdn for ~p: ~p", [Host, Hostname]),
+    Res = hd(string:tokens(Hostname, ".")),
+    Logger(info, "Shortname for ~p are ~p", [Host, Res]),
     Res.
 
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->

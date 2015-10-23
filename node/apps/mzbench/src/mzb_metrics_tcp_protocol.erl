@@ -50,16 +50,11 @@ get_port() ->
 handle_message({change_env, Env}) ->
     {ok, mzb_director:change_env(Env)};
 
-handle_message(get_log_hosts) ->
-    Nodes = [node()|nodes()],
-    Hosts = lists:map(
-        fun (Node) ->
-            case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
-                {badrpc, Reason} -> erlang:error({badrpc, Node, Reason});
-                Port -> {mzbl_script:hostname(Node), Port}
-            end
-        end, Nodes),
-    {ok, Hosts};
+handle_message({get_log_port, Node}) ->
+    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
+        {badrpc, Reason} -> {error, {badrpc, Node, Reason}};
+        Port -> {ok, Port}
+    end;
 
 handle_message(Msg) ->
     {error, {unhandled, Msg}}.
@@ -100,10 +95,6 @@ handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
     Metric = io_lib:format("~B\t~s\t~p~n", [unix_time(), Name, Value]),
     send_message({metric_values, Metric}, State),
     {reply, ok, State};
-
-handle_call(get_port, _From, State = #state{socket = Socket, transport = Transport}) ->
-    {ok, {_, Port}} = Transport:sockname(Socket),
-    {reply, Port, State};
 
 handle_call(Request, _From, State) ->
     lager:error("~p has received unexpected call: ~p", [?MODULE, Request]),
