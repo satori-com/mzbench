@@ -63,7 +63,7 @@ generate_tgz: generate
 
 .PHONY: local_tgz
 local_tgz: generate_tgz
-	cp node.tgz ../server/packages/node-$(GIT_HEAD)-$(OS_VERSION).tgz
+	cp node.tgz ~/.local/cache/mzbench_api/packages/node-$(GIT_HEAD)-$(OS_VERSION).tgz
 
 .PHONY: clean
 clean:
