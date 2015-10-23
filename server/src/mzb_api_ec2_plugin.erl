@@ -34,11 +34,11 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     {ok, {Opts, Ids}, UserName, Hosts}.
 
 % try to extract dns names or ip addresses for allocated hosts
--spec get_hosts([string()], term()) -> {atom(), [string()]}.
+-spec get_hosts([string()], [any(), ...]) -> {dns_name | ip_address | private_ip_address, [string(), ...]}.
 get_hosts(Ids, Data) ->
     get_hosts(Ids, Data, [dns_name, ip_address, private_ip_address]).
 
--spec get_hosts([string()], term(), [atom()]) -> {atom(), [string()]}.
+-spec get_hosts([string()], [any()], [atom()]) -> {atom(), [string()]}.
 get_hosts(_, _, []) -> erlang:error({ec2_error, couldnt_obtain_hosts});
 get_hosts(Ids, Data, [H | T]) ->
     Instances = proplists:get_value(instances_set, Data),
