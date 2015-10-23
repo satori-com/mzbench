@@ -17,7 +17,6 @@
     | time | rate | timeunit | rateunit.
 -type typecheck_result()
     :: true
-    | not_sure
     | {false, Reason :: term(), Location :: string() | undefined}.
 
 -record(operation, {
