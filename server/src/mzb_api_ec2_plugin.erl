@@ -28,11 +28,12 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     {Kind, Hosts} = get_hosts(Ids, NewData),
     wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
     case Kind of
-        dns_name -> ok;
+        dns_name -> ok; % when dns names are used for hosts there is no need to set them
         _ -> update_hostfiles(UserName, Hosts)
     end,
     {ok, {Opts, Ids}, UserName, Hosts}.
 
+% try to extract dns names or ip addresses for allocated hosts
 -spec get_hosts([string()], term()) -> {atom(), [string()]}.
 get_hosts(Ids, Data) ->
     get_hosts(Ids, Data, [dns_name, ip_address, private_ip_address]).
