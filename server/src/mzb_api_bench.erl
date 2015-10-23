@@ -88,8 +88,8 @@ init([Id, Params]) ->
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
         vm_args => VMArgs,
         cloud => mzb_bc:maps_get(cloud, Params, undefined),
-        bench_log_port => application:get_env(mzbench_api, bench_log_port, undefined),
-        bench_metrics_port => application:get_env(mzbench_api, bench_metrics_port, undefined)
+        node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
+        node_management_port => application:get_env(mzbench_api, node_management_port, undefined)
     },
     Data = #{
         includes => Includes

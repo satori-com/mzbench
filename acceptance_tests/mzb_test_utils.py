@@ -29,7 +29,7 @@ def start_mzbench_server():
         node_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0}{{bench_log_port, 0}}, {{bench_metrics_port, 0}}]}}].'.format(node_location_param))
+        config.write('[{{mzbench_api, [{0}{{node_log_port, 0}}, {{node_management_port, 0}}]}}].'.format(node_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
         print(f.read())
