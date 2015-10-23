@@ -178,7 +178,7 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     end;
 
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
-    {DirectorNode, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
+    {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     #{director_host:= DirectorHost} = Config,
     MetricsFileHandler = maps:get(metrics_file_handler, State),
     Connection = mzb_api_connection:start_link(management, DirectorHost, Port,
@@ -190,7 +190,7 @@ handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
             end;
             ({error, _}) -> ok
         end),
-    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection} end;
+    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
     #{script:= Script,
@@ -214,16 +214,16 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
-handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection} = State) ->
+handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes} = State) ->
     LogFileHandler = maps:get(log_file_handler, State),
-    Hosts = director_call(Connection, get_log_hosts),
-    info("Log collector servers: ~p", [Hosts], State),
-    LogsCollectors = mzb_lists:pmap(fun ({Host, Port}) ->
+    LogsCollectors = mzb_lists:pmap(fun ({Node, Host}) ->
+        Port = director_call(Connection, {get_log_port, Node}),
+        info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
         mzb_api_connection:start_link(logs, Host, Port,
             fun ({message, Msg}) -> LogFileHandler({write, Msg});
                 (_) -> ok
             end)
-    end, Hosts),
+    end, Nodes),
     fun (S) -> S#{collectors => LogsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
