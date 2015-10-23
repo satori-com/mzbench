@@ -11,5 +11,10 @@ export default keyMirror({
     SELECT_ACTIVE_TAB: null,
     METRIC_STORE_RESET: null,
     METRIC_UPDATE: null,
-    NOTIFY: null
+    NOTIFY: null,
+    NEW_BENCH: null,
+    SERVER_INFO: null,
+    MODIFY_NEW_BENCH: null,
+    CLEAN_NEW_BENCH: null,
+    CLONE_BENCH: null
 });

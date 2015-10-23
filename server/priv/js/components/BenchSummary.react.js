@@ -1,5 +1,6 @@
 import React from 'react';
 import MZBenchRouter from '../utils/MZBenchRouter';
+import MZBenchActions from '../actions/MZBenchActions';
 import moment from 'moment';
 import 'moment-duration-format';
 
@@ -55,15 +56,29 @@ class BenchSummary extends React.Component {
                             </a>
                         </div>
                         <div className="text-right">
-                            <a type="button" ref="restart" className="btn btn-sm btn-primary" href={MZBenchRouter.buildLink("/restart", {id: this.props.bench.id})}
-                                    disabled={this.props.bench.isRunning()} onClick={this._onClick}>
-                                <span className="glyphicon glyphicon-refresh"></span> Restart
-                            </a>
+                            <div className="btn-group">
+                                <a ref="restart" className="btn btn-sm btn-primary pre-dropdown" href={MZBenchRouter.buildLink("/restart", {id: this.props.bench.id})}
+                                        disabled={this.props.bench.isRunning()} onClick={this._onClick}>
+                                    <span className="glyphicon glyphicon-refresh"></span> Restart
+                                </a>
+                                <button className="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span className="caret"></span>
+                                </button>
+                                <ul className="dropdown-menu">
+                                    <li><a href="#" onClick={this._onCloneBench} data-id={this.props.bench.id}>Clone</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         );
+    }
+
+    _onCloneBench(event) {
+        event.preventDefault();
+        MZBenchActions.cloneBench(parseInt($(event.target).data("id")));
+        MZBenchRouter.navigate("#/new", {});
     }
 
     _onClick(event) {

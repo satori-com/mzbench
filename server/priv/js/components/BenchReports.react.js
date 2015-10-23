@@ -51,8 +51,6 @@ class BenchReports extends React.Component {
         );
     }
 
-    // we need to add some notification mechanism
-
     _onSendEmailReport(event) {
         let notify = $.notify({message: `Sending report to ${this.state.email}... `}, {type: 'info', delay: 0});
         $.ajax({

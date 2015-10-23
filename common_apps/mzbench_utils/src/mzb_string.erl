@@ -22,11 +22,13 @@ iso_8601_fmt(Seconds) ->
     lists:flatten(Fmt).
 
 str_to_bstr([]) -> [];
-str_to_bstr(T) when is_list(T) ->
-    case io_lib:printable_list(T) of
-        true -> list_to_binary(T);
-        false -> [str_to_bstr(X) || X <- T]
-    end;
 str_to_bstr(T) when is_map(T) ->
     maps:from_list([{str_to_bstr(K), str_to_bstr(V)} || {K, V} <- maps:to_list(T)]);
+str_to_bstr(T) when is_list(T) ->
+    try io_lib:printable_unicode_list(unicode:characters_to_list(list_to_binary(T))) of
+            true -> unicode:characters_to_binary(list_to_binary(T));
+            false -> [str_to_bstr(X) || X <- T]
+        catch _:_ -> [str_to_bstr(X) || X <- T]
+    end;
+
 str_to_bstr(T) -> T.

@@ -14,6 +14,9 @@ const routes = {
 
         MZBenchActions.selectActiveTab(activeTab);
     },
+    '/new': () => {
+        MZBenchActions.newBench();
+    },
     '/timeline': () => {
         let opts = Object.assign({q: ""}, _MZBenchRouter.getQuery());
         MZBenchActions.applyQueryParameters(opts);

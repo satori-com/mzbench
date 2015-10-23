@@ -184,7 +184,6 @@ def log_compression_test():
     log_cmd = 'curl --head -X GET http://localhost:4800/logs?id={0}'.format(bench_id)
     assert("content-encoding: deflate" in cmd(log_cmd))
 
-
 def env_change_test():
 
     def change_var(bid):
@@ -240,6 +239,14 @@ def env_change_test():
     assert(0.8 < values[2] < 1.2)
     assert(4.8 < values[5] < 5.2)
 
+def websocket_available_test():
+    from websocket import create_connection
+    ws = create_connection("ws://localhost:4800/ws")
+    ws.send('{"cmd":"ping"}')
+    assert("pong" in ws.recv())
+    ws.send('{"cmd":"get_server_info"}')
+    assert("SERVER_INFO" in ws.recv())
+    ws.close()
 
 def main():
     with start_mzbench_server():

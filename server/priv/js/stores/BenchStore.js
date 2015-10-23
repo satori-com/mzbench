@@ -12,12 +12,25 @@ const defaultData = {
     pager: {},
     currentPage: new Map(),
     isLoaded: false,
+    isNewSelected: false,
+    isNewActive: false,
+    clouds: [],
+    newBench: {
+        benchmark_name: "Something",
+        script_name: "generic.erl",
+        script_body: "[ % the simplest example\n    {pool, [{size, 3}, % three execution \"threads\"\n"
+                        +"            {worker_type, dummy_worker}],\n        [{loop, [{time, {5, min}}, % total loop time\n"
+                        +"                 {rate, {1, rps}}], % one rps for every worker, 3 rps totally\n"
+                        +"                [{print, \"FOO\"}]}]} % this operation prints \"FOO\" to console\n].",
+        nodes: "1",
+        cloud: "",
+        env: ""},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined
 };
 
-let data = defaultData;
+let data = jQuery.extend(true, {}, defaultData); // extend is used to copy object recursively
 
 class Bench {
     constructor(props) {
@@ -87,7 +100,7 @@ class BenchStore extends EventEmitter {
     }
 
     getSelectedBench() {
-        if (!this.isLoaded()) {
+        if (!this.isLoaded() || this.isNewSelected()) {
             return undefined;
         }
         return this.findById(data.selectedBenchId);
@@ -103,6 +116,30 @@ class BenchStore extends EventEmitter {
 
     isLoaded() {
         return data.isLoaded;
+    }
+
+    isNewSelected() {
+        return data.isNewSelected;
+    }
+
+    isNewActive() {
+        return data.isNewActive;
+    }
+
+    getClouds() {
+        return data.clouds;
+    }
+
+    getNewBench() {
+        return data.newBench;
+    }
+
+    resetNewBench() {
+        data.newBench = Object.assign({}, defaultData.newBench);
+    }
+
+    cloneNewBench(id) {
+        data.newBench = Object.assign({}, this.findById(data.selectedBenchId)); 
     }
 
     isShowTimelineLoadingMask() {
@@ -138,10 +175,15 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             _BenchStore.loadAll(action.data);
             data.pager = action.pager;
             data.isShowTimelineLoadingMask = false;
+            if (data.selectedBenchId === undefined) {
+                data.isNewSelected = true;
+                data.isNewActive = true;
+            }
             _BenchStore.emitChange();
             break;
 
         case ActionTypes.SELECT_BENCH_BY_ID:
+            data.isNewSelected = false;
             data.selectedBenchId = parseInt(action.data);
             _BenchStore.emitChange();
             break;
@@ -167,6 +209,44 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
 
         case ActionTypes.SET_FILTER:
             data.filter = action.data;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.NEW_BENCH:
+            data.selectedBenchId = undefined;
+            data.isNewActive = true;
+            data.isNewSelected = true;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.MODIFY_NEW_BENCH:
+            data.isNewActive = true;
+            action.data(data.newBench);
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.CLONE_BENCH:
+            data.newBench = Object.assign({}, data.benchmarks.find(x => x.id == action.data));
+            data.selectedBenchId = undefined;
+            data.isNewSelected = true;
+            data.isNewActive = true;
+            data.currentPage = new Map();
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.CLEAN_NEW_BENCH:
+            data.newBench = Object.assign({}, defaultData.newBench);
+            if (data.clouds.length > 0) {
+                data.newBench.cloud = data.clouds[0];
+            }
+            data.isNewActive = false;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.SERVER_INFO:
+            data.clouds = action.data.clouds;
+            if ((data.clouds.length > 0) && (data.newBench.cloud === ""))
+                data.newBench.cloud = data.clouds[0];
             _BenchStore.emitChange();
             break;
 

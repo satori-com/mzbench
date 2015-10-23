@@ -14,6 +14,8 @@ export default {
                 if (benchId) { opts.bench_id = benchId; }
 
                 this.getTimeline(opts);
+                this.getServerInfo();
+
                 if (notify) {
                     notify.update({message: 'The board has connected to the server', type: 'success'});
                     setTimeout(() => {
@@ -53,6 +55,10 @@ export default {
         Dispatcher.dispatch({ type: Constants.SET_FILTER, data: query });
     },
 
+    withNewBench(lambda) {
+        Dispatcher.dispatch({ type: Constants.MODIFY_NEW_BENCH, data: lambda });
+    },
+
     hideTimelineLoadingMask() {
         Dispatcher.dispatch({ type: Constants.HIDE_TIMELINE_LOADING_MASK });
     },
@@ -61,6 +67,10 @@ export default {
         if (MZBenchWS.isConnected() && BenchStore.isLoaded()) {
             Dispatcher.dispatch({ type: Constants.SHOW_TIMELINE_LOADING_MASK });
         }
+    },
+
+    resetNewBench() {
+        Dispatcher.dispatch({ type: Constants.CLEAN_NEW_BENCH });
     },
 
     getTimeline(opts) {
@@ -77,6 +87,10 @@ export default {
         MZBenchWS.send(opts);
     },
 
+    getServerInfo(opts) {
+        MZBenchWS.send({cmd: "get_server_info"});
+    },
+
     unsubscribeBenchTimeline () {
         MZBenchWS.close();
     },
@@ -91,5 +105,13 @@ export default {
 
     resetMetrics() {
         Dispatcher.dispatch({ type: Constants.METRIC_STORE_RESET });
+    },
+
+    cloneBench(id) {
+        Dispatcher.dispatch({ type: Constants.CLONE_BENCH, data: id });
+    },
+
+    newBench() {
+        Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     }
 }

@@ -76,6 +76,10 @@ dispatch_info(Info, State) ->
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
 
+dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State) ->
+    Data = #{clouds => mzb_api_cloud:list_clouds()},
+    {reply, #{type => "SERVER_INFO", data => Data}, State};
+
 dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     BenchInfos0 = mzb_api_server:get_info(),
     BenchInfos1 = normalize(BenchInfos0),
@@ -107,6 +111,9 @@ normalize(BenchInfos) ->
                         end, BenchInfos),
     lists:map(fun normalize_bench/1, Sorted).
 
+ensure_binary_tuple({A, B}) when is_binary(A) and is_atom(B) -> {A, atom_to_binary(B, utf8)};
+ensure_binary_tuple({A, B}) when is_binary(A) and is_binary(B) -> {A, B}.
+
 normalize_bench({Id, Status = #{config:= Config}}) ->
     StatusFields =  mzb_bc:maps_with([status, metrics], Status),
 
@@ -119,10 +126,19 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
 
     #{script:= #{body:= ScriptBody,
                  name:= ScriptName},
-      benchmark_name:= BenchName} = Config,
+      benchmark_name:= BenchName,
+      nodes_arg:=      Nodes,
+      cloud:=          Cloud,
+      env:=            Env} = Config,
+    BinaryEnv = lists:map(fun ensure_binary_tuple/1, Env),
+    EnvStr = erlang:iolist_to_binary(lists:flatten(
+      [[K, <<"=">>, V, <<",">>] || {K, V} <- BinaryEnv, K =/= <<"mzb_script_name">>])),
     ScriptFields = #{script_body => ScriptBody,
                      script_name => ScriptName,
-                     benchmark_name => BenchName},
+                     benchmark_name => BenchName,
+                     nodes => Nodes,
+                     cloud => Cloud,
+                     env => EnvStr},
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,
                 #{id => Id},

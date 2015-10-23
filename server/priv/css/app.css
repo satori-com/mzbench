@@ -95,13 +95,34 @@ a.bs-link {
     background-color: #5bc0de;
 }
 
+.bs.bs-new .label {
+    color:green;
+}
+
+.bs.bs-new.bs-selected .label {
+    color:white;
+}
+
 ul.nav.bench-nav {
   margin-bottom: 20px;
 }
 
 .bench-actions .btn {
-    width: 100px;
+    width: 110px;
     margin-bottom: 5px;
+}
+
+.bench-actions .btn.dropdown-toggle{
+    width:  30px;
+    height: 30px;
+}
+
+.bench-actions .btn.dropdown-toggle span{
+    margin-bottom:5px;
+}
+
+.bench-actions .btn.pre-dropdown {
+    width: 80px;
 }
 
 .bench-details .table {
