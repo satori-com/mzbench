@@ -13,10 +13,10 @@ stop_bench() ->
     supervisor:restart_child(?MODULE, bench_sup).
 
 init([]) ->
-    {ok, LogPort} = application:get_env(mzbench, bench_log_port),
-    {ok, MetricsPort} = application:get_env(mzbench, bench_metrics_port),
+    {ok, LogPort} = application:get_env(mzbench, node_log_port),
+    {ok, ManagementPort} = application:get_env(mzbench, node_management_port),
     {ok, {{one_for_one, 5, 60}, [
-        ranch:child_spec(metrics_tcp_server, 10, ranch_tcp, [{port, MetricsPort}], mzb_metrics_tcp_protocol, []),
+        ranch:child_spec(management_tcp_server, 10, ranch_tcp, [{port, ManagementPort}], mzb_management_tcp_protocol, []),
         ranch:child_spec(lager_tcp_server, 10, ranch_tcp, [{port, LogPort}], mzb_lager_tcp_protocol, []),
 
         child_spec(supervisor, metrics_event_manager, gen_event, permanent, [{local, metrics_event_manager}]),

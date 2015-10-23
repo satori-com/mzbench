@@ -1,4 +1,4 @@
--module(mzb_metrics_tcp_protocol).
+-module(mzb_management_tcp_protocol).
 
 -behaviour(ranch_protocol).
 -behaviour(gen_server).
@@ -45,7 +45,7 @@ dispatch(Unhandled, State) ->
     {noreply, State}.
 
 get_port() ->
-    ranch:get_port(metrics_tcp_server).
+    ranch:get_port(management_tcp_server).
 
 handle_message({change_env, Env}) ->
     {ok, mzb_director:change_env(Env)};
