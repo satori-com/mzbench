@@ -25,6 +25,29 @@ class Timeline extends React.Component {
         return (<LoadingSpinner>Loading...</LoadingSpinner>);
     }
 
+    renderNewBenchIfNeeded() {
+        if (!BenchStore.isNewActive()) return null;
+
+        let bench = BenchStore.getNewBench();
+
+        let cssClass = "bs bs-new";
+
+        if (BenchStore.isNewSelected()) {
+            cssClass += " bs-selected";
+        }
+
+        return (
+            <a href={`#/new`} className="bs-link">
+                <div className={cssClass}>
+                    <h6>
+                        {bench.benchmark_name}
+                        <span className="label">new</span>
+                    </h6>
+                </div>
+            </a>
+        );
+    }
+
     renderClearSearchQueryIfNeeded() {
         const pager = this.state.pager;
 
@@ -53,8 +76,8 @@ class Timeline extends React.Component {
 
         return (
             <div className="alert alert-info" role="alert">
-                There aren't any benchmarks. <br />
-                Use <a href="https://github.com/machinezone/mzbench#quickstart" target="_blank"><strong>Quickstart guide</strong></a> to create some benchmarks.
+                There aren't any benchmarks.
+                Use <a href="https://github.com/machinezone/mzbench#quickstart" target="_blank"><strong>Quickstart guide</strong></a> to create some.
             </div>
         );
     }
@@ -108,6 +131,7 @@ class Timeline extends React.Component {
             <div>
                 <TimelineFilter filter={this.state.filter}/>
                 {this.renderClearSearchQueryIfNeeded()}
+                {this.renderNewBenchIfNeeded()}
                 {this.renderTimeline()}
                 <nav>
                     <ul className="pager">

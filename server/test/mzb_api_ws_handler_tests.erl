@@ -9,7 +9,7 @@ normalize_test() ->
                id => 1,
                start_time => 1437549842,
                config => #{script => #{body => script_body, name => "script_name.erl"},
-                           benchmark_name => "Test bench"}}},
+                           benchmark_name => "Test bench", nodes_arg => "1", cloud => "", env => []}}},
 
         {2, #{ status => success,
                metrics => metrics,
@@ -17,7 +17,7 @@ normalize_test() ->
                start_time => 1437549842,
                finish_time => 1437549842,
                config => #{script => #{body => script_body1, name => "another_name.erl"},
-                           benchmark_name => "Test bench"}}}
+                           benchmark_name => "Test bench", nodes_arg => "1", cloud => "", env => []}}}
     ],
 
     Normalized = mzb_api_ws_handler:normalize(BenchInfos),
@@ -30,6 +30,9 @@ normalize_test() ->
           script_body => script_body1,
           script_name => "another_name.erl",
           start_time => "2015-07-22T07:24:02Z",
+          nodes => "1",
+          cloud => "",
+          env => <<>>,
           status => success},
         #{id => 1,
           benchmark_name => "Test bench",
@@ -37,6 +40,9 @@ normalize_test() ->
           script_body => script_body,
           script_name => "script_name.erl",
           start_time => "2015-07-22T07:24:02Z",
+          nodes => "1",
+          cloud => "",
+          env => <<>>,
           status => failed}],
         Normalized).
 

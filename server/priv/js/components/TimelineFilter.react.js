@@ -21,8 +21,10 @@ class TimelineFilter extends React.Component {
             <form>
                 <div className="form-group">
                     <div className="input-group">
-                        <div className="input-group-addon">Filter</div>
                         <input type="text" ref="filterInput" className="form-control" placeholder="Search Benchmarks" onKeyDown={this._onKeyDown.bind(this)} value={this.state.filter} onChange={this._onChange.bind(this)} />
+                        <div className="input-group-btn">
+                            <a role="button" className="btn btn-success" href="#/new"><span className="glyphicon glyphicon-plus"></span> New</a>
+                        </div>
                     </div>
                 </div>
             </form>

@@ -6,6 +6,7 @@ import BenchOverview from './BenchOverview.react';
 import BenchGraphs from './BenchGraphs.react';
 import BenchReports from './BenchReports.react';
 import BenchScenario from './BenchScenario.react';
+import NewBench from './NewBench.react';
 import BenchLog from './BenchLog.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import Highlight from './Highlight.react';
@@ -66,6 +67,10 @@ class Bench extends React.Component {
             return this.renderLoadingSpinner();
         }
 
+        if (this.state.isNewSelected) {
+            return <NewBench bench={BenchStore.getNewBench()} clouds={BenchStore.getClouds()}/>;
+        }
+
         if (!this.state.bench) {
             return this.renderUnknownBench();
         }
@@ -83,8 +88,13 @@ class Bench extends React.Component {
             return { isLoaded: false };
         }
 
+        if (BenchStore.isNewSelected()) {
+            return { isLoaded: true, isNewSelected: true };
+        }
+
         return {
             isLoaded: true,
+            isNewSelected: false,
             bench: BenchStore.getSelectedBench(),
             tab: BenchStore.getActiveTab()
         };
