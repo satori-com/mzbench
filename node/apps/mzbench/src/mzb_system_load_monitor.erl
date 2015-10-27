@@ -53,12 +53,17 @@ metric_names(Nodes) ->
 
         {graph, #{title => "Report interval",
                   units => "sec",
-                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}]}].
+                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}]},
+     {group, "MZBench Internals", [
+        {graph, #{title => "Mailbox messages",
+                  metrics => [{metric_name("message_queue", N), gauge} || N <- Nodes]}}
+        ]}].
 
 %% gen_server callbacks
 
 init([]) ->
     lager:info("~p started on node ~p", [?MODULE, node()]),
+    _ = spawn_link(fun mailbox_len_reporter/0),
     erlang:send_after(interval(), self(), trigger),
     {ok, #state{last_rx_bytes = not_available,
         last_tx_bytes = not_available,
@@ -137,6 +142,8 @@ handle_info(trigger,
         State
     end,
 
+    ok = mzb_metrics:notify({metric_name("process_count"), gauge}, erlang:system_info(process_count)),
+
     %lager:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(interval(), self(), trigger),
     {noreply, NewState#state{last_trigger_timestamp = Now}};
@@ -151,6 +158,22 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Internal functions
+
+mailbox_len_reporter() ->
+    {MailboxSize, _} = lists:foldl(
+        fun (P, {Acc, N}) ->
+            QueueLen = try
+                element(2, erlang:process_info(P, message_queue_len))
+            catch
+                _:_ -> 0
+            end,
+            ((N rem 100) == 0) andalso timer:sleep(1),
+            {Acc + QueueLen, N + 1}
+        end, {0, 0}, erlang:processes()),
+
+    ok = mzb_metrics:notify({metric_name("message_queue"), gauge}, MailboxSize),
+    timer:sleep(interval()),
+    mailbox_len_reporter().
 
 metric_name(GaugeName) ->
     metric_name(GaugeName, atom_to_list(node())).
