@@ -81,7 +81,16 @@ normalize(Seq) ->
 
     NormalizedGroup = [normalize_group(G) || G <- Grouped],
 
-    DefaultGroups ++ NormalizedGroup.
+    merge_groups(DefaultGroups ++ NormalizedGroup, []).
+
+merge_groups([], Res) -> lists:reverse(Res);
+merge_groups([{group, Name, Graphs} = G | T], Res) ->
+    case lists:keytake(Name, 2, Res) of
+        {value, {group, _, MoreGraphs}, Res2} ->
+            merge_groups(T, [{group, Name, Graphs ++ MoreGraphs}|Res2]);
+        false ->
+            merge_groups(T, [G|Res])
+    end.
 
 normalize_group({group, Name, Graphs}) ->
     NormalizedGraphs = [normalize_graph(G) || G <- Graphs],
