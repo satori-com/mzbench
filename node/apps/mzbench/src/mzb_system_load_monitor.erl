@@ -56,7 +56,9 @@ metric_names(Nodes) ->
                   metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}]},
      {group, "MZBench Internals", [
         {graph, #{title => "Mailbox messages",
-                  metrics => [{metric_name("message_queue", N), gauge} || N <- Nodes]}}
+                  metrics => [{metric_name("message_queue", N), gauge} || N <- Nodes]}},
+        {graph, #{title => "Erlang processes",
+                  metrics => [{metric_name("process_count", N), gauge} || N <- Nodes]}}
         ]}].
 
 %% gen_server callbacks
