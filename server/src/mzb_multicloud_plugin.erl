@@ -59,7 +59,7 @@ allocate(Clouds, Config) ->
     end.
 
 destroy_cluster(Ids) ->
-    mzb_lists:pmap(
+    _ = mzb_lists:pmap(
         fun (Id) ->
             mzb_api_cloud:destroy_cluster(Id)
         end, Ids),
