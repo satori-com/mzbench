@@ -44,7 +44,7 @@ get_hosts(Ids, Data, [H | T]) ->
     Instances = proplists:get_value(instances_set, Data),
     Hosts = [proplists:get_value(H, X) || X <- Instances],
     case Hosts of
-        [R | _] when R =/= undefined -> {H, Hosts};
+        [R | _] when R =/= undefined, R =/= "" -> {H, Hosts};
         _ -> get_hosts(Ids, Data, T)
     end.
 
