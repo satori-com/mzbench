@@ -50,21 +50,13 @@ pool_name(Pool) ->
 metrics(Path, EnvFromClient) ->
     Script = mzbl_script:read(Path),
     Nodes = erlang:nodes(),
-    {Pools, Env} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
+    {Pools, _} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
     ScriptMetrics = script_metrics(Pools, Nodes),
 
     MetricJson = #{ groups => build_metric_groups_json(ScriptMetrics) },
 
-    MetricJson1 = case mzb_metrics:get_graphite_url(Env) of
-        undefined -> MetricJson;
-        GraphiteUrl ->
-            Prefix = proplists:get_value("graphite_prefix", Env),
-            MetricJson#{ graphite_prefix => Prefix,
-                         graphite_url    => GraphiteUrl }
-    end,
-
-    mzb_string:str_to_bstr(MetricJson1).
+    mzb_string:str_to_bstr(MetricJson).
 
 %% normalize any user metrics to inner format
 

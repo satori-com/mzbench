@@ -97,10 +97,9 @@ handle_call(Req, _From, State) ->
 
 handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
     Metrics = mzb_script_metrics:script_metrics(Script, Nodes),
-    Prefix = proplists:get_value("graphite_prefix", Env),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Prefix, Env, Metrics, Nodes]},
+         {mzb_metrics, start_link, [Env, Metrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
     {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
     ok = load_modules(ModulesToLoad, [node()|Nodes]),

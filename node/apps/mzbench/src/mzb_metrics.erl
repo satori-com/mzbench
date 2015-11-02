@@ -1,10 +1,8 @@
 -module(mzb_metrics).
 
--export([start_link/4,
+-export([start_link/3,
          notify/2,
          get_value/1,
-         get_graphite_host_and_port/1,
-         get_graphite_url/1,
          get_local_values/1,
          final_trigger/0,
          get_failed_asserts/0,
@@ -24,9 +22,7 @@
 -type metric_type() :: counter | histogram | gauge.
 
 -record(s, {
-    prefix = "undefined" :: string(),
     nodes = [] :: [node()],
-    graphite_reporter_ref = undefined :: reference(),
     last_tick_time = undefined :: erlang:timestamp(),
     start_time = undefined :: erlang:timestamp(),
     stop_time = undefined :: erlang:timestamp(),
@@ -39,9 +35,6 @@
 
 -define(INTERVAL, 10000). % in ms
 -define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
-%% graphite stores data-points with 10-secs resolution
-%% report metrics with 5-secs interval to avoid gaps on graphs due to interval's trigger inaccuracy
--define(GRAPHITE_INTERVAL, 5000).
 -define(LOCALPREFIX, "local").
 -define(INTERVALNAME, report_interval).
 
@@ -49,8 +42,8 @@
 %%% API
 %%%===================================================================
 
-start_link(MetricsPrefix, Env, MetricGroups, Nodes) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
+start_link(Env, MetricGroups, Nodes) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
@@ -78,19 +71,15 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([MetricsPrefix, Env, MetricGroups, Nodes]) ->
-    {Host, Port} = get_graphite_host_and_port(Env),
-    ApiKey = proplists:get_value("graphite_api_key", Env, []),
+init([Env, MetricGroups, Nodes]) ->
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
-    {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, MetricGroups),
+    ok = init_exometer(MetricGroups),
     erlang:send_after(?INTERVAL, self(), trigger),
     _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram, _} <- extract_metrics(MetricGroups)],
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     {ok, #s{
-        prefix = MetricsPrefix,
         nodes = Nodes,
-        graphite_reporter_ref = GraphiteReporterRef,
         last_tick_time = StartTime,
         start_time = StartTime,
         previous_counter_values = [],
@@ -125,11 +114,6 @@ handle_info(trigger, State = #s{active = true}) ->
     NewState = tick(State),
     erlang:send_after(?INTERVAL, self(), trigger),
     {noreply, NewState};
-handle_info({'DOWN', GraphiteReporterRef, _, _, Reason}, 
-            #s{graphite_reporter_ref = GraphiteReporterRef} = State) ->
-    lager:error("[ mzb_metrics ] Graphite reporter at ~p has crashed! Reason: ~p", 
-                    [GraphiteReporterRef, Reason]),
-    {stop, graphite_reporter_died, State};
 handle_info(Info, State) ->
     lager:error("Unhandled info: ~p", [Info]),
     {noreply, State}.
@@ -315,27 +299,6 @@ get_local_values(Metrics) ->
     lager:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
 
-get_graphite_host_and_port(Env) ->
-    URL = proplists:get_value("graphite", Env, undefined),
-    case URL of
-        undefined -> {undefined, undefined};
-        U -> case string:tokens(U, ":") of
-                [Host] -> {Host, 2003};
-                [Host, Port] -> {Host, Port}
-            end
-    end.
-
-get_graphite_url(Env) ->
-    URL = proplists:get_value("graphite_url", Env, undefined),
-    case URL of
-        undefined -> {H, _} = get_graphite_host_and_port(Env),
-                     case H of
-                        undefined -> undefined;
-                        _ -> mzb_string:format("http://~s", [H])
-                     end;
-        _ -> URL
-    end.
-
 extract_metrics(Groups) ->
     [{Name, Type, Opts} || {group, _GroupName, Graphs} <- Groups,
                            {graph, GraphOpts}          <- Graphs,
@@ -405,7 +368,7 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
+init_exometer(Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(
@@ -413,20 +376,8 @@ init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
             exometer:new([Metric], Type)
         end, ExometerMetrics),
 
-    GraphiteReporterMonitorRef = case GraphiteHost of
-        undefined -> undefined;
-        _ ->
-            Opts = [{connect_timeout, 5000},
-                    {prefix, [Prefix]},
-                    {host, GraphiteHost},
-                    {port, GraphitePort},
-                    {intervals, [{?INTERVALNAME, ?GRAPHITE_INTERVAL}]},
-                    {api_key, GraphiteApiKey}],
-            init_and_monitor_exometer_reporter(exometer_report_graphite, Opts, ExometerMetrics)
-    end,
     Interval = [{intervals, [{?INTERVALNAME, ?INTERVAL}]}],
-    ok = init_exometer_reporter(mzb_exometer_report_apiserver, Interval, ExometerMetrics),
-    {ok, GraphiteReporterMonitorRef}.
+    init_exometer_reporter(mzb_exometer_report_apiserver, Interval, ExometerMetrics).
 
 init_exometer_reporter(Name, Opts, Metrics) ->
     ok = case exometer_report:add_reporter(Name, Opts) of
@@ -436,11 +387,6 @@ init_exometer_reporter(Name, Opts, Metrics) ->
     end,
     ok = subscribe_exometer(Name, Metrics),
     ok.
-
-init_and_monitor_exometer_reporter(Name, Opts, Metrics) ->
-    ok = init_exometer_reporter(Name, Opts, Metrics),
-    ReporterPid = proplists:get_value(Name, exometer_report:list_reporters()),
-    erlang:monitor(process, ReporterPid).
 
 datapoints(histogram) -> [min, max, mean, 50, 75, 90, 95, 99, 999];
 datapoints(counter)   -> [value];
