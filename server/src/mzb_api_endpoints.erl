@@ -127,7 +127,7 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
                                          IdA >= IdB
                                  end, BenchInfo),
     Body = lists:map(
-             fun({Id, #{status:= Status, config:= Config, start_time:= StartTime, finish_time:= FinishTime, metrics:= Metrics}}) ->
+             fun({Id, #{status:= Status, config:= Config, start_time:= StartTime, finish_time:= FinishTime}}) ->
                      ScriptName = case Config of
                                       #{script:= #{name:= SN}} -> SN;
                                       #{script:= SN} -> SN
@@ -138,11 +138,10 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
                                     Time when is_number(Time) ->
                                         FinishTime - StartTime
                                 end,
-                     HasGraphite = maps:is_key(<<"graphite_url">>, Metrics),
                      [Id, list_to_binary(iso_8601_fmt(StartTime)), list_to_binary(ScriptName),
-                      Status, Duration, HasGraphite];
+                      Status, Duration];
                 ({Id, #{status:= failed, reason:= {crashed, _}}}) ->
-                     [Id, <<"n/a">>, <<"n/a">>, crashed, 0, false]
+                     [Id, <<"n/a">>, <<"n/a">>, crashed, 0]
              end, SortedBenchInfo),
     {ok, reply_json(200, #{data => Body}, Req), #{}};
 

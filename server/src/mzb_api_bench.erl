@@ -58,7 +58,6 @@ init([Id, Params]) ->
         _ -> application:get_env(mzbench_api, vm_args, undefined)
     end,
     #{name := ScriptName} = maps:get(script, Params),
-    MetricPrefix = generate_graphite_prefix(mzbl_script:get_benchname(ScriptName)),
     NodeInstallSpec = extract_node_install_spec(Params),
     BenchName =
         case maps:find(benchmark_name, Params) of
@@ -73,7 +72,7 @@ init([Id, Params]) ->
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
         node_install_spec => NodeInstallSpec,
-        env => generate_bench_env(MetricPrefix, Params),
+        env => generate_bench_env(Params),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
         exclusive_node_usage => maps:get(exclusive_node_usage, Params),
@@ -426,24 +425,17 @@ extract_node_install_spec(Params) ->
 
 send_email_report(Emails, #{id:= Id,
                             status:= Status,
-                            config:= Config,
-                            start_time:= StartTime,
-                            finish_time:= FinishTime,
-                            metrics:= MetricsMap}) ->
+                            config:= Config}) ->
     try
         #{metrics_file:= MetricsFile} = Config,
-        BenchTime = FinishTime - StartTime,
-        Links = mzb_api_metrics:get_graphite_image_links(MetricsMap, BenchTime),
-        lager:info("Metrics links: ~p", [Links]),
-        AttachFiles = download_images("graphite_", Links, Config),
-        {Subj, Body} = generate_mail_body(Id, Status, Links, Config),
+        {Subj, Body} = generate_mail_body(Id, Status, Config),
         lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
         Attachments = lists:map(
             fun (F) ->
                 {ok, Bin} = file:read_file(local_path(F, Config)),
                 Filename = filename:basename(F),
-                {list_to_binary(Filename), <<"image/png">>, Bin}
-            end, [MetricsFile|AttachFiles]),
+                {list_to_binary(Filename), <<"text/plain">>, Bin}
+            end, [MetricsFile]),
         lists:foreach(
             fun (Addr) ->
                 lager:info("Sending bench results to ~s", [Addr]),
@@ -461,30 +453,17 @@ send_email_report(_Emails, Status) ->
 status(State) ->
     mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics], State).
 
-add_env([], Env) -> Env;
-add_env([H | T], Env) ->
-    case application:get_env(H) of
-        undefined -> add_env(T, Env);
-        {ok, V} -> [{list_to_binary(atom_to_list(H)), list_to_binary(V)} | add_env(T, Env)]
-    end.
-
-generate_bench_env(MetricPrefix, Params) ->
+generate_bench_env(Params) ->
     Env = maps:get(env, Params),
     Script = maps:get(script, Params),
     #{name := ScriptName} = Script,
-    Env2 = lists:foldl(fun ({K, V}, E) ->
+    lists:foldl(fun ({K, V}, E) ->
                         case proplists:get_value(K, E) of
                             undefined -> [{K, V}|E];
                             _ -> E
                         end
                        end, Env,
-                [{<<"mzb_script_name">>, list_to_binary(ScriptName)},
-                 {<<"graphite_prefix">>, list_to_binary(MetricPrefix)}]),
-
-    case proplists:get_value(<<"graphite">>, Env2) of
-        undefined -> add_env([graphite, graphite_api_key, graphite_url], Env2);
-        _H -> Env2
-    end.
+                [{<<"mzb_script_name">>, list_to_binary(ScriptName)}]).
 
 script_path(Script) ->
     case Script of
@@ -584,7 +563,7 @@ init_data_dir(Config) ->
         {error, Reason} -> erlang:error({ensure_dir_error, BenchDataDir, Reason})
     end.
 
-generate_mail_body(Id, Status, Links, Config) ->
+generate_mail_body(Id, Status, Config) ->
     #{env:= Env, script:= Script} = Config,
     #{name := ScriptName, body := ScriptBody} = Script,
     Subject = io_lib:format("Bench report for ~s (~s)", [ScriptName, Status]),
@@ -593,14 +572,12 @@ generate_mail_body(Id, Status, Links, Config) ->
         "Environment:~n~s~n~n"
         "Script body:~n~s~n~n"
         "Benchmark logs:~n  ~s~n~n"
-        "Metrics data:~n  ~s~n~n"
-        "Graphite links for reference:~n~s~n",
+        "Metrics data:~n  ~s~n~n",
         [Status,
          indent(string:join([io_lib:format("~s = ~s", [K,V]) || {K,V} <- Env], "\n"), 2, "(no env variables)"),
          indent(ScriptBody, 2),
          bench_log_link(Id, Config),
-         bench_data_link(Id, Config),
-         indent(string:join(Links, "\n"), 2, "(no links available)")
+         bench_data_link(Id, Config)
          ]),
     {list_to_binary(Subject), list_to_binary(Chars)}.
 
@@ -618,34 +595,6 @@ indent(Binary, N) when is_binary(Binary) ->
 indent(Str, N) ->
     Spaces = [$\s || _ <- lists:seq(1, N)],
     string:join([Spaces ++ Line || Line <- string:tokens(Str, "\n")], "\n").
-
-download_images(Prefix, URLs, Config) ->
-    Files = mzb_lists:pmap(fun ({N, URL}) ->
-        FileName = Prefix ++ integer_to_list(N) ++ ".png",
-        FullPath = local_path(FileName, Config),
-        _ = ensure_URL_dowloaded(URL, FullPath),
-        FileName
-    end, mzb_lists:enumerate(URLs)),
-    [F || F <- Files, filelib:is_file(local_path(F, Config))].
-
-ensure_URL_dowloaded(URL, ToFile) ->
-    case filelib:is_file(ToFile) of
-        false ->
-            case httpc:request(get, {URL, []}, [{timeout, 5000}], []) of
-                {ok, {_, _, Data}} ->
-                    TmpFile = mzb_file:tmp_filename(),
-                    ok = file:write_file(TmpFile, Data),
-                    ok = file:rename(TmpFile, ToFile),
-                    lager:info("Downloaded: ~s -> ~s", [URL, ToFile]),
-                    ok;
-                {error, Reason} ->
-                    lager:error("Download failed: ~s with reason: ~p", [URL, Reason]),
-                    {error, Reason}
-            end;
-        true ->
-            lager:info("File ~s is already downloaded", [ToFile]),
-            ok
-    end.
 
 info(Format, Args, State) ->
     log(info, Format, Args, State).
@@ -731,12 +680,6 @@ deflate_process(Filename) ->
         end
     end ().
 
-generate_graphite_prefix(BenchName) ->
-    Threshold = application:get_env(mzbench_api, graphite_prefixes_num, undefined),
-    _ = ets:insert_new(graphite_prefixes, {BenchName, -1}),
-    N = ets:update_counter(graphite_prefixes, BenchName, {2, 1, Threshold - 1, 0}),
-    mzb_string:format("~s.~b", [BenchName, N]).
-
 director_async_call(Connection, Msg, Continuation) ->
     mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
 
@@ -751,4 +694,3 @@ director_call(Connection, Msg) ->
     receive
         {Ref, Res} -> Res
     end.
-

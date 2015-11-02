@@ -115,7 +115,6 @@ email_report(Id, Emails) ->
 
 init([]) ->
     _ = ets:new(benchmarks, [named_table, set, protected]),
-    _ = ets:new(graphite_prefixes, [set, named_table, public]),
     ServerDir = server_data_dir(),
     ok = filelib:ensure_dir(filename:join(ServerDir, ".")),
     MaxId = import_data(ServerDir),
