@@ -94,7 +94,7 @@ All the remaining exported functions defines the DSL statements provided by this
 
 To define a DSL statement provided by your _worker_ you export an Erlang function that will be called when such a statement is encountered. The exported function is of the following general form:
 
-    <statement_name>(State, [<Param1>, [<Param2>, ...]]) ->
+    <statement_name>(State, Meta, [<Param1>, [<Param2>, ...]]) ->
         {ReturnValue, NewState}.
 
 The function must have the same name as the statement it defines. It must take at least two parameters: the _worker_ internal state at the moment the statement is executed and _meta_ information proplist. The function can also accept any number of other parameters. They correspond to the parameters of the statement.
@@ -103,7 +103,7 @@ The statement function must return a tuple of two values. The first one is the r
 
 For example, the following function:
 
-    foo(State, X, Y) ->
+    foo(State, Meta, X, Y) ->
         {nil, State}.
 
 Can be called as `{foo, X, Y}` from a benchmarking scenario.
