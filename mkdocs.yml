@@ -9,15 +9,12 @@ markdown_extensions:
         permalink: True
     - admonition
 
-theme: readthedocs 
-
 docs_dir: doc
 
 pages:
 - Home: index.md
-- Deployment Guide: deployment_guide.md
-- Scenario DSL: scenario_dsl.md
+- Deployment: deployment_guide.md
+- Scenarios: scenario_dsl.md
 - Server API: server_api.md
-- Worker Howto: worker_howto.md
-- Cloud Plugin: cloud_plugin.md
-- Examples: examples.md
+- Workers: worker_howto.md
+- Cloud Plugins: cloud_plugin.md
