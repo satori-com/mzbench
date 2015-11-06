@@ -1,4 +1,4 @@
-# Welcome to MZBench!
+# Welcome to MZBench
 
 ***An expressive and extendable load testing tool***
 
@@ -6,14 +6,16 @@
 
 ![Graphs](images/graphs.png)
 
-MZBench is a stress-testing tool for highload projects. It runs your test scenarios on hundreds of thousands of machines and generates real-time graphs.
+MZBench helps software testers and developers benchmark their products to see how stress tolerant they are and find their weak spots. By benchmarking your product before going to production, you reduce the risk of outages under real life high load. 
 
-MZBench ships with a web dashboard that lets you run and review your benchmarks. You can also control MZBench from the command line and via the web API.
+MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.
+
+As your benchmark is running, you see real-time stats and graphs in the built-in web dashboard.
 
 
 ## Installation
 
-To use MZBench, you'll need
+To use MZBench, you'll need:
 
  - Erlang R17
  - C++ compiler
@@ -27,7 +29,7 @@ Download MZBench from GitHub and install Python requirements:
 
 ```bash
 $ git clone https://github.com/machinezone/mzbench
-$ sudo pip install -r mzdench/requirements.txt 
+$ sudo pip install -r mzbench/requirements.txt 
 ```
 
 ## Quickstart
@@ -41,7 +43,8 @@ Executing make -C /path/to//mzbench/bin/../server generate
 Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
 ```
 
-The first server start takes a few minutes. The shell will not respond, which is OK; please be patient. Further starts will be much faster.
+!!!note
+    The first server start takes a few minutes. The shell will not respond, which is OK; please be patient. Further starts will be much faster.
 
 When the server is running, launch an example benchmark:
 
@@ -49,7 +52,7 @@ When the server is running, launch an example benchmark:
 $ ./bin/mzbench run examples/ramp.erl
 {
     "status": "pending", 
-    "id": 0
+    "id": 6
 }
 status: running                       00:09
 ```
