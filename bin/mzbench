@@ -8,7 +8,7 @@ except ImportError:
     server_functions = False
 
 # Client-only functions
-doc_acc = """mzbench CLI interface
+doc_acc = """MZBench command-line interface
 
 Usage:
   mzbench [--host=<host>] (start|run)
