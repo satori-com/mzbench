@@ -11,6 +11,8 @@ markdown_extensions:
 
 theme: readthedocs 
 
+docs_dir: doc
+
 pages:
 - Home: index.md
 - Deployment Guide: deployment_guide.md
