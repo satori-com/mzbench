@@ -45,7 +45,7 @@ start_interpreter(Module) ->
 
     {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
     WorkersDirsStr = string:join(["'./src'" | [io_lib:format("os.path.expanduser('~s')", [filename:join(W, Module)]) || W <- WorkerDirs]], ", "),
-    port_command(PythonPort, io_lib:format("sys.path = sys.path + [~s]\n", [WorkersDirsStr])),
+    port_command(PythonPort, io_lib:format("sys.path = [~s] + sys.path\n", [WorkersDirsStr])),
 
     port_command(PythonPort, "import traceback\n"),
     port_command(PythonPort, "import mzbench\n"),
