@@ -9,7 +9,7 @@ markdown_extensions:
         permalink: True
     - admonition
 
-theme: mkdocs
+theme: readthedocs
 
 docs_dir: doc
 
