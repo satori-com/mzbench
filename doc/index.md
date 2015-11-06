@@ -14,6 +14,7 @@ MZBench ships with a web dashboard that lets you run and review your benchmarks.
 ## Installation
 
 To use MZBench, you'll need
+
  - Erlang R17
  - C++ compiler
  - Python 2.6 or 2.7 with pip
