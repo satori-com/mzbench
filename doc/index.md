@@ -1,6 +1,6 @@
-# Welcome to MZBench's Docs!
+# Welcome to MZBench!
 
-***Expressive and extendable load testing tool***
+***An expressive and extendable load testing tool***
 
 ---
 
@@ -37,13 +37,13 @@ Start the MZBench server on localhost:
 ```bash
 $ cd mzbench
 $ ./bin/mzbench start_server
-Executing make -C /Users/kmolchanov/Projects/mzbench_official/bin/../server generate
-Executing /Users/kmolchanov/Projects/mzbench_official/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
+Executing make -C /path/to//mzbench/bin/../server generate
+Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
 ```
 
 The first server start takes a few minutes. The shell will not respond, which is OK; please be patient. Further starts will be much faster.
 
-When the server is runnig, launch an example benchmark:
+When the server is running, launch an example benchmark:
 
 ```bash
 $ ./bin/mzbench run examples/ramp.erl
