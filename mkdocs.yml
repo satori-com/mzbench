@@ -9,6 +9,8 @@ markdown_extensions:
         permalink: True
     - admonition
 
+theme: mkdocs
+
 docs_dir: doc
 
 pages:
