@@ -34,8 +34,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 **Top-level directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, including resource files, checking conditions, and executing shell commands before and after the test.
 
 
-`{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`
-
+`{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
 :   Install an external worker from a remote git repository on the test nodes before running the benchmark.
 
     MZBench downloads the worker and builds a .tgz archive, which is then distributed among the nodes and used in future provisions.
@@ -53,14 +52,11 @@ Some statements only appear at the top level of a scenario. They're called *top-
     If `dir` is not specified, `.` is used.
 
 
-`{include_resource, handle, "filename.txt"}` 
-
+`{include_resource, <ResourceName>, "<FileName>"}` 
 :   Download and register resource files for the scenario. [Read more →](#resource-files)
 
 
-`{pre_hook, Commands}` and `{post_hook, Commands}`
-
-
+`{pre_hook, <Actions>}` and `{post_hook, <Actions>}`
 :   Run actions before and after the benchmark. Two kinds of actions are supported: *exec commands* and *worker calls*:
 
         Actions = [Action]
@@ -71,102 +67,71 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
     **Exec commands** let you to run any shell command on all nodes or only on the director node.
     
-    **Worker calls** are special functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the environment variables used in the benchmark. These environment variables can be obtained with the `var` directive. [Read more →](workers.md#hooks)
+    **Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the environment variables used in the benchmark. These environment variables can be obtained with the `var` directive. [Read more →](workers.md#hooks)
 
 
 `{assert, always, <Condition>}`
-
 :   Check that the condition `<Condition>` is satisfied throughout the entire benchmark. [Read more →](#conditions)
 
 
 `{assert, <TimeConstant>, <Condition>}` 
-
 :   Check that the condition `<Condition>` is satisfied at least for the amount of time `<TimeConstant>`. [Read more →](#conditions)
 
 
 # Pools
 
-The pool directive represents a pool of jobs to be distributed among the computation nodes and to be done in parallel where job is a set of instructions defined by a _worker_. A _worker_ is a MZBench plugin that defines a set of instructions to access a particular service (i.e. HTTP server, FTP server, Twitter, ...). Some workers are provided with the MZBench distribution, but you can also write you own. Detailed instructions on how to do this are provided in the [Worker HOWTO](worker_howto.md) document.
+**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are distributed among nodes and executed in parallel. If there're not enough nodes, the jobs are evenly distributed among the available ones.
 
-A pool is defined using the `pool` top-level statement:
+Apart from the actual list of jobs, each `pool` statement takes a list of [pool options](#pool-options) that define how the jobs should be executed: with which worker, at what intensity and pace, etc.
 
-    {pool, 
+Here's a pool that sends HTTP GET requests to Google and DuckDuckGo on 10 nodes in parallel:
+
+```erlang
+    [ {pool,
+        [ {size, 10}, {worker_type, simple_http} ],
         [
-            <PoolOption1>, 
-            <PoolOption2>,
-            ...
-        ], 
-        [
-            <Statement1>,
-            <Statement2>, 
-            ...
+            {get, "http://google.com"},
+            {get, "http://duckduckgo.com"} 
         ]
-    }
+    } ].
+```
 
-It takes two arguments, a list of options and a list of statements.
-
-The list of pool options define how much jobs must be launched in parallel, what worker to use to define the list of allowed statements and how the jobs must be launched. See the next sub-section [Pool options](#pool-options) for the complete list of possible options, but please note that `size` and `worker_type` are mandatory.
-
-The list of statements actually defines the job. You can use the statements defined by the selected worker and the statements of the standard library. Please refer to the worker documentation for the list of worker defined statements. For the list of standard library statements, please refer yourself to [Standard library](#standard-library).
-
-## Example
-
-To clarify what was previously said let's see the following benchmarking scenario:
-
-    [{pool, [{size, 10},
-             {worker_type, dummy_worker}],
-       [ {print, "AAA"} ]
-     },
-     {pool, [{size, 5},
-             {worker_type, dummy_worker}],
-       [ {print, "BBB"} ]
-    }].
-
-It consists of two pools, so it defines a two sets of jobs.
-
-The job defined by the first pool will be launched 10 times in parallel as defined by the `size` option. The job will be described using the set of statements defined by the `dummy_worker`. It is a very simple worker shipped with the MZBench suite that defines only one statement: `print`. It allows to print a string of characters to the standard output. Because nothing else is specified, all the jobs will be launched at the same time.
-
-The actual job associated with this pool consist in one single statement: `{print, "AAA"}`. So, when started, it will print the string of characters `AAA` to the standard output, then terminate.
-
-The second pool is defined in a similar manner. Its job is defined using the `dummy_worker` and consists in printing `BBB` and terminating. It will be launched 5 times in parallel and at the same time.
-
-So the result of this script will be `AAA` printed 10 times and `BBB` printed 5 times, all in parallel. If we run such a script on 3 nodes, these 15 strings will be evenly distributed between all nodes.
+The `get` statement is provided by the built-in [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
 
 ## Pool options
 
-### `{size, <int>}`
+`{size, <int>}`
+:   Instructs the benchmarking system on how many jobs must be launched. An integer from 1 to infinity.
 
-Instructs the benchmarking system on how many jobs must be launched. An integer from 1 to infinity.
+    This option is mandatory.
 
-This option is mandatory.
 
-### `{worker_type, <Atom>}`
+`{worker_type, <Atom>}`
+:   Indicates the worker that defines the set of instructions to write this particular job. 
 
-Indicates the worker that defines the set of instructions to write this particular job. 
+    Please note that you can use only one worker per pool. If you need to use several workers in your benchmarking scenario, define several pools.
 
-Please note that you can use only one worker per pool. If you need to use several workers in your benchmarking scenario, define several pools.
+    This option is mandatory.
 
-This option is mandatory.
 
-### `{worker_start, {linear, <rate>}}`
-
-Indicates to the system that parallel jobs must be started with a constant delay between them. The `<rate>` indicates how much jobs must be started per second.
-
-By default, all the jobs are started at the same time.
-
-### `{worker_start, {poisson, <rate>}}`
-
-Indicates to the system that the jobs must be started at a rate defined by a Poisson process (see [Poisson process](http://en.wikipedia.org/wiki/Poisson_process)).
+`{worker_start, {linear, <rate>}}`
+:   Indicates to the system that parallel jobs must be started with a constant delay between them. The `<rate>` indicates how much jobs must be started per second.
 
 By default, all the jobs are started at the same time.
 
-### `{worker_start, {exp, <W>, <time>}}`
 
-In this case <W> workers are expected to start in a given period of <time> with k*E^Time function.
+`{worker_start, {poisson, <rate>}}`
+:   Indicates to the system that the jobs must be started at a rate defined by a Poisson process (see [Poisson process](http://en.wikipedia.org/wiki/Poisson_process)).
 
-### `{worker_start, {pow, <N>, <W>, <time>}}`
+    By default, all the jobs are started at the same time.
 
-In this case <W> workers are expected to start in a given period of <time> with k*Time^N function.
+`{worker_start, {exp, <W>, <time>}}`
+:   In this case <W> workers are expected to start in a given period of <time> with k*E^Time function.
+
+
+`{worker_start, {pow, <N>, <W>, <time>}}`
+:   In this case <W> workers are expected to start in a given period of <time> with k*Time^N function.
+
 
 # Conditions
 
