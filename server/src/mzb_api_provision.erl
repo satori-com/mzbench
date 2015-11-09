@@ -81,7 +81,7 @@ clean_nodes(Config, Logger) ->
     _ = mzb_subprocess:remote_cmd(
         UserName,
         [DirectorHost|WorkerHosts],
-        io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop; true",
+        io_lib:format("cd ~s; ~s/mzbench/bin/mzbench stop; true",
             [RootDir, mzb_api_paths:node_deployment_path()]),
         [],
         Logger),
@@ -241,6 +241,8 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
                         Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
                         ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
                 end,
+                % Extract tgz to tmp directory and then rsync it to the installation directory in order to prevent
+                % different nodes provisioning to affect each other (if we ran several nodes on one host)
                 ExtractCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [ExtractDir, ExtractDir, RemoteTarballPath]),
                 _ = mzb_subprocess:remote_cmd(User, [Host], ExtractCmd, [], Logger),
                 InstallationCmd = mzb_string:format("mkdir -p ~s && rsync -aW ~s/ ~s", [InstallationDir, ExtractDir, InstallationDir]),
