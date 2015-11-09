@@ -60,4 +60,3 @@ status: running                       00:09
 Go to [localhost:4800](http://localhost:4800) and see your benchmark live status:
 
 ![Test Benchmark](images/test_benchmark.png)
-
