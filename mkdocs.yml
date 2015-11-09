@@ -8,6 +8,8 @@ markdown_extensions:
     - toc:
         permalink: True
     - admonition
+    - abbr
+    - def_list
 
 theme: readthedocs
 
@@ -15,8 +17,8 @@ docs_dir: doc
 
 pages:
 - Home: index.md
-- Deployment: deployment_guide.md
-- Scenarios: scenario_dsl.md
+- Scenarios: scenarios.md
 - Server API: server_api.md
-- Workers: worker_howto.md
+- Workers: workers.md
 - Cloud Plugins: cloud_plugin.md
+- Deployment: deployment_guide.md
