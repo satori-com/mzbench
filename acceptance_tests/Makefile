@@ -1,6 +1,6 @@
 
 .PHONY: check
-check: local-tests basic-tests negative-tests signal-tests
+check: local-tests basic-tests
 
 .PHONY: local-tests
 local-tests:
