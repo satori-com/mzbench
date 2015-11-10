@@ -67,10 +67,34 @@ Some statements only appear at the top level of a scenario. They're called *top-
     **Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the environment variables used in the benchmark. These environment variables can be obtained with the `var` directive. [Read more →](workers.md#hooks)
 
 `{assert, always, <Condition>}`
-:   Check that the condition `<Condition>` is satisfied throughout the entire benchmark. [Read more →](#conditions)
+`{assert, <Time>, <Condition>}` 
+:   Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
 
-`{assert, <TimeConstant>, <Condition>}` 
-:   Check that the condition `<Condition>` is satisfied at least for the amount of time `<TimeConstant>`. [Read more →](#conditions)
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`.
+    
+    `<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
+    
+    `<Operation>` is one of four atoms:
+    
+    `lt`
+    :   Less than.
+    
+    `gt`
+    :   Greater than.
+    
+    `lte`
+    :   Less than or equal to.
+
+    `gte`
+    :   Greater than or equal to.
+
+    `<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metric* values.
+    
+    [Metrics](workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
+    
+        {gt, "http_ok", 20}
+    
+    The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
 
 
 # Pools
@@ -129,14 +153,14 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
     `{think_time, <Time>, <Rate>}`
     :   Start jobs with rate `<Rate>` for a second, then sleep for `<Time>` and repeat.
     
-        `<Time>` is a tuple `{M, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`. 
+        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`. 
 
     `{ramp, linear, <StartRate>, <EndRate>}`
     :   Linearly change the rate from `<StartRate>` at the beginning of the pool to `<EndRate>` at its end.
     
     `{comb, <Rate1>, <Time1>, <Rate2>, <Time2>, ...}`
     :   Start jobs with rate `<Rate1>` for `<Time1>`, then switch to `<Rate2>` for `<Time2>`, etc.
-    
+
     
 `{worker_start, {exp, <Scale>, <Time>}}`
 :   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`: (*Scale × e<sup>Time</sup>*)  
@@ -144,23 +168,6 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
 `{worker_start, {pow, <Exponent>, <Scale>, <Time>}}`
 :   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`: *Scale × Time<sup>Exponent</sup>*
 
-
-# Conditions
-
-Some statements take a boolean condition as an argument. Such a condition is defined by a triplet. The first element is an atom that defines the used comparison operation. The possible operations are:
-
-  * `lt` - lesser then;
-  * `gt` - greater then;
-  * `lte` - lesser then or equal;
-  * `gte` - greater then or equal.
-
-The second and third elements are the two values to compare. They can be either a number (an integer or floating point value) or a metric name. Metrics are numerical values collected during the benchmarking. They are defined by the worker should be checked in a worker-specific documentation.
-
-For example, if you use `dummy_worker` provided with the MZBench distribution, you can write the following condition:
-
-    {gt, "print.value", 20}
-
-It will succeed if the `print` operation was performed more then 20 times (i.e. it means `print.value > 20`).
 
 # Loops
 
