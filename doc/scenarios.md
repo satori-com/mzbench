@@ -70,7 +70,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 `{assert, <Time>, <Condition>}` 
 :   Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
 
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`.
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`.
     
     `<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
     
@@ -101,16 +101,16 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 **Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
 
-Apart from the actual list of jobs, each `pool` statement takes a list of [pool options](#pool-options) that define how the jobs should be executed: with which worker, at what intensity and pace, etc.
+Apart from the actual list of jobs, each `pool` statement takes a list of [options](#pool-options) that define how the jobs should be executed: with which worker, at what intensity and pace, etc.
 
-Here's a pool that sends HTTP GET requests to Google and DuckDuckGo on 10 nodes in parallel:
+Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
 ```erlang
     [ {pool,
         [ {size, 10}, {worker_type, simple_http} ],
         [
-            {get, "http://google.com"},
-            {get, "http://duckduckgo.com"} 
+            {get, "http://example.com"},
+            {get, "http://foobar.com"} 
         ]
     } ].
 ```
@@ -143,17 +143,15 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
     `poisson`
     :   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = `<Rate>`
 
-    In the simplest case, **`<Rate>`** is a tuple:
-    
-    `{<N>, (rps|rpm|rph)}`
-    :   Start `<N>` jobs per second, minute, or hour 
- 
+    <a name="rate"></a>
+    **`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`. It means `<N>` jobs per second, minute, or hour.
+
     You can customize and combine rates:
  
     `{think_time, <Time>, <Rate>}`
     :   Start jobs with rate `<Rate>` for a second, then sleep for `<Time>` and repeat.
     
-        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`. 
+        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`. 
 
     `{ramp, linear, <StartRate>, <EndRate>}`
     :   Linearly change the rate from `<StartRate>` at the beginning of the pool to `<EndRate>` at its end.
@@ -171,102 +169,87 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
 
 # Loops
 
-The `loop` statement allows to instruct the benchmarking system to repeat some block of statements several times. It is one of the most important statements that can be used inside a pool because it allows to generate different load profiles.
+**Loop** is a sequence of statements executed over and over for a given time.
 
-In it most general form, the `loop` statement is defined as follow:
+A loop looks similar to a [pool](#pools)—it consists of a list of [options](#loop options) and a list statements to run:
 
-    {loop, [
-            {time, <time>},
-            {rate, <rate>},
-            {parallel, <N>},
-            {iterator, <name>},
-            {spawn, <spawn>}
-        ],
-        [
-            <Statement1>,
-            <Statement2>,
-            ...
-        ]
-    }
+```erlang
+{loop, [
+        {time, <Time>},
+        {rate, <Rate>},
+        {parallel, <N>},
+        {iterator, <Name>},
+        {spawn, <Spawn>}
+    ],
+    [
+        <Statement1>,
+        <Statement2>,
+        ...
+    ]
+}
+```
 
-As you can see, similarly to the `pool` statement, it takes two parameters: a list of options and a list of statements. A list of statements defines the actual job to be repeated and can contain any worker or standard library defined statements. The options define how to repeat this job. 
+Here's a loop that sends HTTP GET requests for 30 seconds with a growing rate of 1 → 5 rps:
+
+```erlang
+{loop, [
+        {time, {30, sec}},
+        {rate, {ramp, linear, {1, rps}, {5, rps}}}
+    ],
+    [
+        {get, "http://example.com"}
+    ]
+}
+```
+
+You can put loops inside loops. Here's a nested loop that sends HTTP GET requests for 30 seconds, increasing the rate by 1 rps every three seconds:
+
+```erlang
+{loop, [
+        {time, {30, sec}},
+        {rate, {10, rpm}},
+        {iterator, "i"}
+    ],
+    [
+        {loop, [
+                {time, {3, sec}}, 
+                {rate, {{var, "i"}, rps}}
+            ],
+            [
+                {get, "http://google.com"}
+            ]
+        }
+    ]
+}
+```
+
+The difference between these two examples is that in the first case the rate is growing smoothly and in the second one it's growing in steps.
+
 
 ## Loop options
 
-### `{time, <time>}`
+`{time, <Time>}` *required*
+:   How long the loop is repeated.
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`.
 
-This option specify for how long the block of instructions must be repeated. The `<time>` can be specified as follow:
-   
-   * `{N, h}` - repeat for `N` hours;
-   * `{N, min}` - repeat for `N` minutes;
-   * `{N, sec}` - repeat for `N` seconds;
-   * `{N, ms}` - repeat for `N` milliseconds.
+`{rate, <Rate>}`
+:   How frequently the loop is repeated.
+    
+    `<Rate>` is defined the same way as in [pool options](#rate).
 
-This option is mandatory.
+`{parallel, <N>}`
+:   Run `<N>` iterations of the loop in parallel.
 
-### `{rate, <rate>}`
+`{iterator, <IterName>}`
+:   Define a variable named `<IterName>` inside the loop that contains the current iteration number. It can be accessed with `{var, <IterName>}`.
 
-This option specify how often the block of instructions must be repeated. The `<rate>` can be specified as follow:
+    `<IterName>` is a string.
 
-   * `{N, rph}` - repeat N times per hour;
-   * `{N, rpm}` - repeat N times per minute;
-   * `{N, rps}` - repeat N times per second;
-   * `{think_time, {M, (ms|sec|min|h)}, {N, rp(s|m|h)}}` - keep this rate for 1 second and sleep for specified period of time in a loop, this option is similar to {comb, {N, rp(s|m|h)}, {1, sec}, {0, rps}, {M, (ms|sec|min|h)}} which is described below.
-   * `{ramp, linear, <start-rate>, <end-rate>}` - linearly change the repeating rate from `<start-rate>` to `<end-rate>`.
-   * `{comb, <rate1>, <time1>, <rate2>, <time2>...}` - use these rates for these periods of time in a loop, for example for {comb, {1, rps}, {1, sec}, {5, rps}, {5, sec}} these rates will be repeated until whole loop time is over.
+`{spawn, (true|false)}`
+:   If `true`, every iteration runs in a separate, spawned process.
+ 
+    Default is `false`.
 
-This option is optional. If no rate is specified, the block of instructions will be repeated as often as possible.
-
-### `{parallel, <N>}`
-
-This option indicates that `<N>` iterations of the loop must be executed in parallel.
-
-This option is optional. By default the iterations are performed one by one.
-
-### `{iterator, <name>}`
-
-Defines a variable named `<name>` inside the repeated block of instructions that contain the current iteration number. It can be accessed with the following instruction: `{var, <name>}`. See [Environment variables](#environment_variables) for more information.
-
-### `{spawn, <spawn>}`
-
-If true every iteration of the loop will be executed in spawned process.
-Default: false
-
-## Examples
-
-Two examples below show different kinds of rate-variant loops you can use:
-
-    {loop, [
-            {time, {5, sec}},
-            {rate, {ramp, linear, {60, rpm}, {5, rps}}}
-        ],
-        [
-            {print, "E!"}
-        ]
-    }
-
-In this first example the loop body execution rate will grow continuously from 1 rps to 5 rps during five seconds.
-
-    {loop, [
-            {time, {5, sec}},
-            {rate, {1, rps}},
-            {iterator, "i"}
-        ],
-        [
-            {loop, [
-                    {time, {1, sec}}, 
-                    {rate, {{var, "i"}, rps}}
-                ],
-                [
-                    {print, "E!"}
-                ]
-            }
-        ]
-    }
-
-The second example uses a nested loop with a repeat rate defined using a variable. 
-
-The difference between these two cases is the way how the rate grows. If you take a period of few minutes and obtain a chart you probably see a straight line in first case and a step function in the second.
 
 # Environment variables
 
