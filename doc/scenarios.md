@@ -33,7 +33,6 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 **Top-level directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, including resource files, checking conditions, and executing shell commands before and after the test.
 
-
 `{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
 :   Install an external worker from a remote git repository on the test nodes before running the benchmark.
 
@@ -51,10 +50,8 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
     If `dir` is not specified, `.` is used.
 
-
 `{include_resource, <ResourceName>, "<FileName>"}` 
 :   Download and register resource files for the scenario. [Read more →](#resource-files)
-
 
 `{pre_hook, <Actions>}` and `{post_hook, <Actions>}`
 :   Run actions before and after the benchmark. Two kinds of actions are supported: *exec commands* and *worker calls*:
@@ -69,10 +66,8 @@ Some statements only appear at the top level of a scenario. They're called *top-
     
     **Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the environment variables used in the benchmark. These environment variables can be obtained with the `var` directive. [Read more →](workers.md#hooks)
 
-
 `{assert, always, <Condition>}`
 :   Check that the condition `<Condition>` is satisfied throughout the entire benchmark. [Read more →](#conditions)
-
 
 `{assert, <TimeConstant>, <Condition>}` 
 :   Check that the condition `<Condition>` is satisfied at least for the amount of time `<TimeConstant>`. [Read more →](#conditions)
@@ -80,7 +75,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 # Pools
 
-**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are distributed among nodes and executed in parallel. If there're not enough nodes, the jobs are evenly distributed among the available ones.
+**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
 
 Apart from the actual list of jobs, each `pool` statement takes a list of [pool options](#pool-options) that define how the jobs should be executed: with which worker, at what intensity and pace, etc.
 
@@ -98,39 +93,56 @@ Here's a pool that sends HTTP GET requests to Google and DuckDuckGo on 10 nodes 
 
 The `get` statement is provided by the built-in [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
 
+
 ## Pool options
 
-`{size, <int>}`
-:   Instructs the benchmarking system on how many jobs must be launched. An integer from 1 to infinity.
+`{size, <NumberOfJobs>}` *required*
+:   How many times you want the pool executed.
 
-    This option is mandatory.
+    If there's enough nodes and `worker_start` is not set, MZBench will start the jobs simultaneously and run them in parallel.
+    
+    **`<NumberOfJobs>`** is any positive number.
 
+`{worker_type, <WorkerName>}` *required*
+:   The worker that provides statements for the jobs.
+    
+    !!!hint
+        A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.
 
-`{worker_type, <Atom>}`
-:   Indicates the worker that defines the set of instructions to write this particular job. 
+`{worker_start, {linear, <Rate>}}`
+`{worker_start, {poisson, <Rate>}}`
+:   Start the jobs with a given rate:
+    
+    `linear`
+    :   Constant rate `<Rate>`, e.g. 10 per minute
+    
+    `poisson`
+    :   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = `<Rate>`
 
-    Please note that you can use only one worker per pool. If you need to use several workers in your benchmarking scenario, define several pools.
+    In the simplest case, **`<Rate>`** is a tuple:
+    
+    `{<N>, (rps|rpm|rph)}`
+    :   Start `<N>` jobs per second, minute, or hour 
+ 
+    You can customize and combine rates:
+ 
+    `{think_time, <Time>, <Rate>}`
+    :   Start jobs with rate `<Rate>` for a second, then sleep for `<Time>` and repeat.
+    
+        `<Time>` is a tuple `{M, (ms|sec|min|h)}`: `{1, sec}`, `{10, ms}`. 
 
-    This option is mandatory.
+    `{ramp, linear, <StartRate>, <EndRate>}`
+    :   Linearly change the rate from `<StartRate>` at the beginning of the pool to `<EndRate>` at its end.
+    
+    `{comb, <Rate1>, <Time1>, <Rate2>, <Time2>, ...}`
+    :   Start jobs with rate `<Rate1>` for `<Time1>`, then switch to `<Rate2>` for `<Time2>`, etc.
+    
+    
+`{worker_start, {exp, <Scale>, <Time>}}`
+:   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`: (*Scale × e<sup>Time</sup>*)  
 
-
-`{worker_start, {linear, <rate>}}`
-:   Indicates to the system that parallel jobs must be started with a constant delay between them. The `<rate>` indicates how much jobs must be started per second.
-
-By default, all the jobs are started at the same time.
-
-
-`{worker_start, {poisson, <rate>}}`
-:   Indicates to the system that the jobs must be started at a rate defined by a Poisson process (see [Poisson process](http://en.wikipedia.org/wiki/Poisson_process)).
-
-    By default, all the jobs are started at the same time.
-
-`{worker_start, {exp, <W>, <time>}}`
-:   In this case <W> workers are expected to start in a given period of <time> with k*E^Time function.
-
-
-`{worker_start, {pow, <N>, <W>, <time>}}`
-:   In this case <W> workers are expected to start in a given period of <time> with k*Time^N function.
+`{worker_start, {pow, <Exponent>, <Scale>, <Time>}}`
+:   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`: *Scale × Time<sup>Exponent</sup>*
 
 
 # Conditions
