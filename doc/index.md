@@ -6,7 +6,7 @@
 
 ![Graphs](images/graphs.png)
 
-MZBench helps software testers and developers benchmark their products to see how stress tolerant they are and find their weak spots. By benchmarking your product before going to production, you reduce the risk of outages under real life high load. 
+MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. 
 
 MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.
 
@@ -60,3 +60,7 @@ status: running                       00:09
 Go to [localhost:4800](http://localhost:4800) and see your benchmark live status:
 
 ![Test Benchmark](images/test_benchmark.png)
+
+## How It Works
+
+Here be description.
