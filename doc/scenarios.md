@@ -251,23 +251,34 @@ The difference between these two examples is that in the first case the rate is 
     Default is `false`.
 
 
-# Environment variables
+# Environment Variables
 
-The benchmarking scenarios often need to contain some number of values such as speed of execution or the overall duration. Of course, such values can be hardcoded inside your script, but this would be impractical. Instead you can use what is called _environment variables_.
+**Environment variables** are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.
 
-Replace the hardcoded values by a `var` statement of the form: `{var, <name> [, <default_value>]}` where `<name>` is a string of characters identifying your value. `<default_value>` parameter is optional.
+To set an environment variable, call `mzbench` with the `--env` param:
 
-Then you can pass the actual values when you launch the benchmark using the `--env` command line parameter. For instance:
+```bash
+$ ./bin/mzbench run --env myvar=value1 --env myothervar=value2
+```
 
-    mzbench run --env <name1>=<value1> --env <name2>=<value2> ...
+To get the value of a variable, refer to it by the name: `{var, <VarName>}`:
 
-The `var` statement is substituted with the provided value at the script launch time. If no value was provided, it is substituted with `<default_value>`. If no default value was provided either, the benchmark will crash.
+```erlang
+{var, "myvar"} % returns "value1"
+```
 
-If you have some required parameters without any default values and you need to generate useful message to benchmark user you can use `error` statement the following way:
+If you refer to a variable that is not defined with `--env`, the benchmark crashes. You can change this by setting a default value for the variable: `{var, <VarName>, <DefaultValue}`:
 
-    {var, <name>, {error, <message>}}
+```erlang
+{var, "anothervar", 42} % returns 42 if "anothervar" is not set
+```
 
-In this case the benchmarking scenario will not be executed if the environment variable `<name>` was not provided at the command line and the error message `<message>` will be displayed to the user.
+If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, <VarName>, {error, <ErrorMessage>}}`:
+
+```erlang
+{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if "myvar" is not set
+```
+
 
 # Resource files
 
