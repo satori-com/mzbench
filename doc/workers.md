@@ -108,7 +108,7 @@ For example, the following function:
 
 Can be called as `{foo, X, Y}` from a benchmarking scenario.
 
-# How to define metrics
+# Metrics
 
 Metrics are numerical values collected during the scenario execution. They are the main result of your _worker_ and represent the values you want to evaluate with your benchmark.
 

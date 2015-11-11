@@ -294,17 +294,17 @@ To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`:
 If you refer to a variable that is not defined with `--env`, the benchmark crashes. You can change this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
 
 ```erlang
-{var, "anothervar", 42} % returns 42 if "anothervar" is not set
+{var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
 ```
 
 If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, "<VarName>", {error, "<ErrorMessage>"}}`:
 
 ```erlang
-{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if "myvar" is not set
+{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if myvar is not set
 ```
 
 
-# Resource files
+# Resource Files
 
 **Resource file** is an external data source for the benchmark.
 
@@ -344,9 +344,9 @@ Here's how you can use this file in a scenario:
 ```
 
 
-# Standard library
+# Standard Library
 
-All the following statements are built-in and can be used with any worker.
+**Standard library** is a set of statements available in any scenario, even if no worker is defined.
 
 ## Environment variables substitution
 
