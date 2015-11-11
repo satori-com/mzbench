@@ -28,6 +28,8 @@ Each of these tuples is called a *statement*. A statement represents a function 
 
 Some statements only appear at the top level of a scenario. They're called *top-level statements*. There're two kinds of top-level statements: [top-level directives](#top-level-directives) and [pools](#pools).
 
+[See live examples of MZBench scenarios on GitHub →](https://github.com/machinezone/mzbench/tree/master/examples)
+
 
 # Top-Level Directives
 
@@ -50,8 +52,31 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
     If `dir` is not specified, `.` is used.
 
-`{include_resource, <ResourceName>, "<FileName>"}` 
-:   Download and register resource files for the scenario. [Read more →](#resource-files)
+<a name="include-resource"></a>
+
+`{include_resource, <ResourceName>, "<FileName>", <Type>}`
+`{include_resource, <ResourceName>, "<FileURL>", <Type>}`
+:   Register a [resource file](#resource-files) as `<ResourceName>`.
+
+    If the file is on your local machine, put it in the same directory where you invoke `mzbench run`.
+
+    **`<Type>`** is one of the following atoms:
+
+    `text`
+    :   Plain text file interpreted as a list of lines.
+
+    `json`
+    :   JSON file.
+   
+    `tsv`
+    :   File with tabulation separated values.   
+   
+    `erlang`
+    :    Erlang file interpreted directly as a valid Erlang term. [Read more](http://erlang.org/doc/reference_manual/expressions.html#id77790) about Erlang terms.
+   
+    `binary`
+    :   Custom binary (image, executable, archive, etc.), not interpreted.
+
 
 `{pre_hook, <Actions>}` and `{post_hook, <Actions>}`
 :   Run actions before and after the benchmark. Two kinds of actions are supported: *exec commands* and *worker calls*:
@@ -144,6 +169,7 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
     :   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = `<Rate>`
 
     <a name="rate"></a>
+    
     **`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`. It means `<N>` jobs per second, minute, or hour.
 
     You can customize and combine rates:
@@ -240,10 +266,8 @@ The difference between these two examples is that in the first case the rate is 
 `{parallel, <N>}`
 :   Run `<N>` iterations of the loop in parallel.
 
-`{iterator, <IterName>}`
+`{iterator, "<IterName>"}`
 :   Define a variable named `<IterName>` inside the loop that contains the current iteration number. It can be accessed with `{var, <IterName>}`.
-
-    `<IterName>` is a string.
 
 `{spawn, (true|false)}`
 :   If `true`, every iteration runs in a separate, spawned process.
@@ -261,19 +285,19 @@ To set an environment variable, call `mzbench` with the `--env` param:
 $ ./bin/mzbench run --env myvar=value1 --env myothervar=value2
 ```
 
-To get the value of a variable, refer to it by the name: `{var, <VarName>}`:
+To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`:
 
 ```erlang
 {var, "myvar"} % returns "value1"
 ```
 
-If you refer to a variable that is not defined with `--env`, the benchmark crashes. You can change this by setting a default value for the variable: `{var, <VarName>, <DefaultValue}`:
+If you refer to a variable that is not defined with `--env`, the benchmark crashes. You can change this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
 
 ```erlang
 {var, "anothervar", 42} % returns 42 if "anothervar" is not set
 ```
 
-If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, <VarName>, {error, <ErrorMessage>}}`:
+If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, "<VarName>", {error, "<ErrorMessage>"}}`:
 
 ```erlang
 {var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if "myvar" is not set
@@ -282,55 +306,43 @@ If you do want the benchmark to crash, but you also want to show a sensible erro
 
 # Resource files
 
-If you need to include a huge amount of data inside your benchmarking scenario you can use the `resource` statement.
+**Resource file** is an external data source for the benchmark.
 
-First, you need to declare your resource file using the `include_resource` top-level directive. It is defined as follow:
+To declare a resource file for the benchmark, use the [`include_resource` top-level directive](#include-resource).
 
-    {include_resource, <resource_name>, <file_name>, <type>}
-    {include_resource, <resource_name>, <http_url>, <type>}
+Once the resource file is registered, its content can be included at any place in the scenario using the `resource` statement: `{resource, <ResourceName>}`.
 
-Where `<resource_name>` is an atom that will identify this resource file inside the scenario, for example `my_resource`, `<file_name>` is a string of characters providing the file name of the resource file and, finally, the `<type>` parameter is an atom indicating how the content of the file should be interpreted.
-
-Every resource name in a script must be unique.
-
-Currently supported file types are the following:
-
-   * `erlang` - the resource file can be interpreted directly as a valid Erlang term. See [Erlang terms](http://erlang.org/doc/reference_manual/expressions.html#id77790);
-   * `text` - the resource file is a plain text file;
-   * `json` - the resource file is a json file;
-   * `binary` - the resource file is a custom binary and should not be interpreted;
-   * `tsv` - the resource file is a table with tabulation separated values.
-
-Once the resource file has been registered, its content can be included at any place inside your scenario using the `resource` statement: `{resource, <resource_name>}`.
-
-For example, suppose we have a file `text.erl` with the following content:
+For example, suppose we have a file `names.json`:
 
     [
-        "str1",
-        "str2",
-        "str3"
-    ].
+        "Bob",
+        "Alice",
+        "Guido"
+    ]
 
-It can be included in a benchmarking scenario using `{include_resource, my_resource, "text.erl", erlang}` top-level statement. Then, we can insert it content by writing `{resource, my_resource}`. So the following scenario will randomly print the strings defined in the resource file:
+Here's how you can use this file in a scenario:
 
-    [
-        {include_resource, my_resource, "text.erl", erlang},
-        {pool, [
-                {size, 3},
-                {worker_type, dummy_worker}
-            ],
-            [
-                {loop, [
-                        {time, {5, sec}},
-                        {rate, {1, rps}}
-                    ],
-                    [
-                        {print, {choose, {resource, my_resource}}}
-                    ]
-                }
-            ]
-        }
-    ].
+```erlang
+[
+    {include_resource, names, "names.json", json},
+    {pool, [
+            {size, 3},
+            {worker_type, dummy_worker}
+        ],
+        [
+            {loop, [
+                    {time, {5, sec}},
+                    {rate, {1, rps}}
+                ],
+                [
+                    {print, {choose, {resource, names}}} % print a random name from the file
+                ]
+            }
+        ]
+    }
+].
+```
+
 
 # Standard library
 
