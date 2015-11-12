@@ -374,35 +374,28 @@ If you do want the benchmark to crash, but you also want to show a sensible erro
     If the statement succeeds, its result is returned; otherwise, the failure reason is returned.
 
 
-## Randomization routines
+## Randomization
 
-### `{random_number, <max>}`
+`{random_number, <Min>, <Max>}`
+:   Return a random number between `<Min>` and `<Max>`, including `<Min>` and not including `<Max>`.
 
-Equivalent to `{random_number, 0, <max>}`
+`{random_number, <Max>}`
+:   Equivalent to `{random_number, 0, <Max>}`
 
-### `{random_number, <min>, <max>}`
+`{random_list, <Size>}`
+:   Return a list of random integer of length `<Size>`.
 
-This statement is substituted by a random number N, <min> =< N < <max>. <max> must be larger than <min>.
+`{random_binary, <Size>}`
+:   Return a binary sequence of `<Size>` random bytes.
 
-### `{random_list, <size>}`
+`{choose, <List>}`
+:   Return a random element of the list `<List>`.
 
-This statement is substituted with a list of `<size>` random integers.
+`{choose, <N>, <List>}`
+:   Return a list of `<N>` random elements of the list `<List>`.
 
-### `{random_binary, <size>}`
-
-This statement is substituted with a binary value made of `<size>` random bytes.
-
-### `{choose, <list>}`
-
-This statement is substituted with a random element of the list `<list>`.
-
-### `{choose, <N>, <list>}`
-
-This statement is substituted with a list of `<N>` random values of the list `<list>`.
-
-### `{round_robin, <list>}`
-
-This statement works like [`{choose, <list>}`](#`{choose, <list>}`), but the selected element depends on the current node.
+`{round_robin, <List>}`
+:   Similar to `{choose, <List>}`, but the selected element depends on the current node.
 
 
 ## Logging output
