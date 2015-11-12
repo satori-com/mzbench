@@ -2,7 +2,7 @@
 
 In MZBench, scenarios are .erl files written in a simple DSL. It looks a lot like Erlang but is much simpler.
 
-Read on to learn how to write (and read) MZBench's test scenarios.
+Read on to learn how to write test scenarios for MZBench.
 
 *[DSL]: Domain-Specific Language
 
@@ -15,7 +15,7 @@ MZBench test scenarios consist of *lists*, *tuples*, and *atoms*:
   - A **tuple** is a comma-separated sequence enclosed in curly braces: `{A, B, C}`
   - **Atoms** are reserved words—function names, rate units, conditions. Basically, anything that's not a list, a tuple, a number, or a string is an atom: `print, make_install, lte, rpm`  
 
-The whole scenario is a list of tuples with a dot in the end:
+The whole scenario is a list of tuples with a dot at the end:
 
 ```erlang
 [
@@ -33,7 +33,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 # Top-Level Directives
 
-**Top-level directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, including resource files, checking conditions, and executing shell commands before and after the test.
+**Top-level directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
 `{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
 :   Install an external worker from a remote git repository on the test nodes before running the benchmark.
@@ -63,16 +63,16 @@ Some statements only appear at the top level of a scenario. They're called *top-
     **`<Type>`** is one of the following atoms:
 
     `text`
-    :   Plain text file interpreted as a list of lines.
+    :   Plain text file, interpreted as a single string.
 
     `json`
-    :   JSON file.
+    :   JSON file. Lists are interpreted as [Erlang lists](http://www.erlang.org/doc/man/lists.html), objects are interpreted as [Erlang maps](http://www.erlang.org/doc/man/maps.html).
    
     `tsv`
-    :   File with tabulation separated values.   
+    :   File with tabulation separated values, interpreted as a list of lists.
    
     `erlang`
-    :    Erlang file interpreted directly as a valid Erlang term. [Read more](http://erlang.org/doc/reference_manual/expressions.html#id77790) about Erlang terms.
+    :    Erlang source file, interpreted directly as an [Erlang term](http://erlang.org/doc/reference_manual/expressions.html#id77790).
    
     `binary`
     :   Custom binary (image, executable, archive, etc.), not interpreted.
@@ -341,23 +341,17 @@ By default, variable values are considered strings. To get a numerical value (in
 {numvar, "n"} % returns 42, an integer.
 ```
 
-If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
+If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue>}`:
 
 ```erlang
 {var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
 ```
 
-If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, "<VarName>", {error, "<ErrorMessage>"}}`:
 
-```erlang
-{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if myvar is not set
-```
+## Parallelization and Syncing
 
-
-## Parallel Jobs and Synchronization
-
-`{parallel, [<statement>]}`
-:   Execute statements in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
+`{parallel, [<Statement>]}`
+:   Execute a statement in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
 
 `{set_signal, <term> [, <count>]}`
 :   Register global `<term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
@@ -395,18 +389,16 @@ If you do want the benchmark to crash, but you also want to show a sensible erro
 :   Return a list of `<N>` random elements of the list `<List>`.
 
 `{round_robin, <List>}`
-:   Similar to `{choose, <List>}`, but the selected element depends on the current node.
+:   Pick the next element of the list; when the last one is picked, start over from the first one.
 
 
 ## Logging output
 
-### `{dump, "<text>"}`
+`{dump, "<Text>"}`
+:   Write `<Text>` to the benchmark log.
 
-Write `<text>` to the benchmark log.
-
-### `{sprintf, "<format>", [<var1>, <var2>, ...]}`
-
-This statement is substituted with a formatted text. See [Erlang fwrite/1](http://www.erlang.org/doc/man/io.html#fwrite-1) for a detailed description of the available formatting options.
+`{sprintf, "<Format>", [<Value1>, <Value2>, ...]}`
+:   Return [formatted text](http://www.erlang.org/doc/man/io.html#fwrite-1) with a given format and placeholder values.
 
 
 ## Data Conversion
