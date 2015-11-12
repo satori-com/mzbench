@@ -392,7 +392,7 @@ If you refer to an undefined variable, the benchmark crashes. You can avoid this
 :   Pick the next element of the list; when the last one is picked, start over from the first one.
 
 
-## Logging output
+## Logging
 
 `{dump, "<Text>"}`
 :   Write `<Text>` to the benchmark log.
