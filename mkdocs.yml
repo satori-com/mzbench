@@ -11,6 +11,8 @@ markdown_extensions:
     - abbr
     - def_list
 
+theme: amelia
+
 docs_dir: doc
 
 pages:
