@@ -275,42 +275,6 @@ The difference between these two examples is that in the first case the rate is 
     Default is `false`.
 
 
-# Environment Variables
-
-**Environment variables** are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.
-
-To set an environment variable, call `mzbench` with the `--env` param:
-
-```bash
-$ ./bin/mzbench run --env foo=bar --env n=42
-```
-
-To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
-
-```erlang
-{var, "foo"} % returns "bar"
-{var, "n"} % returns "42", a string
-```
-
-By default, variable values are considered strings. To get a numerical value, use `{numvar, "VarName"}`:
-
-```erlang
-{numvar, "n"} % returns 42, an integer.
-```
-
-If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
-
-```erlang
-{var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
-```
-
-If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, "<VarName>", {error, "<ErrorMessage>"}}`:
-
-```erlang
-{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if myvar is not set
-```
-
-
 # Resource Files
 
 **Resource file** is an external data source for the benchmark.
@@ -353,51 +317,61 @@ Here's how you can use this file in a scenario:
 
 # Standard Library
 
-**Standard library** includes statements that are available in any scenario, even with no worker defined.
+
+## Environment Variables
+
+**Environment variables** are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.
+
+To set an environment variable, call `mzbench` with the `--env` param:
+
+```bash
+$ ./bin/mzbench run --env foo=bar --env n=42
+```
+
+To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
+
+```erlang
+{var, "foo"} % returns "bar"
+{var, "n"} % returns "42", a string
+```
+
+By default, variable values are considered strings. To get a numerical value (integer or float), use `{numvar, "VarName"}`:
+
+```erlang
+{numvar, "n"} % returns 42, an integer.
+```
+
+If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
+
+```erlang
+{var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
+```
+
+If you do want the benchmark to crash, but you also want to show a sensible error message, set one with `{var, "<VarName>", {error, "<ErrorMessage>"}}`:
+
+```erlang
+{var, "myvar", {error, "Please define myvar with --env myvar=value"}} % shows the error message if myvar is not set
+```
 
 
-## Environment Variable Substitution
+## Parallel Jobs and Synchronization
 
-[Read more](#environment-variables) about environment variables.
+`{parallel, [<statement>]}`
+:   Execute statements in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
 
-`{var, "<VarName>"}`
-:   Return the textual value of the environment variable `<VarName>` or crash the benchmark if it's undefined.
+`{set_signal, <term> [, <count>]}`
+:   Register global `<term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
 
-`{var, "<VarName>", <DefaultValue>}`
-:   Return the textual value of the environment variable `<VarName>` or `<DefaultValue>` if it's undefined.
-
-`{var, "<VarName>", {error, "<ErrorMessage>"}}`
-:   Return the textual value of the environment variable `<VarName>` or crash the benchmark with the message `<ErrorMessage>` if it's undefined.
-
-`{numvar, "<VarName>"}`
-:   Return the numerical value (integer or float) of the environment variable `<VarName>` or crash the benchmark if it's undefined.
-
-`{numvar, <string>, <default>}`
-:   Return the numerical value (integer or float) of the environment variable `<VarName>` or `<DefaultValue>` if it's undefined.
-
-
-## Parallel jobs and synchronization
-
-### `{parallel, [<statement>]}`
-
-Execute statements in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
-
-### `{set_signal, <term> [, <count>]}`
-
-Register global `<term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
-
-### `{wait_signal, <term> [, <count>]}`
-
-Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
+`{wait_signal, <term> [, <count>]}`
+:   Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
 
 
 ## Errors handling
 
-### `{ignore_failure, <statement>}`
+`{ignore_failure, <Statement>}`
+:   Execute the statement `<Statement>` and continue with the benchmark even if it fails.
 
-Executes the statement `<statement>`. Even if the `<statement>` fails, the benchmarking will continue it execution as if it succeeded.
-
-This statements returns the return value of the `<statement>` if it was successful and the failure reason otherwise.
+    If the statement succeeds, its result is returned; otherwise, the failure reason is returned.
 
 
 ## Randomization routines
