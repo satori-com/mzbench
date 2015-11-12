@@ -366,7 +366,7 @@ If you do want the benchmark to crash, but you also want to show a sensible erro
 :   Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
 
 
-## Errors handling
+## Errors Handling
 
 `{ignore_failure, <Statement>}`
 :   Execute the statement `<Statement>` and continue with the benchmark even if it fails.
