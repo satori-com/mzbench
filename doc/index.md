@@ -57,7 +57,7 @@ $ ./bin/mzbench run examples/ramp.erl
 status: running                       00:09
 ```
 
-Go to [localhost:4800](http://localhost:4800) and see your benchmark live status:
+Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
 ![Test Benchmark](images/test_benchmark.png)
 
