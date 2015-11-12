@@ -1,0 +1,24 @@
+site_name: MZBench Docs
+site_description: MZBench is an expressive and robust load testing tool
+
+repo_url: http://github.com/moigagoo/mzbench/
+
+markdown_extensions:
+    - smarty
+    - toc:
+        permalink: True
+    - admonition
+    - abbr
+    - def_list
+
+theme: readthedocs
+
+docs_dir: doc
+
+pages:
+- Home: index.md
+- Scenarios: scenarios.md
+- Server API: server_api.md
+- Workers: workers.md
+- Cloud Plugins: cloud_plugin.md
+- Deployment: deployment_guide.md
