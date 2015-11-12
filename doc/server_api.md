@@ -63,7 +63,7 @@ Stop requested benchmark, in a case of success, response JSON object will contai
 
 Clone and start one of the previously executes scenarios. The only parameter is an id of a bench to be cloned. Response is similar to "/start" function.
 
-### GET /log?id=number
+### GET /logs?id=number
 
 Request benchmark logs, in a case of success, response will be plain bench log text. If the bench is still running, log will be streamed continuously until it finishes.
 
