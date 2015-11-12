@@ -95,7 +95,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 `{assert, <Time>, <Condition>}` 
 :   Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
 
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`.
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
     
     `<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
     
@@ -177,7 +177,7 @@ The `get` statement is provided by the built-in [simple_http](https://github.com
     `{think_time, <Time>, <Rate>}`
     :   Start jobs with rate `<Rate>` for a second, then sleep for `<Time>` and repeat.
     
-        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`. 
+        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`. 
 
     `{ramp, linear, <StartRate>, <EndRate>}`
     :   Linearly change the rate from `<StartRate>` at the beginning of the pool to `<EndRate>` at its end.
@@ -256,7 +256,7 @@ The difference between these two examples is that in the first case the rate is 
 
 `{time, <Time>}` *required*
 :   How long the loop is repeated.
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`, `{10, ms}`.
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
 
 `{rate, <Rate>}`
 :   How frequently the loop is repeated.
@@ -409,21 +409,18 @@ Write `<text>` to the benchmark log.
 This statement is substituted with a formatted text. See [Erlang fwrite/1](http://www.erlang.org/doc/man/io.html#fwrite-1) for a detailed description of the available formatting options.
 
 
-## Miscellaneous routines
+## Data Conversion
 
-### `{t, <list>}`
+`{t, <List>}`
+:   Convert `<List>` to a tuple.
 
-This statement is substituted with a tuple containing the elements of the `<list>`, i.e. converts list to tuple.
+`{term_to_binary, <term>}`
+:   Convert an Erlang term to a binary object. [Learn more](http://www.erlang.org/doc/man/erlang.html#term_to_binary-1) in the Erlang docs.
 
-### `{term_to_binary, <term>}`
 
-See [Erlang term_to_binary/1](http://www.erlang.org/doc/man/erlang.html#term_to_binary-1).
+## Pause
 
-### `{wait, <time_constant>}`
+`{wait, <Time>}`
+:   Pause the current job for `<Time>`.
 
-The current parallel job will be stopped for `<time_constant>` amount of time. The `<time_constant>` can be specified as follow:
-
-   * `{N, h}` - wait for `N` hours;
-   * `{N, min}` - wait for `N` minutes;
-   * `{N, sec}` - wait for `N` seconds;
-   * `{N, ms}` - wait for `N` milliseconds.
+    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
