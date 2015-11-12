@@ -282,16 +282,23 @@ The difference between these two examples is that in the first case the rate is 
 To set an environment variable, call `mzbench` with the `--env` param:
 
 ```bash
-$ ./bin/mzbench run --env myvar=value1 --env myothervar=value2
+$ ./bin/mzbench run --env foo=bar --env n=42
 ```
 
-To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`:
+To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
 
 ```erlang
-{var, "myvar"} % returns "value1"
+{var, "foo"} % returns "bar"
+{var, "n"} % returns "42", a string
 ```
 
-If you refer to a variable that is not defined with `--env`, the benchmark crashes. You can change this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
+By default, variable values are considered strings. To get a numerical value, use `{numvar, "VarName"}`:
+
+```erlang
+{numvar, "n"} % returns 42, an integer.
+```
+
+If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue}`:
 
 ```erlang
 {var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
@@ -346,25 +353,28 @@ Here's how you can use this file in a scenario:
 
 # Standard Library
 
-**Standard library** is a set of statements available in any scenario, even if no worker is defined.
+**Standard library** includes statements that are available in any scenario, even with no worker defined.
 
-## Environment variables substitution
 
-### `{var, <string>}`
+## Environment Variable Substitution
 
-This statement is substituted with the textual value of the environment variable `<string>` or crash the benchmark if this variable wasn't defined.
+[Read more](#environment-variables) about environment variables.
 
-### `{var, <string>, <default>}`
+`{var, "<VarName>"}`
+:   Return the textual value of the environment variable `<VarName>` or crash the benchmark if it's undefined.
 
-This statement is substituted with the textual value of the environment variable `<string>` or `<default>` if this variable wasn't defined.
+`{var, "<VarName>", <DefaultValue>}`
+:   Return the textual value of the environment variable `<VarName>` or `<DefaultValue>` if it's undefined.
 
-### `{numvar, <string>}`
+`{var, "<VarName>", {error, "<ErrorMessage>"}}`
+:   Return the textual value of the environment variable `<VarName>` or crash the benchmark with the message `<ErrorMessage>` if it's undefined.
 
-This statement is substituted with the numerical value of the environment variable `<string>` or crash the benchmark if this variable wasn't defined.
+`{numvar, "<VarName>"}`
+:   Return the numerical value (integer or float) of the environment variable `<VarName>` or crash the benchmark if it's undefined.
 
-### `{numvar, <string>, <default>}`
+`{numvar, <string>, <default>}`
+:   Return the numerical value (integer or float) of the environment variable `<VarName>` or `<DefaultValue>` if it's undefined.
 
-This statement is substituted with the numerical value of the environment variable `<string>` or `<default>` if this variable wasn't defined.
 
 ## Parallel jobs and synchronization
 
@@ -380,6 +390,7 @@ Register global `<term>` for synchronization between different pools or workers.
 
 Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
 
+
 ## Errors handling
 
 ### `{ignore_failure, <statement>}`
@@ -387,6 +398,7 @@ Wait for some particular kind of `<term>` to be registered. If the optional `<co
 Executes the statement `<statement>`. Even if the `<statement>` fails, the benchmarking will continue it execution as if it succeeded.
 
 This statements returns the return value of the `<statement>` if it was successful and the failure reason otherwise.
+
 
 ## Randomization routines
 
@@ -418,6 +430,7 @@ This statement is substituted with a list of `<N>` random values of the list `<l
 
 This statement works like [`{choose, <list>}`](#`{choose, <list>}`), but the selected element depends on the current node.
 
+
 ## Logging output
 
 ### `{dump, "<text>"}`
@@ -427,6 +440,7 @@ Write `<text>` to the benchmark log.
 ### `{sprintf, "<format>", [<var1>, <var2>, ...]}`
 
 This statement is substituted with a formatted text. See [Erlang fwrite/1](http://www.erlang.org/doc/man/io.html#fwrite-1) for a detailed description of the available formatting options.
+
 
 ## Miscellaneous routines
 
