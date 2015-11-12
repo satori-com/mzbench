@@ -11,8 +11,6 @@ markdown_extensions:
     - abbr
     - def_list
 
-theme: readthedocs
-
 docs_dir: doc
 
 pages:
