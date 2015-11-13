@@ -6,9 +6,6 @@ Read on to learn how to write test scenarios for MZBench.
 
 *[DSL]: Domain-Specific Language
 
-
-# Syntax
-
 MZBench test scenarios consist of *lists*, *tuples*, and *atoms*:
 
   - A **list** is a comma-separated sequence enclosed in square brackets: `[A, B, C]`
@@ -21,112 +18,135 @@ The whole scenario is a list of tuples with a dot at the end:
 [
     {function1, param1, param2},
     {function2, [{param_name, param_value}]},
+    ...
 ].
 ```
 
 Each of these tuples is called a *statement*. A statement represents a function call: the first item is the function name, the others are the params to pass to it. Each param in its turn can also be a list, a tuple, or an atom.
 
-Some statements only appear at the top level of a scenario. They're called *top-level statements*. There're two kinds of top-level statements: [top-level directives](#top-level-directives) and [pools](#pools).
+Some statements only appear at the top level of a scenario. They're called *top-level statements*. There're two kinds of top-level statements: [directives](#directives) and [pools](#pools).
 
 [See live examples of MZBench scenarios on GitHub →](https://github.com/machinezone/mzbench/tree/master/examples)
 
 
-# Top-Level Directives
+# Directives
 
-**Top-level directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
+**Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
-`{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
-:   Install an external worker from a remote git repository on the test nodes before running the benchmark.
+## make_install
 
-    MZBench downloads the worker and builds a .tgz archive, which is then distributed among the nodes and used in future provisions.
+```erlang
+{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
+```
 
-    The following actions are executed during `make_install`:
+Install an external worker from a remote git repository on the test nodes before running the benchmark.
 
-        git clone <URL> temp_dir
-        cd temp_dir
-        git checkout <Branch>
-        cd <Dir>
-        make generate_tgz
+MZBench downloads the worker and builds a .tgz archive, which is then distributed among the nodes and used in future provisions.
 
-    If `branch` is not specified, the default git branch is used.
+The following actions are executed during `make_install`:
 
-    If `dir` is not specified, `.` is used.
+```bash
+$ git clone <URL> temp_dir
+$ cd temp_dir
+$ git checkout <Branch>
+$ cd <Dir>
+$ make generate_tgz
+```
 
-<a name="include-resource"></a>
+If `branch` is not specified, the default git branch is used.
 
-`{include_resource, <ResourceName>, "<FileName>", <Type>}`
-`{include_resource, <ResourceName>, "<FileURL>", <Type>}`
-:   Register a [resource file](#resource-files) as `<ResourceName>`.
+If `dir` is not specified, `.` is used.
 
-    If the file is on your local machine, put it in the same directory where you invoke `mzbench run`.
+## include_resource
 
-    **`<Type>`** is one of the following atoms:
+```erlang
+{include_resource, <ResourceName>, "<FileName>", <Type>}
+{include_resource, <ResourceName>, "<FileURL>", <Type>}`
+```
 
-    `text`
-    :   Plain text file, interpreted as a single string.
+Register a [resource file](#resource-files) as `<ResourceName>`.
 
-    `json`
-    :   JSON file. Lists are interpreted as [Erlang lists](http://www.erlang.org/doc/man/lists.html), objects are interpreted as [Erlang maps](http://www.erlang.org/doc/man/maps.html).
-   
-    `tsv`
-    :   File with tabulation separated values, interpreted as a list of lists.
-   
-    `erlang`
-    :    Erlang source file, interpreted directly as an [Erlang term](http://erlang.org/doc/reference_manual/expressions.html#id77790).
-   
-    `binary`
-    :   Custom binary (image, executable, archive, etc.), not interpreted.
+If the file is on your local machine, put it in the same directory where you invoke `mzbench run`.
 
+**`<Type>`** is one of the following atoms:
 
-`{pre_hook, <Actions>}` and `{post_hook, <Actions>}`
-:   Run actions before and after the benchmark. Two kinds of actions are supported: *exec commands* and *worker calls*:
+`text`
+:   Plain text file, interpreted as a single string.
 
-        Actions = [Action]
-        Action = {exec, Target, BashCommand}
-            | {worker_call, WorkerMethod, WorkerModule}
-            | {worker_call, WorkerMethod, WorkerModule, WorkerType}
-        Target = all | director
+`json`
+:   JSON file. Lists are interpreted as [Erlang lists](http://www.erlang.org/doc/man/lists.html), objects are interpreted as [Erlang maps](http://www.erlang.org/doc/man/maps.html).
 
-    **Exec commands** let you to run any shell command on all nodes or only on the director node.
-    
-    **Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the environment variables used in the benchmark. These environment variables can be obtained with the `var` directive. [Read more →](workers.md#hooks)
+`tsv`
+:   File with tabulation separated values, interpreted as a list of lists.
 
-`{assert, always, <Condition>}`
-`{assert, <Time>, <Condition>}` 
-:   Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
+`erlang`
+:    Erlang source file, interpreted directly as an [Erlang term](http://erlang.org/doc/reference_manual/expressions.html#id77790).
 
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
-    
-    `<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
-    
-    `<Operation>` is one of four atoms:
-    
-    `lt`
-    :   Less than.
-    
-    `gt`
-    :   Greater than.
-    
-    `lte`
-    :   Less than or equal to.
+`binary`
+:   Custom binary (image, executable, archive, etc.), not interpreted.
 
-    `gte`
-    :   Greater than or equal to.
+## pre_hook and post_hook
 
-    `<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metric* values.
-    
-    [Metrics](workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
-    
-        {gt, "http_ok", 20}
-    
-    The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
+```erlang
+{pre_hook, <Actions>}
+{post_hook, <Actions>}
+```
+
+Run actions before and after the benchmark. Two kinds of actions are supported: *exec commands* and *worker calls*:
+
+    Actions = [Action]
+    Action = {exec, Target, BashCommand}
+        | {worker_call, WorkerMethod, WorkerModule}
+        | {worker_call, WorkerMethod, WorkerModule, WorkerType}
+    Target = all | director
+
+**Exec commands** let you to run any shell command on all nodes or only on the director node.
+
+**Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark.
+
+## assert
+
+```erlang
+{assert, always, <Condition>}
+{assert, <Time>, <Condition>}
+```
+
+Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
+
+<a name="time"></a>
+
+`<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
+
+`<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
+
+`<Operation>` is one of four atoms:
+
+`lt`
+:   Less than.
+
+`gt`
+:   Greater than.
+
+`lte`
+:   Less than or equal to.
+
+`gte`
+:   Greater than or equal to.
+
+`<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metrics* values.
+
+[Metrics](workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
+
+```erlang
+{gt, "http_ok", 20}
+```
+
+The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
 
 
 # Pools
 
 **Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
-
-Apart from the actual list of jobs, each `pool` statement takes a list of [options](#pool-options) that define how the jobs should be executed: with which worker, at what intensity and pace, etc.
 
 Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
@@ -142,55 +162,95 @@ Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
 The `get` statement is provided by the built-in [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
 
+The first param in the `pool` statement is a list of *pool options*.
 
-## Pool options
+## Pool Options
 
-`{size, <NumberOfJobs>}` *required*
-:   How many times you want the pool executed.
+### size
 
-    If there's enough nodes and `worker_start` is not set, MZBench will start the jobs simultaneously and run them in parallel.
+*required*
+
+```erlang
+{size, <NumberOfJobs>}`
+```
+
+How many times you want the pool executed.
+
+If there's enough nodes and `worker_start` is not set, MZBench will start the jobs simultaneously and run them in parallel.
+
+**`<NumberOfJobs>`** is any positive number.
+
+
+### worker_type
+
+*required*
+
+```erlang
+{worker_type, <WorkerName>}
+```
+
+The worker that provides statements for the jobs.
     
-    **`<NumberOfJobs>`** is any positive number.
+!!!hint
+    A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.
 
-`{worker_type, <WorkerName>}` *required*
-:   The worker that provides statements for the jobs.
-    
-    !!!hint
-        A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.
 
-`{worker_start, {linear, <Rate>}}`
-`{worker_start, {poisson, <Rate>}}`
-:   Start the jobs with a given rate:
-    
-    `linear`
-    :   Constant rate `<Rate>`, e.g. 10 per minute
-    
-    `poisson`
-    :   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = `<Rate>`
+### worker_start
 
-    <a name="rate"></a>
-    
-    **`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`. It means `<N>` jobs per second, minute, or hour.
+```erlang
+{worker_start, {linear, <Rate>}}
+{worker_start, {poisson, <Rate>}}
+{worker_start, {exp, <Scale>, <Time>}}
+{worker_start, {pow, <Exponent>, <Scale>, <Time>}}
+```
 
-    You can customize and combine rates:
- 
-    `{think_time, <Time>, <Rate>}`
-    :   Start jobs with rate `<Rate>` for a second, then sleep for `<Time>` and repeat.
+Start the jobs with a given rate:
     
-        `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`. 
+`linear`
+:   Constant rate [`<Rate>`](#rate), e.g. 10 per minute.
 
-    `{ramp, linear, <StartRate>, <EndRate>}`
-    :   Linearly change the rate from `<StartRate>` at the beginning of the pool to `<EndRate>` at its end.
+`poisson`
+:   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = [`<Rate>`](#rate).
+
+<a name="rate"></a>
+
+**`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`, e.g. `{10, rps}`. It means `<N>` jobs per second, minute, or hour.
+
+`exp`
+:   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`:
+
+    *Scale × e<sup>Time</sup>*
+
+`pow`
+:   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`:
     
-    `{comb, <Rate1>, <Time1>, <Rate2>, <Time2>, ...}`
-    :   Start jobs with rate `<Rate1>` for `<Time1>`, then switch to `<Rate2>` for `<Time2>`, etc.
+    *Scale × Time<sup>Exponent</sup>*
 
-    
-`{worker_start, {exp, <Scale>, <Time>}}`
-:   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`: (*Scale × e<sup>Time</sup>*)  
+You can customize and combine rates:
 
-`{worker_start, {pow, <Exponent>, <Scale>, <Time>}}`
-:   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`: *Scale × Time<sup>Exponent</sup>*
+### think_time
+
+```erlang
+{think_time, <Time>, <Rate>}
+```
+
+Start jobs with rate [`<Rate>`](#rate) for a second, then sleep for [`<Time>`](#time) and repeat.
+
+### ramp
+
+```erlang
+{ramp, linear, <StartRate>, <EndRate>}
+```
+
+Linearly change the rate from [`<StartRate>`](#rate) at the beginning of the pool to [`<EndRate>`](#rate) at its end.
+
+### comb
+
+```erlang
+{comb, <Rate1>, <Time1>, <Rate2>, <Time2>, ...}
+```
+
+Start jobs with rate [`<Rate1>`](#rate) for [`<Time1>`](#time), then switch to [`<Rate2>`](#rate) for [`<Time2>`](#time), etc.
 
 
 # Loops
@@ -254,32 +314,54 @@ The difference between these two examples is that in the first case the rate is 
 
 ## Loop options
 
-`{time, <Time>}` *required*
-:   How long the loop is repeated.
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
+### time
 
-`{rate, <Rate>}`
-:   How frequently the loop is repeated.
+*required*
     
-    `<Rate>` is defined the same way as in [pool options](#rate).
+```erlang
+{time, <Time>}
+``` 
 
-`{parallel, <N>}`
-:   Run `<N>` iterations of the loop in parallel.
+Run the loop for [`<Time>`](#time).
 
-`{iterator, "<IterName>"}`
-:   Define a variable named `<IterName>` inside the loop that contains the current iteration number. It can be accessed with `{var, <IterName>}`.
+### rate
 
-`{spawn, (true|false)}`
-:   If `true`, every iteration runs in a separate, spawned process.
- 
-    Default is `false`.
+```erlang
+{rate, <Rate>}
+```
+
+Repeat the loop with the [`<Rate>`](#rate) rate.
+
+### parallel
+
+```erlang
+{parallel, <N>}
+```
+
+Run `<N>` iterations of the loop in parallel.
+
+### iterator
+
+```erlang
+{iterator, "<IterName>"}
+```
+
+Define a variable named `<IterName>` inside the loop that contains the current iteration number. It can be accessed with `{var, <IterName>}`.
+
+### spawn
+
+```erlang
+{spawn, (true|false)}
+```
+
+If `true`, every iteration runs in a separate, spawned process. Default is `false`.
 
 
 # Resource Files
 
 **Resource file** is an external data source for the benchmark.
 
-To declare a resource file for the benchmark, use the [`include_resource` top-level directive](#include-resource).
+To declare a resource file for the benchmark, use [`include_resource`](#include-resource).
 
 Once the resource file is registered, its content can be included at any place in the scenario using the `resource` statement: `{resource, <ResourceName>}`.
 
@@ -317,7 +399,6 @@ Here's how you can use this file in a scenario:
 
 # Standard Library
 
-
 ## Environment Variables
 
 **Environment variables** are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.
@@ -328,17 +409,18 @@ To set an environment variable, call `mzbench` with the `--env` param:
 $ ./bin/mzbench run --env foo=bar --env n=42
 ```
 
+### var
+
+```erlang
+{var, "<VarName>"}
+{var, "<VarName>", <DefaultValue>}
+```
+
 To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
 
 ```erlang
 {var, "foo"} % returns "bar"
 {var, "n"} % returns "42", a string
-```
-
-By default, variable values are considered strings. To get a numerical value (integer or float), use `{numvar, "VarName"}`:
-
-```erlang
-{numvar, "n"} % returns 42, an integer.
 ```
 
 If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue>}`:
@@ -347,72 +429,153 @@ If you refer to an undefined variable, the benchmark crashes. You can avoid this
 {var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
 ```
 
+### numvar
+
+```erlang
+{numvar, "<VarName>"}
+{numvar, "<VarName>", <DefaultValue>}
+```
+
+By default, variable values are considered strings. To get a numerical value (integer or float), use `{numvar, "VarName"}`:
+
+```erlang
+{numvar, "n"} % returns 42, an integer.
+```
+
 
 ## Parallelization and Syncing
 
-`{parallel, [<Statement>]}`
-:   Execute a statement in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
+### parallel
 
-`{set_signal, <term> [, <count>]}`
-:   Register global `<term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
+```erlang
+{parallel, [<Statement>]}
+```
 
-`{wait_signal, <term> [, <count>]}`
-:   Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
+Execute a statement in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
+
+### set_signal
+
+```
+erlang{set_signal, <Term> [, <count>]}
+```
+
+Register global `<Term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
+
+### wait_signal
+
+```erlang
+{wait_signal, <Term> [, <count>]}
+```
+
+Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
 
 
 ## Errors Handling
 
-`{ignore_failure, <Statement>}`
-:   Execute the statement `<Statement>` and continue with the benchmark even if it fails.
+### ignore_failure
 
-    If the statement succeeds, its result is returned; otherwise, the failure reason is returned.
+```erlang
+{ignore_failure, <Statement>}
+```
+
+Execute the statement `<Statement>` and continue with the benchmark even if it fails.
+
+If the statement succeeds, its result is returned; otherwise, the failure reason is returned.
 
 
 ## Randomization
 
-`{random_number, <Min>, <Max>}`
-:   Return a random number between `<Min>` and `<Max>`, including `<Min>` and not including `<Max>`.
+### random_number
 
-`{random_number, <Max>}`
-:   Equivalent to `{random_number, 0, <Max>}`
+```erlang
+{random_number, <Min>, <Max>}
+{random_number, <Max>}
+```
 
-`{random_list, <Size>}`
-:   Return a list of random integer of length `<Size>`.
+Return a random number between `<Min>` and `<Max>`, including `<Min>` and not including `<Max>`.
 
-`{random_binary, <Size>}`
-:   Return a binary sequence of `<Size>` random bytes.
+`{random_number, <Max>}` is equivalent to `{random_number, 0, <Max>}`
 
-`{choose, <List>}`
-:   Return a random element of the list `<List>`.
+### random_list
 
-`{choose, <N>, <List>}`
-:   Return a list of `<N>` random elements of the list `<List>`.
+```erlang
+{random_list, <Size>}
+```
 
-`{round_robin, <List>}`
-:   Pick the next element of the list; when the last one is picked, start over from the first one.
+Return a list of random integer of length `<Size>`.
+
+### random_binary
+
+```erlang
+{random_binary, <Size>}
+```
+
+Return a binary sequence of `<Size>` random bytes.
+
+### choose
+
+```erlang
+{choose, <N>, <List>}
+{choose, <List>}
+```
+
+Return a list of `<N>` random elements of the list `<List>`.
+
+`{choose, <List>}` is equivalent to `{choose, 1, <List>}`.
+
+### round_robin
+
+```erlang
+{round_robin, <List>}
+```
+
+Pick the next element of the list. When the last one is picked, start over from the first one.
 
 
 ## Logging
 
-`{dump, "<Text>"}`
-:   Write `<Text>` to the benchmark log.
+### dump
 
-`{sprintf, "<Format>", [<Value1>, <Value2>, ...]}`
-:   Return [formatted text](http://www.erlang.org/doc/man/io.html#fwrite-1) with a given format and placeholder values.
+```erlang
+{dump, "<Text>"}
+```
+
+Write `<Text>` to the benchmark log.
+
+### sprintf
+
+```erlang
+{sprintf, "<Format>", [<Value1>, <Value2>, ...]}
+```
+
+Return [formatted text](http://www.erlang.org/doc/man/io.html#fwrite-1) with a given format and placeholder values.
 
 
 ## Data Conversion
 
-`{t, <List>}`
-:   Convert `<List>` to a tuple.
+### t
 
-`{term_to_binary, <term>}`
-:   Convert an Erlang term to a binary object. [Learn more](http://www.erlang.org/doc/man/erlang.html#term_to_binary-1) in the Erlang docs.
+```erlang
+{t, <List>}
+```
+
+Convert `<List>` to a tuple.
+
+### term_to_binary
+
+```erlang
+{term_to_binary, <term>}
+```
+
+Convert an Erlang term to a binary object. [Learn more](http://www.erlang.org/doc/man/erlang.html#term_to_binary-1) in the Erlang docs.
 
 
 ## Pause
 
-`{wait, <Time>}`
-:   Pause the current job for `<Time>`.
+### wait
 
-    `<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
+```erlang
+{wait, <Time>}
+```
+
+Pause the current job for [`<Time>`](#time).
