@@ -209,12 +209,12 @@ Start the jobs with a given rate:
 `linear`
 :   Constant rate [`<Rate>`](#rate), e.g. 10 per minute.
 
-`poisson`
-:   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = [`<Rate>`](#rate).
-
 <a name="rate"></a>
 
 **`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`, e.g. `{10, rps}`. It means `<N>` jobs per second, minute, or hour.
+
+`poisson`
+:   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = [`<Rate>`](#rate).
 
 `exp`
 :   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`:
@@ -448,27 +448,32 @@ By default, variable values are considered strings. To get a numerical value (in
 ### parallel
 
 ```erlang
-{parallel, [<Statement>]}
+{parallel, <Statement1>, <Statement2>, ...}
 ```
 
-Execute a statement in parallel. If you have any initialization statements, they shouldn't be executed in parallel with work statements because they don't share worker state changes, also worker state modifications for thread > 1 wont be available after a parallel section. For example, [{parallel, [2, 3]}] is equal to [2], the same for [{parallel, [2, 3, 4, 5]}] == [2].
+Execute multiple statements in parallel. Unlike executing statements in a pool, this way all statements are executed on the same node.
 
 ### set_signal
 
-```
-erlang{set_signal, <Term> [, <count>]}
+```erlang
+{set_signal, <SignalName>}
+{set_signal, <SignalName>, <Count>]}
 ```
 
-Register global `<Term>` for synchronization between different pools or workers. If the optional `<count>` parameter is specified, the `<term>` will be registered `<count>` times.
+Emit a global signal `<SignalName>`.
+
+If `<Count>` is specified, the signal is emitted `<Count>` times.
+
+`<SignalName>` is a string, atom, number, or, in fact, any [Erlang term](http://erlang.org/doc/reference_manual/expressions.html#id77790).
 
 ### wait_signal
 
 ```erlang
-{wait_signal, <Term> [, <count>]}
+{wait_signal, <SignalName>}
+{wait_signal, <SignalName>, <Count>}
 ```
 
-Wait for some particular kind of `<term>` to be registered. If the optional `<count>` parameter is specified, wait for the `<term>` to be registered `<count>` times.
-
+Wait for the global signal `<SignalName>` to be emitted. If `<Count>` is specified, wait for the signal to be emitted `<Count>` times.
 
 ## Errors Handling
 
