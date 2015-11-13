@@ -87,10 +87,11 @@ These parameters are going to the `mzbench_api` category.
 
 ### `{cloud_plugins, [{Name :: atom(), Opts :: #{}}]}`
 
-Plugins responsible for node allocation, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}] by default.
+Plugins responsible for node allocation, [{dummy, #{module => mzb_dummycloud_plugin}}] by default.
+Name represents the name of the particular instance of plugin and could be any atom.
 Opts must contain either module or application key, other keys in Opts depend on particular plugin type.
 It is possible to specify several plugins. The actually used plugin can be specified with --cloud option of the bin/mzbench utility.
-There are two cloud plugins available in mzbench so far. See below for configuration details and a few examples.
+There are three cloud plugins available in mzbench so far. See below for configuration details and a few examples.
 See also: [Cloud plugin creation guide](doc/cloud_plugin.md)
 
 #### Configuration of the AWS EC2 cloud plugin
@@ -124,15 +125,23 @@ Configuration example:
                             instance_user => "ec2-user",
                         }}]},
 
-#### Configuration of dummy cloud plugin
+#### Configuration of static cloud plugin
 
-mzb_api_dummycloud_plugin does not allocate any hosts, the specified list of hosts is used instead.
+mzb_staticcloud_plugin does not allocate any hosts, the specified list of hosts is used instead.
 
 Configuration example:
 
-    {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin,
+    {cloud_plugins, [{static, #{module => mzb_staticcloud_plugin,
                                hosts => ["host1", "host2"]
                                }}]}
+
+#### Configuration of dummy cloud plugin
+
+mzb_dummycloud_plugin does not allocate any hosts, localhost is used instead.
+
+Configuration example:
+
+    {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin}}]}
 
 ### `{bench_data_dir, "<path>"}`
 

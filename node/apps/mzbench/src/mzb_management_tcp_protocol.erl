@@ -1,4 +1,4 @@
--module(mzb_metrics_tcp_protocol).
+-module(mzb_management_tcp_protocol).
 
 -behaviour(ranch_protocol).
 -behaviour(gen_server).
@@ -13,7 +13,8 @@
          handle_cast/2,
          handle_info/2,
          terminate/2,
-         code_change/3]).
+         code_change/3,
+         get_port/0]).
 
 -define(TIMEOUT, 60000).
 
@@ -27,8 +28,12 @@
 start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
-dispatch({change_env, Env, Ref}, State) ->
-    send_message({change_env_res, mzb_director:change_env(Env), Ref}, State),
+dispatch({request, Ref, Msg}, State) ->
+    lager:info("Received request: ~p", [Msg]),
+    case handle_message(Msg) of
+        {ok, Res} -> send_message({response, Ref, Res}, State);
+        {error, Reason} -> lager:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
+    end,
     {noreply, State};
 
 dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
@@ -38,6 +43,21 @@ dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
 dispatch(Unhandled, State) ->
     lager:error("Unhandled tcp message: ~p", [Unhandled]),
     {noreply, State}.
+
+get_port() ->
+    ranch:get_port(management_tcp_server).
+
+handle_message({change_env, Env}) ->
+    {ok, mzb_director:change_env(Env)};
+
+handle_message({get_log_port, Node}) ->
+    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
+        {badrpc, Reason} -> {error, {badrpc, Node, Reason}};
+        Port -> {ok, Port}
+    end;
+
+handle_message(Msg) ->
+    {error, {unhandled, Msg}}.
 
 init([State]) -> {ok, State}.
 

@@ -22,8 +22,8 @@
   {env, [
     {node_deployment_path, "~/.local/share"},
     {workers_dirs, ["~/.local/share/mzbench_workers", "../workers"]},
-    {bench_log_port, 4801},
-    {bench_metrics_port, 4802},
+    {node_log_port, 4801},
+    {node_management_port, 4802},
     {gc_sleep, 10}
   ]}
  ]}.

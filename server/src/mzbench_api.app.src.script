@@ -17,7 +17,8 @@
     ]},
     {mod, {mzb_api_app, []}},
     {env, [
-        {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin, hosts => ["localhost"]}}]},
+        {cloud_plugins, [{local, #{module => mzb_dummycloud_plugin}}]},
+        %{cloud_plugins, [{static, #{module => mzb_staticcloud_plugin, hosts => ["Host1", "Host2", ...]}}]},
         %{cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
         %                         instance_spec => [
         %                              {image_id, "ami-3b90a80b"},
@@ -42,10 +43,10 @@
         {listen_port, 4800},
         {bench_log_file, "log.txt"},
         {bench_log_compression, deflate},
-        {bench_log_port, 4801},
+        {node_log_port, 4801},
+        {node_management_port, 4802},
         {bench_metrics_file, "metrics.txt"},
         {bench_metrics_compression, none},
-        {bench_metrics_port, 4802},
         {bench_read_at_once, 1024},
         {bench_poll_timeout, 1000},
 %        {graphite, "172.21.6.181"},

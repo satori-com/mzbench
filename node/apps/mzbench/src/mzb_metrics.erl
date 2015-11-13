@@ -7,7 +7,6 @@
          get_graphite_url/1,
          get_local_values/1,
          final_trigger/0,
-         get_metric_value/1,
          get_failed_asserts/0,
          build_metric_groups/1,
          extract_exometer_metrics/1,
@@ -258,19 +257,6 @@ format_signals_count(Signals) ->
         Signals),
     string:join(Lines, "\n").
 
-get_metric_value(Metric) ->
-    Suffix = metric_name_suffix(Metric),
-    DataPoint =
-        try
-            erlang:list_to_integer(Suffix)
-        catch
-            _:_ -> erlang:list_to_atom(Suffix)
-        end,
-    case exometer:get_value([drop_metric_suffix(Metric)], DataPoint) of
-        {ok, [{_, Value}]} -> {ok, Value};
-        _ -> {error, not_found}
-    end.
-
 eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = LastRPSCalculationTime} = State) ->
     Now = os:timestamp(),
     TimeInterval = timer:now_diff(Now, LastRPSCalculationTime),
@@ -310,12 +296,6 @@ groupby([], Res) -> Res;
 groupby([{H, _}|_] = L, Res) ->
     Values = proplists:get_all_values(H, L),
     groupby(proplists:delete(H, L), [{H, Values}|Res]).
-
-metric_name_suffix(M) ->
-    lists:last(string:tokens(M, ".")).
-
-drop_metric_suffix(M) ->
-    string:join(lists:droplast(string:tokens(M, ".")), ".").
 
 get_local_values(Metrics) ->
     lager:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),

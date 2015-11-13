@@ -31,9 +31,10 @@ validate_assert_op(gt, _) -> [];
 validate_assert_op(lt, _) -> [];
 validate_assert_op(gte, _) -> [];
 validate_assert_op(lte, _) -> [];
+validate_assert_op(eq, _) -> [];
 validate_assert_op(Name, M) ->
-    mzb_string:format("~sInvalid assert operation: ~p",
-        [mzbl_script:meta_to_location_string(M), Name]).
+    [mzb_string:format("~sInvalid assert operation: ~p",
+        [mzbl_script:meta_to_location_string(M), Name])].
 
 get_failed(IsFinished, Accuracy, State) ->
     Failed = lists:filter(fun (A) -> not check_assert(IsFinished, Accuracy * 1000, A) end, State),
@@ -66,15 +67,17 @@ update_state(TimeSinceCheck, State) ->
         end, State).
 
 check_expr(#operation{name = Op, args = [Metric, Value1]}) ->
-    case mzb_metrics:get_metric_value(Metric) of
-        {ok, Value2} -> check_value(Op, Value2, Value1);
-        {error, not_found} -> false
+    try mzb_metrics:get_value(Metric) of
+        Value2 -> check_value(Op, Value2, Value1)
+    catch
+        error:{badarg, Metric, _} -> false
     end.
 
 check_value(gt, V1, V2) -> V1 > V2;
 check_value(gte, V1, V2) -> V1 >= V2;
 check_value(lt, V1, V2) -> V1 < V2;
-check_value(lte, V1, V2) -> V1 =< V2.
+check_value(lte, V1, V2) -> V1 =< V2;
+check_value(eq, V1, V2) -> V1 == V2.
 
 format_error(#{assert_time:= always, assert_expr:= Expr, unsatisfy_time:= UTime}) ->
     io_lib:format("Assertion: ~s~nwas expected to hold for whole bench time~n(unsatisfied for ~s)",
@@ -89,7 +92,8 @@ format_expr(#operation{name = Operation, args = [Op1, Op2]}) when is_list(Op1), 
 format_op(gt) -> ">";
 format_op(lt) -> "<";
 format_op(gte) -> ">=";
-format_op(lte) -> "<=".
+format_op(lte) -> "<=";
+format_op(eq) -> "==".
 
 format_time(always) -> "always";
 format_time(0) -> "0";
