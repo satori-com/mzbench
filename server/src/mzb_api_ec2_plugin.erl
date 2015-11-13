@@ -29,7 +29,7 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
     case Kind of
         dns_name -> ok; % when dns names are used for hosts there is no need to set them
-        _ -> update_hostfiles(UserName, Hosts)
+        _ -> update_hostfiles(UserName, Hosts, Opts)
     end,
     {ok, {Opts, Ids}, UserName, Hosts}.
 
@@ -55,7 +55,18 @@ destroy_cluster({Opts, Ids}) ->
     {ok, _} = R,
     ok.
 
-update_hostfiles(UserName, Hosts) ->
+update_hostfiles(UserName, Hosts, #{host_prefix:= HPrefix}) ->
+    Logger = mzb_api_app:default_logger(),
+    _ = lists:map(
+        fun ({N, H}) ->
+            HostName = mzb_string:format("~s~b", [HPrefix, N]),
+            Cmd1 = io_lib:format("sudo hostname ~s", [HostName]),
+            _ = mzb_subprocess:remote_cmd(UserName, [H], Cmd1, [], Logger),
+            Cmd2 = mzb_string:format("sudo sh -c 'echo \"~s     ~s\" >> /etc/hosts'", [H, HostName]),
+            mzb_subprocess:remote_cmd(UserName, Hosts, Cmd2, [], Logger)
+        end, mzb_lists:enumerate(Hosts)),
+    ok;
+update_hostfiles(UserName, Hosts, _) ->
     Logger = mzb_api_app:default_logger(),
     _ = lists:map(fun (H) -> mzb_subprocess:remote_cmd(UserName, Hosts,
         mzb_string:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")]), [], Logger) end, Hosts),

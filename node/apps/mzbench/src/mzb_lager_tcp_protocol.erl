@@ -13,7 +13,8 @@
          handle_cast/2,
          handle_info/2,
          terminate/2,
-         code_change/3]).
+         code_change/3,
+         get_port/0]).
 
 -record(state, {socket, transport}).
 
@@ -27,6 +28,9 @@ dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
 dispatch(Unhandled, State) ->
     lager:error("Unhandled tcp message: ~p", [Unhandled]),
     {noreply, State}.
+
+get_port() ->
+    ranch:get_port(lager_tcp_server).
 
 init([State]) -> {ok, State}.
 

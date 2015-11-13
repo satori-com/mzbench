@@ -23,9 +23,9 @@ cloud_plugin_test() ->
         ?assert(meck:called(dummy_plugin, destroy_cluster, '_')),
         ?assert(meck:validate(dummy_plugin))
     after
+        _ = (catch mzb_api_cloud:stop()),
         meck:unload(dummy_plugin)
     end.
-
 
 allocate_existing_hosts_test() ->
     Config = #{initial_user => nothing, purpose => nothing, nodes_arg => [], exclusive_node_usage => false},
