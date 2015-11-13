@@ -5,6 +5,8 @@ MZBench is a robust load testing tool. Some key features:
 * Flexible Domain-specific Language (DSL) for running various workload scenarios.
 * Putting the results into common metrics-gathering systems like Graphite.
 
+[Read the docs →](https://machinezone.github.io/mzbench)
+
 ## Quickstart
 
 To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
