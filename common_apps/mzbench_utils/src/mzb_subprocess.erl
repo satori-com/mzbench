@@ -26,7 +26,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
                         undefined -> "";
                         _ -> io_lib:format("~s@", [UserName])
                     end,
-                exec_format("ssh -A -o StrictHostKeyChecking=no ~s~s \"source /etc/profile; ~s ~s\"", 
+                exec_format("ssh -A -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ~s~s \"source /etc/profile; ~s ~s\"",
                     [UserNameParam, Host, Executable, string:join(Args2, " ")], Opts, Logger)
         end, Hosts).
 
