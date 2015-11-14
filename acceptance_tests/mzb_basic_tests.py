@@ -75,8 +75,7 @@ def poisson_worker_start_test():
 
 def unicode_resources_test():
     run_successful_bench(scripts_dir + 'unicode_resource.erl',
-        env={'strings_filename':'unicode_strings.txt'},
-        expected_log_message_regex=r'https://travis-ci\.org/machinezone/mzbench')
+        env={'strings_filename':'unicode_strings.txt'})
 
 
 def data_endpoint_test():
