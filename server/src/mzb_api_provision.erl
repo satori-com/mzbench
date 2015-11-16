@@ -67,7 +67,7 @@ get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserNam
                 [DirectorHost],
                 io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
                 ["-sname", director_sname(Config), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
-                Logger),
+                Logger, []),
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
 
