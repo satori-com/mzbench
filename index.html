@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="MZBench is an expressive and robust load testing tool">
+        
+        
+        <link rel="shortcut icon" href="./img/favicon.ico">
+
+	<title>MZBench Docs</title>
+
+        <link href="./css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="./css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="./css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="./css/highlight.css">
+        <link href="./css/custom.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body class="homepage">
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href=".">MZBench Docs</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li class="active">
+                        <a href=".">Home</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="scenarios/">Scenarios</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="server_api/">Server API</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="workers/">Workers</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="cloud_plugin/">Cloud Plugins</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="deployment_guide/">Deployment</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li class="disabled">
+                        <a rel="next" >
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="scenarios/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="http://github.com/moigagoo/mzbench/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#welcome-to-mzbench">Welcome to MZBench</a></li>
+        
+            <li><a href="#installation">Installation</a></li>
+        
+            <li><a href="#quickstart">Quickstart</a></li>
+        
+            <li><a href="#how-it-works">How It Works</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="welcome-to-mzbench">Welcome to MZBench<a class="headerlink" href="#welcome-to-mzbench" title="Permanent link">&para;</a></h1>
+<p><strong><em>An expressive and extendable load testing tool</em></strong></p>
+<hr />
+<p><img alt="Graphs" src="./images/graphs.png" /></p>
+<p>MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. </p>
+<p>MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.</p>
+<p>As your benchmark is running, you see real-time stats and graphs in the built-in web dashboard.</p>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<p>To use MZBench, you&rsquo;ll need:</p>
+<ul>
+<li>Erlang R17</li>
+<li>C++ compiler</li>
+<li>Python 2.6 or 2.7 with pip</li>
+</ul>
+<p>Most UNIX systems have C++ compiler and Python preinstalled.</p>
+<p>Erlang is available in the <a href="http://pkgs.org/search/erlang">official repositories on most GNU/Linux distros</a>. If your distro doesn&rsquo;t have Erlang R17, <a href="http://www.erlang.org/doc/installation_guide/INSTALL.html">build it from source</a>.  </p>
+<p>Download MZBench from GitHub and install Python requirements:</p>
+<pre><code class="bash">$ git clone https://github.com/machinezone/mzbench
+$ sudo pip install -r mzbench/requirements.txt 
+</code></pre>
+
+<h2 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h2>
+<p>Start the MZBench server on localhost:</p>
+<pre><code class="bash">$ cd mzbench
+$ ./bin/mzbench start_server
+Executing make -C /path/to//mzbench/bin/../server generate
+Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
+</code></pre>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The first server start takes a few minutes. The shell will not respond, which is OK; please be patient. Further starts will be much faster.</p>
+</div>
+<p>When the server is running, launch an example benchmark:</p>
+<pre><code class="bash">$ ./bin/mzbench run examples/ramp.erl
+{
+    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;id&quot;: 6
+}
+status: running                       00:09
+</code></pre>
+
+<p>Go to <a href="http://localhost:4800">localhost:4800</a> and see the benchmark live status:</p>
+<p><img alt="Test Benchmark" src="./images/test_benchmark.png" /></p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>Here be description.</p></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="./js/jquery-1.10.2.min.js"></script>
+        <script src="./js/bootstrap-3.0.3.min.js"></script>
+        <script src="./js/highlight.pack.js"></script>
+        <script>var base_url = '.';</script>
+        <script data-main="./mkdocs/js/search.js" src="./mkdocs/js/require.js"></script>
+        <script src="./js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 0.14.0
+Build Date UTC : 2015-11-16 06:27:06.731460
+-->
