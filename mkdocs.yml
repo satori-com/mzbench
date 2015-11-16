@@ -14,7 +14,7 @@ markdown_extensions:
 docs_dir: doc
 
 pages:
-- Home: index.md
+- Overview: index.md
 - Scenarios: scenarios.md
 - Server API: server_api.md
 - Deployment: deployment_guide.md
