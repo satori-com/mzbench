@@ -85,7 +85,7 @@ MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tre
 
 ## Read Next
 
- - [How to control MZBench from command line →](server_api.md)
  - [How to write scenarios →](scenarios.md)
+ - [How to control MZBench from command line →](server_api.md)
  - [How to deploy MZBench →](deployment_guide.md)
  - [How to write your own worker →](workers.md#how-to-write-a-worker)
