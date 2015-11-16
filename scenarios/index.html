@@ -197,7 +197,7 @@
 <p><a href="https://github.com/machinezone/mzbench/tree/master/examples">See live examples of MZBench scenarios on GitHub →</a></p>
 <h1 id="directives">Directives<a class="headerlink" href="#directives" title="Permanent link">&para;</a></h1>
 <p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
-<h2 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h2>
+<h3 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{make_install, [{git, &quot;&lt;URL&gt;&quot;}, {branch, &quot;&lt;Branch&gt;&quot;}, {dir, &quot;&lt;Dir&gt;&quot;}]}`
 </code></pre>
 
@@ -213,7 +213,7 @@ $ make generate_tgz
 
 <p>If <code>branch</code> is not specified, the default git branch is used.</p>
 <p>If <code>dir</code> is not specified, <code>.</code> is used.</p>
-<h2 id="include_resource">include_resource<a class="headerlink" href="#include_resource" title="Permanent link">&para;</a></h2>
+<h3 id="include_resource">include_resource<a class="headerlink" href="#include_resource" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{include_resource, &lt;ResourceName&gt;, &quot;&lt;FileName&gt;&quot;, &lt;Type&gt;}
 {include_resource, &lt;ResourceName&gt;, &quot;&lt;FileURL&gt;&quot;, &lt;Type&gt;}`
 </code></pre>
@@ -233,7 +233,7 @@ $ make generate_tgz
 <dt><code>binary</code></dt>
 <dd>Custom binary (image, executable, archive, etc.), not interpreted.</dd>
 </dl>
-<h2 id="pre_hook-and-post_hook">pre_hook and post_hook<a class="headerlink" href="#pre_hook-and-post_hook" title="Permanent link">&para;</a></h2>
+<h3 id="pre_hook-and-post_hook">pre_hook and post_hook<a class="headerlink" href="#pre_hook-and-post_hook" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{pre_hook, &lt;Actions&gt;}
 {post_hook, &lt;Actions&gt;}
 </code></pre>
@@ -247,7 +247,7 @@ Target = all | director
 </code></pre>
 <p><strong>Exec commands</strong> let you to run any shell command on all nodes or only on the director node.</p>
 <p><strong>Worker calls</strong> are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the <a href="#environment-variables">environment variables</a> used in the benchmark.</p>
-<h2 id="assert">assert<a class="headerlink" href="#assert" title="Permanent link">&para;</a></h2>
+<h3 id="assert">assert<a class="headerlink" href="#assert" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{assert, always, &lt;Condition&gt;}
 {assert, &lt;Time&gt;, &lt;Condition&gt;}
 </code></pre>
