@@ -33,7 +33,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 **Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
-## make_install
+### make_install
 
 ```erlang
 {make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
@@ -57,7 +57,7 @@ If `branch` is not specified, the default git branch is used.
 
 If `dir` is not specified, `.` is used.
 
-## include_resource
+### include_resource
 
 ```erlang
 {include_resource, <ResourceName>, "<FileName>", <Type>}
@@ -85,7 +85,7 @@ If the file is on your local machine, put it in the same directory where you inv
 `binary`
 :   Custom binary (image, executable, archive, etc.), not interpreted.
 
-## pre_hook and post_hook
+### pre_hook and post_hook
 
 ```erlang
 {pre_hook, <Actions>}
@@ -104,7 +104,7 @@ Run actions before and after the benchmark. Two kinds of actions are supported: 
 
 **Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark.
 
-## assert
+### assert
 
 ```erlang
 {assert, always, <Condition>}
