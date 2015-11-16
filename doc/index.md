@@ -1,10 +1,8 @@
 # Welcome to MZBench
 
-***An expressive and extendable load testing tool***
+***Expressive, infinitely scalable load testing tool***
 
 ---
-
-![Graphs](images/graphs.png)
 
 MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. 
 
