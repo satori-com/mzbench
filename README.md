@@ -38,7 +38,7 @@ To deploy and configure an MZBench API server on your own infrastructure, see th
 
 ## MZBench DSL Reference
 
-To write test scenarios using the MZBench language, see [DSL Reference](doc/scenario_dsl.md).
+To write test scenarios using the MZBench language, see [DSL Reference](doc/scenarios.md).
 
 ### DSL Code Examples
 
