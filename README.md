@@ -4,7 +4,7 @@
 
 ---
 
-![Graphs](images/graphs.gif)
+![Graphs](doc/images/graphs.gif)
 
 MZBench helps software testers and developers test their products under huge load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload. 
 
@@ -59,7 +59,7 @@ status: running                       00:09
 
 Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
-![Test Benchmark](images/test_benchmark.png)
+![Test Benchmark](doc/images/test_benchmark.png)
 
 
 ## Read Next
