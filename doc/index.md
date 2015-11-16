@@ -6,12 +6,16 @@
 
 ![Graphs](images/graphs.gif)
 
-MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. 
+**MZBench** helps software testers and developers test their products under huge load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload. 
 
-MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.
+MZBench runs test scenarios on many machines simultaneous, maintaining millions of connections, which make it suitable even for large scale products.
 
-As your benchmark is running, you see real-time stats and graphs in the built-in web dashboard.
+MZBench is:
 
+ - **Cloud-aware:** MZBench allocates nodes directly from Amazon EC2. 
+ - **Scalable:** tested with 100 nodes and millions of connections.
+ - **Extendable:** write your own [cloud plugins](cloud_plugin#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker). 
+ - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
 
 ## Installation
 

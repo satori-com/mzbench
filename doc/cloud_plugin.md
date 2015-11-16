@@ -1,4 +1,4 @@
-# Implementing a cloud plugin for MZBench
+# How to Write a Cloud Plugin
 
 Cloud plugin is responsible for cluster allocation and deallocation, it is required to implement the following methods:
 
