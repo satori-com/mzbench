@@ -1,65 +1,70 @@
-# MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench)
+# Welcome to MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench)
 
-MZBench is a robust load testing tool. Some key features:
-* Ability to generate workload in distributed mode.
-* Flexible Domain-specific Language (DSL) for running various workload scenarios.
-* Putting the results into common metrics-gathering systems like Graphite.
+***Expressive, scalable load testing tool***
+
+---
+
+![Graphs](images/graphs.gif)
+
+MZBench helps software testers and developers test their products under huge load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload. 
+
+MZBench runs test scenarios on many machines simultaneous, maintaining millions of connections, which make it suitable even for large scale products.
+
+MZBench is:
+
+ - **Cloud-aware:** MZBench allocates nodes directly from Amazon EC2. 
+ - **Scalable:** tested with 100 nodes and millions of connections.
+ - **Extendable:** write your own [cloud plugins](cloud_plugin#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker). 
+ - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
 
 [Read the docs →](https://machinezone.github.io/mzbench)
 
+
+## Installation
+
+To use MZBench, you'll need:
+
+ - Erlang R17
+ - C++ compiler
+ - Python 2.6 or 2.7 with pip
+
+Download MZBench from GitHub and install Python requirements:
+
+```bash
+$ git clone https://github.com/machinezone/mzbench
+$ sudo pip install -r mzbench/requirements.txt 
+```
+
 ## Quickstart
 
-To install MZBench, you need: Erlang R17, CC, C++, Python and PIP.
+Start the MZBench server on localhost:
 
-    # clone MZBench repo
-    git clone https://github.com/machinezone/mzbench.git
+```bash
+$ cd mzbench
+$ ./bin/mzbench start_server
+Executing make -C /path/to//mzbench/bin/../server generate
+Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
+```
 
-    # install python packages
-    sudo pip install -r mzbench/requirements.txt
+When the server is running, launch an example benchmark:
 
-    cd mzbench
+```bash
+$ ./bin/mzbench run examples/ramp.erl
+{
+    "status": "pending", 
+    "id": 6
+}
+status: running                       00:09
+```
 
-    # start MZBench server
-    ./bin/mzbench start_server
+Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
-    # run a benchmark with graphite
-    ./bin/mzbench run examples/ramp.erl --env graphite=<graphite_address>
+![Test Benchmark](images/test_benchmark.png)
 
-    # or run a benchmark without graphite
-    ./bin/mzbench run examples/ramp.erl
 
-    # check dashboard at http://localhost:4800/ for the results
+## Read Next
 
-## Deployment Guide
-
-To deploy and configure an MZBench API server on your own infrastructure, see the
-
-[Deployment guide](doc/deployment_guide.md)
-
-## MZBench DSL Reference
-
-To write test scenarios using the MZBench language, see [DSL Reference](doc/scenarios.md).
-
-### DSL Code Examples
-
-MZBench scenarios are DSL programs. To see some pre-coded examples using MZBench DSL
-language, see [DSL Code Examples](doc/examples.md).
-
-### Writing Language Extensions
-
-To learn how to write language extensions called "workers," to access a particular service
-or protocol, see [How to write language extensions](doc/worker_howto.md).
-
-### Writing Cloud Connectors
-
-Current MZBench version is shipped with AWS EC2 cloud and local execution plugins,
-but other clouds are welcome, please refer to [Cloud plugin creation guide](doc/cloud_plugin.md).
-
-### Working with API
-
-MZBench server could be used directly via [HTTP API](doc/server_api.md) for better integration
-with external tools.
-
-## Support
-
-Please report an issue on github.
+ - [How to write scenarios →](scenarios.md)
+ - [How to control MZBench from command line →](server_api.md)
+ - [How to deploy MZBench →](deployment_guide.md)
+ - [How to write your own worker →](workers.md#how-to-write-a-worker)
