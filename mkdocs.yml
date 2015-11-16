@@ -1,7 +1,7 @@
 site_name: MZBench Docs
-site_description: MZBench is an expressive and robust load testing tool
+site_description: Expressive, Infinitely Scalable Load Testing Tool
 
-repo_url: http://github.com/moigagoo/mzbench/
+repo_url: http://github.com/machinezone/mzbench/
 
 markdown_extensions:
     - smarty
