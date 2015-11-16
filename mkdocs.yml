@@ -17,6 +17,6 @@ pages:
 - Home: index.md
 - Scenarios: scenarios.md
 - Server API: server_api.md
+- Deployment: deployment_guide.md
 - Workers: workers.md
 - Cloud Plugins: cloud_plugin.md
-- Deployment: deployment_guide.md
