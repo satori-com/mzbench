@@ -4,6 +4,8 @@
 
 ---
 
+![Graphs](images/graphs.gif)
+
 MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. 
 
 MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.
