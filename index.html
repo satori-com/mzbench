@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="MZBench is an expressive and robust load testing tool">
+        <meta name="description" content="Expressive, Scalable Load Testing Tool">
         
         
         <link rel="shortcut icon" href="./img/favicon.ico">
@@ -55,7 +55,7 @@
                 
                 
                     <li class="active">
-                        <a href=".">Home</a>
+                        <a href=".">Overview</a>
                     </li>
                 
                 
@@ -73,6 +73,12 @@
                 
                 
                     <li >
+                        <a href="deployment_guide/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
                         <a href="workers/">Workers</a>
                     </li>
                 
@@ -80,12 +86,6 @@
                 
                     <li >
                         <a href="cloud_plugin/">Cloud Plugins</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="deployment_guide/">Deployment</a>
                     </li>
                 
                 
@@ -112,7 +112,7 @@
                 
                 
                     <li>
-                        <a href="http://github.com/moigagoo/mzbench/">
+                        <a href="http://github.com/machinezone/mzbench/">
                             
                                 <i class="fa fa-github"></i>
                             
@@ -138,17 +138,26 @@
         
             <li><a href="#how-it-works">How It Works</a></li>
         
+            <li><a href="#read-next">Read Next</a></li>
+        
     
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
 
 <h1 id="welcome-to-mzbench">Welcome to MZBench<a class="headerlink" href="#welcome-to-mzbench" title="Permanent link">&para;</a></h1>
-<p><strong><em>Expressive, infinitely scalable load testing tool</em></strong></p>
+<p><strong><em>Expressive, scalable load testing tool</em></strong></p>
 <hr />
-<p>MZBench helps software testers and developers test their products under huge load. By benchmarking your product before going to production, you reduce the risk of outages under real life highload. </p>
-<p>MZBench runs your test scenarios on hundreds of thousands of machines simultaneously, pushing even the largest services to their limit.</p>
-<p>As your benchmark is running, you see real-time stats and graphs in the built-in web dashboard.</p>
+<p><img alt="Graphs" src="./images/graphs.gif" /></p>
+<p><strong>MZBench</strong> helps software testers and developers test their products under huge load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload. </p>
+<p>MZBench runs test scenarios on many machines simultaneously, maintaining millions of connections, which make it suitable even for large scale products.</p>
+<p>MZBench is:</p>
+<ul>
+<li><strong>Cloud-aware:</strong> MZBench allocates nodes directly from Amazon EC2. </li>
+<li><strong>Scalable:</strong> tested with 100 nodes and millions of connections.</li>
+<li><strong>Extendable:</strong> write your own <a href="./cloud_plugin#how-to-write-a-cloud-plugin">cloud plugins</a> and <a href="workers/#how-to-write-a-worker">workers</a>. </li>
+<li><strong>Open-source:</strong> MZBench is released under the <a href="https://github.com/machinezone/mzbench/blob/master/LICENSE">BSD license</a>.</li>
+</ul>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>To use MZBench, you&rsquo;ll need:</p>
 <ul>
@@ -187,7 +196,22 @@ status: running                       00:09
 <p>Go to <a href="http://localhost:4800">localhost:4800</a> and see the benchmark live status:</p>
 <p><img alt="Test Benchmark" src="./images/test_benchmark.png" /></p>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<p>Here be description.</p></div>
+<p>MZBench runs your test scenarios on many <em>nodes</em>, simultaneously. This allows it to put extraordinarily high load on the target system—we&rsquo;re talking about <em>millions</em> of simultaneous connections here.</p>
+<p><strong>Node</strong> is a machine, virtual or physical, that runs your scenarios. In real-life testing, MZBench is used with a cloud service like Amazon EC2 that provides nodes on demand. Alternatively, you can manually list the available node hosts. Anyway, you have to provide MZBench the machines to run on. If there&rsquo;s not enough nodes to run all the jobs at the same time, MZBench evenly distributes the jobs between the available nodes.</p>
+<p>There&rsquo;s one node that doesn&rsquo;t run scenarios—the <strong>director node</strong>. It collects the metrics from the other nodes and runs <a href="scenarios/#pre_hook-and-post_hook">post and pre hooks</a>. So, if you want to run jobs on 10 nodes, reserve 11.</p>
+<p><img alt="MZBench Architecture Provisioning" src="./images/scheme_1.png" /></p>
+<p>When the MZBench server runs your scenarios, it allocates the nodes, prepares them, and distributes the jobs. During the test run, the nodes send the collected data to the director node which then submits them to the server. The server uses the data to render graphs and show stats:</p>
+<p><img alt="MZBench Architecture Running" src="./images/scheme_2.png" /></p>
+<p>To know what kind of jobs MZBench can run, it&rsquo;s important to understand the concept of a <em>worker</em>.</p>
+<p><strong>Worker</strong> is an Erlang module that provides functions for test scenarios. A worker may implement a common protocol like HTTP or XMPP, or a specific routine that is relevant only for a particular test case. It also implements the related metrics.</p>
+<p>MZBench ships with workers for <a href="https://github.com/machinezone/mzbench/tree/master/workers/http">HTTP</a> and <a href="https://github.com/machinezone/mzbench/tree/master/workers/xmpp">XMPP</a> protocols and a worker that <a href="https://github.com/machinezone/mzbench/tree/master/workers/exec">executes shell commands</a>. This should be enough for most common test cases, but you can use your own workers in necessary.</p>
+<h2 id="read-next">Read Next<a class="headerlink" href="#read-next" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="scenarios/">How to write scenarios →</a></li>
+<li><a href="server_api/">How to control MZBench from command line →</a></li>
+<li><a href="deployment_guide/">How to deploy MZBench →</a></li>
+<li><a href="workers/#how-to-write-a-worker">How to write your own worker →</a></li>
+</ul></div>
             
         </div>
 
@@ -234,5 +258,5 @@ status: running                       00:09
 
 <!--
 MkDocs version : 0.14.0
-Build Date UTC : 2015-11-16 09:28:15.821233
+Build Date UTC : 2015-11-16 15:53:42.387078
 -->

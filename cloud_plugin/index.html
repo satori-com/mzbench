@@ -55,7 +55,7 @@
                 
                 
                     <li >
-                        <a href="..">Home</a>
+                        <a href="..">Overview</a>
                     </li>
                 
                 
@@ -73,6 +73,12 @@
                 
                 
                     <li >
+                        <a href="../deployment_guide/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
                         <a href="../workers/">Workers</a>
                     </li>
                 
@@ -80,12 +86,6 @@
                 
                     <li class="active">
                         <a href="./">Cloud Plugins</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../deployment_guide/">Deployment</a>
                     </li>
                 
                 
@@ -104,15 +104,15 @@
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
-                    <li >
-                        <a rel="prev" href="../deployment_guide/">
+                    <li class="disabled">
+                        <a rel="prev" >
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
                 
                 
                     <li>
-                        <a href="http://github.com/moigagoo/mzbench/">
+                        <a href="http://github.com/machinezone/mzbench/">
                             
                                 <i class="fa fa-github"></i>
                             
@@ -130,7 +130,7 @@
                 <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#implementing-a-cloud-plugin-for-mzbench">Implementing a cloud plugin for MZBench</a></li>
+        <li class="main active"><a href="#how-to-write-a-cloud-plugin">How to Write a Cloud Plugin</a></li>
         
             <li><a href="#using-a-cloud-plugin">Using a cloud plugin</a></li>
         
@@ -139,7 +139,7 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<h1 id="implementing-a-cloud-plugin-for-mzbench">Implementing a cloud plugin for MZBench<a class="headerlink" href="#implementing-a-cloud-plugin-for-mzbench" title="Permanent link">&para;</a></h1>
+<h1 id="how-to-write-a-cloud-plugin">How to Write a Cloud Plugin<a class="headerlink" href="#how-to-write-a-cloud-plugin" title="Permanent link">&para;</a></h1>
 <p>Cloud plugin is responsible for cluster allocation and deallocation, it is required to implement the following methods:</p>
 <pre><code>-spec start(Name, Opts) -&gt; PluginRef when
     Name :: atom(),
