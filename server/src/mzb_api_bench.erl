@@ -142,7 +142,8 @@ workflow_config(_State) ->
                   stopping_collectors,
                   cleaning_nodes,
                   deallocating_hosts
-                ]}].
+                ]},
+     {unstoppable, [allocating_hosts]}].
 
 get_logger(State) -> fun (S, F, A) -> log(S, F, A, State) end.
 
@@ -508,7 +509,7 @@ allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer
     #{purpose:= Purpose,
       initial_user:= User,
       exclusive_node_usage:= Exclusive} = Config,
-    Description = mzb_string:format("MZ-Bench cluster:~n~p", [Config]),
+    Description = mzb_string:format("MZBench cluster:~n~p", [Config]),
     ClusterConfig = #{
         purpose => Purpose,
         user => User,
