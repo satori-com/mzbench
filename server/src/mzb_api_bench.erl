@@ -179,14 +179,12 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
 
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
     {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
-    #{id:= Id, director_host:= DirectorHost} = Config,
+    #{director_host:= DirectorHost} = Config,
     MetricsFileHandler = maps:get(metrics_file_handler, State),
     Connection = mzb_api_connection:start_link(management, DirectorHost, Port,
         fun ({message, Msg}) ->
             case erlang:binary_to_term(Msg) of
-                {metric_values, Values} ->
-                    mzb_api_firehose:update_metrics(Id, Values),
-                    MetricsFileHandler({write, Values});
+                {metric_values, Values} -> MetricsFileHandler({write, Values});
                 {response, Continuation, Res} -> Continuation(Res), ok;
                 Any -> mzb_pipeline:cast(Self, {director_message, Any}), ok
             end;

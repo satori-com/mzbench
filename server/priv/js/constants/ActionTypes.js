@@ -16,5 +16,5 @@ export default keyMirror({
     CLEAN_NEW_BENCH: null,
     CLONE_BENCH: null,
     METRICS_UPDATE: null,
-    METRICS_READING_IS_FINISHED: null
+    METRICS_BATCH_FINISHED: null
 });

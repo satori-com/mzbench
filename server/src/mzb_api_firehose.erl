@@ -3,7 +3,6 @@
 -behaviour(gen_event).
 
 -export([update_bench/1,
-         update_metrics/2,
          transmit_metrics/2,
          notify/2]).
 
@@ -18,10 +17,6 @@
 -spec update_bench(term()) -> ok.
 update_bench(Status) ->
     gen_event:notify(mzb_api_firehose, {update_bench, Status}).
-
--spec update_metrics(non_neg_integer(), term()) -> ok.
-update_metrics(BenchId, Values) ->
-    gen_event:notify(mzb_api_firehose, {update_metrics, BenchId, Values}).
 
 -spec transmit_metrics(non_neg_integer(), term()) -> ok.
 transmit_metrics(BenchId, Values) ->
