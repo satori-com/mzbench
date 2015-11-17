@@ -23,7 +23,7 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
     lager:info("AWS ids: ~p", [Ids]),
     wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
-    {ok, [NewData]} = erlcloud_ec2:describe_instances(Ids, get_config(Opts)),
+    {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
     lager:info("~p", [NewData]),
     {Kind, Hosts} = get_hosts(Ids, NewData),
     wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
@@ -32,6 +32,14 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
         _ -> update_hostfiles(UserName, Hosts, Opts)
     end,
     {ok, {Opts, Ids}, UserName, Hosts}.
+
+get_description(_, _, C) when C < 0 -> {ec2_error, cluster_getinfo_timeout};
+get_description(Ids, Opts, C) ->
+    case erlcloud_ec2:describe_instances(Ids, get_config(Opts)) of
+        {ok, _} = Data -> Data;
+        _ -> timer:sleep(?POLL_INTERVAL),
+             get_description(Ids, Opts, C - 1)
+    end.
 
 % try to extract dns names or ip addresses for allocated hosts
 -spec get_hosts([string()], [any(), ...]) -> {dns_name | ip_address | private_ip_address, [string(), ...]}.
