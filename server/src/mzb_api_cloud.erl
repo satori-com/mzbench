@@ -54,8 +54,8 @@ handle_call({get_cloud, undefined}, _From, State = #{clouds:= Clouds, default:= 
 handle_call({get_cloud, Name}, _From, State = #{clouds:= Clouds}) ->
     {reply, maps:find(Name, Clouds), State};
 
-handle_call({get_cloud_list}, _From, State = #{clouds:= Clouds}) ->
-    {reply, maps:keys(Clouds), State};
+handle_call({get_cloud_list}, _From, State = #{clouds:= Clouds, default := Default}) ->
+    {reply, [Default | maps:keys(maps:remove(Default, Clouds))], State};
 
 handle_call(stop, _from, State) ->
     {stop, normal, ok, State};
