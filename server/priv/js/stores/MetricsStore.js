@@ -100,7 +100,7 @@ class MetricsStore extends EventEmitter {
         }
     }
     
-    metricsReadingIsFinished(benchId) {
+    metricsBatchFinished(benchId) {
         if(data.benchId == benchId) {
             data.is_loaded = true;
         }
@@ -134,8 +134,8 @@ _MetricsStore.dispatchToken = Dispatcher.register((action) => {
             _MetricsStore.emitChange();
             break;
     
-        case ActionTypes.METRICS_READING_IS_FINISHED:
-            _MetricsStore.metricsReadingIsFinished(action.bench);
+        case ActionTypes.METRICS_BATCH_FINISHED:
+            _MetricsStore.metricsBatchFinished(action.bench);
             _MetricsStore.emitChange();
             break;
     
