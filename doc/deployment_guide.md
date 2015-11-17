@@ -92,7 +92,7 @@ Name represents the name of the particular instance of plugin and could be any a
 Opts must contain either module or application key, other keys in Opts depend on particular plugin type.
 It is possible to specify several plugins. The actually used plugin can be specified with --cloud option of the bin/mzbench utility.
 There are three cloud plugins available in mzbench so far. See below for configuration details and a few examples.
-See also: [Cloud plugin creation guide](doc/cloud_plugin.md)
+See also: [Cloud plugin creation guide](cloud_plugin.md)
 
 #### Configuration of the AWS EC2 cloud plugin
 
@@ -190,3 +190,7 @@ Specifies Git commit SHA or Git branch name used to deploy the worker nodes.
 ### `{ntp_max_timediff, <float>}`
 
 Maximum distance between node timers (default is 0.1), this check is optional and would only print a warning if failed.
+
+### bench_log_compression
+
+### bench_metrics_compression
