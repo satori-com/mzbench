@@ -8,9 +8,14 @@
 
 start(_Type, _Args) ->
     ok = load_config(mzbench_api),
-
     ok = load_cloud_plugin(),
 
+    {ok, Sup} = mzb_api_sup:start_link(),
+    start_http_server(),
+    
+    {ok, Sup, #{}}.
+
+start_http_server() ->
     Static = fun(Filetype) ->
                  {lists:append(["/", Filetype, "/[...]"]), cowboy_static,
                      {priv_dir, mzbench_api, [Filetype], [{mimetypes, cow_mimetypes, web}]}}
@@ -34,8 +39,7 @@ start(_Type, _Args) ->
     {ok, _} = cowboy:start_http(http, 100,
         [{port, CowboyPort}, {ip, CowboyInterface}],
         [{env, [{dispatch, Dispatch}]}]),
-    {ok, Sup} = mzb_api_sup:start_link(),
-    {ok, Sup, #{}}.
+    ok.
 
 prep_stop(State) ->
     lager:warning("Server is going to shutdown!"),

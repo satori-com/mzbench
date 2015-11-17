@@ -122,6 +122,7 @@ init([]) ->
     User = sys_username(),
     {ok, MaxBenchNum} = application:get_env(mzbench_api, max_bench_num),
     lager:info("Server username: ~p", [User]),
+    
     {ok, check_max_bench_num(#{next_id => MaxId + 1,
            monitors => #{},
            status => active,
@@ -257,7 +258,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
 start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State) ->
     lager:info("[ SERVER ] Start bench #~b", [Id]),
     case supervisor:start_child(benchmarks_sup, [Id, Params#{user => User}]) of
