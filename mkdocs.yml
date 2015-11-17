@@ -16,7 +16,8 @@ docs_dir: doc
 pages:
 - Overview: index.md
 - Scenarios: scenarios.md
-- Server API: server_api.md
+- CLI: cli.md
+- API: api.md
 - Deployment: deployment_guide.md
 - Workers: workers.md
 - Cloud Plugins: cloud_plugin.md
