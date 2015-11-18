@@ -3,6 +3,7 @@ import MetricsStore from '../stores/MetricsStore';
 import Constants from '../constants/ActionTypes';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import MZBenchWS from '../utils/MZBenchWS';
+import Misc from '../utils/misc.js';
 
 export default {
     subscribeBenchTimeline () {
@@ -114,8 +115,10 @@ export default {
 
     setBenchForMetricsUpdates(benchId) {
         if(benchId != MetricsStore.getCurrentBenchId()) {
-            MetricsStore.changeCurrentBench(benchId);
-            MZBenchWS.send({cmd: "set_bench_for_metrics_updates", bench: benchId});
+            const GUID = Misc.gen_guid();
+            
+            MetricsStore.changeCurrentBench(benchId, GUID);
+            MZBenchWS.send({cmd: "set_bench_for_metrics_updates", bench: benchId, guid: GUID});
         }
     }
 }

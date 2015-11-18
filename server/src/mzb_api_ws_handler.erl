@@ -13,6 +13,7 @@
 -record(state, {
           ref = undefined :: undefined | reference(),
           currently_selected_bench = undefined :: undefined | non_neg_integer(),
+          current_transmission_guid = undefined :: undefined | string(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           metrics_reader_ref = undefined :: undefined | {pid(), reference()}
@@ -65,13 +66,13 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
-dispatch_info(metrics_batch_finished, State = #state{currently_selected_bench = Id}) ->
-    {reply, #{type => "METRICS_BATCH_FINISHED", bench => Id}, State};
+dispatch_info(metrics_batch_finished, State = #state{currently_selected_bench = Id, current_transmission_guid = Guid}) ->
+    {reply, #{type => "METRICS_BATCH_FINISHED", bench => Id, guid => Guid}, State};
 
-dispatch_info({transmit_metrics, BenchId, Values}, State = #state{currently_selected_bench = Id}) ->
+dispatch_info({transmit_metrics, BenchId, Values}, State = #state{currently_selected_bench = Id, current_transmission_guid = Guid}) ->
     case Id of
         BenchId ->
-            Event = #{type => "METRICS_UPDATE", bench => BenchId, data => erlang:list_to_binary(Values)},
+            Event = #{type => "METRICS_UPDATE", bench => BenchId, guid => Guid, data => erlang:list_to_binary(Values)},
             {reply, Event, State};
         _ ->
             {ok, State}
@@ -126,10 +127,10 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
 
 dispatch_request(#{<<"cmd">> := <<"set_bench_for_metrics_updates">>} = Cmd, State = #state{metrics_reader_ref = MetricsReaderRef}) ->
     stop_reading_metrics(MetricsReaderRef),
-    #{<<"bench">> := Id} = Cmd,
+    #{<<"bench">> := Id, <<"guid">> := Guid} = Cmd,
     Self = self(),
     NewMetricsReaderRef = start_reading_metrics(Id, fun () -> Self ! metrics_batch_finished end),
-    {ok, State#state{currently_selected_bench = Id, metrics_reader_ref = NewMetricsReaderRef}};
+    {ok, State#state{currently_selected_bench = Id, current_transmission_guid = Guid, metrics_reader_ref = NewMetricsReaderRef}};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),

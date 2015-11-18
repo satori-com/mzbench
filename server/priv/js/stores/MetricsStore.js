@@ -7,6 +7,7 @@ const CHANGE_EVENT = 'metrics_change';
 
 let data = {
     benchId: undefined,
+    guid: undefined,
     is_loaded: false,
     starting_date: undefined,
     map: new Map([])
@@ -85,8 +86,9 @@ class MetricsStore extends EventEmitter {
         return data.benchId;
     }
     
-    changeCurrentBench(benchId) {
+    changeCurrentBench(benchId, GUID) {
         data.benchId = benchId;
+        data.guid = GUID;
         _clearData();
     }
     
@@ -94,14 +96,14 @@ class MetricsStore extends EventEmitter {
         return data.is_loaded;
     }
     
-    updateMetricData(benchId, rawData) {
-        if(data.benchId == benchId) {
+    updateMetricData(benchId, guid, rawData) {
+        if(data.benchId == benchId && data.guid == guid) {
             _updateData(rawData);
         }
     }
     
-    metricsBatchFinished(benchId) {
-        if(data.benchId == benchId) {
+    metricsBatchFinished(benchId, guid) {
+        if(data.benchId == benchId && data.guid == guid) {
             data.is_loaded = true;
         }
     }
@@ -130,12 +132,12 @@ export default _MetricsStore;
 _MetricsStore.dispatchToken = Dispatcher.register((action) => {
     switch(action.type) {
         case ActionTypes.METRICS_UPDATE:
-            _MetricsStore.updateMetricData(action.bench, action.data);
+            _MetricsStore.updateMetricData(action.bench, action.guid, action.data);
             _MetricsStore.emitChange();
             break;
     
         case ActionTypes.METRICS_BATCH_FINISHED:
-            _MetricsStore.metricsBatchFinished(action.bench);
+            _MetricsStore.metricsBatchFinished(action.bench, action.guid);
             _MetricsStore.emitChange();
             break;
     
