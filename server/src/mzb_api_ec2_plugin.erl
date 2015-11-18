@@ -21,8 +21,8 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Opts), get_config(Opts)),
     Instances = proplists:get_value(instances_set, Data),
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
+    lager:info("AWS ids: ~p", [Ids]),
     try
-        lager:info("AWS ids: ~p", [Ids]),
         wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
         {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
         lager:info("~p", [NewData]),
