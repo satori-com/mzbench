@@ -21,17 +21,24 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Opts), get_config(Opts)),
     Instances = proplists:get_value(instances_set, Data),
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
-    lager:info("AWS ids: ~p", [Ids]),
-    wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
-    {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
-    lager:info("~p", [NewData]),
-    {Kind, Hosts} = get_hosts(Ids, NewData),
-    wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
-    case Kind of
-        dns_name -> ok; % when dns names are used for hosts there is no need to set them
-        _ -> update_hostfiles(UserName, Hosts, Opts)
-    end,
-    {ok, {Opts, Ids}, UserName, Hosts}.
+    try
+        lager:info("AWS ids: ~p", [Ids]),
+        wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
+        {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
+        lager:info("~p", [NewData]),
+        {Kind, Hosts} = get_hosts(Ids, NewData),
+        wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
+        case Kind of
+            dns_name -> ok; % when dns names are used for hosts there is no need to set them
+            _ -> update_hostfiles(UserName, Hosts, Opts)
+        end,
+        {ok, {Opts, Ids}, UserName, Hosts}
+    catch
+        C:E ->
+            ST = erlang:get_stacktrace(),
+            destroy_cluster({Opts, Ids}),
+            erlang:raise(C,E,ST)
+    end.
 
 get_description(_, _, C) when C < 0 -> {ec2_error, cluster_getinfo_timeout};
 get_description(Ids, Opts, C) ->
