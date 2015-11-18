@@ -180,6 +180,16 @@ vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port
 get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
 
+get_host_erts_version(UserName, Host, Logger) ->
+    lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], 
+        "erl -noshell -eval 'io:fwrite(\\\"~s\\\", [erlang:system_info(version)]).' -s erlang halt", 
+        [], Logger, [])).
+
+get_host_system_id(UserName, Host, Logger) ->
+    OSId = get_host_os_id(UserName, Host, Logger),
+    ERTSVersion = get_host_erts_version(UserName, Host, Logger),
+    mzb_string:format("~s_erts-~s", [OSId, ERTSVersion]).
+
 download_file(User, Host, FromFile, ToFile, Logger) ->
     _ = case Host of
         "localhost" ->
@@ -209,7 +219,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
             mzb_string:format("~p.~p.~p", [A, B, C])
     end,
     #{user_name:= User} = Config,
-    HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_os_id(User, Host, Logger)} end, Hosts),
+    HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_system_id(User, Host, Logger)} end, Hosts),
     PackagesDir = mzb_api_paths:tgz_packages_dir(),
     ok = filelib:ensure_dir(PackagesDir ++ "/"),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
