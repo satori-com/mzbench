@@ -51,7 +51,7 @@ class Graph extends React.Component {
         return (
             <div>
                 <div id={this._graphDOMId()}></div>
-                <div id={this._legendDOMId()}></div>
+                <div id={this._legendDOMId()} className="graph-legend"></div>
             </div>
         );
     }
