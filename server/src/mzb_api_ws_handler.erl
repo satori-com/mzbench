@@ -129,7 +129,9 @@ dispatch_request(#{<<"cmd">> := <<"set_bench_for_metrics_updates">>} = Cmd, Stat
     stop_reading_metrics(MetricsReaderRef),
     #{<<"bench">> := Id, <<"guid">> := Guid} = Cmd,
     Self = self(),
-    NewMetricsReaderRef = start_reading_metrics(Id, fun () -> Self ! metrics_batch_finished end),
+    BatchFinishedFun = fun () -> Self ! metrics_batch_finished end,
+    SendMetricsFun = fun (Values) -> Self ! {transmit_metrics, Id, Values} end,
+    NewMetricsReaderRef = start_reading_metrics(Id, SendMetricsFun, BatchFinishedFun),
     {ok, State#state{currently_selected_bench = Id, current_transmission_guid = Guid, metrics_reader_ref = NewMetricsReaderRef}};
 
 dispatch_request(Cmd, State) ->
@@ -259,15 +261,15 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                  end, BenchInfos).
 
 %% Metrics reading process
-start_reading_metrics(BenchId, BatchFinishedCallback) ->
-    erlang:spawn_monitor(fun() -> read_metrics_from_storage(BenchId, BatchFinishedCallback) end).
+start_reading_metrics(BenchId, SendFun, BatchFinishedFun) ->
+    erlang:spawn_monitor(fun() -> read_metrics_from_storage(BenchId, SendFun, BatchFinishedFun) end).
 
 stop_reading_metrics(undefined) -> ok;
 stop_reading_metrics({Pid, Ref}) ->
     erlang:demonitor(Ref),
     erlang:exit(Pid, aborted).
 
-read_metrics_from_storage(BenchId, BatchFinishedCallback) ->
+read_metrics_from_storage(BenchId, SendFun, BatchFinishedFun) ->
     #{config:= Config} = mzb_api_server:status(BenchId),
     #{metrics_compression:= Compression} = Config,
     Filename = mzb_api_bench:metrics_file(Config),
@@ -275,36 +277,36 @@ read_metrics_from_storage(BenchId, BatchFinishedCallback) ->
     FileReader = get_file_reader(Filename, Compression),
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        perform_reading(BenchId, FileReader, BatchFinishedCallback, PollTimeout)
+        perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, PollTimeout)
     after
         FileReader(close)
     end.
 
-perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout) ->
-    perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout, "", 0).
-perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout, Buffer, LinesRead) ->
+perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout) ->
+    perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, "", 0).
+perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, Buffer, LinesRead) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 50 ->
-            mzb_api_firehose:transmit_metrics(BenchId, string:concat(Buffer, Data)),
-            perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout, "", 0);
+            SendFun(string:concat(Buffer, Data)),
+            perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, "", 0);
         {ok, Data} ->
-            perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout, string:concat(Buffer, Data), LinesRead + 1);
+            perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, string:concat(Buffer, Data), LinesRead + 1);
         eof ->
             case Buffer of
                 "" -> ok;
-                _ -> mzb_api_firehose:transmit_metrics(BenchId, Buffer)
+                _ -> SendFun(Buffer)
             end,
-            BatchFinishedCallback(),
+            BatchFinishedFun(),
             case mzb_api_server:is_datastream_ended(BenchId) of
                 true  -> ok;
                 false ->
                     timer:sleep(Timeout),
-                    perform_reading(BenchId, FileReader, BatchFinishedCallback, Timeout, "", 0)
+                    perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, "", 0)
             end;
         {error, Reason} ->
             case Buffer of
                 "" -> ok;
-                _ -> mzb_api_firehose:transmit_metrics(BenchId, Buffer)
+                _ -> SendFun(Buffer)
             end,
             erlang:error(Reason)
     end.
