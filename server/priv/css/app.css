@@ -235,3 +235,6 @@ iframe {
     left: 0;
 }
 
+.graph-legend {
+    font-size: 9px;
+}
