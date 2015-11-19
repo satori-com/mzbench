@@ -14,35 +14,47 @@ $ mzbench start --env foo=bar --nodes=5
 
 ## Server Control
 
-
 ### start_server
 
+```bash
+$ ./bin/mzbench start_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+```
+
 Start the MZBench server.
+
+Optional params:
+
+`--config <config_file>`
+:   Path to the [server config](deployment_guide.md#server-configuration) file.
 
 
 ### stop_server
 
-Foo
+```bash
+$ ./bin/mzbench stop_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+```
+
+Stop the MZBench server.
 
 
 ### restart_server
 
-Bar
+```bash
+$ ./bin/mzbench restart_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+```
 
+Restart the MZBench server, i.e. [stop](#stop_server) + [start](#start_server).
 
-### run_local
+Optional params:
 
-
-### validate
-
-
-### list_templates
-
-
-### new_worker <worker_name>
-
-
-### selfcheck
+`--config <config_file>`
+:   Path to the [server config](deployment_guide.md#server-configuration) file.
 
 
 ## Benchmark Control
@@ -107,12 +119,48 @@ $ mzbench run --env foo=bar --nodes=5 foo.erl
 }
 ```
 
+Same as [start](#start-scenario_file), but blocks until the benchmark is complete.
+
 Positional param:
 
 `<scenario_file>`
 :   The path to the [scenario](scenarios.md) file for the benchmark.
 
-Same as [start](#start-scenario_file), but blocks until the benchmark is complete.
+
+### run_local
+
+```bash
+$ mzbench run_local --env foo=bar foo.erl
+Executing make -C /path/to/mzbench/bin/../node compile
+...
+```
+
+Run the benchmark without a server. The logs are printed to stdout.
+
+Positional param:
+
+`<scenario_file>`
+:   The path to the [scenario](scenarios.md) file for the benchmark.
+
+Optional param:
+
+`--env <name=value> ...`
+:   [Environment variable](scenarios.md#environment-variables) definitions.
+
+
+### validate
+
+```bash
+$ mzbench validate foo.erl
+ok
+```
+
+Validate the scenario file without executing it.
+
+Positional param:
+
+`<scenario_file>`
+:   The path to the [scenario](scenarios.md) file for the benchmark.
 
 
 ### status
@@ -202,7 +250,51 @@ Positional param:
 `<benchmark_id>`
 :   The ID of the benchmark as returned by [start](#start) or [run](#run).
 
-Optional params:
+Optional param:
 
 `--env <name=value> ...`
 :   [Environment variable](scenarios.md#environment-variables) definitions.
+
+
+## Misc
+
+### selfcheck
+
+```bash
+$ mzbench selfcheck
+Executing /path/to/mzbench/bin/lint.py /path/to/mzbench/bin/../
+```
+
+Run the tests on MZBench.
+
+
+### list_templates
+
+```bash
+$ mzbench list_templates
+amqp
+empty
+python_empty
+tcp
+```
+
+List the available worker templates to base [new workers](workers.md#how-to-write-a-worker) on.
+
+### new_worker
+
+```bash
+$ mzbench new_worker --template python_empty bar
+new worker bar has been created
+```
+
+Create a new worker directory for [development purposes](workers.md#how-to-write-a-worker).
+
+Positional param:
+
+`<worker_name>`
+:   The name of the new worker.
+
+Optional params:
+
+`--template <template_name>`
+:   The template for the new worker. See the full list of available templates with [list_templates](#list_templates).
