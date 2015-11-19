@@ -6,7 +6,8 @@
 -export([start_link/0,
          create_cluster/3,
          destroy_cluster/1,
-         list_clouds/0]).
+         list_clouds/0,
+         stop/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -34,6 +35,10 @@ start_link() ->
 list_clouds() ->
     gen_server:call(?MODULE, {get_cloud_list}).
 
+% just for test purpose
+stop() ->
+    gen_server:call(?MODULE, stop).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -49,8 +54,11 @@ handle_call({get_cloud, undefined}, _From, State = #{clouds:= Clouds, default:= 
 handle_call({get_cloud, Name}, _From, State = #{clouds:= Clouds}) ->
     {reply, maps:find(Name, Clouds), State};
 
-handle_call({get_cloud_list}, _From, State = #{clouds:= Clouds}) ->
-    {reply, maps:keys(Clouds), State};
+handle_call({get_cloud_list}, _From, State = #{clouds:= Clouds, default := Default}) ->
+    {reply, [Default | maps:keys(maps:remove(Default, Clouds))], State};
+
+handle_call(stop, _from, State) ->
+    {stop, normal, ok, State};
 
 handle_call(_Request, _From, State) ->
    {noreply, State}.

@@ -1,16 +1,16 @@
-# Introduction
-
 Today internet is a huge set of ever changing technologies. It would be impossible in practice for MZBench distribution to provide an extensive library of functions to access all the possible services and protocols. Instead, it uses a plugin system called _workers_.
 
 A _worker_ is an Erlang application providing a set of MZBench DSL statements to access a particular service (such as HTTP or SSH server) and collecting a set of statistics about its usage. A small set of standard _workers_ is provided with the distribution, but you will likely need to write your own to access the service you want to benchmark. This document is here to guide you through this process.
 
 Because a MZBench _worker_ is an Erlang application, you need some basic knowledge of this programming language to understand this document. You can refer yourself to [Getting Started with Erlang User's Guide](http://www.erlang.org/doc/getting_started/users_guide.html) or to the [Learn You Some Erlang for great good!](http://learnyousomeerlang.com) book for an introduction to the matter.
 
-# Command line utilities
+# How to Write a Worker
+
+## Command line utilities
 
 MZBench distribution provide some command line utilities to assist you during your _worker_ development effort.
 
-## New worker generation
+### New worker generation
 
 First of all, you can generate an empty _worker_ application using the following command (here and later `<MZBENCH_SRC>` means the path to the MZBench source code):
 
@@ -26,7 +26,7 @@ Then generate your _worker_ by adding an additional parameter to the `new_worker
 
     <MZBENCH_SRC>/bin/mzbench new_worker --template <protocol> <worker_name>
 
-## Worker compilation and debugging
+### Worker compilation and debugging
 
 During any serious development, you will certainly need a to do a lot of debugging. If every time you want to launch your test scenario you would need to commit your _worker_ to a remote Git repository and to launch a complete benchmark, it would be cumbersome. So MZBench provide you with a way to quickly build your worker and launch a local instance of your benchmarking scenario using it.
 
@@ -36,11 +36,11 @@ Inside your _worker_ source code directory (the root one, not the `src`), execut
 
 You can pass the environment variables using the `--env` option. But, please note that all `make_install` top-level statements will be ignored in this execution mode.
 
-## Worker execution
+### Worker execution
 
 After you have done with debugging, you need to execute your worker in a cloud. To do that, you need to specify worker git address at your benchmark script with `{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`, [http worker example](../workers/simple_http/examples/simple_http.erl).
 
-# General worker structure
+## General worker structure
 
 An MZBench _worker_ provides a set of DSL statements (i.e. sub-routines) and a set of metrics. The different sub-routines need not to be independent as the worker can have internal state.
 
@@ -90,11 +90,11 @@ As can be seen, it export's 3 functions: `initial_state/0`, `metrics/0` and `pri
 
 All the remaining exported functions defines the DSL statements provided by this _worker_. You can, of course, provide none, although such a _worker_ wouldn't be very useful. The `dummy_worker`, for instance, provide the `print` statement useful to output some string of characters to the standard output. Refer yourself to [How to define statements](#how-to-define-statements) for a more detailed discussion on this topic.
 
-# How to define statements
+## How to define statements
 
 To define a DSL statement provided by your _worker_ you export an Erlang function that will be called when such a statement is encountered. The exported function is of the following general form:
 
-    <statement_name>(State, [<Param1>, [<Param2>, ...]]) ->
+    <statement_name>(State, Meta, [<Param1>, [<Param2>, ...]]) ->
         {ReturnValue, NewState}.
 
 The function must have the same name as the statement it defines. It must take at least two parameters: the _worker_ internal state at the moment the statement is executed and _meta_ information proplist. The function can also accept any number of other parameters. They correspond to the parameters of the statement.
@@ -103,16 +103,16 @@ The statement function must return a tuple of two values. The first one is the r
 
 For example, the following function:
 
-    foo(State, X, Y) ->
+    foo(State, Meta, X, Y) ->
         {nil, State}.
 
 Can be called as `{foo, X, Y}` from a benchmarking scenario.
 
-# How to define metrics
+## Metrics
 
 Metrics are numerical values collected during the scenario execution. They are the main result of your _worker_ and represent the values you want to evaluate with your benchmark.
 
-## Metric types
+### Metric types
 
 The MZBench currently support three types of metrics:
 
@@ -123,7 +123,7 @@ The MZBench currently support three types of metrics:
 
 For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred — you need `counter` and if you are interested in its distribution: mean size, 50 percentile and so on — you need a `histogram`.
 
-## Declaring metrics
+### Declaring metrics
 
 You declare the groups of metrics collected by your _worker_ in the list returned by the `metrics/0` function. Each group corresponds to a structure with following spec:
 
@@ -155,7 +155,7 @@ Let see the following metrics declaration:
 
 In this example, a group of graphs with name "HTTP Requests" will be created. It will consist of the several graphs presented the number of success/failed requests and the request's latencies. Please note then a graph could produce several charts. In the mentioned example, the graph for success and failed request will produce two charts: absolute counters and their rps.
 
-## Derived metrics
+### Derived metrics
 
 Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric "resolver" function should be specified in metric opts dictionary. Resolver function is used to evaluate metric value.
 Typical example of the derived metrics is the current number of pending requests. We specify a function (pending_requests) to calculate the metric value in metrics options and then define the function as simple difference between number of sent requests and number of reeived responses:
@@ -170,7 +170,7 @@ Typical example of the derived metrics is the current number of pending requests
     pending_requests() ->
         mzb_metrics:get_value("requests_sent") - mzb_metrics:get_value("responses_received").
 
-## Hooks
+### Hooks
 
 Pre and post hooks allow to run a custom code before or after benchmark. Hooks could be applied on every nodes or on the director node only. You are able to change any environment variable in your hook handler and use it in your scenario.
 
@@ -192,7 +192,7 @@ Worker:
         {ok, [{"commit", "0123456"} | Env]}.
 
 
-## Updating metrics
+### Updating metrics
 
 You can update a declared metric from anywhere inside your _worker_. Simply call the following function:
 

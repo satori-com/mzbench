@@ -22,16 +22,31 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, _Config) when is_in
     Instances = proplists:get_value(instances_set, Data),
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
     lager:info("AWS ids: ~p", [Ids]),
-    wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
-    {ok, [NewData]} = erlcloud_ec2:describe_instances(Ids, get_config(Opts)),
-    lager:info("~p", [NewData]),
-    {Kind, Hosts} = get_hosts(Ids, NewData),
-    wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
-    case Kind of
-        dns_name -> ok; % when dns names are used for hosts there is no need to set them
-        _ -> update_hostfiles(UserName, Hosts)
-    end,
-    {ok, {Opts, Ids}, UserName, Hosts}.
+    try
+        wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
+        {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
+        lager:info("~p", [NewData]),
+        {Kind, Hosts} = get_hosts(Ids, NewData),
+        wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
+        case Kind of
+            dns_name -> ok; % when dns names are used for hosts there is no need to set them
+            _ -> update_hostfiles(UserName, Hosts, Opts)
+        end,
+        {ok, {Opts, Ids}, UserName, Hosts}
+    catch
+        C:E ->
+            ST = erlang:get_stacktrace(),
+            destroy_cluster({Opts, Ids}),
+            erlang:raise(C,E,ST)
+    end.
+
+get_description(_, _, C) when C < 0 -> {ec2_error, cluster_getinfo_timeout};
+get_description(Ids, Opts, C) ->
+    case erlcloud_ec2:describe_instances(Ids, get_config(Opts)) of
+        {ok, _} = Data -> Data;
+        _ -> timer:sleep(?POLL_INTERVAL),
+             get_description(Ids, Opts, C - 1)
+    end.
 
 % try to extract dns names or ip addresses for allocated hosts
 -spec get_hosts([string()], [any(), ...]) -> {dns_name | ip_address | private_ip_address, [string(), ...]}.
@@ -55,7 +70,18 @@ destroy_cluster({Opts, Ids}) ->
     {ok, _} = R,
     ok.
 
-update_hostfiles(UserName, Hosts) ->
+update_hostfiles(UserName, Hosts, #{host_prefix:= HPrefix}) ->
+    Logger = mzb_api_app:default_logger(),
+    _ = lists:map(
+        fun ({N, H}) ->
+            HostName = mzb_string:format("~s~b", [HPrefix, N]),
+            Cmd1 = io_lib:format("sudo hostname ~s", [HostName]),
+            _ = mzb_subprocess:remote_cmd(UserName, [H], Cmd1, [], Logger),
+            Cmd2 = mzb_string:format("sudo sh -c 'echo \"~s     ~s\" >> /etc/hosts'", [H, HostName]),
+            mzb_subprocess:remote_cmd(UserName, Hosts, Cmd2, [], Logger)
+        end, mzb_lists:enumerate(Hosts)),
+    ok;
+update_hostfiles(UserName, Hosts, _) ->
     Logger = mzb_api_app:default_logger(),
     _ = lists:map(fun (H) -> mzb_subprocess:remote_cmd(UserName, Hosts,
         mzb_string:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")]), [], Logger) end, Hosts),

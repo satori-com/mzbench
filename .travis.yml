@@ -13,8 +13,6 @@ env:
  - TASK=dialyzer
  - TASK=unit-tests
  - TASK=development-with-rsync
- - TASK=acceptance-signal-tests
- - TASK=acceptance-negative-tests
  - TASK=http-worker-tests
  - TASK=validate-examples
  - TASK=error-messages
@@ -47,7 +45,7 @@ script:
                        make && make check-local;;
      acceptance-*-tests) pip install -r requirements.txt &&
                        pip install -r acceptance_tests/requirements.txt &&
-                       parallel -j2 --arg-sep ,, ,, "make -C" ,, node server ,, generate  &&
+                       parallel -j2 --arg-sep ,, ,, "make -C" ,, "server generate" "node local_tgz"  &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`pwd` &&
                        cd acceptance_tests &&

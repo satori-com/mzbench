@@ -1,5 +1,5 @@
 [ % this example is almost similar to simple_http the only difference is worker interface
-    {assert, always, {gt, "http_ok.rps.value", 0.5}},
+    {assert, always, {gt, "http_ok.rps", 0.5}},
     {make_install, [{git, "https://github.com/machinezone/mzbench.git"},
                     {dir, "workers/http"}]},
     {pool, [{size, {numvar, "conn_count", 20}},

@@ -87,7 +87,9 @@ init([Id, Params]) ->
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
         vm_args => VMArgs,
-        cloud => mzb_bc:maps_get(cloud, Params, undefined)
+        cloud => mzb_bc:maps_get(cloud, Params, undefined),
+        node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
+        node_management_port => application:get_env(mzbench_api, node_management_port, undefined)
     },
     Data = #{
         includes => Includes
@@ -118,7 +120,8 @@ init([Id, Params]) ->
         deallocator => undefined,
         metrics => #{},
         emails => maps:get(email, Params),
-        self => self() % stages are spawned, so we can't get pipeline pid from callback
+        self => self(), % stages are spawned, so we can't get pipeline pid from callback
+        director_node => undefined
     },
     info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
@@ -128,9 +131,9 @@ workflow_config(_State) ->
                   checking_script,
                   allocating_hosts,
                   provisioning,
+                  starting_collectors,
                   uploading_script,
                   uploading_includes,
-                  starting_collectors,
                   gathering_metric_names,
                   running
                 ]},
@@ -139,7 +142,8 @@ workflow_config(_State) ->
                   stopping_collectors,
                   cleaning_nodes,
                   deallocating_hosts
-                ]}].
+                ]},
+     {unstoppable, [allocating_hosts]}].
 
 get_logger(State) -> fun (S, F, A) -> log(S, F, A, State) end.
 
@@ -174,9 +178,20 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
            deallocator => Deallocator }
     end;
 
-handle_stage(pipeline, provisioning, #{config:= Config} = State) ->
-    DirectorNode = mzb_api_provision:provision_nodes(Config, get_logger(State)),
-    fun (S) -> S#{director_node => DirectorNode} end;
+handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
+    {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
+    #{director_host:= DirectorHost} = Config,
+    MetricsFileHandler = maps:get(metrics_file_handler, State),
+    Connection = mzb_api_connection:start_link(management, DirectorHost, Port,
+        fun ({message, Msg}) ->
+            case erlang:binary_to_term(Msg) of
+                {metric_values, Values} -> MetricsFileHandler({write, Values});
+                {response, Continuation, Res} -> Continuation(Res), ok;
+                Any -> mzb_pipeline:cast(Self, {director_message, Any}), ok
+            end;
+            ({error, _}) -> ok
+        end),
+    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
     #{script:= Script,
@@ -200,23 +215,17 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
-handle_stage(pipeline, starting_collectors, #{config:= Config, self:= Self} = State) ->
-    #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
+handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes} = State) ->
     LogFileHandler = maps:get(log_file_handler, State),
-    LogsCollectors = mzb_api_connection:start_link(logs, [DirectorHost|WorkerHosts], get_env(bench_log_port),
-        fun ({message, Msg}) -> LogFileHandler({write, Msg});
-            (_) -> ok
-        end),
-    MetricsFileHandler = maps:get(metrics_file_handler, State),
-    [Connection] = mzb_api_connection:start_link(management, [DirectorHost], get_env(bench_metrics_port),
-        fun ({message, Msg}) ->
-            case erlang:binary_to_term(Msg) of
-                {metric_values, Values} -> MetricsFileHandler({write, Values});
-                Any -> mzb_pipeline:cast(Self, {director_message, Any})
-            end;
-            ({error, _}) -> ok
-        end),
-    fun (S) -> S#{collectors => LogsCollectors, cluster_connection => Connection} end;
+    LogsCollectors = mzb_lists:pmap(fun ({Node, Host}) ->
+        Port = director_call(Connection, {get_log_port, Node}),
+        info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
+        mzb_api_connection:start_link(logs, Host, Port,
+            fun ({message, Msg}) -> LogFileHandler({write, Msg});
+                (_) -> ok
+            end)
+    end, Nodes),
+    fun (S) -> S#{collectors => LogsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
@@ -246,14 +255,9 @@ handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
 handle_stage(finalize, cleaning_nodes, #{config:= #{deallocate_after_bench:= false}} = State) ->
     info("Skip cleaning nodes. Deallocate after bench is false", [], State);
 handle_stage(finalize, cleaning_nodes,
-    State = #{director_node:= DirNode, config:= Config = #{director_host:= DirectorHost}})
+    State = #{config:= Config = #{director_host:= DirectorHost}})
       when DirectorHost /= undefined ->
-
-    NeedToStopNodes = case DirNode of
-        undefined -> dont_need_to_stop_nodes;
-        _ -> need_to_stop_nodes
-    end,
-    mzb_api_provision:clean_nodes(Config, get_logger(State), NeedToStopNodes);
+    mzb_api_provision:clean_nodes(Config, get_logger(State));
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
@@ -290,8 +294,11 @@ handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
 
 handle_call({change_env, Env}, From, #{status:= running, cluster_connection:= Connection} = State) ->
     info("Change env req received: ~p", [Env], State),
-    mzb_api_connection:send_message(Connection,
-        {change_env, Env, fun (Res) -> mzb_pipeline:reply(From, Res) end}),
+    director_async_call(Connection, {change_env, Env},
+        fun (Res) ->
+            info("Received change_env response: ~p", [Res], State),
+            mzb_pipeline:reply(From, Res)
+        end),
     {noreply, State};
 
 handle_call({change_env, _Env}, _From, #{} = State) ->
@@ -300,11 +307,6 @@ handle_call({change_env, _Env}, _From, #{} = State) ->
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
-
-handle_cast({director_message, {change_env_res, Res, Continuation}}, State) ->
-    info("Received change_env response: ~p", [Res], State),
-    Continuation(Res),
-    {noreply, State};
 
 handle_cast({director_message, Unknown}, State) ->
     lager:error("Unknown director message ~p", [Unknown]),
@@ -507,7 +509,7 @@ allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer
     #{purpose:= Purpose,
       initial_user:= User,
       exclusive_node_usage:= Exclusive} = Config,
-    Description = mzb_string:format("MZ-Bench cluster:~n~p", [Config]),
+    Description = mzb_string:format("MZBench cluster:~n~p", [Config]),
     ClusterConfig = #{
         purpose => Purpose,
         user => User,
@@ -732,4 +734,19 @@ generate_graphite_prefix(BenchName) ->
     _ = ets:insert_new(graphite_prefixes, {BenchName, -1}),
     N = ets:update_counter(graphite_prefixes, BenchName, {2, 1, Threshold - 1, 0}),
     mzb_string:format("~s.~b", [BenchName, N]).
+
+director_async_call(Connection, Msg, Continuation) ->
+    mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
+
+director_call(Connection, Msg) ->
+    Ref = erlang:make_ref(),
+    Self = self(),
+    Cont =
+        fun (Res) ->
+            Self ! {Ref, Res}
+        end,
+    director_async_call(Connection, Msg, Cont),
+    receive
+        {Ref, Res} -> Res
+    end.
 

@@ -4,15 +4,16 @@
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
-script_metrics(Pools, WorkerNodes) ->
+script_metrics(Pools, _WorkerNodes) ->
     PoolMetrics = pool_metrics(Pools),
 
     WorkerStatusGraphs = lists:map(fun (P) ->
         {graph, #{title => mzb_string:format("Worker status (~s)", [pool_name(P)]),
-                  metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]] ++
-                             [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), mzb_utility:hostname_str(N), X]), counter} ||
-                                    X <- ["started", "ended", "failed"],
-                                    N <- WorkerNodes]}}
+                  metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]]
+                             %++ [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), mzb_utility:hostname_str(N), X]), counter} ||
+                             %       X <- ["started", "ended", "failed"],
+                             %       N <- WorkerNodes]
+                            }}
         end, Pools),
 
     MZBenchInternal = [{group, "MZBench Internals",

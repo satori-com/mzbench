@@ -8,7 +8,7 @@ except ImportError:
     server_functions = False
 
 # Client-only functions
-doc_acc = """mzbench CLI interface
+doc_acc = """MZBench command-line interface
 
 Usage:
   mzbench [--host=<host>] (start|run)
@@ -228,6 +228,7 @@ def selfcheck():
 #=================================================================================================
 def pretty_print(data):
     json.dump(data, sys.stdout, indent=4)
+    print()
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,

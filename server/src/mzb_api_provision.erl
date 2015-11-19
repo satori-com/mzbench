@@ -2,7 +2,7 @@
 
 -export([
     provision_nodes/2,
-    clean_nodes/3,
+    clean_nodes/2,
     ensure_file_content/5,
     ensure_dir/4
 ]).
@@ -42,11 +42,10 @@ provision_nodes(Config, Logger) ->
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
+    NodeHosts = [{director_sname(Config),DirectorHost} | [{worker_sname(Config), H} || H <- WorkerHosts]],
+    Nodes = mzb_lists:pmap(fun ({N, H}) -> nodename(N, get_hostname(UserName, H, Logger)) end, NodeHosts),
 
-    [DirNode] = [nodename(director_sname(Config), H) || H <- get_hostnames(UserName, [DirectorHost], Logger)],
-    WorkerNodes = [nodename(worker_sname(Config), H) || H <- get_hostnames(UserName, WorkerHosts, Logger)],
-
-    ensure_vm_args([DirectorHost|WorkerHosts], [DirNode|WorkerNodes], Config, Logger),
+    ensure_vm_args([DirectorHost|WorkerHosts], Nodes, Config, Logger),
     _ = mzb_subprocess:remote_cmd(
         UserName,
         [DirectorHost|WorkerHosts],
@@ -58,28 +57,34 @@ provision_nodes(Config, Logger) ->
         UserName,
         [DirectorHost],
         io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
-        ["30000", DirNode | WorkerNodes],
+        ["30000" | Nodes],
         Logger),
-    DirNode.
+    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), get_management_port(Config, Logger)}.
 
--spec clean_nodes(term(), fun(), need_to_stop_nodes|dont_need_to_stop_nodes) -> ok.
-clean_nodes(Config, Logger, NeedToStopNodes) ->
+get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->
+    [Res] = mzb_subprocess:remote_cmd(
+                UserName,
+                [DirectorHost],
+                io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
+                ["-sname", director_sname(Config), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
+                Logger, []),
+    Logger(info, "Management port: ~s", [Res]),
+    erlang:list_to_integer(Res).
+
+-spec clean_nodes(term(), fun()) -> ok.
+clean_nodes(Config, Logger) ->
     #{
         user_name:= UserName,
         director_host:= DirectorHost,
         worker_hosts:= WorkerHosts} = Config,
     RootDir = mzb_api_bench:remote_path("", Config),
-    case NeedToStopNodes of
-        need_to_stop_nodes ->
-            _ = mzb_subprocess:remote_cmd(
-                UserName,
-                [DirectorHost|WorkerHosts],
-                io_lib:format("cd ~s && ~s/mzbench/bin/mzbench stop",
-                    [RootDir, mzb_api_paths:node_deployment_path()]),
-                [],
-                Logger);
-        dont_need_to_stop_nodes -> ok
-    end,
+    _ = mzb_subprocess:remote_cmd(
+        UserName,
+        [DirectorHost|WorkerHosts],
+        io_lib:format("cd ~s; ~s/mzbench/bin/mzbench stop; true",
+            [RootDir, mzb_api_paths:node_deployment_path()]),
+        [],
+        Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger),
     ok.
 
@@ -100,13 +105,13 @@ ntp_check(UserName, Hosts, Logger) ->
     end.
 
 nodename(Name, Host) ->
-    Name ++ "@" ++ Host.
+    erlang:list_to_atom(Name ++ "@" ++ Host).
 
-get_hostnames(UserName, Hosts, Logger) ->
-    Hostnames = mzb_subprocess:remote_cmd(UserName, Hosts, "hostname", [], Logger, []),
-    Logger(debug, "fqdn for ~p: ~p", [Hosts, Hostnames]),
-    Res = [ hd(string:tokens(FName, ".")) || FName <- Hostnames],
-    Logger(info, "Shortnames for ~p are ~p", [Hosts, Res]),
+get_hostname(UserName, Host, Logger) ->
+    [Hostname] = mzb_subprocess:remote_cmd(UserName, [Host], "hostname", [], Logger, []),
+    Logger(debug, "fqdn for ~p: ~p", [Host, Hostname]),
+    Res = hd(string:tokens(Hostname, ".")),
+    Logger(info, "Shortname for ~p are ~p", [Host, Res]),
     Res.
 
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
@@ -164,9 +169,13 @@ ensure_dir(User, Hosts, Dir, Logger) ->
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 
-vm_args_content(NodeName, #{vm_args:= Args}) ->
-    ArgsFormated = io_lib:format(string:join([A ++ "~n" || A <- Args], ""), []),
-    io_lib:format("-sname ~s~n", [NodeName]) ++ ArgsFormated.
+vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port, vm_args:= ConfigArgs}) ->
+    NewArgs =
+        [mzb_string:format("-sname ~s", [NodeName]),
+         mzb_string:format("-mzbench node_management_port ~b", [Port]),
+         mzb_string:format("-mzbench node_log_port ~b", [LogPort])],
+
+    io_lib:format(string:join([A ++ "~n" || A <- NewArgs ++ ConfigArgs], ""), []).
 
 get_host_os_id(UserName, Host, Logger) ->
     string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
@@ -214,24 +223,34 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     _ = mzb_lists:pmap(fun({Host, OS}) ->
             {OS, LocalTarballPath} = lists:keyfind(OS, 1, NeededTarballs),
             RemoteTarballPath = mzb_file:tmp_filename() ++ ".tgz",
-            case lists:member(OS, OSsWithMissingTarballs) of
-                true ->
-                    Logger(info, "Building package ~s on ~s", [PackageName, Host]),
-                    build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
-                    case lists:keyfind(OS, 2, HostsAndOSs) of
-                        {Host, OS} ->
-                            Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
-                            download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
-                        _ ->
-                            Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
-                            ok
-                    end;
-                false ->
-                    Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
-                    ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
-            end,
-            InstallationCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [InstallationDir, InstallationDir, RemoteTarballPath]),
-            _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
+            ExtractDir = mzb_file:tmp_filename(),
+            try
+                case lists:member(OS, OSsWithMissingTarballs) of
+                    true ->
+                        Logger(info, "Building package ~s on ~s", [PackageName, Host]),
+                        build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
+                        case lists:keyfind(OS, 2, HostsAndOSs) of
+                            {Host, OS} ->
+                                Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
+                                download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
+                            _ ->
+                                Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
+                                ok
+                        end;
+                    false ->
+                        Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
+                        ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
+                end,
+                % Extract tgz to tmp directory and then rsync it to the installation directory in order to prevent
+                % different nodes provisioning to affect each other (if we ran several nodes on one host)
+                ExtractCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [ExtractDir, ExtractDir, RemoteTarballPath]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], ExtractCmd, [], Logger),
+                InstallationCmd = mzb_string:format("mkdir -p ~s && rsync -aW ~s/ ~s", [InstallationDir, ExtractDir, InstallationDir]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
+            after
+                RemoveCmd = mzb_string:format("rm -rf ~s; rm -rf ~s; true", [RemoteTarballPath, ExtractDir]),
+                _ = mzb_subprocess:remote_cmd(User, [Host], RemoveCmd, [], Logger)
+            end
         end,
         HostsAndOSs),
     ok.
