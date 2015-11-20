@@ -18,6 +18,6 @@ pages:
 - Scenarios: scenarios.md
 - CLI: cli.md
 - API: api.md
-- Deployment: deployment_guide.md
+- Deployment: deployment.md
 - Workers: workers.md
 - Cloud Plugins: cloud_plugin.md
