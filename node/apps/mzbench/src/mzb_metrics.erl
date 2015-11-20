@@ -103,6 +103,8 @@ init([MetricsPrefix, Env, MetricGroups, Nodes]) ->
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
     exometer_report:trigger_interval(mzb_exometer_report_apiserver, ?INTERVALNAME),
+    timer:sleep(3000),  % Let exometer the time to finish reporting
+    
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
@@ -296,6 +298,7 @@ groupby([], Res) -> Res;
 groupby([{H, _}|_] = L, Res) ->
     Values = proplists:get_all_values(H, L),
     groupby(proplists:delete(H, L), [{H, Values}|Res]).
+
 
 get_local_values(Metrics) ->
     lager:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
