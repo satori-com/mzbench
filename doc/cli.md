@@ -27,7 +27,7 @@ Start the MZBench server.
 Optional params:
 
 `--config <config_file>`
-:   Path to the [server config](deployment_guide.md#server-configuration) file.
+:   Path to the [server config](deployment.md#configuration) file.
 
 
 ### stop_server
@@ -54,7 +54,7 @@ Restart the MZBench server, i.e. [stop](#stop_server) + [start](#start_server).
 Optional params:
 
 `--config <config_file>`
-:   Path to the [server config](deployment_guide.md#server-configuration) file.
+:   Path to the [server config](deployment.md#configuration) file.
 
 
 ## Benchmark Control
@@ -91,7 +91,7 @@ Optional params:
 :   [Environment variable](scenarios.md#environment-variables) definitions.
 
 `--cloud <cloud_provider_name>`
-:   Name of the cloud provider from the [server config](deployment_guide.md#server-configuration). If not specified, the first one on the list is used.
+:   Name of the cloud provider from the [server config](deployment.md#configuration). If not specified, the first one on the list is used.
 
 `--email <email> ...`
 :   Emails for notifications. When the benchmark finishes, the results will be sent to these emails.
