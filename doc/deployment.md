@@ -175,24 +175,6 @@ Enable or disable metrics data compression with the [DEFLATE](https://en.wikiped
 Default value: `none`
 
 
-### bench_read_at_once
-
-```erlang
-{bench_read_at_once, <integer>}
-```
-
-Default value: `1024`
-
-
-### bench_poll_timeout
-
-```erlang
-{bench_poll_timeout, <integer>}
-```
-
-Default value: `1000`
-
-
 ### node_git
 
 ```erlang
@@ -212,12 +194,16 @@ By default, the MZBench source code is taken from <https://github.com/machinezon
 
 The git commit SHA or branch name used to deploy worker nodes.
 
+By default, the latest revision is used.
+
 
 ### node_deployment_path
 
 ```erlang
 {node_deployment_path, "<path>"}
 ```
+
+The path to the MZBench installation on node machines.
 
 Default value: `"/.local/share"`
 
@@ -228,6 +214,7 @@ Default value: `"/.local/share"`
 {worker_deployment_path, "<path>"}
 ```
 
+The to the [workers](workers.md) installation on node machines.
 
 Default value: `"~/.local/share/mzbench_workers"`
 
@@ -260,6 +247,8 @@ Default value: `"~/.local/share/mzbench_api/data"`.
 {tgz_packages_dir, "<path>"}
 ```
 
+The location to store prebuilt worker archives.
+
 Default value: `"~/.local/cache/mzbench_api/packages"`.
 
 
@@ -276,6 +265,12 @@ Default value: `1000`.
 
 ### vm_args
 
+```erlang
+{vm_args, <args>}
+```
+
+Additional arguments for the [Erlang VM](Additional arguments for the [Erlang VM]().
+
 Default value: `[]`.
 
 
@@ -285,9 +280,37 @@ Default value: `[]`.
 {ntp_max_timediff, <float>}
 ```
 
-Maximum distance between node timers (default is 0.1).
+Maximum timeout between node creation in seconds.
 
-This check is optional and would only print a warning if failed.
+This check is optional and only prints a warning if fails.
+
+Default value: `0.1`.
+
+
+## Dev Parameters
+
+Set these params only if you are an MZBench developer.
+
+### bench_read_at_once
+
+```erlang
+{bench_read_at_once, <integer>}
+```
+
+The number of bytes to read from the logs and metrics feed per request.
+
+Default value: `1024`
+
+
+### bench_poll_timeout
+
+```erlang
+{bench_poll_timeout, <integer>}
+```
+
+The timeout between requests to logs and metrics feeds in milliseconds.
+
+Default value: `1000`
 
 
 ### node_log_port
@@ -295,6 +318,8 @@ This check is optional and would only print a warning if failed.
 ```erlang
 {node_log_port, <integer>}
 ```
+
+The TCP port for the logs feed.
 
 Default value: `4801`.
 
@@ -304,5 +329,7 @@ Default value: `4801`.
 ```erlang
 {node_management_port, <integer>}
 ```
+
+The TCP port used to control the server internally.
 
 Default value: `4802`.
