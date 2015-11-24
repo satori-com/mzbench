@@ -19,6 +19,9 @@ MZBench is:
 
 [Read the docs →](https://machinezone.github.io/mzbench)
 
+    # check dashboard at http://localhost:4800/ or http://127.0.0.1:4800 for the results
+    # host and port can be set in config
+
 
 ## Installation
 
@@ -64,7 +67,7 @@ Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
 ## Read Next
 
- - [How to write scenarios →](scenarios.md)
- - [How to control MZBench from command line →](server_api.md)
- - [How to deploy MZBench →](deployment_guide.md)
- - [How to write your own worker →](workers.md#how-to-write-a-worker)
+ - [How to write scenarios →](doc/scenarios.md)
+ - [How to control MZBench from command line →](doc/server_api.md)
+ - [How to deploy MZBench →](doc/deployment_guide.md)
+ - [How to write your own worker →](doc/workers.md#how-to-write-a-worker)
