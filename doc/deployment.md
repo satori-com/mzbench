@@ -14,7 +14,7 @@ Here's how you install and configure MZBench for real-life use.
 Requirements:
 
  - [Erlang R17](http://www.erlang.org)
- - C++ compiler
+ - C++ compiler (preinstalled on most UNIX-based systems)
  - [Python](https://www.python.org) 2.6 or 2.7
  - [Pip]((https://pip.pypa.io/en/stable/)) Python package manager
 
@@ -50,7 +50,7 @@ To specify a configuration file from a different location, use the `--config` pa
 $ ./bin/mzbench start_server --config /path/to/server.config
 ```
 
-The configuration file is an Erlang list with the `mzbench_api` tuple. This tuple holds the list of the server [parameters](#parameters): 
+The configuration file is an Erlang list with the `mzbench_api` tuple. This tuple holds the list of the server [parameters](#parameters):
 
 ```erlang
 [
@@ -62,6 +62,8 @@ The configuration file is an Erlang list with the `mzbench_api` tuple. This tupl
 ```
 
 Here, two parameters are specified: [network_interface](#network_interface) and [listen_port](#listen_port).
+
+All parameters are optional.
 
 
 ## Parameters
@@ -81,120 +83,226 @@ Here, two parameters are specified: [network_interface](#network_interface) and 
 }
 ```
 
-List of [cloud plugins](cloud_plugin.md) that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.
+List of [cloud plugins](cloud_plugins.md) that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.
 
 **`<PluginName>`** is an atom identifying a plugin instance.
 
-**`<ModuleName>`** is the name of the plugin module. There're four modules available by default:
+**`<ModuleName>`** is the name of the plugin module. Each module has its specific **`<Options>`**. 
 
-mzb_api_ec2_plugin
-:   Amazon EC2.
+There are four built-in plugins:
 
-mzb_dummycloud_plugin
-:   Dummy provider, doesn't really do anything, but can be used as a reference during [cloud plugin development](cloud_plugin.md#how-to-write-a-cloud-plugin).
+[mzb_api_ec2_plugin](cloud_plugins.md#amazon-ec2)
+:   Allocate hosts from the Amazon EC2 cloud.
 
-mzb_multicloud_plugin
-:   ???
+[mzb_staticcloud_plugin](cloud_plugins.md#static-cloud)
+:   Allocates hosts from a static pool.
 
-mzb_staticcloud_plugin
-:   Plugin that allocates hosts from a static pool.
+[mzb_dummycloud_plugin](cloud_plugins.md#dummy)
+:   Dummy provider, doesn't really do anything, but can be used as a reference during [cloud plugin development](cloud_plugins.md#how-to-write-a-cloud-plugin).
 
+[mzb_multicloud_plugin](cloud_plugins.md#multicloud)
+:   Allocate hosts from multiple sources with the given ratio.
 
-#### Configuration of the AWS EC2 cloud plugin
-
-mzb_api_ec2_plugin module allocates hosts in EC2 and requires 'instance_spec' and 'config' keys to be specified in Opts (see above).
-For AWS specific configuration details, see [erlcloud documentation](https://github.com/gleber/erlcloud).
-AWS image tips: an image should contain Erlang R17, gcc, gcc-c++, git, sudo.
-sudo shoud be available for non-tty execution (put "Defaults !requiretty" to /etc/sudoers).
-It is also required to have ssh and tcp 4801/4802 ports connectivity between server and nodes for
-logs and metrics. Please refer EC2 documentation on image publish process, it can be done from
-web AWS console within few clicks. We prepared such image with Amazon Linux (ami-3b90a80b), but you
-may require some additional software. For this image you need to register and specify your keypair name
-with your AWS credentials.
-
-Configuration example:
-
-    {cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
-                             instance_spec => [
-                              {image_id, "ami-2c03b22c"},
-                              {group_set, ""},
-                              {key_name, "-"},
-                              {subnet_id, "-"},
-                              {instance_type, "t2.micro"},
-                              {availability_zone, "us-west-2a"}
-                            ],
-                            config => [
-                              {ec2_host, "ec2.us-west-2.amazonaws.com"},
-                              {access_key_id, "-"},
-                              {secret_access_key, "-"}
-                             ]
-                            instance_user => "ec2-user",
-                        }}]},
-
-#### Configuration of static cloud plugin
-
-mzb_staticcloud_plugin does not allocate any hosts, the specified list of hosts is used instead.
-
-Configuration example:
-
-    {cloud_plugins, [{static, #{module => mzb_staticcloud_plugin,
-                               hosts => ["host1", "host2"]
-                               }}]}
-
-#### Configuration of dummy cloud plugin
-
-mzb_dummycloud_plugin does not allocate any hosts, localhost is used instead.
-
-Configuration example:
-
-    {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin}}]}
-
-### bench_data_dir
-
-"<path>"}`
-
-This parameter specifies where to store the various benchmark generated data.
-
-By default `mzbench_api_data` in the home directory of the user who started the server.
-
-### listen_port
-
-<port>}`
-
-This parameter is used to specify the port used to access the server dashboard.
-
-By default, the dashboard listens on `4800`.
 
 ### network_interface
 
-, "<ip address>"}`
+```erlang
+{network_interface, "<ip address>"}
+```
 
-This parameter is used to specify the interface for dashboard to listen (by default it is "127.0.0.1"),
-so the dashboard won't be available for any external connections. To open dashboard
- for everyone, specify "0.0.0.0"
- _Warning:_ mzbench doesn't provide any authentication and opening it
-to everyone would bring additional vulnerability to your server, mzbench dashboard should be protected with an external auth proxy like nginx.
+Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"`, so the dashboard is unavailable for external connections. 
 
-### node_git
+To open the dashboard to the public, set this param to `"0.0.0.0"`.
 
-, "<url>"}`
+!!!warning
+    MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.
+    
+    To protect your server, use an external auth proxy server like Nginx.
 
-Specifies the MZBench Git repository used to deploy the worker nodes.
 
-By default, the MZBench source code will be taken from `https://github.com/machinezone/mzbench.git`.
+### listen_port
 
-### node_commit
+```erlang
+{listen_port, <port>}
+```
 
-, "<string>"}`
+Specify the port to access the dashboard.
 
-Specifies Git commit SHA or Git branch name used to deploy the worker nodes.
+Default value: `4800`.
 
-### ntp_max_timediff
 
-, <float>}`
+### bench_log_file
 
-Maximum distance between node timers (default is 0.1), this check is optional and would only print a warning if failed.
+```erlang
+{bench_log_file, "<filename>"}
+```
+
+The name of the benchmark log files. The files are stored in `<bench_data_dir>/<bench_id>` where `<bench_data_dir>` is defined in the [bench_data_dir](#bench_data_dir) param and `<id>` is the ID of a particular benchmark.
+
+Default value: `"log.txt"`
+
 
 ### bench_log_compression
 
+```erlang
+{bench_log_compression, (deflate|none)}
+```
+
+Enable or disable log compression with the [DEFLATE](https://en.wikipedia.org/wiki/DEFLATE) algorithm.
+
+Default value: `deflate`
+
+
+### bench_metrics_file
+
+```erlang
+{bench_metrics_file, "<filename>"}
+```
+
+The name of the benchmark metrics data files. The files are stored in `<bench_data_dir>/<bench_id>` where `<bench_data_dir>` is defined in the [bench_data_dir](#bench_data_dir) param and `<id>` is the ID of a particular benchmark.
+
+Default value: `"metrics.txt"`
+
+
 ### bench_metrics_compression
+
+```erlang
+{bench_metrics_compression, (none|deflate)}
+```
+
+Enable or disable metrics data compression with the [DEFLATE](https://en.wikipedia.org/wiki/DEFLATE) algorithm.
+
+Default value: `none`
+
+
+### bench_read_at_once
+
+```erlang
+{bench_read_at_once, <integer>}
+```
+
+Default value: `1024`
+
+
+### bench_poll_timeout
+
+```erlang
+{bench_poll_timeout, <integer>}
+```
+
+Default value: `1000`
+
+
+### node_git
+
+```erlang
+{node_git, "<url>"}
+```
+
+The MZBench git repository used to deploy worker nodes.
+
+By default, the MZBench source code is taken from <https://github.com/machinezone/mzbench.git>.
+
+
+### node_commit
+
+```erlang
+{node_commit, "<string>"}
+```
+
+The git commit SHA or branch name used to deploy worker nodes.
+
+
+### node_deployment_path
+
+```erlang
+{node_deployment_path, "<path>"}
+```
+
+Default value: `"/.local/share"`
+
+
+### worker_deployment_path
+
+```erlang
+{worker_deployment_path, "<path>"}
+```
+
+
+Default value: `"~/.local/share/mzbench_workers"`
+
+
+### plugins_dir
+
+```erlang
+{plugins_dir, "<path>"}
+```
+
+Directory with additional [cloud plugins](cloud_plugins.md).
+
+Default value: `"../../../../plugins"`
+
+
+### bench_data_dir
+
+```erlang
+{bench_data_dir, "<path>"}
+```
+
+The location to store the data generated during the benchmark.
+
+Default value: `"~/.local/share/mzbench_api/data"`.
+
+
+### tgz_packages_dir
+
+```erlang
+{tgz_packages_dir, "<path>"}
+```
+
+Default value: `"~/.local/cache/mzbench_api/packages"`.
+
+
+### max_bench_num
+
+```erlang
+{max_bench_num, <integer>}
+```
+
+Maximal number of benchmarks running at the same time.
+
+Default value: `1000`.
+
+
+### vm_args
+
+Default value: `[]`.
+
+
+### ntp_max_timediff
+
+```erlang
+{ntp_max_timediff, <float>}
+```
+
+Maximum distance between node timers (default is 0.1).
+
+This check is optional and would only print a warning if failed.
+
+
+### node_log_port
+
+```erlang
+{node_log_port, <integer>}
+```
+
+Default value: `4801`.
+
+
+### node_management_port
+
+```erlang
+{node_management_port, <integer>}
+```
+
+Default value: `4802`.
