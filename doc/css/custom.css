@@ -1,3 +1,8 @@
 .toctree-l4 {
-    margin-left: 15px;
+    margin-left: 1em;
+}
+
+dd {
+    margin-left: 1em;
+    margin-bottom: 1.5em;
 }

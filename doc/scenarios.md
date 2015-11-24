@@ -33,10 +33,12 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 **Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
+## Top-Level Directives
+
 ### make_install
 
 ```erlang
-{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}`
+{make_install, [{git, "<URL>"}, {branch, "<Branch>"}, {dir, "<Dir>"}]}
 ```
 
 Install an external worker from a remote git repository on the test nodes before running the benchmark.
@@ -111,11 +113,7 @@ Run actions before and after the benchmark. Two kinds of actions are supported: 
 {assert, <Time>, <Condition>}
 ```
 
-Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time `<Time>`.
-
-<a name="time"></a>
-
-`<Time>` is a tuple `{<Duration>, (ms|sec|min|h)}`, e.g. `{1, sec}`.
+Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time [`<Time>`](#time_1).
 
 `<Condition>` is a comparison of two value and is defined as a tuple `{<Operation>, <Operand1>, <Operand2>}`.
 
@@ -152,7 +150,7 @@ Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
 ```erlang
     [ {pool,
-        [ {size, 10}, {worker_type, simple_http} ],
+        [ {size, 10}, {worker_type, simple_http_worker} ],
         [
             {get, "http://example.com"},
             {get, "http://foobar.com"} 
@@ -207,14 +205,10 @@ The worker that provides statements for the jobs.
 Start the jobs with a given rate:
     
 `linear`
-:   Constant rate [`<Rate>`](#rate), e.g. 10 per minute.
-
-<a name="rate"></a>
-
-**`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`, e.g. `{10, rps}`. It means `<N>` jobs per second, minute, or hour.
+:   Constant rate [`<Rate>`](#rate_1), e.g. 10 per minute.
 
 `poisson`
-:   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = [`<Rate>`](#rate).
+:   Rate defined by a [Poisson process](http://en.wikipedia.org/wiki/Poisson_process) with λ = [`<Rate>`](#rate_1).
 
 `exp`
 :   Start jobs with [exponentially growing](https://en.wikipedia.org/wiki/Exponential_growth) rate with the scale factor `<Scale>`:
@@ -234,7 +228,7 @@ You can customize and combine rates:
 {think_time, <Time>, <Rate>}
 ```
 
-Start jobs with rate [`<Rate>`](#rate) for a second, then sleep for [`<Time>`](#time) and repeat.
+Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`](#time_1) and repeat.
 
 ### ramp
 
@@ -242,7 +236,7 @@ Start jobs with rate [`<Rate>`](#rate) for a second, then sleep for [`<Time>`](#
 {ramp, linear, <StartRate>, <EndRate>}
 ```
 
-Linearly change the rate from [`<StartRate>`](#rate) at the beginning of the pool to [`<EndRate>`](#rate) at its end.
+Linearly change the rate from [`<StartRate>`](#rate_1) at the beginning of the pool to [`<EndRate>`](#rate_1) at its end.
 
 ### comb
 
@@ -250,7 +244,7 @@ Linearly change the rate from [`<StartRate>`](#rate) at the beginning of the poo
 {comb, <Rate1>, <Time1>, <Rate2>, <Time2>, ...}
 ```
 
-Start jobs with rate [`<Rate1>`](#rate) for [`<Time1>`](#time), then switch to [`<Rate2>`](#rate) for [`<Time2>`](#time), etc.
+Start jobs with rate [`<Rate1>`](#rate_1) for [`<Time1>`](#time_1), then switch to [`<Rate2>`](#rate_1) for [`<Time2>`](#time_1), etc.
 
 
 # Loops
@@ -322,7 +316,7 @@ The difference between these two examples is that in the first case the rate is 
 {time, <Time>}
 ``` 
 
-Run the loop for [`<Time>`](#time).
+Run the loop for [`<Time>`](#time_1).
 
 ### rate
 
@@ -330,7 +324,7 @@ Run the loop for [`<Time>`](#time).
 {rate, <Rate>}
 ```
 
-Repeat the loop with the [`<Rate>`](#rate) rate.
+Repeat the loop with the [`<Rate>`](#rate_1) rate.
 
 ### parallel
 
@@ -583,4 +577,27 @@ Convert an Erlang term to a binary object. [Learn more](http://www.erlang.org/do
 {wait, <Time>}
 ```
 
-Pause the current job for [`<Time>`](#time).
+Pause the current job for [`<Time>`](#time_1).
+
+# Conventions
+
+## Time
+
+**`<Time>`** is a tuple `{<Duration>, (ms|sec|min|h)}`:
+
+```erlang
+{1, sec}` % one second
+{10, min} % 10 minutes
+{0.5, h} % half hour
+```
+
+
+## Rate
+
+**`<Rate>`** is a tuple `{<N>, (rps|rpm|rph)}`:
+
+```erlang
+{10, rps} % 10 jobs per second
+{12, rpm} % 12 jobs per minute
+{100, h} % 100 jobs per hour
+```
