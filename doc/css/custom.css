@@ -1,3 +1,7 @@
+body {
+    font-size: 1.5em;
+}
+
 .toctree-l4 {
     margin-left: 1em;
 }
@@ -5,4 +9,8 @@
 dd {
     margin-left: 1em;
     margin-bottom: 1.5em;
+}
+
+ul.nav.bs-sidenav > li:not(.main) {
+    margin-left: 0.5em;
 }
