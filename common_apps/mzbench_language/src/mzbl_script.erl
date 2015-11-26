@@ -160,7 +160,12 @@ convert(X, erlang) ->
     {ok, Term} = erl_parse:parse_term(Tokens),
     Term;
 convert(X, json) -> jiffy:decode(X, [return_maps]);
-convert(X, tsv) -> lists:map(fun(L) -> string:tokens(L, "\t") end, string:tokens(X, "\n"));
+convert(X, tsv) ->
+    S = case is_binary(X) of
+        true -> binary_to_list(X);
+        false -> X
+    end,
+    lists:map(fun(L) -> string:tokens(L, "\t") end, string:tokens(S, "\n"));
 convert(X, T) -> erlang:error({invalid_conversion, T, X}).
 
 -spec enumerate_pools([script_expr()]) -> [script_expr()].
