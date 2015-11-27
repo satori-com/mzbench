@@ -62,9 +62,10 @@ generate_tgz: generate
 	rm -rf pkgroot
 
 .PHONY: local_tgz
+local_tgz: ERTS_VSN := $(shell erl -noshell -eval 'io:fwrite("~s", [erlang:system_info(version)]).' -s erlang halt)
 local_tgz: generate_tgz
 	mkdir -p ~/.local/cache/mzbench_api/packages
-	cp node.tgz ~/.local/cache/mzbench_api/packages/node-$(GIT_HEAD)-$(OS_VERSION).tgz
+	cp node.tgz ~/.local/cache/mzbench_api/packages/node-$(GIT_HEAD)-$(OS_VERSION)_erts-$(ERTS_VSN).tgz
 
 .PHONY: clean
 clean:

@@ -103,7 +103,7 @@ check_op(random_binary, [Size], T, Env) ->
     and_(is(binary, T), check(Size, integer, Env));
 check_op(random_list, [Size], T, Env) ->
     and_(is(list, T), check(Size, integer, Env));
-check_op(t, [List], T, Env) ->
+check_op(t, List, T, Env) ->
     and_(is(tuple, T), check(List, list, Env));
 check_op(random_number, [N, M], T, Env) ->
     and_(

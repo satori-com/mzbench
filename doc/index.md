@@ -17,6 +17,7 @@ MZBench is:
  - **Extendable:** write your own [cloud plugins](cloud_plugin#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker). 
  - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
 
+
 ## Installation
 
 To use MZBench, you'll need:
@@ -90,6 +91,7 @@ MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tre
 ## Read Next
 
  - [How to write scenarios →](scenarios.md)
- - [How to control MZBench from command line →](server_api.md)
- - [How to deploy MZBench →](deployment_guide.md)
+ - [How to control MZBench from command line →](cli.md)
+ - [How to deploy MZBench →](deployment.md)
  - [How to write your own worker →](workers.md#how-to-write-a-worker)
+ 
