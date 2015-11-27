@@ -58,6 +58,6 @@ exec_with_input(Format, Args, Opts, Input, Logger) ->
         % Ports don't send eof to a programm but 'cat' does it
         mzb_subprocess:exec_format("cat ~s | " ++ Format, [File | Args], Opts, Logger)
     after
-        file:delete(File)
+        ok = file:delete(File)
     end.
 
