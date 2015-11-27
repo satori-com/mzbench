@@ -1,5 +1,11 @@
 -module(mzb_worker_runner).
 
+-ifdef(deprecated_now).
+-define(NOW, erlang:system_time(micro_seconds)).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
 -export([run_worker_script/5]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
@@ -10,7 +16,7 @@ run_worker_script(Script, Env, {WorkerProvider, Worker}, PoolPid, PoolName) ->
     %NodeName = mzb_utility:hostname_str(node()),
     Res =
         try
-            _ = random:seed(now()),
+            _ = random:seed(?NOW),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.started", [PoolName]), 1),
             %ok = mzb_metrics:notify(mzb_string:format("workers.~s.~s.started", [PoolName, NodeName]), 1),
 
