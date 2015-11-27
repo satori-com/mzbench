@@ -178,11 +178,20 @@ terminate(_Reason, _Req, _State) ->
 multipart(Req, Res) ->
     case cowboy_req:part(Req) of
         {ok, Headers, Req2} ->
-            {ok, Body, Req3} = cowboy_req:part_body(Req2),
+            {ok, Body, Req3} = read_big_file(Req2),
             {file, Field, Filename, _CT, _Enc} = cow_multipart:form_data(Headers),
             multipart(Req3, [{Field, {binary_to_list(Filename), Body}}|Res]);
         {done, Req2} ->
             {Res, Req2}
+    end.
+
+read_big_file(Req) ->
+    read_big_file(Req, <<>>).
+
+read_big_file(Req, Acc) ->
+    case cowboy_req:part_body(Req) of
+        {ok, Body, Req2} -> {ok, <<Acc/binary, Body/binary>>, Req2};
+        {more, Body, Req2} -> read_big_file(Req2, <<Acc/binary, Body/binary>>)
     end.
 
 reply_json(Code, Map, Req) ->
