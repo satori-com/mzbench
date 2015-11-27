@@ -4,7 +4,7 @@
 -export([stop/2]).
 
 -ifdef(deprecated_now).
--define(NOW, erlang:system_time(micro_seconds)).
+-define(NOW, os:timestamp()).
 -else.
 -define(NOW, erlang:now()).
 -endif.
