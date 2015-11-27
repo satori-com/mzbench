@@ -31,11 +31,6 @@ cache:
 
 install: "true"
 
-branches:
-  only:
-    - master
-    - develop
-
 script:
  - virtualenv venv
  - source venv/bin/activate
