@@ -29,6 +29,13 @@ cache:
     - $HOME/.cache/pip
     - $HOME/.cache/rebar3
 
+install: "true"
+
+branches:
+  only:
+    - master
+    - develop
+
 script:
  - virtualenv venv
  - source venv/bin/activate
