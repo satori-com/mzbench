@@ -14,7 +14,7 @@ start(_, _) ->
 
     CodePaths = [File || WC <- CodeWildcards, File <- mzb_file:wildcard(WC)],
 
-    lager:info("Add worker paths: ~p", [CodePaths]),
+    system_log:info("Add worker paths: ~p", [CodePaths]),
 
     code:add_pathsz([filename:absname(P) || P <- CodePaths]),
     mzb_sup:start_link().

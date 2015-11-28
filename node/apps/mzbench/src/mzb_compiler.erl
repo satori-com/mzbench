@@ -22,7 +22,7 @@ compile(Pools, Env) ->
     {Pools2, [generate_var_module(Vars)]}.
 
 generate_var_module(Vars) ->
-    lager:info("Generating a module for vars: ~p", [Vars]),
+    system_log:info("Generating a module for vars: ~p", [Vars]),
     Header = [{attribute,1, module, mzb_compiled_vars},
               {attribute,1,export,[{F, 0} || {F, _} <- Vars]}],
 

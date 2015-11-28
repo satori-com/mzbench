@@ -104,7 +104,7 @@ handle_info(_Info, State) ->
     {ok, State}.
 
 terminate(Reason, #state{socket = S} = _State) ->
-    lager:info("Terminated tcp lager backend for ~p with reason ~p", [S, Reason]),
+    system_log:info("Terminated tcp lager backend for ~p with reason ~p", [S, Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

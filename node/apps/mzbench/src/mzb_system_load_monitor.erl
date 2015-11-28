@@ -64,7 +64,7 @@ metric_names(Nodes) ->
 %% gen_server callbacks
 
 init([]) ->
-    lager:info("~p started on node ~p", [?MODULE, node()]),
+    system_log:info("~p started on node ~p", [?MODULE, node()]),
     _ = spawn_link(fun mailbox_len_reporter/0),
     erlang:send_after(interval(), self(), trigger),
     {ok, #state{last_rx_bytes = not_available,
@@ -93,7 +93,7 @@ handle_info(trigger,
 
     case cpu_sup:avg1() of
         {error, LAFailedReason} ->
-            lager:info("cpu_sup:avg1() failed with reason ~p", [LAFailedReason]);
+            system_log:info("cpu_sup:avg1() failed with reason ~p", [LAFailedReason]);
         La1 ->
             ok = mzb_metrics:notify({metric_name("la1"), gauge}, La1 / 256)
     end,
@@ -105,7 +105,7 @@ handle_info(trigger,
         {unix, linux} ->
             case cpu_sup:util() of
                 {error, UtilFailedReason} ->
-                    lager:info("cpu_sup:util() failed with reason ~p", [UtilFailedReason]);
+                    system_log:info("cpu_sup:util() failed with reason ~p", [UtilFailedReason]);
                 CpuUtil ->
                     ok = mzb_metrics:notify({metric_name("cpu"), gauge}, CpuUtil)
             end;
@@ -140,13 +140,13 @@ handle_info(trigger,
 
         #state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
     catch
-        C:E -> lager:error("Exception while getting net stats: ~p~nStacktrace: ~p", [{C,E}, erlang:get_stacktrace()]),
+        C:E -> system_log:error("Exception while getting net stats: ~p~nStacktrace: ~p", [{C,E}, erlang:get_stacktrace()]),
         State
     end,
 
     ok = mzb_metrics:notify({metric_name("process_count"), gauge}, erlang:system_info(process_count)),
 
-    %lager:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
+    %system_log:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(interval(), self(), trigger),
     {noreply, NewState#state{last_trigger_timestamp = Now}};
 

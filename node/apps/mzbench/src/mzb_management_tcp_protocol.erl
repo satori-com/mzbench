@@ -29,10 +29,10 @@ start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
 dispatch({request, Ref, Msg}, State) ->
-    lager:info("Received request: ~p", [Msg]),
+    system_log:info("Received request: ~p", [Msg]),
     case handle_message(Msg) of
         {ok, Res} -> send_message({response, Ref, Res}, State);
-        {error, Reason} -> lager:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
+        {error, Reason} -> system_log:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
     end,
     {noreply, State};
 
@@ -41,7 +41,7 @@ dispatch(close_req, #state{socket = Socket, transport = Transport} = State) ->
     {stop, normal, State};
 
 dispatch(Unhandled, State) ->
-    lager:error("Unhandled tcp message: ~p", [Unhandled]),
+    system_log:error("Unhandled tcp message: ~p", [Unhandled]),
     {noreply, State}.
 
 get_port() ->
@@ -79,15 +79,15 @@ handle_info({tcp, Socket, Msg}, State = #state{socket = Socket}) ->
     dispatch(erlang:binary_to_term(Msg), State);
 
 handle_info({tcp_error, _, Reason}, State) ->
-    lager:warning("~p was closed with error: ~p", [?MODULE, Reason]),
+    system_log:warning("~p was closed with error: ~p", [?MODULE, Reason]),
     {stop, Reason, State};
 
 handle_info(Info, State) ->
-    lager:error("~p has received unexpected info: ~p", [?MODULE, Info]),
+    system_log:error("~p has received unexpected info: ~p", [?MODULE, Info]),
     {stop, normal, State}.
 
 handle_cast(Msg, State) ->
-    lager:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
+    system_log:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
 handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
@@ -97,7 +97,7 @@ handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
     {reply, ok, State};
 
 handle_call(Request, _From, State) ->
-    lager:error("~p has received unexpected call: ~p", [?MODULE, Request]),
+    system_log:error("~p has received unexpected call: ~p", [?MODULE, Request]),
     {reply, ignore, State}.
 
 terminate(_Reason, _State) ->

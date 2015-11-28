@@ -64,12 +64,12 @@ get_all_signals() ->
 %%%===================================================================
 
 init([]) ->
-    lager:info("Signal server has been started"),
+    system_log:info("Signal server has been started"),
     _ = ets:new(?MODULE, [set, named_table, {read_concurrency, true}]),
     {ok, #s{}}.
 
 handle_call({set_nodes, Nodes}, _From, #s{} = State) ->
-    lager:info("Nodes are: ~p~n", [Nodes]),
+    system_log:info("Nodes are: ~p~n", [Nodes]),
     {reply, {ok}, State#s{nodes = Nodes}};
 handle_call({check, Name}, From, #s{queue = Q} = State) ->
     case length(ets:lookup(?MODULE, Name)) > 0 of
@@ -82,7 +82,7 @@ handle_call({check, Name, Count}, From, #s{queue = Q} = State) ->
         _ -> {noreply, State#s{queue = [{Name, From, Count} | Q]}}
     end;
 handle_call(Req, _From, State) ->
-    lager:error("Unhandled call: ~p", [Req]),
+    system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
 handle_cast({add, Name}, #s{nodes = Nodes} = State) ->
@@ -100,11 +100,11 @@ handle_cast({add_local, Name, Count}, #s{queue = Q} = State) ->
     _ = lists:map(fun(From) -> gen_server:reply(From, ok) end, W),
     {noreply, State#s{queue = [{N, F, C} || {N, F, C} <- Q, (N =/= Name) or (C > NewC)]}};
 handle_cast(Msg, State) ->
-    lager:error("Unhandled cast: ~p", [Msg]),
+    system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
 
 handle_info(Info, State) ->
-    lager:error("Unhandled info: ~p", [Info]),
+    system_log:error("Unhandled info: ~p", [Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
