@@ -60,7 +60,7 @@ handle_event({log, Message},
 
     case (MaxQ /= undefined) andalso (N rem 10 == 0) andalso erlang:process_info(self(), message_queue_len) of
         {_, Len} when Len > MaxQ ->
-            system_log:warning("Dropped ~b log messages (mailbox overflow)", [Len div 2]),
+            system_log:warning("Dropped ~b log messages (mailbox overflow) on ~p", [Len div 2, node()]),
             mzb_metrics:notify({"logs.dropped.mailbox_overflow", counter}, Len div 2),
             {ok, State#state{skip_messages = Len div 2, n = N + 1}};
         _ ->
@@ -83,7 +83,7 @@ handle_event(_Event, State) ->
 
 handle_info(activate, State = #state{n = N, dropped = Dropped}) ->
     Dropped > 0 andalso mzb_metrics:notify({"logs.dropped.rate_limiter", counter}, Dropped),
-    Dropped > 0 andalso system_log:warning("Dropped ~b log messages (rate limiter)", [Dropped]),
+    Dropped > 0 andalso system_log:warning("Dropped ~b log messages (rate limiter) on ~p", [Dropped, node()]),
     erlang:send_after(?INTERVAL, self(), trigger_rate_limiter),
     {ok, State#state{is_active = true, last_n = N, last_timestamp = os:timestamp(), dropped = 0}};
 
