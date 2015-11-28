@@ -636,8 +636,20 @@ get_file_writer(Filename, deflate) ->
             P ! close,
             receive
                 {'DOWN', Ref, _, _, _} -> ok
+            after
+                10000 ->
+                    erlang:exit(P, kill)
             end;
-        ({write, Data}) -> P ! {write, Data}, ok
+        ({write, Data}) ->
+            Ref = erlang:make_ref(),
+            P ! {write_sync, self(), Ref, Data},
+            Ref2 = erlang:monitor(process, P),
+            receive
+                {write_res, Ref, ok} ->
+                    erlang:demonitor(Ref2, [flush]),
+                    ok;
+                {'DOWN', Ref2, _, _, _} -> ok
+            end
     end.
 
 deflate_process(Filename) ->
@@ -663,16 +675,24 @@ deflate_process(Filename) ->
         _ = timer:cancel(Ref),
         file:close(H)
     end,
-    fun D() ->
-        receive
-            {'EXIT', _, _} -> Close();
-            close -> Close();
-            flush -> _ = Flush(), D();
-            {write, Data} ->
-                _ = file:write(H, zlib:deflate(Z, Data, none)),
-                D()
-        end
-    end ().
+    fun
+        D(N) when (N rem 100) == 0 ->
+            Flush(),
+            D(N + 1);
+        D(N) ->
+            receive
+                {'EXIT', _, _} -> Close();
+                close -> Close();
+                flush -> _ = Flush(), D(N + 1);
+                {write_sync, From, Ref1, Data} ->
+                    _ = file:write(H, zlib:deflate(Z, Data, none)),
+                    From ! {write_res, Ref1, ok},
+                    D(N + 1);
+                {write, Data} ->
+                    _ = file:write(H, zlib:deflate(Z, Data, none)),
+                    D(N + 1)
+            end
+    end (0).
 
 director_async_call(Connection, Msg, Continuation) ->
     mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
