@@ -37,12 +37,12 @@ validate(Command) ->
     [mzb_string:format("Invalid hook command ~p", [Command])].
 
 exec(Cmd) ->
-    Logger = fun (S, F, A) -> lager:log(S, self(), F, A) end,
+    Logger = fun (S, F, A) -> lager:log(system_log, S, self(), F, A) end,
     mzb_subprocess:exec_format(Cmd, [], [], Logger),
     ok.
 
 run_hook(#operation{name=exec, args=[Target, Cmd]}, Env) ->
-    lager:info("Run worker hook ~p", [Cmd]),
+    system_log:info("Run worker hook ~p", [Cmd]),
 
     Nodes = case Target of
         director -> [node()];
@@ -53,21 +53,21 @@ run_hook(#operation{name=exec, args=[Target, Cmd]}, Env) ->
         case rpc:call(Node, mzb_script_hooks, exec, [Cmd]) of
             ok -> ok;
             Error ->
-                lager:error("Unable to run exec hook ~p on node ~p~nError: ~p", [Cmd, Node, Error]),
+                system_log:error("Unable to run exec hook ~p on node ~p~nError: ~p", [Cmd, Node, Error]),
                 erlang:error({error, mzb_string:format("Unable to run exec hook ~p on node ~p", [Cmd, Node]), Error})
         end
     end, Nodes),
     Env;
 run_hook(#operation{name=worker_call, args=[Method | WorkerType]}, Env) ->
     {Provider, Worker} = mzbl_script:resolve_worker_provider(WorkerType),
-    lager:info("Run worker hook ~p:~p", [Worker, Method]),
+    system_log:info("Run worker hook ~p:~p", [Worker, Method]),
     ok = Provider:load(Worker),
     case Provider:apply(Method, [Env], Worker) of 
         {ok,   NewEnv} -> NewEnv;
         % special case for languages without atom/keywork type
         {"ok", NewEnv} -> NewEnv;
         IncorrectReturn ->
-            lager:info("Incorrect return value from worker hook ~p:~p", [Worker, Method]),
+            system_log:info("Incorrect return value from worker hook ~p:~p", [Worker, Method]),
             erlang:error({incorrect_hook_return, Worker, Method, IncorrectReturn})
     end;
 run_hook(Operation, _Env) ->

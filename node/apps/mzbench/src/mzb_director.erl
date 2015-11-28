@@ -55,9 +55,9 @@ stop_benchmark(Reason) ->
 %%%===================================================================
 
 init([SuperPid, BenchName, Script, Nodes, Env]) ->
-    lager:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
+    system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
-    lager:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
+    system_log:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
     _ = mzb_signaler:set_nodes(Nodes),
     gen_server:cast(self(), start_pools),
     {ok, #state{
@@ -69,7 +69,7 @@ init([SuperPid, BenchName, Script, Nodes, Env]) ->
     }}.
 
 handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, nodes = Nodes} = State) ->
-    lager:info("Changing env: ~p", [NewEnv]),
+    system_log:info("Changing env: ~p", [NewEnv]),
     MergedEnv = lists:foldl(
         fun ({K, V}, Acc) ->
             lists:keystore(K, 1, Acc, {K, V})
@@ -80,7 +80,7 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
         {reply, ok, State#state{env = MergedEnv}}
     catch
         _:E ->
-            lager:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
+            system_log:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
             {reply, {error, {internal_error, E}}, State}
     end;
 
@@ -88,11 +88,11 @@ handle_call(attach, From, State) ->
     maybe_report_and_stop(State#state{owner = From});
 
 handle_call(Req, _From, State) ->
-    lager:error("Unhandled call: ~p", [Req]),
+    system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
     handle_cast(start_pools, #state{nodes = []} = State) ->
-    lager:error("[ director ] There are no alive nodes to start workers"),
+    system_log:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
 
 handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
@@ -119,11 +119,11 @@ handle_cast({stop_benchmark, Reason}, #state{} = State) ->
     maybe_stop(State#state{stop_reason = Reason});
 
 handle_cast(Req, State) ->
-    lager:error("Unhandled cast: ~p", [Req]),
+    system_log:error("Unhandled cast: ~p", [Req]),
     {stop, {unhandled_cast, Req}, State}.
 
 handle_info({'DOWN', _Ref, _, Pid, Reason}, #state{pools = Pools} = State) ->
-    lager:error("Received DOWN from pool ~p with reason ~p", [Pid, Reason]),
+    system_log:error("Received DOWN from pool ~p with reason ~p", [Pid, Reason]),
     case Reason of
         normal ->
             NewPools = proplists:delete(Pid, Pools),
@@ -133,7 +133,7 @@ handle_info({'DOWN', _Ref, _, Pid, Reason}, #state{pools = Pools} = State) ->
     end;
 
 handle_info(Req, State) ->
-    lager:error("Unhandled info: ~p", [Req]),
+    system_log:error("Unhandled info: ~p", [Req]),
     {noreply, State}.
 
 -spec handle_pool_report(Info :: [{K :: atom(), V :: term()}], #state{}) -> #state{}.
@@ -153,7 +153,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 start_pools([], _, _, Acc) ->
-    lager:info("[ director ] Started all pools"),
+    system_log:info("[ director ] Started all pools"),
     Acc;
 start_pools([Pool | Pools], Env, Nodes, Acc) ->
     #operation{args = [PoolOpts, _]} = Pool,
@@ -165,7 +165,7 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
             rpc:call(Node, mzb_bench_sup, start_pool,
                 [[Pool, Env, length(Nodes), Num]])
         end, NumberedNodes),
-    lager:info("Start pool results: ~p", [Results]),
+    system_log:info("Start pool results: ~p", [Results]),
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
     start_pools(Pools, Env, shift(Nodes, Size), NewRef ++ Acc).
 
@@ -180,22 +180,22 @@ shift(Nodes, Size) when length(Nodes) < Size -> shift(Nodes, Size rem length(Nod
 shift(Nodes, Size) when Size > 0 -> {F, T} = lists:split(Size, Nodes), T ++ F.
 
 maybe_stop(#state{stop_reason = Reason, succeed = Ok, failed = NOk} = State) when Reason /= undefined ->
-    lager:info("[ director ] Received stop signal with reason: ~p", [Reason]),
-    lager:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
+    system_log:info("[ director ] Received stop signal with reason: ~p", [Reason]),
+    system_log:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
     stop_pools(State#state.pools),
     maybe_report_and_stop(State#state{pools = []});
 
 maybe_stop(#state{pools = [], succeed = Ok, failed = NOk} = State) ->
     ok = mzb_metrics:final_trigger(),
-    lager:info("[ director ] All pools have finished, stopping mzb_director_sup ~p", [State#state.super_pid]),
-    lager:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
+    system_log:info("[ director ] All pools have finished, stopping mzb_director_sup ~p", [State#state.super_pid]),
+    system_log:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
     FailedAsserts = mzb_metrics:get_failed_asserts(),
     Reason =
         case FailedAsserts of
             [] -> normal;
             _ ->
                 AssertMessages = [Msg || {_, Msg} <- FailedAsserts],
-                lager:error("[ director ] Failed assertions:~n~s", [string:join(AssertMessages, "\n")]),
+                system_log:error("[ director ] Failed assertions:~n~s", [string:join(AssertMessages, "\n")]),
                 {assertions_failed, FailedAsserts}
         end,
     maybe_report_and_stop(State#state{stop_reason = Reason});
@@ -206,10 +206,10 @@ maybe_stop(#state{} = State) ->
 maybe_report_and_stop(#state{stop_reason = undefined} = State) ->
     {noreply, State};
 maybe_report_and_stop(#state{owner = undefined} = State) ->
-    lager:info("[ director ] Waiting for someone to report results..."),
+    system_log:info("[ director ] Waiting for someone to report results..."),
     {noreply, State};
 maybe_report_and_stop(#state{owner = Owner} = State) ->
-    lager:info("[ director ] Reporting benchmark results to ~p", [Owner]),
+    system_log:info("[ director ] Reporting benchmark results to ~p", [Owner]),
     Res = format_results(State),
     gen_server:reply(Owner, Res),
     erlang:spawn(fun mzb_sup:stop_bench/0),
@@ -229,7 +229,7 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
 load_modules(Binaries, Nodes) ->
     mzb_lists:pmap(fun(Node) ->
         lists:foreach(fun ({Mod, Bin}) ->
-            lager:info("Loading ~p module on ~p...", [Mod, Node]),
+            system_log:info("Loading ~p module on ~p...", [Mod, Node]),
             {module, _} = rpc:call(Node, code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin])
         end, Binaries)
     end, lists:usort(Nodes)),

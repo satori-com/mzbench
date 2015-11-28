@@ -23,7 +23,7 @@ run_bench(ScriptPath, DefaultEnv) ->
     catch _C:{error, Errors} = E when is_list(Errors) -> E;
           C:E ->
               ST = erlang:get_stacktrace(),
-              lager:error("Failed to run benchmark ~p:~p~n~p", [C, E, ST]),
+              system_log:error("Failed to run benchmark ~p:~p~n~p", [C, E, ST]),
               {error, [mzb_string:format("Failed to run benchmark", [])]}
     end.
 
@@ -53,7 +53,7 @@ is_ready() ->
         false =/= lists:keyfind(mzbench, 1, Apps)
     catch
         _:Error ->
-            lager:error("is_ready exception: ~p~nStacktrace: ~p", [Error, erlang:get_stacktrace()]),
+            system_log:error("is_ready exception: ~p~nStacktrace: ~p", [Error, erlang:get_stacktrace()]),
             false
     end.
 
@@ -80,7 +80,7 @@ start_pool(Args) ->
 %%% Supervisor callbacks
 %%%===================================================================
 init([]) ->
-    lager:info("[ mzb_bench_sup ] I'm at ~p", [self()]),
+    system_log:info("[ mzb_bench_sup ] I'm at ~p", [self()]),
     {ok, {{one_for_all, 0, 1}, [
         child_spec(signaler, mzb_signaler, [], permanent)
     ]}}.
@@ -93,7 +93,7 @@ child_spec(Name, Module, Args, Restart) ->
 
 start_director(Body, Nodes, Env) ->
     BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
-    lager:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
+    system_log:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
     supervisor:start_child(?MODULE,
                             child_spec(director, mzb_director,
                                        [whereis(?MODULE), BenchName, Body, Nodes, Env],
