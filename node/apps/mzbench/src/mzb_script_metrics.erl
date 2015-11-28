@@ -23,7 +23,12 @@ script_metrics(Pools, _WorkerNodes) ->
                                     units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}},
                           {graph, #{title => "Errors",
-                                    metrics => [{"errors", counter}]}}
+                                    metrics => [{"errors", counter}]}},
+                          {graph, #{title => "Logs",
+                                    metrics => [{"logs.written", counter},
+                                                {"logs.dropped.mailbox_overflow", counter},
+                                                {"logs.dropped.rate_limiter", counter}
+                                                ]}}
                         ]}],
 
     SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | nodes()]),

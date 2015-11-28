@@ -39,7 +39,10 @@ init(Ref, Socket, Transport, _Opts = []) ->
     ok = ranch:accept_ack(Ref),
     ok = Transport:setopts(Socket, [{active, once}, {packet, 4}, {keepalive, true}, binary]),
 
-    ok = gen_event:add_handler(lager_event, {mzb_lager_tcp, Socket}, [info, Socket]),
+    LogQueueMax = application:get_env(mzbench, log_queue_max_len, undefined),
+    LogRateLimit = application:get_env(mzbench, log_rate_limit, undefined),
+    ok = gen_event:add_handler(system_log_lager_event, {mzb_lager_tcp, Socket}, [info, Socket, undefined, 0]),
+    ok = gen_event:add_handler(lager_event, {mzb_lager_tcp, Socket}, [info, Socket, LogQueueMax, LogRateLimit]),
     lager:set_loglevel(mzb_lager_tcp, Socket, info),
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}).
 
@@ -70,6 +73,7 @@ handle_call(Request, _From, State) ->
 
 terminate(_Reason, #state{socket = Socket}) ->
     gen_event:delete_handler(lager_event, {mzb_lager_tcp, Socket}, []),
+    gen_event:delete_handler(system_log_lager_event, {mzb_lager_tcp, Socket}, []),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
