@@ -3,6 +3,12 @@
 
 -export([stop/2]).
 
+-ifdef(deprecated_now).
+-define(NOW, os:timestamp()).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
 add_libs() ->
     BinDir = filename:dirname(escript:script_name()),
     CodePaths = filelib:wildcard(filename:join(BinDir, "../lib/mzbench_utils-*/ebin/")),
@@ -92,7 +98,7 @@ usage() ->
     halt(1).
 
 nodename_gen() ->
-    {N1,N2,N3} = erlang:now(),
+    {N1,N2,N3} = ?NOW,
     Str = lists:flatten(io_lib:format("~p-~p~p", [N1,N2,N3])),
     erlang:list_to_atom(Str).
 

@@ -1,5 +1,11 @@
 -module(mzb_pool).
 
+-ifdef(deprecated_now).
+-define(NOW, erlang:system_time(micro_seconds)).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
 -export([start_link/4,
          stop/1
         ]).
@@ -39,7 +45,7 @@ stop(Pid) ->
 
 init([Pool, Env, NumNodes, Offset]) ->
     Tid = ets:new(pool_workers, [public, {keypos, 1}]),
-    _ = random:seed(now()),
+    _ = random:seed(?NOW),
     State = #s{workers = Tid},
     {ok, start_workers(Pool, Env, NumNodes, Offset, State)}.
 

@@ -2,10 +2,17 @@
 
 -define(MZBENCH_NODE,  "mzb_director").
 
+-ifdef(deprecated_now).
+-define(NOW, os:timestamp()).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
+
 -export([nodename_gen/0, hostname/0, read_env/1, convert/1, start_and_connect/1]).
 
 nodename_gen() ->
-    {N1,N2,N3} = erlang:now(),
+    {N1,N2,N3} = ?NOW,
     Str = lists:flatten(io_lib:format("~p-~p~p", [N1,N2,N3])),
     erlang:list_to_atom(Str).
 

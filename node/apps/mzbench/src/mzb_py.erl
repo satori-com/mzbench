@@ -1,5 +1,11 @@
 -module(mzb_py).
 
+-ifdef(deprecated_now).
+-define(NOW, os:timestamp()).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
 -export([
     start_interpreter/1,
     stop_interpreter/1,
@@ -106,7 +112,7 @@ close_fifo(FifoName, FifoPort) ->
 
 -spec gen_fifo_name(string()) -> string().
 gen_fifo_name(Module) ->
-    {N1, N2, N3} = erlang:now(),
+    {N1, N2, N3} = ?NOW,
     filename:join(["/", "tmp", io_lib:format("worker_~s_~b_~b_~b.pipe", [Module, N1, N2, N3])]).
 
 skip_port_messages(_Port, 0) -> ok;
