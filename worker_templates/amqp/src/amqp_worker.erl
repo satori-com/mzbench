@@ -1,4 +1,11 @@
 -module(amqp_worker).
+
+-ifdef(deprecated_now).
+-define(NOW, os:timestamp()).
+-else.
+-define(NOW, erlang:now()).
+-endif.
+
 -export([initial_state/0, metrics/0]).
 -export([connect/3, disconnect/2,
          declare_exchange/3, declare_queue/3, bind/5,
@@ -19,7 +26,7 @@
 
 -record(payload, {
     data      = <<>>         :: binary(),
-    timestamp = erlang:now() :: erlang:timestamp()
+    timestamp = ?NOW :: erlang:timestamp()
 }).
 
 initial_state() -> #s{}.
@@ -90,7 +97,7 @@ get(State, Meta, InQ) ->
             #amqp_msg{payload = Payload} = Content,
             #payload{timestamp = Now1} = erlang:binary_to_term(Payload),
             mzb_metrics:notify({"get", counter}, 1),
-            mzb_metrics:notify({"get", histogram}, timer:now_diff(erlang:now(), Now1));
+            mzb_metrics:notify({"get", histogram}, timer:now_diff(?NOW, Now1));
         #'basic.get_empty'{} ->
             nop
     end,
@@ -121,7 +128,7 @@ consumer_loop(Channel, Meta) ->
             #amqp_msg{payload = Payload} = Content,
             #payload{timestamp = Now1} = erlang:binary_to_term(Payload),
             mzb_metrics:notify({"consumer_loop", counter}, 1),
-            mzb_metrics:notify({"consumer_loop", histogram}, timer:now_diff(erlang:now(), Now1)),
+            mzb_metrics:notify({"consumer_loop", histogram}, timer:now_diff(?NOW, Now1)),
             amqp_channel:call(Channel, #'basic.ack'{delivery_tag = Tag}),
             ?MODULE:consumer_loop(Channel, Meta);
 

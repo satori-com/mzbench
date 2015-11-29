@@ -19,6 +19,9 @@ MZBench is:
 
 [Read the docs →](https://machinezone.github.io/mzbench)
 
+    # check dashboard at http://localhost:4800/ or http://127.0.0.1:4800 for the results
+    # host and port can be set in config
+
 
 ## Installation
 

@@ -1,6 +1,7 @@
 language: erlang
 
 otp_release:
+ - 18.1
  - 18.0
  - 17.0
 
@@ -27,6 +28,8 @@ cache:
   directories:
     - $HOME/.cache/pip
     - $HOME/.cache/rebar3
+
+install: "true"
 
 script:
  - virtualenv venv
