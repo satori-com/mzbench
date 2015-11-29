@@ -124,7 +124,7 @@ ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
 ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
     _ = mzb_lists:pmap(
         fun ({H, N}) ->
-            ensure_file_content([H], vm_args_content(N, Config), "vm.args", Config, Logger)
+            ok = ensure_file_content([H], vm_args_content(N, Config), "vm.args", Config, Logger)
         end, lists:zip(Hosts, Nodenames)),
     ok.
 
@@ -152,7 +152,7 @@ ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
                         undefined -> "";
                         _ -> io_lib:format("~s@", [UserName])
                     end,
-                mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s", [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], Logger)
+                _ = mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s", [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], Logger)
         end, Hosts),
     ok.
 
@@ -249,7 +249,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
                         end;
                     false ->
                         Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
-                        ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
+                        ok = ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
                 end,
                 % Extract tgz to tmp directory and then rsync it to the installation directory in order to prevent
                 % different nodes provisioning to affect each other (if we ran several nodes on one host)

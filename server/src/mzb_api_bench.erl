@@ -212,7 +212,7 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
     #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
     lists:foreach(
         fun ({Name, Content}) ->
-            mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
+            ok = mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
 handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes} = State) ->
