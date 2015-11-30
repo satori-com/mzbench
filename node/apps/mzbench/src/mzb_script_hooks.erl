@@ -37,7 +37,7 @@ validate(Command) ->
     [mzb_string:format("Invalid hook command ~p", [Command])].
 
 exec(Cmd) ->
-    Logger = fun (S, F, A) -> lager:log(system_log, S, self(), F, A) end,
+    Logger = fun (S, F, A) -> lager:log(system_log_lager_event, S, self(), F, A) end,
     mzb_subprocess:exec_format(Cmd, [], [], Logger),
     ok.
 
