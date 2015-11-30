@@ -66,17 +66,17 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
-dispatch_info({metrics_batch_finished, Id, Guid}, State = #state{currently_selected_bench = Id, current_transmission_guid = Guid}) ->
-    {reply, #{type => "METRICS_BATCH_FINISHED", bench => Id, guid => Guid}, State};
+dispatch_info({metrics_batch_finished, Guid}, State = #state{current_transmission_guid = Guid}) ->
+    {reply, #{type => "METRICS_BATCH_FINISHED", guid => Guid}, State};
 
-dispatch_info({metrics_batch_finished, _Id, _Guid}, State = #state{}) ->
+dispatch_info({metrics_batch_finished, _Guid}, State = #state{}) ->
     {ok, State};
 
-dispatch_info({transmit_metrics, Id, Guid, Values}, State = #state{currently_selected_bench = Id, current_transmission_guid = Guid}) ->
-    Event = #{type => "METRICS_UPDATE", bench => Id, guid => Guid, data => erlang:list_to_binary(Values)},
+dispatch_info({transmit_metrics, Guid, Values}, State = #state{current_transmission_guid = Guid}) ->
+    Event = #{type => "METRICS_UPDATE", guid => Guid, data => erlang:list_to_binary(Values)},
     {reply, Event, State};
 
-dispatch_info({transmit_metrics, _Id, _Guid, _Values}, State = #state{}) ->
+dispatch_info({transmit_metrics, _Guid, _Values}, State = #state{}) ->
     {ok, State};
 
 dispatch_info({notify, Severity, Msg}, State) ->
@@ -130,8 +130,8 @@ dispatch_request(#{<<"cmd">> := <<"set_bench_for_metrics_updates">>} = Cmd, Stat
     stop_reading_metrics(MetricsReaderRef),
     #{<<"bench">> := Id, <<"guid">> := Guid} = Cmd,
     Self = self(),
-    BatchFinishedFun = fun () -> Self ! {metrics_batch_finished, Id, Guid} end,
-    SendMetricsFun = fun (Values) -> Self ! {transmit_metrics, Id, Guid, Values} end,
+    BatchFinishedFun = fun () -> Self ! {metrics_batch_finished, Guid} end,
+    SendMetricsFun = fun (Values) -> Self ! {transmit_metrics, Guid, Values} end,
     NewMetricsReaderRef = start_reading_metrics(Id, SendMetricsFun, BatchFinishedFun),
     {ok, State#state{currently_selected_bench = Id, current_transmission_guid = Guid, metrics_reader_ref = NewMetricsReaderRef}};
 
@@ -289,7 +289,7 @@ perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, Buffer,
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 500 ->
             Buf = [Data|Buffer],
-            SendFun(lists:reverse(Buf)),
+            _ = SendFun(lists:reverse(Buf)),
             perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [], 0);
         {ok, Data} ->
             perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [Data|Buffer], LinesRead + 1);
@@ -298,7 +298,7 @@ perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, Buffer,
                 [] -> ok;
                 _ -> SendFun(lists:reverse(Buffer))
             end,
-            BatchFinishedFun(),
+            _ = BatchFinishedFun(),
             case mzb_api_server:is_datastream_ended(BenchId) of
                 true  -> ok;
                 false ->

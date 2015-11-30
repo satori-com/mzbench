@@ -96,14 +96,14 @@ class MetricsStore extends EventEmitter {
         return data.is_loaded;
     }
     
-    updateMetricData(benchId, guid, rawData) {
-        if(data.benchId == benchId && data.guid == guid) {
+    updateMetricData(guid, rawData) {
+        if(data.guid == guid) {
             _updateData(rawData);
         }
     }
     
-    metricsBatchFinished(benchId, guid) {
-        if(data.benchId == benchId && data.guid == guid) {
+    metricsBatchFinished(guid) {
+        if(data.guid == guid) {
             data.is_loaded = true;
         }
     }
@@ -132,12 +132,12 @@ export default _MetricsStore;
 _MetricsStore.dispatchToken = Dispatcher.register((action) => {
     switch(action.type) {
         case ActionTypes.METRICS_UPDATE:
-            _MetricsStore.updateMetricData(action.bench, action.guid, action.data);
+            _MetricsStore.updateMetricData(action.guid, action.data);
             _MetricsStore.emitChange();
             break;
     
         case ActionTypes.METRICS_BATCH_FINISHED:
-            _MetricsStore.metricsBatchFinished(action.bench, action.guid);
+            _MetricsStore.metricsBatchFinished(action.guid);
             _MetricsStore.emitChange();
             break;
     

@@ -3,7 +3,7 @@ import MetricsStore from '../stores/MetricsStore';
 import Constants from '../constants/ActionTypes';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import MZBenchWS from '../utils/MZBenchWS';
-import Misc from '../utils/misc.js';
+import Misc from '../utils/Misc.js';
 
 export default {
     subscribeBenchTimeline () {
