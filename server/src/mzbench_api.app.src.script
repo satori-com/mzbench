@@ -13,7 +13,9 @@
         erlcloud,
         mzbench_language,
         mzbench_utils,
-        gen_smtp
+        gen_smtp,
+        observer,
+        runtime_tools
     ]},
     {mod, {mzb_api_app, []}},
     {env, [
