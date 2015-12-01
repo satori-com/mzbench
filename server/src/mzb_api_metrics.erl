@@ -1,6 +1,7 @@
 -module(mzb_api_metrics).
 
--export([get_metrics/5]).
+-export([get_metrics/5,
+         extract_metric_names/1]).
 
 get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
     [Res] = mzb_subprocess:remote_cmd(
@@ -16,3 +17,8 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
             lager:error("Failed to parse metrics names cause of ~p~nOutput: ~p~nStacktrace: ~p", [E, Res, ST]),
             erlang:raise(C,E,ST)
     end.
+
+extract_metric_names(#{<<"groups">>:= Groups} = _Metrics) ->
+    [Name || #{<<"graphs">>:= Graphs} <- Groups, #{<<"metrics">>:= Metrics} <- Graphs, #{<<"name">>:= Name} <- Metrics].
+
+

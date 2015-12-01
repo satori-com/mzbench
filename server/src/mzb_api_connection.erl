@@ -1,17 +1,17 @@
 -module(mzb_api_connection).
 
--export([start_link/4,
+-export([start_link/5,
          send_message/2,
          wait_close/2]).
 
-start_link(Purpose, Host, Port, Dispatcher) ->
+start_link(Purpose, Host, Port, Dispatcher, State) ->
     Self = self(),
     Pid = spawn_link(fun () ->
         try gen_tcp:connect(Host, Port, [{active, false}, {packet, 4}, binary]) of
             {ok, Socket} ->
                 lager:info("Connection is started for ~p on ~s", [Purpose, Host]),
                 Self ! {self(), connected, Socket},
-                process_data(Purpose, Host, Socket, Dispatcher);
+                process_data(Purpose, Host, Socket, Dispatcher, State);
             {error, Reason} ->
                 Self ! {self(), failed, Reason}
         catch
@@ -41,15 +41,15 @@ wait_close({Pid, _, Purpose, Host}, Timeout) ->
         erlang:error({connection_close_timeout, Purpose, Host})
     end.
 
-process_data(Purpose, Host, Socket, Dispatcher) ->
+process_data(Purpose, Host, Socket, Dispatcher, State) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Data} ->
-            ok = Dispatcher({message, Data}),
-            process_data(Purpose, Host, Socket, Dispatcher);
+            {ok, NewState} = Dispatcher({message, Data}, State),
+            process_data(Purpose, Host, Socket, Dispatcher, NewState);
         {error, closed} ->
             lager:info("Connection '~p' is closed on host ~s", [Purpose, Host]),
-            Dispatcher({error, closed});
+            Dispatcher({error, closed}, State);
         {error, Reason} ->
             lager:error("Connection '~p' is failed on host ~s with reason ~p", [Purpose, Host, Reason]),
-            Dispatcher({error, Reason})
+            Dispatcher({error, Reason}, State)
     end.
