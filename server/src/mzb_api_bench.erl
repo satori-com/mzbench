@@ -11,7 +11,7 @@
     send_email_report/2,
     request_report/2,
     log_file/1,
-    metrics_file/1,
+    metrics_file/2,
     remote_path/2
 ]).
 
@@ -102,9 +102,6 @@ init([Id, Params]) ->
     LogFile = log_file(Config),
     LogHandler = get_file_writer(LogFile, maps:get(log_compression, Config)),
 
-    MetricsFile = metrics_file(Config),
-    MetricsHandler = get_file_writer(MetricsFile, maps:get(metrics_compression, Config)),
-
     State = #{
         id => Id,
         start_time => StartTime,
@@ -113,7 +110,6 @@ init([Id, Params]) ->
         config => Config,
         data => Data,
         log_file_handler => LogHandler,
-        metrics_file_handler => MetricsHandler,
         collectors => [],
         cluster_connection => undefined,
         deallocator => undefined,
@@ -180,16 +176,10 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
     {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     #{director_host:= DirectorHost} = Config,
-    MetricsFileHandler = maps:get(metrics_file_handler, State),
-    Connection = mzb_api_connection:start_link(management, DirectorHost, Port,
-        fun ({message, Msg}) ->
-            case erlang:binary_to_term(Msg) of
-                {metric_values, Values} -> MetricsFileHandler({write, Values});
-                {response, Continuation, Res} -> Continuation(Res), ok;
-                Any -> mzb_pipeline:cast(Self, {director_message, Any}), ok
-            end;
-            ({error, _}) -> ok
-        end),
+    Connection = mzb_api_connection:start_link(
+                    management, DirectorHost, Port,
+                    fun (Msg, S) -> handle_management_msg(Msg, Self, S) end,
+                    #{config => Config, handlers => #{}}),
     fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
@@ -220,9 +210,9 @@ handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, n
         Port = director_call(Connection, {get_log_port, Node}),
         info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
         mzb_api_connection:start_link(logs, Host, Port,
-            fun ({message, Msg}) -> LogFileHandler({write, Msg});
-                (_) -> ok
-            end)
+            fun ({message, Msg}, S) -> {LogFileHandler({write, Msg}), S};
+                (_, S) -> {ok, S}
+            end, [])
     end, Nodes),
     fun (S) -> S#{collectors => LogsCollectors} end;
 
@@ -230,6 +220,12 @@ handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config
     #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
     [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
     MetricsMap = mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv),
+    lists:foreach(
+        fun (M) ->
+            File = metrics_file(M, Config),
+            {ok, H} = file:open(File, [write]),
+            file:close(H)
+        end, mzb_api_metrics:extract_metric_names(MetricsMap)),
     fun (S) -> S#{metrics => MetricsMap} end;
 
 handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
@@ -328,14 +324,12 @@ handle_info(_Info, State) ->
 
 
 terminate(normal, State) ->
-    catch (maps:get(log_file_handler, State))(close),
-    catch (maps:get(metrics_file_handler, State))(close);
+    catch (maps:get(log_file_handler, State))(close);
 % something is going wrong there. use special status for bench and run finalize stages again
 terminate(Reason, #{id:= Id} = State) ->
     error("Receive terminate while finalize is not completed: ~p", [Reason], State),
     mzb_api_server:bench_finished(Id, status(State)),
     catch (maps:get(log_file_handler, State))(close),
-    catch (maps:get(metrics_file_handler, State))(close),
     spawn(
       fun() ->
           {ok, Timer} = timer:kill_after(5 * 60 * 1000),
@@ -540,8 +534,8 @@ seconds({N1, N2, _N3}) ->
 log_file(Config = #{log_file:= File}) ->
     local_path(File, Config).
 
-metrics_file(Config = #{metrics_file:= File}) ->
-    local_path(File, Config).
+metrics_file(Name, Config = #{metrics_file:= File}) ->
+    local_path(mzb_string:format(File, [re:replace(Name, "\\W", "_", [global, {return, list}])]), Config).
 
 remote_path(RelPath, #{purpose:= Purpose}) ->
     filename:join(["/", "tmp", "mz", Purpose, RelPath]).
@@ -692,3 +686,24 @@ director_call(Connection, Msg) ->
     receive
         {Ref, Res} -> Res
     end.
+
+handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handlers} = S) ->
+    case erlang:binary_to_term(Msg) of
+        {metric_value, Name, Values} ->
+            case maps:find(Name, Handlers) of
+                {ok, H} -> {H({write, Values}), S};
+                error ->
+                    MetricsFile = metrics_file(Name, Config),
+                    H = get_file_writer(MetricsFile, none),
+                    {H({write, Values}), S#{handlers => maps:put(Name, H, Handlers)}}
+            end;
+        {response, Continuation, Res} ->
+            Continuation(Res),
+            {ok, S};
+        Any ->
+            mzb_pipeline:cast(Self, {director_message, Any}),
+            {ok, S}
+    end;
+handle_management_msg({error, _}, _, S = #{handlers:= Handlers}) ->
+    _ = [ H(close) || H <- Handlers],
+    {ok, S#{handlers => #{}}}.

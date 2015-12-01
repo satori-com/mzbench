@@ -121,7 +121,7 @@ init([]) ->
     User = sys_username(),
     {ok, MaxBenchNum} = application:get_env(mzbench_api, max_bench_num),
     lager:info("Server username: ~p", [User]),
-    
+
     {ok, check_max_bench_num(#{next_id => MaxId + 1,
            monitors => #{},
            status => active,

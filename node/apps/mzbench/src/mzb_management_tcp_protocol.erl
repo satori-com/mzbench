@@ -92,8 +92,8 @@ handle_cast(Msg, State) ->
 
 handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
     Name = name([P || P <- Probe, P /= []], DataPoint),
-    Metric = io_lib:format("~B\t~s\t~p~n", [unix_time(), Name, Value]),
-    send_message({metric_values, Metric}, State),
+    Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
+    send_message({metric_value, Name, Metric}, State),
     {reply, ok, State};
 
 handle_call(Request, _From, State) ->
