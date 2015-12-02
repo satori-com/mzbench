@@ -530,6 +530,8 @@ Return a list of `<N>` random elements of the list `<List>`.
 
 Pick the next element of the list. When the last one is picked, start over from the first one.
 
+**BEWARE:** The `round_robin` function complexity is `O(n)` when `n` is the length of the `<List>`, so it is extremely slow for big lists. You should consider to cache the value somehow if it is the case.
+
 
 ## Logging
 
