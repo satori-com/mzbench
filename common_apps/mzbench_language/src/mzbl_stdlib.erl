@@ -178,7 +178,7 @@ round_robin(_State, _Env, _Meta, []) ->
 round_robin(State, _Env, Meta, List) ->
     Len = erlang:length(List),
     Id = proplists:get_value(worker_id, Meta),
-    {lists:nth(Id rem Len + 1, List), State}.
+    {lists:nth((Id - 1) rem Len + 1, List), State}.
 
 -spec wait_signal(State, Env, Meta, Name) -> {ok, State}
     when State :: any(),
