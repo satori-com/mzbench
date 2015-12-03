@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+	<title>Cloud Plugins - MZBench Docs</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+        <link href="../css/custom.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">MZBench Docs</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Overview</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../scenarios/">Scenarios</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../cli/">CLI</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../api/">API</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../deployment/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">Cloud Plugins</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../workers/">Workers</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li >
+                        <a rel="next" href="../deployment/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../workers/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="http://github.com/machinezone/mzbench/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#built-in-cloud-plugins">Built-in Cloud Plugins</a></li>
+        
+            <li><a href="#amazon-ec2">Amazon EC2</a></li>
+        
+            <li><a href="#static-cloud">Static Cloud</a></li>
+        
+            <li><a href="#dummy">Dummy</a></li>
+        
+            <li><a href="#multicloud">Multicloud</a></li>
+        
+    
+        <li class="main "><a href="#how-to-write-a-cloud-plugin">How to Write a Cloud Plugin</a></li>
+        
+            <li><a href="#using-the-cloud-plugin">Using the Cloud Plugin</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<h1 id="built-in-cloud-plugins">Built-in Cloud Plugins<a class="headerlink" href="#built-in-cloud-plugins" title="Permanent link">&para;</a></h1>
+<h2 id="amazon-ec2">Amazon EC2<a class="headerlink" href="#amazon-ec2" title="Permanent link">&para;</a></h2>
+<p><code>mzb_api_ec2_plugin</code></p>
+<p>The module allocates nodes in an Amazon EC2 cloud.</p>
+<p>The AWS node images must have Erlang R17, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put <code>Defaults !requiretty</code> in <code>/etc/sudoers</code>. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.</p>
+<p>There&rsquo;s a ready-to-use Amazon Linux image with all necessary dependencies: <strong>ami-3b90a80b</strong>. To use this image, specify it in the cloud plugin config as <code>image_id</code>:</p>
+<pre><code class="erlang">{image_id, &quot;ami-3b90a80b&quot;
+</code></pre>
+
+<p>You can, of course, build your own image based on the requirements listed above. <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#creating-an-ami">Learn more</a> in the official Amazon docs.</p>
+<p>Configuration example:</p>
+<pre><code class="erlang">{cloud_plugins, [{ec2, #{module =&gt; mzb_api_ec2_plugin,
+                         instance_spec =&gt; [
+                          {image_id, &quot;ami-3b90a80b&quot;},
+                          {group_set, &quot;&quot;},
+                          {key_name, &quot;-&quot;},
+                          {subnet_id, &quot;-&quot;},
+                          {instance_type, &quot;t2.micro&quot;},
+                          {availability_zone, &quot;us-west-2a&quot;}
+                        ],
+                        config =&gt; [
+                          {ec2_host, &quot;ec2.us-west-2.amazonaws.com&quot;},
+                          {access_key_id, &quot;-&quot;},
+                          {secret_access_key, &quot;-&quot;}
+                         ]
+                        instance_user =&gt; &quot;ec2-user&quot;,
+                    }}]},
+</code></pre>
+
+<p>Minimally, the config requires <code>instance_spec</code> and <code>config</code> keys specified. Learn more about AWS-specific config in the <a href="https://github.com/gleber/erlcloud">erlcloud documentation</a>.</p>
+<h2 id="static-cloud">Static Cloud<a class="headerlink" href="#static-cloud" title="Permanent link">&para;</a></h2>
+<p><code>mzb_staticcloud_plugin</code></p>
+<p>The module allocated nodes from a list of hosts.</p>
+<p>Configuration example:</p>
+<pre><code class="erlang">{cloud_plugins, [{static, #{module =&gt; mzb_staticcloud_plugin,
+                           hosts =&gt; [&quot;123.45.67.89&quot;, &quot;hostname&quot;]
+                           }}]}
+</code></pre>
+
+<h2 id="dummy">Dummy<a class="headerlink" href="#dummy" title="Permanent link">&para;</a></h2>
+<p><code>mzb_dummycloud_plugin</code></p>
+<p>The module does not allocate any hosts; localhost is used instead.</p>
+<p>Configuration example:</p>
+<pre><code class="erlang">{cloud_plugins, [{dummy, #{module =&gt; mzb_dummycloud_plugin}}]}
+</code></pre>
+
+<h2 id="multicloud">Multicloud<a class="headerlink" href="#multicloud" title="Permanent link">&para;</a></h2>
+<p><code>mzb_multicloud_plugin</code></p>
+<p>Combine multiple plugins to allocate hosts from multiple sources.</p>
+<h1 id="how-to-write-a-cloud-plugin">How to Write a Cloud Plugin<a class="headerlink" href="#how-to-write-a-cloud-plugin" title="Permanent link">&para;</a></h1>
+<p>Cloud plugin is an Erlang module with at least three methods:</p>
+<pre><code class="erlang">-spec start(Name, Opts) -&gt; PluginRef when
+    Name :: atom(),
+    Opts :: #{},
+    PluginRef :: term().
+
+-spec create_cluster(PluginRef, NumNodes, Config) -&gt; {ok, ClusterID, UserName, [Host]} when
+    PluginRef :: term(),
+    NumNodes :: pos_integer(),
+    Config :: #{},
+    ClusterID :: term()
+    UserName :: string(),
+    Host :: string().
+
+-spec destroy_cluster(ClusterID) -&gt; ok when
+    ClusterID :: term().
+</code></pre>
+
+<dl>
+<dt><code>start</code></dt>
+<dd>
+<p>Start a particular instance of the plugin and get an instance reference.</p>
+<dl>
+<dt><code>Name</code></dt>
+<dd>The name of the particular instance of the plugin specified in the <a href="../deployment/#cloud_plugins">configuration file</a>.</dd>
+<dt><code>Opts</code></dt>
+<dd>Options passed from the server <a href="../deployment/#cloud_plugins">configuration file</a> for the particular plugin instance.</dd>
+</dl>
+</dd>
+<dt><code>create_cluster</code></dt>
+<dd>
+<p>Allocate the required number of nodes and return a tuple: <code>{ok, ClusterID, UserName, HostList}</code>.   </p>
+<dl>
+<dt><code>NumNodes</code></dt>
+<dd>Number of nodes to allocate.</dd>
+<dt><code>Config</code></dt>
+<dd>Map with keys <code>user</code>, <code>name</code>, <code>description</code>, and <code>exclusive_node_usage</code>.</dd>
+<dt><code>ClusterID</code></dt>
+<dd>This term will be passed to <code>destroy_cluster/1</code> when it&rsquo;s time it deallocate the nodes. Its content is up to the plugin developer.</dd>
+<dt><code>UserName</code></dt>
+<dd>SSH username to connect to the allocated nodes.</dd>
+<dt><code>HostList</code></dt>
+<dd>List of hostnames or IPs of the allocated nodes.</dd>
+</dl>
+</dd>
+<dt><code>destroy_cluster</code></dt>
+<dd>
+<p>Deallocate the required number of nodes and return <code>ok</code>.</p>
+<dl>
+<dt><code>ClusterID</code></dt>
+<dd>Term returned by <code>create_cluster/1</code>.</dd>
+</dl>
+</dd>
+</dl>
+<h2 id="using-the-cloud-plugin">Using the Cloud Plugin<a class="headerlink" href="#using-the-cloud-plugin" title="Permanent link">&para;</a></h2>
+<p>Specify the <a href="../deployment/#cloud_plugins">plugin module</a> and the <a href="../deployment/#plugins_dir">path to it</a> in the MZBench config file in the <code>mzbench_api</code> section:</p>
+<pre><code class="erlang">    [
+      {mzbench_api, [
+        {cloud_plugins, [{my_cloud1, #{module =&gt; mycloud_plugin,
+                                       Opt1 =&gt; Value1,
+                                       Opt2 =&gt; Value2, ...}},
+                         ...
+                        ]},
+        {plugins_dir, &quot;/path/to/my/plugin&quot;}
+        ]},
+    ].
+</code></pre>
+
+<p>The plugin binaries must be placed in a subdirectory inside <code>plugins_dir</code>, e.g. <code>/mycloud-0.1.1/ebin/mycloud.ebin</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Plugin will be started using <code>application:ensure_all_started/1</code> just before the benchmark start.</p>
+</div></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

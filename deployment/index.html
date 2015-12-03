@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+	<title>Deployment - MZBench Docs</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+        <link href="../css/custom.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">MZBench Docs</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Overview</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../scenarios/">Scenarios</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../cli/">CLI</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../api/">API</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../cloud_plugins/">Cloud Plugins</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../workers/">Workers</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li >
+                        <a rel="next" href="../api/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../cloud_plugins/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="http://github.com/machinezone/mzbench/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#installation">Installation</a></li>
+        
+    
+        <li class="main "><a href="#configuration">Configuration</a></li>
+        
+            <li><a href="#format">Format</a></li>
+        
+            <li><a href="#parameters">Parameters</a></li>
+        
+            <li><a href="#dev-parameters">Dev Parameters</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<p>A complete MZBench installation consists of two parts:</p>
+<ul>
+<li>MZBench API server that accepts client requests and provides the dashboard.</li>
+<li>A set of hosts operating as a worker nodes.</li>
+</ul>
+<p>Once launched, the API server is permanent, whereas the worker nodes are dynamically
+allocated on demand on AWS or another cloud provider.</p>
+<p>Here&rsquo;s how you install and configure MZBench for real-life use.</p>
+<h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
+<p>Requirements:</p>
+<ul>
+<li><a href="http://www.erlang.org">Erlang R17</a></li>
+<li>C++ compiler (preinstalled on most UNIX-based systems)</li>
+<li><a href="https://www.python.org">Python</a> 2.6 or 2.7</li>
+<li><a href="../(https://pip.pypa.io/en/stable/)">Pip</a> Python package manager</li>
+</ul>
+<p>Install and start the MZBench API server:</p>
+<pre><code class="bash"># Clone the current MZBench source code:
+git clone https://github.com/machinezone/mzbench.git
+
+# Install Python requirements:
+sudo pip install -r mzbench/requirements.txt
+
+# Start the server
+./mzbench/bin/mzbench start_server
+</code></pre>
+
+<h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Every time you update the configuration, <a href="../cli/#restart_server">restart the server</a>.</p>
+</div>
+<h2 id="format">Format<a class="headerlink" href="#format" title="Permanent link">&para;</a></h2>
+<p>The MZBench server parameters are defined in the configuration file.</p>
+<p>By default, the server tries to load configuration from <em>~/.config/mzbench/server.config</em> and <em>/etc/mzbench/server.config</em>.</p>
+<p>To specify a configuration file from a different location, use the <code>--config</code> param:</p>
+<pre><code class="bash">$ ./bin/mzbench start_server --config /path/to/server.config
+</code></pre>
+
+<p>The configuration file is an Erlang list with the <code>mzbench_api</code> tuple. This tuple holds the list of the server <a href="#parameters">parameters</a>:</p>
+<pre><code class="erlang">[
+    {mzbench_api, [
+        {network_interface, &quot;127.0.0.1&quot;},
+        {listen_port, 80}
+    ]}
+].
+</code></pre>
+
+<p>Here, two parameters are specified: <a href="#network_interface">network_interface</a> and <a href="#listen_port">listen_port</a>.</p>
+<p>All parameters are optional.</p>
+<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
+<h3 id="cloud_plugins">cloud_plugins<a class="headerlink" href="#cloud_plugins" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{cloud_plugins: [
+    {&lt;PluginName&gt;, #{module =&gt; &lt;ModuleName&gt;,
+                    &lt;Option1&gt; =&gt; &lt;Value1&gt;,
+                    &lt;Option2&gt; =&gt; &lt;Value2&gt;,
+                    ...
+                    }
+    },
+    ...
+    ]
+}
+</code></pre>
+
+<p>List of <a href="../cloud_plugins/">cloud plugins</a> that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.</p>
+<p><strong><code>&lt;PluginName&gt;</code></strong> is an atom identifying a plugin instance.</p>
+<p><strong><code>&lt;ModuleName&gt;</code></strong> is the name of the plugin module. Each module has its specific <strong><code>&lt;Options&gt;</code></strong>. </p>
+<p>There are four built-in plugins:</p>
+<dl>
+<dt><a href="../cloud_plugins/#amazon-ec2">mzb_api_ec2_plugin</a></dt>
+<dd>Allocate hosts from the Amazon EC2 cloud.</dd>
+<dt><a href="../cloud_plugins/#static-cloud">mzb_staticcloud_plugin</a></dt>
+<dd>Allocates hosts from a static pool.</dd>
+<dt><a href="../cloud_plugins/#dummy">mzb_dummycloud_plugin</a></dt>
+<dd>Dummy provider, doesn&rsquo;t really do anything, but can be used as a reference during <a href="../cloud_plugins/#how-to-write-a-cloud-plugin">cloud plugin development</a>.</dd>
+<dt><a href="../cloud_plugins/#multicloud">mzb_multicloud_plugin</a></dt>
+<dd>Allocate hosts from multiple sources with the given ratio.</dd>
+</dl>
+<h3 id="network_interface">network_interface<a class="headerlink" href="#network_interface" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{network_interface, &quot;&lt;ip address&gt;&quot;}
+</code></pre>
+
+<p>Specify the IP address for the dashboard to run on. By default it&rsquo;s <code>"127.0.0.1"</code>, so the dashboard is unavailable for external connections. </p>
+<p>To open the dashboard to the public, set this param to <code>"0.0.0.0"</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.</p>
+<p>To protect your server, use an external auth proxy server like Nginx.</p>
+</div>
+<h3 id="listen_port">listen_port<a class="headerlink" href="#listen_port" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{listen_port, &lt;port&gt;}
+</code></pre>
+
+<p>Specify the port to access the dashboard.</p>
+<p>Default value: <code>4800</code>.</p>
+<h3 id="bench_log_file">bench_log_file<a class="headerlink" href="#bench_log_file" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_log_file, &quot;&lt;filename&gt;&quot;}
+</code></pre>
+
+<p>The name of the benchmark log files. The files are stored in <code>&lt;bench_data_dir&gt;/&lt;bench_id&gt;</code> where <code>&lt;bench_data_dir&gt;</code> is defined in the <a href="#bench_data_dir">bench_data_dir</a> param and <code>&lt;id&gt;</code> is the ID of a particular benchmark.</p>
+<p>Default value: <code>"log.txt"</code></p>
+<h3 id="bench_log_compression">bench_log_compression<a class="headerlink" href="#bench_log_compression" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_log_compression, (deflate|none)}
+</code></pre>
+
+<p>Enable or disable log compression with the <a href="https://en.wikipedia.org/wiki/DEFLATE">DEFLATE</a> algorithm.</p>
+<p>Default value: <code>deflate</code></p>
+<h3 id="bench_metrics_file">bench_metrics_file<a class="headerlink" href="#bench_metrics_file" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_metrics_file, &quot;&lt;filename&gt;&quot;}
+</code></pre>
+
+<p>The name of the benchmark metrics data files. The files are stored in <code>&lt;bench_data_dir&gt;/&lt;bench_id&gt;</code> where <code>&lt;bench_data_dir&gt;</code> is defined in the <a href="#bench_data_dir">bench_data_dir</a> param and <code>&lt;id&gt;</code> is the ID of a particular benchmark.</p>
+<p>Default value: <code>"metrics.txt"</code></p>
+<h3 id="bench_metrics_compression">bench_metrics_compression<a class="headerlink" href="#bench_metrics_compression" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_metrics_compression, (none|deflate)}
+</code></pre>
+
+<p>Enable or disable metrics data compression with the <a href="https://en.wikipedia.org/wiki/DEFLATE">DEFLATE</a> algorithm.</p>
+<p>Default value: <code>none</code></p>
+<h3 id="node_git">node_git<a class="headerlink" href="#node_git" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_git, &quot;&lt;url&gt;&quot;}
+</code></pre>
+
+<p>The MZBench git repository used to deploy worker nodes.</p>
+<p>By default, the MZBench source code is taken from <a href="https://github.com/machinezone/mzbench.git">https://github.com/machinezone/mzbench.git</a>.</p>
+<h3 id="node_commit">node_commit<a class="headerlink" href="#node_commit" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_commit, &quot;&lt;string&gt;&quot;}
+</code></pre>
+
+<p>The git commit SHA or branch name used to deploy worker nodes.</p>
+<p>By default, the latest revision is used.</p>
+<h3 id="node_deployment_path">node_deployment_path<a class="headerlink" href="#node_deployment_path" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_deployment_path, &quot;&lt;path&gt;&quot;}
+</code></pre>
+
+<p>The path to the MZBench installation on node machines.</p>
+<p>Default value: <code>"/.local/share"</code></p>
+<h3 id="worker_deployment_path">worker_deployment_path<a class="headerlink" href="#worker_deployment_path" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{worker_deployment_path, &quot;&lt;path&gt;&quot;}
+</code></pre>
+
+<p>The to the <a href="../workers/">workers</a> installation on node machines.</p>
+<p>Default value: <code>"~/.local/share/mzbench_workers"</code></p>
+<h3 id="plugins_dir">plugins_dir<a class="headerlink" href="#plugins_dir" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{plugins_dir, &quot;&lt;path&gt;&quot;}
+</code></pre>
+
+<p>Directory with additional <a href="../cloud_plugins/">cloud plugins</a>.</p>
+<p>Default value: <code>"../../../../plugins"</code></p>
+<h3 id="bench_data_dir">bench_data_dir<a class="headerlink" href="#bench_data_dir" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_data_dir, &quot;&lt;path&gt;&quot;}
+</code></pre>
+
+<p>The location to store the data generated during the benchmark.</p>
+<p>Default value: <code>"~/.local/share/mzbench_api/data"</code>.</p>
+<h3 id="tgz_packages_dir">tgz_packages_dir<a class="headerlink" href="#tgz_packages_dir" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{tgz_packages_dir, &quot;&lt;path&gt;&quot;}
+</code></pre>
+
+<p>The location to store prebuilt worker archives.</p>
+<p>Default value: <code>"~/.local/cache/mzbench_api/packages"</code>.</p>
+<h3 id="max_bench_num">max_bench_num<a class="headerlink" href="#max_bench_num" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{max_bench_num, &lt;integer&gt;}
+</code></pre>
+
+<p>Maximal number of benchmarks running at the same time.</p>
+<p>Default value: <code>1000</code>.</p>
+<h3 id="vm_args">vm_args<a class="headerlink" href="#vm_args" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{vm_args, &lt;args&gt;}
+</code></pre>
+
+<p>Additional arguments for the [Erlang VM](Additional arguments for the <a href="">Erlang VM</a>.</p>
+<p>Default value: <code>[]</code>.</p>
+<h3 id="ntp_max_timediff">ntp_max_timediff<a class="headerlink" href="#ntp_max_timediff" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{ntp_max_timediff, &lt;float&gt;}
+</code></pre>
+
+<p>Maximum timeout between node creation in seconds.</p>
+<p>This check is optional and only prints a warning if fails.</p>
+<p>Default value: <code>0.1</code>.</p>
+<h2 id="dev-parameters">Dev Parameters<a class="headerlink" href="#dev-parameters" title="Permanent link">&para;</a></h2>
+<p>Set these params only if you are an MZBench developer.</p>
+<h3 id="bench_read_at_once">bench_read_at_once<a class="headerlink" href="#bench_read_at_once" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_read_at_once, &lt;integer&gt;}
+</code></pre>
+
+<p>The number of bytes to read from the logs and metrics feed per request.</p>
+<p>Default value: <code>1024</code></p>
+<h3 id="bench_poll_timeout">bench_poll_timeout<a class="headerlink" href="#bench_poll_timeout" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{bench_poll_timeout, &lt;integer&gt;}
+</code></pre>
+
+<p>The timeout between requests to logs and metrics feeds in milliseconds.</p>
+<p>Default value: <code>1000</code></p>
+<h3 id="node_log_port">node_log_port<a class="headerlink" href="#node_log_port" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_log_port, &lt;integer&gt;}
+</code></pre>
+
+<p>The TCP port for the logs feed.</p>
+<p>Default value: <code>4801</code>.</p>
+<h3 id="node_management_port">node_management_port<a class="headerlink" href="#node_management_port" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_management_port, &lt;integer&gt;}
+</code></pre>
+
+<p>The TCP port used to control the server internally.</p>
+<p>Default value: <code>4802</code>.</p></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

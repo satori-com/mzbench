@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+
+	<title>CLI - MZBench Docs</title>
+
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+        <link href="../css/custom.css" rel="stylesheet">
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+        <![endif]-->
+
+        
+    </head>
+
+    <body>
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+
+        <!-- Collapsed navigation -->
+        <div class="navbar-header">
+            
+            <!-- Expander button -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+
+            <!-- Main title -->
+            <a class="navbar-brand" href="..">MZBench Docs</a>
+        </div>
+
+        <!-- Expanded navigation -->
+        <div class="navbar-collapse collapse">
+            
+                <!-- Main navigation -->
+                <ul class="nav navbar-nav">
+                
+                
+                    <li >
+                        <a href="..">Overview</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../scenarios/">Scenarios</a>
+                    </li>
+                
+                
+                
+                    <li class="active">
+                        <a href="./">CLI</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../api/">API</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../deployment/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../cloud_plugins/">Cloud Plugins</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../workers/">Workers</a>
+                    </li>
+                
+                
+                </ul>
+            
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                        <i class="fa fa-search"></i> Search
+                    </a>
+                </li>
+                
+                    <li >
+                        <a rel="next" href="../scenarios/">
+                            <i class="fa fa-arrow-left"></i> Previous
+                        </a>
+                    </li>
+                    <li >
+                        <a rel="prev" href="../api/">
+                            Next <i class="fa fa-arrow-right"></i>
+                        </a>
+                    </li>
+                
+                
+                    <li>
+                        <a href="http://github.com/machinezone/mzbench/">
+                            
+                                <i class="fa fa-github"></i>
+                            
+                            GitHub
+                        </a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+</div>
+
+        <div class="container">
+            
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+    
+        <li class="main active"><a href="#commands">Commands</a></li>
+        
+            <li><a href="#server-control">Server Control</a></li>
+        
+            <li><a href="#benchmark-control">Benchmark Control</a></li>
+        
+            <li><a href="#misc">Misc</a></li>
+        
+    
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<p>The <strong>MZBench CLI</strong> lets you control you control the server and benchmarks from the command line. It utilizes the <a href="../api/">MZBench API</a>, but goes beyond it: it can do things even without a running MZBench server.</p>
+<p>The commands are invoked by the <code>mzbench</code> script in the <code>bin</code> directory:</p>
+<pre><code class="bash"># Inside the MZBench directory:
+$ ./bin/mzbench start --env foo=bar --nodes=5
+# or:
+$ cd bin
+$ mzbench start --env foo=bar --nodes=5
+</code></pre>
+
+<h1 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h1>
+<h2 id="server-control">Server Control<a class="headerlink" href="#server-control" title="Permanent link">&para;</a></h2>
+<h3 id="start_server">start_server<a class="headerlink" href="#start_server" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench start_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+</code></pre>
+
+<p>Start the MZBench server.</p>
+<p>Optional params:</p>
+<dl>
+<dt><code>--config &lt;config_file&gt;</code></dt>
+<dd>Path to the <a href="../deployment/#configuration">server config</a> file.</dd>
+</dl>
+<h3 id="stop_server">stop_server<a class="headerlink" href="#stop_server" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench stop_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+</code></pre>
+
+<p>Stop the MZBench server.</p>
+<h3 id="restart_server">restart_server<a class="headerlink" href="#restart_server" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench restart_server
+Executing make -C /path/to/mzbench/bin/../server generate
+...
+</code></pre>
+
+<p>Restart the MZBench server, i.e. <a href="#stop_server">stop</a> + <a href="#start_server">start</a>.</p>
+<p>Optional params:</p>
+<dl>
+<dt><code>--config &lt;config_file&gt;</code></dt>
+<dd>Path to the <a href="../deployment/#configuration">server config</a> file.</dd>
+</dl>
+<h2 id="benchmark-control">Benchmark Control<a class="headerlink" href="#benchmark-control" title="Permanent link">&para;</a></h2>
+<h3 id="start">start<a class="headerlink" href="#start" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench start --env foo=bar --nodes=5 foo.erl
+{
+    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;id&quot;: 86
+}
+</code></pre>
+
+<p>Start the benchmark from the given scenario file.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;scenario_file&gt;</code></dt>
+<dd>The path to the <a href="../scenarios/">scenario</a> file for the benchmark.</dd>
+</dl>
+<p>Optional params:</p>
+<dl>
+<dt><code>--name &lt;benchmark_name&gt;</code></dt>
+<dd>Benchmark name.</dd>
+<dt><code>--nodes &lt;nodes&gt;</code></dt>
+<dd>Number of nodes or a comma-separated list of node hostnames to run the benchmark on.</dd>
+<dt><code>--nodes_file &lt;filename&gt;</code></dt>
+<dd>Path to a file with node hostnames separated by newlines.</dd>
+<dt><code>--env &lt;name=value&gt; ...</code></dt>
+<dd><a href="../scenarios/#environment-variables">Environment variable</a> definitions.</dd>
+<dt><code>--cloud &lt;cloud_provider_name&gt;</code></dt>
+<dd>Name of the cloud provider from the <a href="../deployment/#configuration">server config</a>. If not specified, the first one on the list is used.</dd>
+<dt><code>--email &lt;email&gt; ...</code></dt>
+<dd>Emails for notifications. When the benchmark finishes, the results will be sent to these emails.</dd>
+<dt><code>--deallocate_after_bench false</code></dt>
+<dd>Skip node deallocation after the benchmark.</dd>
+<dt><code>--provision_nodes false</code></dt>
+<dd>Skip MZBench installation on the nodes.</dd>
+<dt><code>--exclusive_node_usage false</code></dt>
+<dd>Allow multiple nodes to be hosted on the same physical machine, i.e. do not allocate a physical machine exclusively for each node.</dd>
+<dt><code>--node_commit=&lt;commit&gt;</code></dt>
+<dd>Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.</dd>
+</dl>
+<h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench run --env foo=bar --nodes=5 foo.erl
+{
+    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;id&quot;: 86
+}
+</code></pre>
+
+<p>Same as <a href="#start-scenario_file">start</a>, but blocks until the benchmark is complete.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;scenario_file&gt;</code></dt>
+<dd>The path to the <a href="../scenarios/">scenario</a> file for the benchmark.</dd>
+</dl>
+<h3 id="run_local">run_local<a class="headerlink" href="#run_local" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench run_local --env foo=bar foo.erl
+Executing make -C /path/to/mzbench/bin/../node compile
+...
+</code></pre>
+
+<p>Run the benchmark without a server. The logs are printed to stdout.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;scenario_file&gt;</code></dt>
+<dd>The path to the <a href="../scenarios/">scenario</a> file for the benchmark.</dd>
+</dl>
+<p>Optional param:</p>
+<dl>
+<dt><code>--env &lt;name=value&gt; ...</code></dt>
+<dd><a href="../scenarios/#environment-variables">Environment variable</a> definitions.</dd>
+</dl>
+<h3 id="validate">validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench validate foo.erl
+ok
+</code></pre>
+
+<p>Validate the scenario file without executing it.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;scenario_file&gt;</code></dt>
+<dd>The path to the <a href="../scenarios/">scenario</a> file for the benchmark.</dd>
+</dl>
+<h3 id="status">status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench status 86
+{
+    &quot;status&quot;: &quot;provisioning&quot;, 
+    &quot;start_time&quot;: &quot;2015-11-18T13:52:04Z&quot;
+}
+</code></pre>
+
+<p>Get the status, start time, and, when completed, finish time of the benchmark.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<h3 id="stop">stop<a class="headerlink" href="#stop" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench stop 89
+{
+    &quot;status&quot;: &quot;stopped&quot;
+}
+</code></pre>
+
+<p>Stop the benchmark.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<h3 id="log">log<a class="headerlink" href="#log" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench log 89
+Start of log for bench 89
+13:52:05.001 [info] [ API ] Node repo: {git_install_spec,
+...
+</code></pre>
+
+<p>View the benchmark logs.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<h3 id="data">data<a class="headerlink" href="#data" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench data 89
+[
+    {
+        &quot;target&quot;: &quot;workers.pool1.km.ended.rps.value&quot;, 
+        &quot;datapoints&quot;: [
+...
+</code></pre>
+
+<p>View the metrics data collected during the benchmark.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<h3 id="change_env">change_env<a class="headerlink" href="#change_env" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench change_env 86 --env foo=baz
+{
+    &quot;status&quot;: &quot;set&quot;
+}
+</code></pre>
+
+<p>Redefine an environment variable without interrupting the benchmark:</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<p>Optional param:</p>
+<dl>
+<dt><code>--env &lt;name=value&gt; ...</code></dt>
+<dd><a href="../scenarios/#environment-variables">Environment variable</a> definitions.</dd>
+</dl>
+<h2 id="misc">Misc<a class="headerlink" href="#misc" title="Permanent link">&para;</a></h2>
+<h3 id="selfcheck">selfcheck<a class="headerlink" href="#selfcheck" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench selfcheck
+Executing /path/to/mzbench/bin/lint.py /path/to/mzbench/bin/../
+</code></pre>
+
+<p>Run the tests on MZBench.</p>
+<h3 id="list_templates">list_templates<a class="headerlink" href="#list_templates" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench list_templates
+amqp
+empty
+python_empty
+tcp
+</code></pre>
+
+<p>List the available worker templates to base <a href="../workers/#how-to-write-a-worker">new workers</a> on.</p>
+<h3 id="new_worker">new_worker<a class="headerlink" href="#new_worker" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench new_worker --template python_empty bar
+new worker bar has been created
+</code></pre>
+
+<p>Create a new worker directory for <a href="../workers/#how-to-write-a-worker">development purposes</a>.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;worker_name&gt;</code></dt>
+<dd>The name of the new worker.</dd>
+</dl>
+<p>Optional params:</p>
+<dl>
+<dt><code>--template &lt;template_name&gt;</code></dt>
+<dd>The template for the new worker. See the full list of available templates with <a href="#list_templates">list_templates</a>.</dd>
+</dl></div>
+            
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            
+            <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+
+        <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script>
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            From here you can search these documents. Enter
+                            your search terms below.
+                        </p>
+                        <form role="form">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query">
+                            </div>
+                        </form>
+                        <div id="mkdocs-search-results"></div>
+                    </div>
+                    <div class="modal-footer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

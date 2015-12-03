@@ -67,25 +67,31 @@
                 
                 
                     <li >
-                        <a href="../server_api/">Server API</a>
+                        <a href="../cli/">CLI</a>
                     </li>
                 
                 
                 
                     <li >
-                        <a href="../deployment_guide/">Deployment</a>
+                        <a href="../api/">API</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../deployment/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../cloud_plugins/">Cloud Plugins</a>
                     </li>
                 
                 
                 
                     <li >
                         <a href="../workers/">Workers</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../cloud_plugin/">Cloud Plugins</a>
                     </li>
                 
                 
@@ -105,7 +111,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../server_api/">
+                        <a rel="prev" href="../cli/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -132,13 +138,7 @@
     
         <li class="main active"><a href="#directives">Directives</a></li>
         
-            <li><a href="#make_install">make_install</a></li>
-        
-            <li><a href="#include_resource">include_resource</a></li>
-        
-            <li><a href="#pre_hook-and-post_hook">pre_hook and post_hook</a></li>
-        
-            <li><a href="#assert">assert</a></li>
+            <li><a href="#top-level-directives">Top-Level Directives</a></li>
         
     
         <li class="main "><a href="#pools">Pools</a></li>
@@ -171,6 +171,13 @@
             <li><a href="#pause">Pause</a></li>
         
     
+        <li class="main "><a href="#conventions">Conventions</a></li>
+        
+            <li><a href="#time_1">Time</a></li>
+        
+            <li><a href="#rate_1">Rate</a></li>
+        
+    
     </ul>
 </div></div>
                 <div class="col-md-9" role="main">
@@ -197,8 +204,9 @@
 <p><a href="https://github.com/machinezone/mzbench/tree/master/examples">See live examples of MZBench scenarios on GitHub →</a></p>
 <h1 id="directives">Directives<a class="headerlink" href="#directives" title="Permanent link">&para;</a></h1>
 <p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
+<h2 id="top-level-directives">Top-Level Directives<a class="headerlink" href="#top-level-directives" title="Permanent link">&para;</a></h2>
 <h3 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{make_install, [{git, &quot;&lt;URL&gt;&quot;}, {branch, &quot;&lt;Branch&gt;&quot;}, {dir, &quot;&lt;Dir&gt;&quot;}]}`
+<pre><code class="erlang">{make_install, [{git, &quot;&lt;URL&gt;&quot;}, {branch, &quot;&lt;Branch&gt;&quot;}, {dir, &quot;&lt;Dir&gt;&quot;}]}
 </code></pre>
 
 <p>Install an external worker from a remote git repository on the test nodes before running the benchmark.</p>
@@ -252,9 +260,7 @@ Target = all | director
 {assert, &lt;Time&gt;, &lt;Condition&gt;}
 </code></pre>
 
-<p>Check if the condition <code>&lt;Condition&gt;</code> is satisfied throughout the entire benchmark or at least for the amount of time <code>&lt;Time&gt;</code>.</p>
-<p><a name="time"></a></p>
-<p><code>&lt;Time&gt;</code> is a tuple <code>{&lt;Duration&gt;, (ms|sec|min|h)}</code>, e.g. <code>{1, sec}</code>.</p>
+<p>Check if the condition <code>&lt;Condition&gt;</code> is satisfied throughout the entire benchmark or at least for the amount of time <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <p><code>&lt;Condition&gt;</code> is a comparison of two value and is defined as a tuple <code>{&lt;Operation&gt;, &lt;Operand1&gt;, &lt;Operand2&gt;}</code>.</p>
 <p><code>&lt;Operation&gt;</code> is one of four atoms:</p>
 <dl>
@@ -277,7 +283,7 @@ Target = all | director
 <p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../workers/">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
 <p>Here&rsquo;s a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:</p>
 <pre><code class="erlang">    [ {pool,
-        [ {size, 10}, {worker_type, simple_http} ],
+        [ {size, 10}, {worker_type, simple_http_worker} ],
         [
             {get, &quot;http://example.com&quot;},
             {get, &quot;http://foobar.com&quot;} 
@@ -316,13 +322,9 @@ Target = all | director
 <p>Start the jobs with a given rate:</p>
 <dl>
 <dt><code>linear</code></dt>
-<dd>Constant rate <a href="#rate"><code>&lt;Rate&gt;</code></a>, e.g. 10 per minute.</dd>
-</dl>
-<p><a name="rate"></a></p>
-<p><strong><code>&lt;Rate&gt;</code></strong> is a tuple <code>{&lt;N&gt;, (rps|rpm|rph)}</code>, e.g. <code>{10, rps}</code>. It means <code>&lt;N&gt;</code> jobs per second, minute, or hour.</p>
-<dl>
+<dd>Constant rate <a href="#rate_1"><code>&lt;Rate&gt;</code></a>, e.g. 10 per minute.</dd>
 <dt><code>poisson</code></dt>
-<dd>Rate defined by a <a href="http://en.wikipedia.org/wiki/Poisson_process">Poisson process</a> with λ = <a href="#rate"><code>&lt;Rate&gt;</code></a>.</dd>
+<dd>Rate defined by a <a href="http://en.wikipedia.org/wiki/Poisson_process">Poisson process</a> with λ = <a href="#rate_1"><code>&lt;Rate&gt;</code></a>.</dd>
 <dt><code>exp</code></dt>
 <dd>
 <p>Start jobs with <a href="https://en.wikipedia.org/wiki/Exponential_growth">exponentially growing</a> rate with the scale factor <code>&lt;Scale&gt;</code>:</p>
@@ -339,17 +341,17 @@ Target = all | director
 <pre><code class="erlang">{think_time, &lt;Time&gt;, &lt;Rate&gt;}
 </code></pre>
 
-<p>Start jobs with rate <a href="#rate"><code>&lt;Rate&gt;</code></a> for a second, then sleep for <a href="#time"><code>&lt;Time&gt;</code></a> and repeat.</p>
+<p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate&gt;</code></a> for a second, then sleep for <a href="#time_1"><code>&lt;Time&gt;</code></a> and repeat.</p>
 <h3 id="ramp">ramp<a class="headerlink" href="#ramp" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{ramp, linear, &lt;StartRate&gt;, &lt;EndRate&gt;}
 </code></pre>
 
-<p>Linearly change the rate from <a href="#rate"><code>&lt;StartRate&gt;</code></a> at the beginning of the pool to <a href="#rate"><code>&lt;EndRate&gt;</code></a> at its end.</p>
+<p>Linearly change the rate from <a href="#rate_1"><code>&lt;StartRate&gt;</code></a> at the beginning of the pool to <a href="#rate_1"><code>&lt;EndRate&gt;</code></a> at its end.</p>
 <h3 id="comb">comb<a class="headerlink" href="#comb" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{comb, &lt;Rate1&gt;, &lt;Time1&gt;, &lt;Rate2&gt;, &lt;Time2&gt;, ...}
 </code></pre>
 
-<p>Start jobs with rate <a href="#rate"><code>&lt;Rate1&gt;</code></a> for <a href="#time"><code>&lt;Time1&gt;</code></a>, then switch to <a href="#rate"><code>&lt;Rate2&gt;</code></a> for <a href="#time"><code>&lt;Time2&gt;</code></a>, etc.</p>
+<p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate1&gt;</code></a> for <a href="#time_1"><code>&lt;Time1&gt;</code></a>, then switch to <a href="#rate_1"><code>&lt;Rate2&gt;</code></a> for <a href="#time_1"><code>&lt;Time2&gt;</code></a>, etc.</p>
 <h1 id="loops">Loops<a class="headerlink" href="#loops" title="Permanent link">&para;</a></h1>
 <p><strong>Loop</strong> is a sequence of statements executed over and over for a given time.</p>
 <p>A loop looks similar to a <a href="#pools">pool</a>—it consists of a list of <a href="#loop options">options</a> and a list statements to run:</p>
@@ -405,12 +407,12 @@ Target = all | director
 <pre><code class="erlang">{time, &lt;Time&gt;}
 </code></pre>
 
-<p>Run the loop for <a href="#time"><code>&lt;Time&gt;</code></a>.</p>
+<p>Run the loop for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <h3 id="rate">rate<a class="headerlink" href="#rate" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{rate, &lt;Rate&gt;}
 </code></pre>
 
-<p>Repeat the loop with the <a href="#rate"><code>&lt;Rate&gt;</code></a> rate.</p>
+<p>Repeat the loop with the <a href="#rate_1"><code>&lt;Rate&gt;</code></a> rate.</p>
 <h3 id="parallel">parallel<a class="headerlink" href="#parallel" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{parallel, &lt;N&gt;}
 </code></pre>
@@ -572,7 +574,21 @@ Target = all | director
 <pre><code class="erlang">{wait, &lt;Time&gt;}
 </code></pre>
 
-<p>Pause the current job for <a href="#time"><code>&lt;Time&gt;</code></a>.</p></div>
+<p>Pause the current job for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
+<h1 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h1>
+<h2 id="time_1">Time<a class="headerlink" href="#time_1" title="Permanent link">&para;</a></h2>
+<p><strong><code>&lt;Time&gt;</code></strong> is a tuple <code>{&lt;Duration&gt;, (ms|sec|min|h)}</code>:</p>
+<pre><code class="erlang">{1, sec}` % one second
+{10, min} % 10 minutes
+{0.5, h} % half hour
+</code></pre>
+
+<h2 id="rate_1">Rate<a class="headerlink" href="#rate_1" title="Permanent link">&para;</a></h2>
+<p><strong><code>&lt;Rate&gt;</code></strong> is a tuple <code>{&lt;N&gt;, (rps|rpm|rph)}</code>:</p>
+<pre><code class="erlang">{10, rps} % 10 jobs per second
+{12, rpm} % 12 jobs per minute
+{100, h} % 100 jobs per hour
+</code></pre></div>
             
         </div>
 
