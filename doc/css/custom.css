@@ -1,3 +1,15 @@
+div.navbar.navbar-default.navbar-fixed-top {
+    font-size: 15px;
+}
+
+div[role=main] {
+    font-size: 16px;
+}
+
+code {
+    font-size: 15px !important;
+}
+
 .toctree-l4 {
     margin-left: 1em;
 }
@@ -5,4 +17,8 @@
 dd {
     margin-left: 1em;
     margin-bottom: 1.5em;
+}
+
+ul.nav.bs-sidenav > li:not(.main) {
+    margin-left: 0.5em;
 }
