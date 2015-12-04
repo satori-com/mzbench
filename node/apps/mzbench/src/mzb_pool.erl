@@ -201,7 +201,7 @@ worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, 
 worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor, _) ->
     timer:sleep(1000*Factor div RPS);
 worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N) ->
-    timer:sleep(erlang:round(T*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))/F));
+    timer:sleep(erlang:round(T*F*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0) -> ok;
 worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N) ->
-    timer:sleep(erlang:round(T*(math:log((N+1)*math:exp(1)/X) - math:log(N*math:exp(1)/X))/F)).
+    timer:sleep(erlang:round(T*F*(math:log((N+1)*(math:exp(1)-1)/X + 1) - math:log(N*(math:exp(1)-1)/X + 1)))).
