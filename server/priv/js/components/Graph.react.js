@@ -7,19 +7,17 @@ const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
 class Graph extends React.Component {
     constructor(props) {
         super(props);
-        
         this.previously_running = undefined;
         this.targets_max_date = [];
-        
         this.state = this._resolveState();
         this._onChange = this._onChange.bind(this);
     }
     
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
-        
         this.previously_running = this.props.is_running;
         this.targets_max_date = this.state.data.map((dataset) => { return dataset.length; });
+        MetricsStore.addSubscription(this.props.targets);
         this._renderGraph();
     }
     
@@ -37,7 +35,7 @@ class Graph extends React.Component {
             return true;
         } else {
             // Graph should probably be updated, but not the DOM.
-            this._updateGraph();
+            setTimeout(this._updateGraph.bind(this), 1);
             return false;
         }
     }
@@ -128,12 +126,13 @@ class Graph extends React.Component {
         };
         
         let data_is_ready = this.state.data.reduce((result, data) => {
-            if(data.length > 0) {
+            if (data.length > 0) {
                 return result;
             } else {
                 return false;
             }
         }, true);
+
         
         if(data_is_ready) {
             graph_options.data = this.state.data;
@@ -178,7 +177,7 @@ class Graph extends React.Component {
                     return true;
                 }
             }, false);
-            
+
             if(data_updated) {
                 this._renderGraph();
                 this.targets_max_date = this.state.data.map((dataset) => { return dataset.length; });
@@ -195,15 +194,16 @@ class Graph extends React.Component {
                 return max_date;
             }
         }, 0);
-        
+
+        const metricData = this.props.targets.map((metric) => {
+                return MetricsStore.getMetricData(metric);
+            })
         return {
             max_date: max_date,
-            data: this.props.targets.map((metric) => { 
-                return MetricsStore.getMetricData(metric); 
-            })
+            data: metricData
         };
     }
-    
+
     _onChange() {
         this.setState(this._resolveState());
     }

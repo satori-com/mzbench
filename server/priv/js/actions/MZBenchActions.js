@@ -113,12 +113,11 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    setBenchForMetricsUpdates(benchId) {
-        if(benchId != MetricsStore.getCurrentBenchId()) {
-            const GUID = Misc.gen_guid();
-            
-            MetricsStore.changeCurrentBench(benchId, GUID);
-            MZBenchWS.send({cmd: "set_bench_for_metrics_updates", bench: benchId, guid: GUID});
-        }
+    sendSubscribe(benchId, metrics, guid) {
+        MZBenchWS.send({ cmd: "subscribe_metrics", bench: benchId, metrics: metrics, guid: guid });
+    },
+
+    subscribeMetrics(metrics) {
+        Dispatcher.dispatch({ type: Constants.SUBSCRIBE_METRICS, metrics: metrics });
     }
 }
