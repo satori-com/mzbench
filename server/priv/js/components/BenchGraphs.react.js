@@ -7,25 +7,23 @@ import LoadingSpinner from './LoadingSpinner.react';
 class BenchGraphs extends React.Component {
     constructor(props) {
         super(props);
-        
         this.state = {
             isLoaded: MetricsStore.isDataLoaded(),
             toggles: new Set([0])
         };
+
+        var benchId = this.props.bench.id;
+        MetricsStore.resetSubscriptions(benchId);
+
         this._onChange = this._onChange.bind(this);
     }
-    
+
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
-        this._subscribeToDataUpdates(this.props.bench);
     }
-    
+
     componentWillUnmount() {
         MetricsStore.off(this._onChange);
-    }
-    
-    componentWillReceiveProps(nextProps) {
-        this._subscribeToDataUpdates(nextProps.bench);
     }
 
     renderWaitMetrics() {
@@ -60,8 +58,8 @@ class BenchGraphs extends React.Component {
 
                     return (
                         <div key={idx} className="col-xs-12 col-md-6">
-                            <Graph is_running={this.props.bench.isRunning()} targets={targets} 
-                                title={graph.title} units={graph.units} />
+                            <Graph is_running={this.props.bench.isRunning()} targets={targets}
+                                title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
                         </div>
                     );
                 })}
@@ -99,20 +97,12 @@ class BenchGraphs extends React.Component {
     render() {
         const bench = this.props.bench;
         const hasGroups = bench.metrics.groups;
-        
+
         if ((bench.isRunning() && !hasGroups) || !this.state.isLoaded) {
             return this.renderWaitMetrics();
         }
-        
-        return this.renderGroups();
-    }
 
-    _subscribeToDataUpdates(bench) {
-        const hasGroups = bench.metrics.groups;
-        
-        if(hasGroups) {
-            MZBenchActions.setBenchForMetricsUpdates(bench.id);
-        }
+        return this.renderGroups();
     }
 
     _onToggle(idx) {
@@ -120,7 +110,7 @@ class BenchGraphs extends React.Component {
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
         this.setState({toggles: toggles});
     }
-    
+
     _onChange() {
         this.setState({isLoaded: MetricsStore.isDataLoaded()});
     }

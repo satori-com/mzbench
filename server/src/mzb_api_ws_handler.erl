@@ -16,7 +16,8 @@
           current_transmission_guid = undefined :: undefined | string(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
-          metrics_reader_ref = undefined :: undefined | {pid(), reference()}
+          metrics_streamers = #{} :: #{},
+          guid = undefined :: term()
        }).
 
 init(Req, _Opts) ->
@@ -72,12 +73,14 @@ dispatch_info({metrics_batch_finished, Guid}, State = #state{current_transmissio
 dispatch_info({metrics_batch_finished, _Guid}, State = #state{}) ->
     {ok, State};
 
-dispatch_info({transmit_metrics, Guid, Values}, State = #state{current_transmission_guid = Guid}) ->
-    Event = #{type => "METRICS_UPDATE", guid => Guid, data => erlang:list_to_binary(Values)},
+dispatch_info({metric_value, Guid, Metric, Values}, State) ->
+    Event = #{
+              type => "METRIC_DATA",
+              guid => Guid,
+              metric => Metric,
+              data => erlang:list_to_binary(Values)
+             },
     {reply, Event, State};
-
-dispatch_info({transmit_metrics, _Guid, _Values}, State = #state{}) ->
-    {ok, State};
 
 dispatch_info({notify, Severity, Msg}, State) ->
     Event = #{type => "NOTIFY",
@@ -85,13 +88,19 @@ dispatch_info({notify, Severity, Msg}, State) ->
               message => Msg},
     {reply, Event, State};
 
-dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, State = #state{metrics_reader_ref = {MonPid, MonRef}}) ->
+dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, State = #state{metrics_streamers = Streamers}) ->
     case Reason of
         aborted -> ok;
         normal -> ok;
         _ -> lager:error("Metrics reader crashed with reason: ~p", [Reason])
     end,
-    {ok, State#state{metrics_reader_ref = undefined}};
+    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streamers)) of
+        {Metric, _} ->
+            {ok, State#state{metrics_streamers = maps:put(Metric, undefined, Streamers)}};
+        false ->
+            lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
+            {ok, State}
+    end;
 
 dispatch_info({'DOWN', _, process, _, _}, State) ->
     {ok, State};
@@ -126,18 +135,48 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {MinId, MaxId}}};
 
-dispatch_request(#{<<"cmd">> := <<"set_bench_for_metrics_updates">>} = Cmd, State = #state{metrics_reader_ref = MetricsReaderRef}) ->
-    stop_reading_metrics(MetricsReaderRef),
-    #{<<"bench">> := Id, <<"guid">> := Guid} = Cmd,
-    Self = self(),
-    BatchFinishedFun = fun () -> Self ! {metrics_batch_finished, Guid} end,
-    SendMetricsFun = fun (Values) -> Self ! {transmit_metrics, Guid, Values} end,
-    NewMetricsReaderRef = start_reading_metrics(Id, SendMetricsFun, BatchFinishedFun),
-    {ok, State#state{currently_selected_bench = Id, current_transmission_guid = Guid, metrics_reader_ref = NewMetricsReaderRef}};
+dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{guid = Guid}) ->
+    #{<<"bench">> := BenchId, <<"metrics">>:= Metrics} = Cmd,
+    {ok, add_streamers(BenchId, Metrics, State)};
+dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{}) ->
+    #{<<"bench">> := BenchId, <<"metrics">> := Metrics} = Cmd,
+    State1 = kill_all_streamers(State#state{guid = Guid}),
+    {ok, add_streamers(BenchId, Metrics, State1)};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
+
+add_streamers(BenchId, Metrics, #state{metrics_streamers = Streamers, guid = Guid} = State) ->
+    lager:info("Add streamers for #~p ~p", [BenchId, Metrics]),
+    Self = self(),
+
+    NewStreamers =
+        lists:foldl(
+            fun (Metric, Acc) ->
+                case maps:find(Metric, Acc) of
+                    {ok, _} -> Acc;
+                    error ->
+                        SendMetricsFun = fun (Values) -> Self ! {metric_value, Guid, Metric, Values} end,
+                        R2 = erlang:spawn_monitor(fun() ->
+                            stream_metric(BenchId, Metric, SendMetricsFun)
+                        end),
+                        maps:put(Metric, R2, Acc)
+                end
+            end, Streamers, Metrics),
+
+    State#state{metrics_streamers = NewStreamers}.
+
+kill_all_streamers(#state{metrics_streamers = Streamers} = State) ->
+    lager:info("Kill all metric streamers"),
+    lists:foreach(fun ({_, R}) -> kill_streamer(R) end, maps:to_list(Streamers)),
+    State#state{metrics_streamers = #{}}.
+
+kill_streamer(undefined) -> ok;
+kill_streamer({Pid, Ref}) ->
+    erlang:demonitor(Ref, [flush]),
+    erlang:exit(Pid, aborted).
+
 
 %% Normalization
 
@@ -262,48 +301,39 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                  end, BenchInfos).
 
 %% Metrics reading process
-start_reading_metrics(BenchId, SendFun, BatchFinishedFun) ->
-    erlang:spawn_monitor(fun() -> read_metrics_from_storage(BenchId, SendFun, BatchFinishedFun) end).
 
-stop_reading_metrics(undefined) -> ok;
-stop_reading_metrics({Pid, Ref}) ->
-    erlang:demonitor(Ref),
-    erlang:exit(Pid, aborted).
-
-read_metrics_from_storage(BenchId, SendFun, BatchFinishedFun) ->
-    #{config:= Config} = mzb_api_server:status(BenchId),
-    #{metrics_compression:= Compression} = Config,
-    Filename = mzb_api_bench:metrics_file(Config),
-
-    FileReader = get_file_reader(Filename, Compression),
+stream_metric(Id, Metric, SendFun) ->
+    #{config:= Config} = mzb_api_server:status(Id),
+    Filename = mzb_api_bench:metrics_file(Metric, Config),
+    FileReader = get_file_reader(Filename),
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, PollTimeout)
+        perform_streaming(Id, FileReader, SendFun, PollTimeout),
+        lager:info("Streamer for #~b ~s has finished", [Id, Metric])
     after
         FileReader(close)
     end.
 
-perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout) ->
-    perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [], 0).
-perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, Buffer, LinesRead) ->
+perform_streaming(Id, FileReader, SendFun, Timeout) ->
+    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0).
+perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 500 ->
             Buf = [Data|Buffer],
             _ = SendFun(lists:reverse(Buf)),
-            perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [], 0);
+            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0);
         {ok, Data} ->
-            perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [Data|Buffer], LinesRead + 1);
+            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1);
         eof ->
             case Buffer of
                 [] -> ok;
                 _ -> SendFun(lists:reverse(Buffer))
             end,
-            _ = BatchFinishedFun(),
-            case mzb_api_server:is_datastream_ended(BenchId) of
+            case mzb_api_server:is_datastream_ended(Id) of
                 true  -> ok;
                 false ->
                     timer:sleep(Timeout),
-                    perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, [], 0)
+                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0)
             end;
         {error, Reason} ->
             case Buffer of
@@ -313,78 +343,10 @@ perform_reading(BenchId, FileReader, SendFun, BatchFinishedFun, Timeout, Buffer,
             erlang:error(Reason)
     end.
 
-get_file_reader(Filename, none) ->
+get_file_reader(Filename) ->
     ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
     {ok, H} = file:open(Filename, [raw, read, {read_ahead, ReadAtOnce}]),
     fun (close) -> file:close(H);
         (read_line) -> file:read_line(H)
-    end;
-get_file_reader(Filename, deflate) ->
-    P = erlang:spawn_link(fun () -> uncompressing_process(self(), Filename) end),
-    fun (close) ->
-            Ref = erlang:monitor(process, P),
-            P ! close,
-            receive
-                {'DOWN', Ref, _, _, _} -> ok
-            end;
-        (read_line) ->
-            P ! read_line,
-            receive
-                Response -> Response
-            end
-    end.
-
-uncompressing_process(ParentPid, Filename) ->
-    erlang:process_flag(trap_exit, true),
-    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
-    {ok, H} = file:open(Filename, [raw, read, {read_ahead, ReadAtOnce}]),
-    Z = zlib:open(),
-    ok = zlib:inflateInit(Z),
-    Buffer = "",
-    uncompressing_process(ParentPid, H, Z, Buffer).
-
-uncompressing_process(ParentPid, File, ZStream, Buffer) ->
-    Close = 
-        fun() ->
-            try
-                ok = zlib:inflateEnd(ZStream),
-                ok = zlib:close(ZStream)
-            catch
-                _:data_error -> ok
-            end,
-            file:close(File)
-        end,
-
-    receive
-        {'EXIT', _, _} ->
-            Close();
-        close ->
-            Close();
-        read_line ->
-            {Response, NewBuffer} = read_line_from_compressed_stream(File, ZStream, Buffer),
-            ParentPid ! Response,
-            uncompressing_process(ParentPid, File, ZStream, NewBuffer)
-    end.
-
-read_line_from_compressed_stream(File, ZStream, Buffer) ->
-    Lines = string:tokens(Buffer, "\n"),
-    case length(Lines) of
-        1 ->
-            case file:read(File, 255) of
-                {ok, Data} ->
-                    UncompressedData = zlib:inflate(ZStream, Data),
-                    NewBuffer = string:concat(Buffer, UncompressedData),
-
-                    Lines2 = string:tokens(NewBuffer, "\n"),
-                    case length(Lines2) of
-                        1 -> read_line_from_compressed_stream(File, ZStream, NewBuffer);
-                        _ -> {{ok, hd(Lines2)}, string:join(tl(Lines2), "\n")}
-                    end;
-                eof ->
-                    {eof, Buffer};
-                {error, Reason} ->
-                    {{error, Reason}, Buffer}
-            end;
-        _ -> {{ok, hd(Lines)}, string:join(tl(Lines), "\n")}
     end.
 
