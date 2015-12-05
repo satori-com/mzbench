@@ -417,9 +417,11 @@ extract_node_install_spec(Params) ->
 
 send_email_report(Emails, #{id:= Id,
                             status:= Status,
-                            config:= Config}) ->
+                            config:= Config,
+                            metrics:= Metrics}) ->
     try
-        #{metrics_file:= MetricsFile} = Config,
+        MetricNames = mzb_api_metrics:extract_metric_names(Metrics),
+        MetricFilenames = [metrics_file(N, Config) || N <- MetricNames],
         {Subj, Body} = generate_mail_body(Id, Status, Config),
         lager:info("EMail report: ~n~s~n~s~n", [Subj, Body]),
         Attachments = lists:map(
@@ -427,7 +429,7 @@ send_email_report(Emails, #{id:= Id,
                 {ok, Bin} = file:read_file(local_path(F, Config)),
                 Filename = filename:basename(F),
                 {list_to_binary(Filename), <<"text/plain">>, Bin}
-            end, [MetricsFile]),
+            end, MetricFilenames),
         lists:foreach(
             fun (Addr) ->
                 lager:info("Sending bench results to ~s", [Addr]),
