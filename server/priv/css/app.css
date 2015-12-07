@@ -237,4 +237,5 @@ iframe {
 
 .graph-legend {
     font-size: 9px;
+    min-height: 50px;
 }
