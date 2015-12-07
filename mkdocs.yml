@@ -19,5 +19,5 @@ pages:
 - CLI: cli.md
 - API: api.md
 - Deployment: deployment.md
+- Cloud Plugins: cloud_plugins.md
 - Workers: workers.md
-- Cloud Plugins: cloud_plugin.md

@@ -64,10 +64,6 @@ validate(Script) ->
                 mzb_script_hooks:validate(Op) ++ Acc;
             (#operation{name = post_hook} = Op, Acc) ->
                 mzb_script_hooks:validate(Op) ++ Acc;
-            (#operation{name = use_graphite, args = _}, Acc) -> 
-                ["use_graphite is deprecated and shouldn't be used anymore."
-                    ++ " Use \"graphite\" environment variable instead."] 
-                ++ Acc;
             (#operation{name = pool} = Pool, Acc) -> validate_pool(Pool) ++ Acc;
             (#operation{name = F, args = A, meta = M}, Acc) ->
                 [mzb_string:format("~sUnknown function: ~p/~p",

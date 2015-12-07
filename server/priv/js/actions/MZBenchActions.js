@@ -1,7 +1,9 @@
 import BenchStore from '../stores/BenchStore';
+import MetricsStore from '../stores/MetricsStore';
 import Constants from '../constants/ActionTypes';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import MZBenchWS from '../utils/MZBenchWS';
+import Misc from '../utils/Misc.js';
 
 export default {
     subscribeBenchTimeline () {
@@ -103,15 +105,19 @@ export default {
         Dispatcher.dispatch({ type: Constants.SELECT_ACTIVE_TAB, data: tab });
     },
 
-    resetMetrics() {
-        Dispatcher.dispatch({ type: Constants.METRIC_STORE_RESET });
-    },
-
     cloneBench(id) {
         Dispatcher.dispatch({ type: Constants.CLONE_BENCH, data: id });
     },
 
     newBench() {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
+    },
+
+    sendSubscribe(benchId, metrics, guid) {
+        MZBenchWS.send({ cmd: "subscribe_metrics", bench: benchId, metrics: metrics, guid: guid });
+    },
+
+    subscribeMetrics(metrics) {
+        Dispatcher.dispatch({ type: Constants.SUBSCRIBE_METRICS, metrics: metrics });
     }
 }

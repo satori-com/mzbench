@@ -102,15 +102,15 @@ load_config([]) ->
 load_config([File|T]) ->
     case file:consult(mzb_file:expand_filename(File)) of
         {ok, [Config]} ->
-            lager:info("Reading configuration from ~s", [File]),
+            system_log:info("Reading configuration from ~s", [File]),
             lists:foreach(fun({App, Env}) ->
                                   [application:set_env(App, Key, Val) || {Key, Val} <- Env]
                           end, Config),
             ok;
         {error, enoent} ->
-            lager:info("Config file not found: ~p", [File]),
+            system_log:info("Config file not found: ~p", [File]),
             load_config(T);
         {error, Reason} ->
-            lager:error("Could not open file ~p, reason ~p", [File, Reason])
+            system_log:error("Could not open file ~p, reason ~p", [File, Reason])
     end.
 

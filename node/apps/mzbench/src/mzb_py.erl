@@ -166,10 +166,10 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
         {PythonPort, {exit_status, _Status}} ->
             case length(PythonAcc) of
                 0 -> ok;
-                _ -> lager:info(PythonAcc),
+                _ -> system_log:info(PythonAcc),
                     ok
             end,
-            lager:error("Python interpreter finished unexpectedly!"),
+            system_log:error("Python interpreter finished unexpectedly!"),
             erlang:error(python_interpreter_died);
         {MetricsPipe, {data, {eol, Line}}} ->
             case interpret_metrics_pipe(MetricsAcc ++ Line) of
@@ -193,10 +193,10 @@ read_python_output(#python_interpreter{python_port = PythonPort, metrics_pipe = 
         {MetricsPipe, closed} ->
             case length(MetricsAcc) of
                 0 -> ok;
-                _ -> lager:info(MetricsAcc),
+                _ -> system_log:info(MetricsAcc),
                     ok
             end,
-            lager:error("Metrics communication pipe closed unexpectedly!"),
+            system_log:error("Metrics communication pipe closed unexpectedly!"),
             erlang:error(metrics_pipe_closed)
     end.
 

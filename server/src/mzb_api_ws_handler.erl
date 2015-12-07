@@ -12,8 +12,12 @@
 
 -record(state, {
           ref = undefined :: undefined | reference(),
+          currently_selected_bench = undefined :: undefined | non_neg_integer(),
+          current_transmission_guid = undefined :: undefined | string(),
           timeline_opts = undefined :: undefined | map(),
-          timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()}
+          timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
+          metrics_streamers = #{} :: #{},
+          guid = undefined :: term()
        }).
 
 init(Req, _Opts) ->
@@ -63,11 +67,43 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
+dispatch_info({metrics_batch_finished, Guid}, State = #state{current_transmission_guid = Guid}) ->
+    {reply, #{type => "METRICS_BATCH_FINISHED", guid => Guid}, State};
+
+dispatch_info({metrics_batch_finished, _Guid}, State = #state{}) ->
+    {ok, State};
+
+dispatch_info({metric_value, Guid, Metric, Values}, State) ->
+    Event = #{
+              type => "METRIC_DATA",
+              guid => Guid,
+              metric => Metric,
+              data => erlang:list_to_binary(Values)
+             },
+    {reply, Event, State};
+
 dispatch_info({notify, Severity, Msg}, State) ->
     Event = #{type => "NOTIFY",
               severity => atom_to_list(Severity),
               message => Msg},
     {reply, Event, State};
+
+dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, State = #state{metrics_streamers = Streamers}) ->
+    case Reason of
+        aborted -> ok;
+        normal -> ok;
+        _ -> lager:error("Metrics reader crashed with reason: ~p", [Reason])
+    end,
+    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streamers)) of
+        {Metric, _} ->
+            {ok, State#state{metrics_streamers = maps:put(Metric, undefined, Streamers)}};
+        false ->
+            lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
+            {ok, State}
+    end;
+
+dispatch_info({'DOWN', _, process, _, _}, State) ->
+    {ok, State};
 
 dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
@@ -99,9 +135,48 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {MinId, MaxId}}};
 
+dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{guid = Guid}) ->
+    #{<<"bench">> := BenchId, <<"metrics">>:= Metrics} = Cmd,
+    {ok, add_streamers(BenchId, Metrics, State)};
+dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{}) ->
+    #{<<"bench">> := BenchId, <<"metrics">> := Metrics} = Cmd,
+    State1 = kill_all_streamers(State#state{guid = Guid}),
+    {ok, add_streamers(BenchId, Metrics, State1)};
+
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
+
+add_streamers(BenchId, Metrics, #state{metrics_streamers = Streamers, guid = Guid} = State) ->
+    lager:info("Add streamers for #~p ~p", [BenchId, Metrics]),
+    Self = self(),
+
+    NewStreamers =
+        lists:foldl(
+            fun (Metric, Acc) ->
+                case maps:find(Metric, Acc) of
+                    {ok, _} -> Acc;
+                    error ->
+                        SendMetricsFun = fun (Values) -> Self ! {metric_value, Guid, Metric, Values} end,
+                        R2 = erlang:spawn_monitor(fun() ->
+                            stream_metric(BenchId, Metric, SendMetricsFun)
+                        end),
+                        maps:put(Metric, R2, Acc)
+                end
+            end, Streamers, Metrics),
+
+    State#state{metrics_streamers = NewStreamers}.
+
+kill_all_streamers(#state{metrics_streamers = Streamers} = State) ->
+    lager:info("Kill all metric streamers"),
+    lists:foreach(fun ({_, R}) -> kill_streamer(R) end, maps:to_list(Streamers)),
+    State#state{metrics_streamers = #{}}.
+
+kill_streamer(undefined) -> ok;
+kill_streamer({Pid, Ref}) ->
+    erlang:demonitor(Ref, [flush]),
+    erlang:exit(Pid, aborted).
+
 
 %% Normalization
 
@@ -224,3 +299,54 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                      IsAboveMin = undefined == MinId orelse Comparator(MinId, Id),
                      IsBelowMax andalso IsAboveMin
                  end, BenchInfos).
+
+%% Metrics reading process
+
+stream_metric(Id, Metric, SendFun) ->
+    #{config:= Config} = mzb_api_server:status(Id),
+    Filename = mzb_api_bench:metrics_file(Metric, Config),
+    FileReader = get_file_reader(Filename),
+    try
+        PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
+        perform_streaming(Id, FileReader, SendFun, PollTimeout),
+        lager:info("Streamer for #~b ~s has finished", [Id, Metric])
+    after
+        FileReader(close)
+    end.
+
+perform_streaming(Id, FileReader, SendFun, Timeout) ->
+    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0).
+perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead) ->
+    case FileReader(read_line) of
+        {ok, Data} when LinesRead > 500 ->
+            Buf = [Data|Buffer],
+            _ = SendFun(lists:reverse(Buf)),
+            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0);
+        {ok, Data} ->
+            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1);
+        eof ->
+            case Buffer of
+                [] -> ok;
+                _ -> SendFun(lists:reverse(Buffer))
+            end,
+            case mzb_api_server:is_datastream_ended(Id) of
+                true  -> ok;
+                false ->
+                    timer:sleep(Timeout),
+                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0)
+            end;
+        {error, Reason} ->
+            case Buffer of
+                [] -> ok;
+                _ -> SendFun(lists:reverse(Buffer))
+            end,
+            erlang:error(Reason)
+    end.
+
+get_file_reader(Filename) ->
+    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
+    {ok, H} = file:open(Filename, [raw, read, {read_ahead, ReadAtOnce}]),
+    fun (close) -> file:close(H);
+        (read_line) -> file:read_line(H)
+    end.
+

@@ -18,7 +18,7 @@ $ curl http://mzbench.myserver.com/logs?id=100500
 ```
 
 !!!important
-    If you have [logs](deployment.md#bench_logs_compression) or [metrics compression](deployment.md#bench_metrics_compression) enabled in the server config, make sure you can handle compressed responses from the MZBench API.
+    If you have [logs](deployment.md#bench_log_compression) or [metrics compression](deployment.md#bench_metrics_compression) enabled in the server config, make sure you can handle compressed responses from the MZBench API.
 
 
 # Endpoints

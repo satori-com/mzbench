@@ -50,7 +50,7 @@ init([Pool, Env, NumNodes, Offset]) ->
     {ok, start_workers(Pool, Env, NumNodes, Offset, State)}.
 
 handle_call(stop, _From, #s{workers = Tid, name = Name} = State) ->
-    lager:info("[ ~p ] Received stop signal", [Name]),
+    system_log:info("[ ~p ] Received stop signal", [Name]),
     ets:foldl(
         fun ({Pid, Ref}, Acc) ->
             erlang:demonitor(Ref, [flush]),
@@ -61,7 +61,7 @@ handle_call(stop, _From, #s{workers = Tid, name = Name} = State) ->
     {stop, normal, ok, State};
 
 handle_call(Req, _From, State) ->
-    lager:error("Unhandled call: ~p", [Req]),
+    system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
 handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers}, #s{workers = Tid, name = PoolName} = State) ->
@@ -71,21 +71,21 @@ handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers}, #s
         end),
     ets:insert(Tid, {P, Ref}),
     if
-        WId < 4 orelse WId =:= NumWorkers -> lager:info("Starting worker on ~p no ~p", [Node, WId]);
-        WId =:= 4 -> lager:info("Starting remaining workers...", []);
+        WId < 4 orelse WId =:= NumWorkers -> system_log:info("Starting worker on ~p no ~p", [Node, WId]);
+        WId =:= 4 -> system_log:info("Starting remaining workers...", []);
         true -> ok
     end,
     {noreply, State};
 
 handle_cast(Msg, State) ->
-    lager:error("Unhandled cast: ~p", [Msg]),
+    system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
 
 handle_info({'DOWN', Ref, _, _, normal}, #s{worker_starter = {_, Ref}} = State) ->
     maybe_stop(State#s{worker_starter = undefined});
 
 handle_info({'DOWN', Ref, _, _, Reason}, #s{worker_starter = {_, Ref}} = State) ->
-    lager:error("Worker starter has crashed with the reason: ~p", [Reason]),
+    system_log:error("Worker starter has crashed with the reason: ~p", [Reason]),
     {stop, Reason, State};
 
 handle_info({worker_result, _Pid, {ok, _}}, #s{} = State) ->
@@ -103,16 +103,16 @@ handle_info({'DOWN', _Ref, _, Pid, Reason}, #s{workers = Workers, name = Name} =
     NewState = State#s{failed = State#s.failed + 1},
     case ets:lookup(Workers, Pid) of
         [{Pid, Ref}] ->
-            lager:error("[ ~p ] Received DOWN from worker ~p with reason ~p", [Name, Pid, Reason]),
+            system_log:error("[ ~p ] Received DOWN from worker ~p with reason ~p", [Name, Pid, Reason]),
             ets:delete(Workers, Pid),
             erlang:demonitor(Ref, [flush]);
         _ ->
-            lager:error("[ ~p ] Received DOWN from unknown process: ~p / ~p", [Name, Pid, Reason])
+            system_log:error("[ ~p ] Received DOWN from unknown process: ~p / ~p", [Name, Pid, Reason])
     end,
     maybe_stop(NewState);
 
 handle_info(Info, State) ->
-    lager:error("Unhandled info: ~p", [Info]),
+    system_log:error("Unhandled info: ~p", [Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -143,11 +143,11 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
                 [S, PN] when PN * Offset > S -> 0;
                 [S, PN] when NumNodes * PN >= S -> S;
                 [S, PN] ->
-                    lager:error("Need more nodes, required = ~p, actual = ~p", 
+                    system_log:error("Need more nodes, required = ~p, actual = ~p", 
                         [mzb_utility:int_ceil(S/PN), NumNodes]),
                     erlang:error({not_enough_nodes})
             end,
-    lager:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
+    system_log:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
         [Size, PerNode, Size2, Offset, NumNodes]),
     Worker = mzbl_script:extract_worker(PoolOpts),
     Self = self(),
@@ -155,7 +155,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     load_worker(Worker),
 
     Numbers = lists:seq(0, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
-    lager:info("Worker offsets: ~p", [Numbers]),
+    system_log:info("Worker offsets: ~p", [Numbers]),
 
     WorkerStarter =
         erlang:spawn_monitor(fun () ->
@@ -172,14 +172,14 @@ load_worker({WorkerProvider, Worker}) ->
     case erlang:apply(WorkerProvider, load, [Worker]) of
         ok -> ok;
         {error, Reason} ->
-            lager:error("Worker ~p load failed with reason: ~p", [Worker, Reason]),
+            system_log:error("Worker ~p load failed with reason: ~p", [Worker, Reason]),
             erlang:error({application_start_failed, Worker, Reason})
     end.
 
 maybe_stop(#s{workers = Workers, name = Name, worker_starter = undefined} = State) ->
     case ets:first(Workers) == '$end_of_table' of
         true ->
-            lager:info("[ ~p ] All workers have finished", [Name]),
+            system_log:info("[ ~p ] All workers have finished", [Name]),
             Info = [{succeed_workers, State#s.succeed},
                     {failed_workers,  State#s.failed}],
             mzb_director:pool_report(self(), Info, true),
@@ -192,9 +192,9 @@ maybe_stop(#s{} = State) ->
 
 maybe_report_error(_, {ok, _}) -> ok;
 maybe_report_error(Pid, {error, Reason}) ->
-    lager:error("Worker ~p has finished abnormally: ~p", [Pid, Reason]);
+    system_log:error("Worker ~p has finished abnormally: ~p", [Pid, Reason]);
 maybe_report_error(Pid, {exception, Node, {_C, E, ST}}) ->
-    lager:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p", [Pid, Node, E, ST]).
+    system_log:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p", [Pid, Node, E, ST]).
 
 worker_start_delay(undefined, _, _) -> ok;
 worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, units = rps}]}, Factor, _) ->
@@ -207,7 +207,7 @@ worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, 
 worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor, _) ->
     timer:sleep(1000*Factor div RPS);
 worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N) ->
-    timer:sleep(erlang:round(T*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))/F));
+    timer:sleep(erlang:round(T*F*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0) -> ok;
 worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N) ->
-    timer:sleep(erlang:round(T*(math:log((N+1)*math:exp(1)/X) - math:log(N*math:exp(1)/X))/F)).
+    timer:sleep(erlang:round(T*F*(math:log((N+1)*(math:exp(1)-1)/X + 1) - math:log(N*(math:exp(1)-1)/X + 1)))).

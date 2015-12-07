@@ -1,10 +1,8 @@
 -module(mzb_metrics).
 
--export([start_link/4,
+-export([start_link/3,
          notify/2,
          get_value/1,
-         get_graphite_host_and_port/1,
-         get_graphite_url/1,
          get_local_values/1,
          final_trigger/0,
          get_failed_asserts/0,
@@ -24,9 +22,7 @@
 -type metric_type() :: counter | histogram | gauge.
 
 -record(s, {
-    prefix = "undefined" :: string(),
     nodes = [] :: [node()],
-    graphite_reporter_ref = undefined :: reference(),
     last_tick_time = undefined :: erlang:timestamp(),
     start_time = undefined :: erlang:timestamp(),
     stop_time = undefined :: erlang:timestamp(),
@@ -39,9 +35,6 @@
 
 -define(INTERVAL, 10000). % in ms
 -define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
-%% graphite stores data-points with 10-secs resolution
-%% report metrics with 5-secs interval to avoid gaps on graphs due to interval's trigger inaccuracy
--define(GRAPHITE_INTERVAL, 5000).
 -define(LOCALPREFIX, "local").
 -define(INTERVALNAME, report_interval).
 
@@ -49,8 +42,8 @@
 %%% API
 %%%===================================================================
 
-start_link(MetricsPrefix, Env, MetricGroups, Nodes) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [MetricsPrefix, Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
+start_link(Env, MetricGroups, Nodes) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
@@ -78,19 +71,15 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([MetricsPrefix, Env, MetricGroups, Nodes]) ->
-    {Host, Port} = get_graphite_host_and_port(Env),
-    ApiKey = proplists:get_value("graphite_api_key", Env, []),
+init([Env, MetricGroups, Nodes]) ->
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
-    {ok, GraphiteReporterRef} = init_exometer(Host, Port, ApiKey, MetricsPrefix, MetricGroups),
+    ok = init_exometer(MetricGroups),
     erlang:send_after(?INTERVAL, self(), trigger),
     _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram, _} <- extract_metrics(MetricGroups)],
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     {ok, #s{
-        prefix = MetricsPrefix,
         nodes = Nodes,
-        graphite_reporter_ref = GraphiteReporterRef,
         last_tick_time = StartTime,
         start_time = StartTime,
         previous_counter_values = [],
@@ -111,11 +100,11 @@ handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
     {reply, mzb_asserts:get_failed(_Finished = true, ?ASSERT_ACCURACY, Asserts), State};
 
 handle_call(Req, _From, State) ->
-    lager:error("Unhandled call: ~p", [Req]),
+    system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
 handle_cast(Msg, State) ->
-    lager:error("Unhandled cast: ~p", [Msg]),
+    system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
 
 handle_info(trigger, State = #s{active = false}) ->
@@ -125,13 +114,8 @@ handle_info(trigger, State = #s{active = true}) ->
     NewState = tick(State),
     erlang:send_after(?INTERVAL, self(), trigger),
     {noreply, NewState};
-handle_info({'DOWN', GraphiteReporterRef, _, _, Reason}, 
-            #s{graphite_reporter_ref = GraphiteReporterRef} = State) ->
-    lager:error("[ mzb_metrics ] Graphite reporter at ~p has crashed! Reason: ~p", 
-                    [GraphiteReporterRef, Reason]),
-    {stop, graphite_reporter_died, State};
 handle_info(Info, State) ->
-    lager:error("Unhandled info: ~p", [Info]),
+    system_log:error("Unhandled info: ~p", [Info]),
     {noreply, State}.
 
 terminate(_Reason, State) ->
@@ -155,25 +139,25 @@ tick(#s{last_tick_time = LastTick} = State) ->
     State4#s{last_tick_time = Now}.
 
 aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
-    lager:info("[ metrics ] METRIC AGGREGATION:"),
+    system_log:info("[ metrics ] METRIC AGGREGATION:"),
     StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
         fun (N) ->
-            lager:info("[ metrics ] Waiting for metrics from ~p...", [N]),
+            system_log:info("[ metrics ] Waiting for metrics from ~p...", [N]),
             case rpc:call(N, mzb_metrics, get_local_values, [Metrics]) of
                 {badrpc, Reason} ->
-                    lager:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
+                    system_log:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
                     erlang:error({request_metrics_failed, N, Reason});
                 Res ->
-                    lager:info("[ metrics ] Received metrics from ~p", [N]),
+                    system_log:info("[ metrics ] Received metrics from ~p", [N]),
                     Res
             end
         end, lists:usort([erlang:node()] ++ Nodes)),
 
     Aggregated = merge_metrics_data(Values),
 
-    lager:info("[ metrics ] Updating metric values in exometer..."),
+    system_log:info("[ metrics ] Updating metric values in exometer..."),
     lists:foreach(
         fun ({N, V, counter}) ->
                 exometer:update_or_create([N], V, counter, []);
@@ -193,52 +177,52 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     State.
 
 evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
-    lager:info("[ metrics ] Evaluating rates..."),
+    system_log:info("[ metrics ] Evaluating rates..."),
     NewState = eval_rps(State),
 
-    lager:info("[ metrics ] Evaluating derived metrics..."),
+    system_log:info("[ metrics ] Evaluating derived metrics..."),
     DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
         try Provider:apply(Resolver, [], Worker) of
             Val -> exometer:update_or_create([Name], Val, gauge, [])
         catch
-            _:Reason -> lager:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
+            _:Reason -> system_log:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
         end
     end, DerivedMetrics),
-    lager:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
+    system_log:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
 check_assertions(TimePeriod, #s{asserts = Asserts} = State) ->
-    lager:info("[ metrics ] CHECK ASSERTIONS:"),
+    system_log:info("[ metrics ] CHECK ASSERTIONS:"),
     NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
-    lager:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
+    system_log:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
 
     FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?ASSERT_ACCURACY, NewAsserts),
     case FailedAsserts of
         [] -> ok;
         _  ->
-            lager:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
+            system_log:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
             mzb_director:stop_benchmark({assertions_failed, FailedAsserts})
     end,
     State#s{asserts = NewAsserts}.
 
 check_signals(#s{nodes = Nodes} = State) ->
-    lager:info("[ metrics ] CHECK SIGNALS:"),
+    system_log:info("[ metrics ] CHECK SIGNALS:"),
     RawSignals = mzb_lists:pmap(
         fun (N) ->
-            lager:info("[ metrics ] Reading signals from ~p...", [N]),
+            system_log:info("[ metrics ] Reading signals from ~p...", [N]),
             case rpc:call(N, mzb_signaler, get_all_signals, []) of
                 {badrpc, Reason} ->
-                    lager:error("[ metrics ] Failed to request signals from node ~p (~p)", [N, Reason]),
+                    system_log:error("[ metrics ] Failed to request signals from node ~p (~p)", [N, Reason]),
                     [];
                 Res ->
-                    lager:info("[ metrics ] Received signals from ~p", [N]),
+                    system_log:info("[ metrics ] Received signals from ~p", [N]),
                     Res
             end
         end, lists:usort([erlang:node()] ++ Nodes)),
     GroupedSignals = groupby(lists:flatten(RawSignals)),
     Signals = [{N, lists:max(Counts)} || {N, Counts} <- GroupedSignals],
-    lager:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
+    system_log:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
     State.
 
 format_global_metrics() ->
@@ -301,7 +285,7 @@ groupby([{H, _}|_] = L, Res) ->
 
 
 get_local_values(Metrics) ->
-    lager:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
+    system_log:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
     CountersAndGauges = lists:map(
         fun ({Name, Type, _}) ->
             case exometer:get_value([?LOCALPREFIX, Name], value) of
@@ -312,29 +296,8 @@ get_local_values(Metrics) ->
         [M || {_, T, _} = M <- Metrics, (T == gauge) or (T == counter)]),
     _ = [ exometer:reset([?LOCALPREFIX, N]) || {N, counter, _} <- Metrics ],
     Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data([N || {N, histogram, _} <- Metrics])],
-    lager:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
+    system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
-
-get_graphite_host_and_port(Env) ->
-    URL = proplists:get_value("graphite", Env, undefined),
-    case URL of
-        undefined -> {undefined, undefined};
-        U -> case string:tokens(U, ":") of
-                [Host] -> {Host, 2003};
-                [Host, Port] -> {Host, Port}
-            end
-    end.
-
-get_graphite_url(Env) ->
-    URL = proplists:get_value("graphite_url", Env, undefined),
-    case URL of
-        undefined -> {H, _} = get_graphite_host_and_port(Env),
-                     case H of
-                        undefined -> undefined;
-                        _ -> mzb_string:format("http://~s", [H])
-                     end;
-        _ -> URL
-    end.
 
 extract_metrics(Groups) ->
     [{Name, Type, Opts} || {group, _GroupName, Graphs} <- Groups,
@@ -405,7 +368,7 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
+init_exometer(Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(
@@ -413,20 +376,8 @@ init_exometer(GraphiteHost, GraphitePort, GraphiteApiKey, Prefix, Metrics) ->
             exometer:new([Metric], Type)
         end, ExometerMetrics),
 
-    GraphiteReporterMonitorRef = case GraphiteHost of
-        undefined -> undefined;
-        _ ->
-            Opts = [{connect_timeout, 5000},
-                    {prefix, [Prefix]},
-                    {host, GraphiteHost},
-                    {port, GraphitePort},
-                    {intervals, [{?INTERVALNAME, ?GRAPHITE_INTERVAL}]},
-                    {api_key, GraphiteApiKey}],
-            init_and_monitor_exometer_reporter(exometer_report_graphite, Opts, ExometerMetrics)
-    end,
     Interval = [{intervals, [{?INTERVALNAME, ?INTERVAL}]}],
-    ok = init_exometer_reporter(mzb_exometer_report_apiserver, Interval, ExometerMetrics),
-    {ok, GraphiteReporterMonitorRef}.
+    init_exometer_reporter(mzb_exometer_report_apiserver, Interval, ExometerMetrics).
 
 init_exometer_reporter(Name, Opts, Metrics) ->
     ok = case exometer_report:add_reporter(Name, Opts) of
@@ -437,17 +388,12 @@ init_exometer_reporter(Name, Opts, Metrics) ->
     ok = subscribe_exometer(Name, Metrics),
     ok.
 
-init_and_monitor_exometer_reporter(Name, Opts, Metrics) ->
-    ok = init_exometer_reporter(Name, Opts, Metrics),
-    ReporterPid = proplists:get_value(Name, exometer_report:list_reporters()),
-    erlang:monitor(process, ReporterPid).
-
 datapoints(histogram) -> [min, max, mean, 50, 75, 90, 95, 99, 999];
 datapoints(counter)   -> [value];
 datapoints(gauge)     -> [value].
 
 subscribe_exometer(Reporter, Metrics) ->
-    lager:info("Subscribing reporter ~p to ~p.", [Reporter, Metrics]),
+    system_log:info("Subscribing reporter ~p to ~p.", [Reporter, Metrics]),
     lists:foreach(fun ({Metric, Type, _}) ->
         exometer_report:subscribe(Reporter, [Metric], datapoints(Type), ?INTERVALNAME, [])
     end, Metrics),

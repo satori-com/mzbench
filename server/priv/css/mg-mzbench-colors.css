@@ -1,0 +1,4000 @@
+.mg-line1-color {
+    stroke: rgb(204,81,81);
+}
+
+.mg-area1-color {
+    fill: rgb(204,81,81);
+}
+
+.mg-hover-line1-color {
+    fill: rgb(204,81,81);
+}
+
+.mg-line1-legend-color {
+    color: rgb(204,81,81);
+}
+
+.mg-line2-color {
+    stroke: rgb(127,51,51);
+}
+
+.mg-area2-color {
+    fill: rgb(127,51,51);
+}
+
+.mg-hover-line2-color {
+    fill: rgb(127,51,51);
+}
+
+.mg-line2-legend-color {
+    color: rgb(127,51,51);
+}
+
+.mg-line3-color {
+    stroke: rgb(81,204,204);
+}
+
+.mg-area3-color {
+    fill: rgb(81,204,204);
+}
+
+.mg-hover-line3-color {
+    fill: rgb(81,204,204);
+}
+
+.mg-line3-legend-color {
+    color: rgb(81,204,204);
+}
+
+.mg-line4-color {
+    stroke: rgb(51,127,127);
+}
+
+.mg-area4-color {
+    fill: rgb(51,127,127);
+}
+
+.mg-hover-line4-color {
+    fill: rgb(51,127,127);
+}
+
+.mg-line4-legend-color {
+    color: rgb(51,127,127);
+}
+
+.mg-line5-color {
+    stroke: rgb(142,204,81);
+}
+
+.mg-area5-color {
+    fill: rgb(142,204,81);
+}
+
+.mg-hover-line5-color {
+    fill: rgb(142,204,81);
+}
+
+.mg-line5-legend-color {
+    color: rgb(142,204,81);
+}
+
+.mg-line6-color {
+    stroke: rgb(89,127,51);
+}
+
+.mg-area6-color {
+    fill: rgb(89,127,51);
+}
+
+.mg-hover-line6-color {
+    fill: rgb(89,127,51);
+}
+
+.mg-line6-legend-color {
+    color: rgb(89,127,51);
+}
+
+.mg-line7-color {
+    stroke: rgb(142,81,204);
+}
+
+.mg-area7-color {
+    fill: rgb(142,81,204);
+}
+
+.mg-hover-line7-color {
+    fill: rgb(142,81,204);
+}
+
+.mg-line7-legend-color {
+    color: rgb(142,81,204);
+}
+
+.mg-line8-color {
+    stroke: rgb(89,51,127);
+}
+
+.mg-area8-color {
+    fill: rgb(89,51,127);
+}
+
+.mg-hover-line8-color {
+    fill: rgb(89,51,127);
+}
+
+.mg-line8-legend-color {
+    color: rgb(89,51,127);
+}
+
+.mg-line9-color {
+    stroke: rgb(204,173,81);
+}
+
+.mg-area9-color {
+    fill: rgb(204,173,81);
+}
+
+.mg-hover-line9-color {
+    fill: rgb(204,173,81);
+}
+
+.mg-line9-legend-color {
+    color: rgb(204,173,81);
+}
+
+.mg-line10-color {
+    stroke: rgb(127,108,51);
+}
+
+.mg-area10-color {
+    fill: rgb(127,108,51);
+}
+
+.mg-hover-line10-color {
+    fill: rgb(127,108,51);
+}
+
+.mg-line10-legend-color {
+    color: rgb(127,108,51);
+}
+
+.mg-line11-color {
+    stroke: rgb(81,204,112);
+}
+
+.mg-area11-color {
+    fill: rgb(81,204,112);
+}
+
+.mg-hover-line11-color {
+    fill: rgb(81,204,112);
+}
+
+.mg-line11-legend-color {
+    color: rgb(81,204,112);
+}
+
+.mg-line12-color {
+    stroke: rgb(51,127,70);
+}
+
+.mg-area12-color {
+    fill: rgb(51,127,70);
+}
+
+.mg-hover-line12-color {
+    fill: rgb(51,127,70);
+}
+
+.mg-line12-legend-color {
+    color: rgb(51,127,70);
+}
+
+.mg-line13-color {
+    stroke: rgb(81,112,204);
+}
+
+.mg-area13-color {
+    fill: rgb(81,112,204);
+}
+
+.mg-hover-line13-color {
+    fill: rgb(81,112,204);
+}
+
+.mg-line13-legend-color {
+    color: rgb(81,112,204);
+}
+
+.mg-line14-color {
+    stroke: rgb(51,70,127);
+}
+
+.mg-area14-color {
+    fill: rgb(51,70,127);
+}
+
+.mg-hover-line14-color {
+    fill: rgb(51,70,127);
+}
+
+.mg-line14-legend-color {
+    color: rgb(51,70,127);
+}
+
+.mg-line15-color {
+    stroke: rgb(204,81,173);
+}
+
+.mg-area15-color {
+    fill: rgb(204,81,173);
+}
+
+.mg-hover-line15-color {
+    fill: rgb(204,81,173);
+}
+
+.mg-line15-legend-color {
+    color: rgb(204,81,173);
+}
+
+.mg-line16-color {
+    stroke: rgb(127,51,108);
+}
+
+.mg-area16-color {
+    fill: rgb(127,51,108);
+}
+
+.mg-hover-line16-color {
+    fill: rgb(127,51,108);
+}
+
+.mg-line16-legend-color {
+    color: rgb(127,51,108);
+}
+
+.mg-line17-color {
+    stroke: rgb(204,127,81);
+}
+
+.mg-area17-color {
+    fill: rgb(204,127,81);
+}
+
+.mg-hover-line17-color {
+    fill: rgb(204,127,81);
+}
+
+.mg-line17-legend-color {
+    color: rgb(204,127,81);
+}
+
+.mg-line18-color {
+    stroke: rgb(127,79,51);
+}
+
+.mg-area18-color {
+    fill: rgb(127,79,51);
+}
+
+.mg-hover-line18-color {
+    fill: rgb(127,79,51);
+}
+
+.mg-line18-legend-color {
+    color: rgb(127,79,51);
+}
+
+.mg-line19-color {
+    stroke: rgb(188,204,81);
+}
+
+.mg-area19-color {
+    fill: rgb(188,204,81);
+}
+
+.mg-hover-line19-color {
+    fill: rgb(188,204,81);
+}
+
+.mg-line19-legend-color {
+    color: rgb(188,204,81);
+}
+
+.mg-line20-color {
+    stroke: rgb(117,127,51);
+}
+
+.mg-area20-color {
+    fill: rgb(117,127,51);
+}
+
+.mg-hover-line20-color {
+    fill: rgb(117,127,51);
+}
+
+.mg-line20-legend-color {
+    color: rgb(117,127,51);
+}
+
+.mg-line21-color {
+    stroke: rgb(96,204,81);
+}
+
+.mg-area21-color {
+    fill: rgb(96,204,81);
+}
+
+.mg-hover-line21-color {
+    fill: rgb(96,204,81);
+}
+
+.mg-line21-legend-color {
+    color: rgb(96,204,81);
+}
+
+.mg-line22-color {
+    stroke: rgb(60,127,51);
+}
+
+.mg-area22-color {
+    fill: rgb(60,127,51);
+}
+
+.mg-hover-line22-color {
+    fill: rgb(60,127,51);
+}
+
+.mg-line22-legend-color {
+    color: rgb(60,127,51);
+}
+
+.mg-line23-color {
+    stroke: rgb(81,204,158);
+}
+
+.mg-area23-color {
+    fill: rgb(81,204,158);
+}
+
+.mg-hover-line23-color {
+    fill: rgb(81,204,158);
+}
+
+.mg-line23-legend-color {
+    color: rgb(81,204,158);
+}
+
+.mg-line24-color {
+    stroke: rgb(51,127,98);
+}
+
+.mg-area24-color {
+    fill: rgb(51,127,98);
+}
+
+.mg-hover-line24-color {
+    fill: rgb(51,127,98);
+}
+
+.mg-line24-legend-color {
+    color: rgb(51,127,98);
+}
+
+.mg-line25-color {
+    stroke: rgb(81,158,204);
+}
+
+.mg-area25-color {
+    fill: rgb(81,158,204);
+}
+
+.mg-hover-line25-color {
+    fill: rgb(81,158,204);
+}
+
+.mg-line25-legend-color {
+    color: rgb(81,158,204);
+}
+
+.mg-line26-color {
+    stroke: rgb(51,98,127);
+}
+
+.mg-area26-color {
+    fill: rgb(51,98,127);
+}
+
+.mg-hover-line26-color {
+    fill: rgb(51,98,127);
+}
+
+.mg-line26-legend-color {
+    color: rgb(51,98,127);
+}
+
+.mg-line27-color {
+    stroke: rgb(96,81,204);
+}
+
+.mg-area27-color {
+    fill: rgb(96,81,204);
+}
+
+.mg-hover-line27-color {
+    fill: rgb(96,81,204);
+}
+
+.mg-line27-legend-color {
+    color: rgb(96,81,204);
+}
+
+.mg-line28-color {
+    stroke: rgb(60,51,127);
+}
+
+.mg-area28-color {
+    fill: rgb(60,51,127);
+}
+
+.mg-hover-line28-color {
+    fill: rgb(60,51,127);
+}
+
+.mg-line28-legend-color {
+    color: rgb(60,51,127);
+}
+
+.mg-line29-color {
+    stroke: rgb(188,81,204);
+}
+
+.mg-area29-color {
+    fill: rgb(188,81,204);
+}
+
+.mg-hover-line29-color {
+    fill: rgb(188,81,204);
+}
+
+.mg-line29-legend-color {
+    color: rgb(188,81,204);
+}
+
+.mg-line30-color {
+    stroke: rgb(117,51,127);
+}
+
+.mg-area30-color {
+    fill: rgb(117,51,127);
+}
+
+.mg-hover-line30-color {
+    fill: rgb(117,51,127);
+}
+
+.mg-line30-legend-color {
+    color: rgb(117,51,127);
+}
+
+.mg-line31-color {
+    stroke: rgb(204,81,127);
+}
+
+.mg-area31-color {
+    fill: rgb(204,81,127);
+}
+
+.mg-hover-line31-color {
+    fill: rgb(204,81,127);
+}
+
+.mg-line31-legend-color {
+    color: rgb(204,81,127);
+}
+
+.mg-line32-color {
+    stroke: rgb(127,51,79);
+}
+
+.mg-area32-color {
+    fill: rgb(127,51,79);
+}
+
+.mg-hover-line32-color {
+    fill: rgb(127,51,79);
+}
+
+.mg-line32-legend-color {
+    color: rgb(127,51,79);
+}
+
+.mg-line33-color {
+    stroke: rgb(204,104,81);
+}
+
+.mg-area33-color {
+    fill: rgb(204,104,81);
+}
+
+.mg-hover-line33-color {
+    fill: rgb(204,104,81);
+}
+
+.mg-line33-legend-color {
+    color: rgb(204,104,81);
+}
+
+.mg-line34-color {
+    stroke: rgb(127,65,51);
+}
+
+.mg-area34-color {
+    fill: rgb(127,65,51);
+}
+
+.mg-hover-line34-color {
+    fill: rgb(127,65,51);
+}
+
+.mg-line34-legend-color {
+    color: rgb(127,65,51);
+}
+
+.mg-line35-color {
+    stroke: rgb(204,150,81);
+}
+
+.mg-area35-color {
+    fill: rgb(204,150,81);
+}
+
+.mg-hover-line35-color {
+    fill: rgb(204,150,81);
+}
+
+.mg-line35-legend-color {
+    color: rgb(204,150,81);
+}
+
+.mg-line36-color {
+    stroke: rgb(127,94,51);
+}
+
+.mg-area36-color {
+    fill: rgb(127,94,51);
+}
+
+.mg-hover-line36-color {
+    fill: rgb(127,94,51);
+}
+
+.mg-line36-legend-color {
+    color: rgb(127,94,51);
+}
+
+.mg-line37-color {
+    stroke: rgb(204,196,81);
+}
+
+.mg-area37-color {
+    fill: rgb(204,196,81);
+}
+
+.mg-hover-line37-color {
+    fill: rgb(204,196,81);
+}
+
+.mg-line37-legend-color {
+    color: rgb(204,196,81);
+}
+
+.mg-line38-color {
+    stroke: rgb(127,122,51);
+}
+
+.mg-area38-color {
+    fill: rgb(127,122,51);
+}
+
+.mg-hover-line38-color {
+    fill: rgb(127,122,51);
+}
+
+.mg-line38-legend-color {
+    color: rgb(127,122,51);
+}
+
+.mg-line39-color {
+    stroke: rgb(165,204,81);
+}
+
+.mg-area39-color {
+    fill: rgb(165,204,81);
+}
+
+.mg-hover-line39-color {
+    fill: rgb(165,204,81);
+}
+
+.mg-line39-legend-color {
+    color: rgb(165,204,81);
+}
+
+.mg-line40-color {
+    stroke: rgb(103,127,51);
+}
+
+.mg-area40-color {
+    fill: rgb(103,127,51);
+}
+
+.mg-hover-line40-color {
+    fill: rgb(103,127,51);
+}
+
+.mg-line40-legend-color {
+    color: rgb(103,127,51);
+}
+
+.mg-line41-color {
+    stroke: rgb(119,204,81);
+}
+
+.mg-area41-color {
+    fill: rgb(119,204,81);
+}
+
+.mg-hover-line41-color {
+    fill: rgb(119,204,81);
+}
+
+.mg-line41-legend-color {
+    color: rgb(119,204,81);
+}
+
+.mg-line42-color {
+    stroke: rgb(74,127,51);
+}
+
+.mg-area42-color {
+    fill: rgb(74,127,51);
+}
+
+.mg-hover-line42-color {
+    fill: rgb(74,127,51);
+}
+
+.mg-line42-legend-color {
+    color: rgb(74,127,51);
+}
+
+.mg-line43-color {
+    stroke: rgb(81,204,89);
+}
+
+.mg-area43-color {
+    fill: rgb(81,204,89);
+}
+
+.mg-hover-line43-color {
+    fill: rgb(81,204,89);
+}
+
+.mg-line43-legend-color {
+    color: rgb(81,204,89);
+}
+
+.mg-line44-color {
+    stroke: rgb(51,127,55);
+}
+
+.mg-area44-color {
+    fill: rgb(51,127,55);
+}
+
+.mg-hover-line44-color {
+    fill: rgb(51,127,55);
+}
+
+.mg-line44-legend-color {
+    color: rgb(51,127,55);
+}
+
+.mg-line45-color {
+    stroke: rgb(81,204,135);
+}
+
+.mg-area45-color {
+    fill: rgb(81,204,135);
+}
+
+.mg-hover-line45-color {
+    fill: rgb(81,204,135);
+}
+
+.mg-line45-legend-color {
+    color: rgb(81,204,135);
+}
+
+.mg-line46-color {
+    stroke: rgb(51,127,84);
+}
+
+.mg-area46-color {
+    fill: rgb(51,127,84);
+}
+
+.mg-hover-line46-color {
+    fill: rgb(51,127,84);
+}
+
+.mg-line46-legend-color {
+    color: rgb(51,127,84);
+}
+
+.mg-line47-color {
+    stroke: rgb(81,204,181);
+}
+
+.mg-area47-color {
+    fill: rgb(81,204,181);
+}
+
+.mg-hover-line47-color {
+    fill: rgb(81,204,181);
+}
+
+.mg-line47-legend-color {
+    color: rgb(81,204,181);
+}
+
+.mg-line48-color {
+    stroke: rgb(51,127,113);
+}
+
+.mg-area48-color {
+    fill: rgb(51,127,113);
+}
+
+.mg-hover-line48-color {
+    fill: rgb(51,127,113);
+}
+
+.mg-line48-legend-color {
+    color: rgb(51,127,113);
+}
+
+.mg-line49-color {
+    stroke: rgb(81,181,204);
+}
+
+.mg-area49-color {
+    fill: rgb(81,181,204);
+}
+
+.mg-hover-line49-color {
+    fill: rgb(81,181,204);
+}
+
+.mg-line49-legend-color {
+    color: rgb(81,181,204);
+}
+
+.mg-line50-color {
+    stroke: rgb(51,113,127);
+}
+
+.mg-area50-color {
+    fill: rgb(51,113,127);
+}
+
+.mg-hover-line50-color {
+    fill: rgb(51,113,127);
+}
+
+.mg-line50-legend-color {
+    color: rgb(51,113,127);
+}
+
+.mg-line51-color {
+    stroke: rgb(81,135,204);
+}
+
+.mg-area51-color {
+    fill: rgb(81,135,204);
+}
+
+.mg-hover-line51-color {
+    fill: rgb(81,135,204);
+}
+
+.mg-line51-legend-color {
+    color: rgb(81,135,204);
+}
+
+.mg-line52-color {
+    stroke: rgb(51,84,127);
+}
+
+.mg-area52-color {
+    fill: rgb(51,84,127);
+}
+
+.mg-hover-line52-color {
+    fill: rgb(51,84,127);
+}
+
+.mg-line52-legend-color {
+    color: rgb(51,84,127);
+}
+
+.mg-line53-color {
+    stroke: rgb(81,89,204);
+}
+
+.mg-area53-color {
+    fill: rgb(81,89,204);
+}
+
+.mg-hover-line53-color {
+    fill: rgb(81,89,204);
+}
+
+.mg-line53-legend-color {
+    color: rgb(81,89,204);
+}
+
+.mg-line54-color {
+    stroke: rgb(51,55,127);
+}
+
+.mg-area54-color {
+    fill: rgb(51,55,127);
+}
+
+.mg-hover-line54-color {
+    fill: rgb(51,55,127);
+}
+
+.mg-line54-legend-color {
+    color: rgb(51,55,127);
+}
+
+.mg-line55-color {
+    stroke: rgb(119,81,204);
+}
+
+.mg-area55-color {
+    fill: rgb(119,81,204);
+}
+
+.mg-hover-line55-color {
+    fill: rgb(119,81,204);
+}
+
+.mg-line55-legend-color {
+    color: rgb(119,81,204);
+}
+
+.mg-line56-color {
+    stroke: rgb(74,51,127);
+}
+
+.mg-area56-color {
+    fill: rgb(74,51,127);
+}
+
+.mg-hover-line56-color {
+    fill: rgb(74,51,127);
+}
+
+.mg-line56-legend-color {
+    color: rgb(74,51,127);
+}
+
+.mg-line57-color {
+    stroke: rgb(165,81,204);
+}
+
+.mg-area57-color {
+    fill: rgb(165,81,204);
+}
+
+.mg-hover-line57-color {
+    fill: rgb(165,81,204);
+}
+
+.mg-line57-legend-color {
+    color: rgb(165,81,204);
+}
+
+.mg-line58-color {
+    stroke: rgb(103,51,127);
+}
+
+.mg-area58-color {
+    fill: rgb(103,51,127);
+}
+
+.mg-hover-line58-color {
+    fill: rgb(103,51,127);
+}
+
+.mg-line58-legend-color {
+    color: rgb(103,51,127);
+}
+
+.mg-line59-color {
+    stroke: rgb(204,81,196);
+}
+
+.mg-area59-color {
+    fill: rgb(204,81,196);
+}
+
+.mg-hover-line59-color {
+    fill: rgb(204,81,196);
+}
+
+.mg-line59-legend-color {
+    color: rgb(204,81,196);
+}
+
+.mg-line60-color {
+    stroke: rgb(127,51,122);
+}
+
+.mg-area60-color {
+    fill: rgb(127,51,122);
+}
+
+.mg-hover-line60-color {
+    fill: rgb(127,51,122);
+}
+
+.mg-line60-legend-color {
+    color: rgb(127,51,122);
+}
+
+.mg-line61-color {
+    stroke: rgb(204,81,150);
+}
+
+.mg-area61-color {
+    fill: rgb(204,81,150);
+}
+
+.mg-hover-line61-color {
+    fill: rgb(204,81,150);
+}
+
+.mg-line61-legend-color {
+    color: rgb(204,81,150);
+}
+
+.mg-line62-color {
+    stroke: rgb(127,51,94);
+}
+
+.mg-area62-color {
+    fill: rgb(127,51,94);
+}
+
+.mg-hover-line62-color {
+    fill: rgb(127,51,94);
+}
+
+.mg-line62-legend-color {
+    color: rgb(127,51,94);
+}
+
+.mg-line63-color {
+    stroke: rgb(204,81,104);
+}
+
+.mg-area63-color {
+    fill: rgb(204,81,104);
+}
+
+.mg-hover-line63-color {
+    fill: rgb(204,81,104);
+}
+
+.mg-line63-legend-color {
+    color: rgb(204,81,104);
+}
+
+.mg-line64-color {
+    stroke: rgb(127,51,65);
+}
+
+.mg-area64-color {
+    fill: rgb(127,51,65);
+}
+
+.mg-hover-line64-color {
+    fill: rgb(127,51,65);
+}
+
+.mg-line64-legend-color {
+    color: rgb(127,51,65);
+}
+
+.mg-line65-color {
+    stroke: rgb(204,93,81);
+}
+
+.mg-area65-color {
+    fill: rgb(204,93,81);
+}
+
+.mg-hover-line65-color {
+    fill: rgb(204,93,81);
+}
+
+.mg-line65-legend-color {
+    color: rgb(204,93,81);
+}
+
+.mg-line66-color {
+    stroke: rgb(127,58,51);
+}
+
+.mg-area66-color {
+    fill: rgb(127,58,51);
+}
+
+.mg-hover-line66-color {
+    fill: rgb(127,58,51);
+}
+
+.mg-line66-legend-color {
+    color: rgb(127,58,51);
+}
+
+.mg-line67-color {
+    stroke: rgb(204,116,81);
+}
+
+.mg-area67-color {
+    fill: rgb(204,116,81);
+}
+
+.mg-hover-line67-color {
+    fill: rgb(204,116,81);
+}
+
+.mg-line67-legend-color {
+    color: rgb(204,116,81);
+}
+
+.mg-line68-color {
+    stroke: rgb(127,72,51);
+}
+
+.mg-area68-color {
+    fill: rgb(127,72,51);
+}
+
+.mg-hover-line68-color {
+    fill: rgb(127,72,51);
+}
+
+.mg-line68-legend-color {
+    color: rgb(127,72,51);
+}
+
+.mg-line69-color {
+    stroke: rgb(204,138,81);
+}
+
+.mg-area69-color {
+    fill: rgb(204,138,81);
+}
+
+.mg-hover-line69-color {
+    fill: rgb(204,138,81);
+}
+
+.mg-line69-legend-color {
+    color: rgb(204,138,81);
+}
+
+.mg-line70-color {
+    stroke: rgb(127,86,51);
+}
+
+.mg-area70-color {
+    fill: rgb(127,86,51);
+}
+
+.mg-hover-line70-color {
+    fill: rgb(127,86,51);
+}
+
+.mg-line70-legend-color {
+    color: rgb(127,86,51);
+}
+
+.mg-line71-color {
+    stroke: rgb(204,161,81);
+}
+
+.mg-area71-color {
+    fill: rgb(204,161,81);
+}
+
+.mg-hover-line71-color {
+    fill: rgb(204,161,81);
+}
+
+.mg-line71-legend-color {
+    color: rgb(204,161,81);
+}
+
+.mg-line72-color {
+    stroke: rgb(127,101,51);
+}
+
+.mg-area72-color {
+    fill: rgb(127,101,51);
+}
+
+.mg-hover-line72-color {
+    fill: rgb(127,101,51);
+}
+
+.mg-line72-legend-color {
+    color: rgb(127,101,51);
+}
+
+.mg-line73-color {
+    stroke: rgb(204,184,81);
+}
+
+.mg-area73-color {
+    fill: rgb(204,184,81);
+}
+
+.mg-hover-line73-color {
+    fill: rgb(204,184,81);
+}
+
+.mg-line73-legend-color {
+    color: rgb(204,184,81);
+}
+
+.mg-line74-color {
+    stroke: rgb(127,115,51);
+}
+
+.mg-area74-color {
+    fill: rgb(127,115,51);
+}
+
+.mg-hover-line74-color {
+    fill: rgb(127,115,51);
+}
+
+.mg-line74-legend-color {
+    color: rgb(127,115,51);
+}
+
+.mg-line75-color {
+    stroke: rgb(200,204,81);
+}
+
+.mg-area75-color {
+    fill: rgb(200,204,81);
+}
+
+.mg-hover-line75-color {
+    fill: rgb(200,204,81);
+}
+
+.mg-line75-legend-color {
+    color: rgb(200,204,81);
+}
+
+.mg-line76-color {
+    stroke: rgb(125,127,51);
+}
+
+.mg-area76-color {
+    fill: rgb(125,127,51);
+}
+
+.mg-hover-line76-color {
+    fill: rgb(125,127,51);
+}
+
+.mg-line76-legend-color {
+    color: rgb(125,127,51);
+}
+
+.mg-line77-color {
+    stroke: rgb(177,204,81);
+}
+
+.mg-area77-color {
+    fill: rgb(177,204,81);
+}
+
+.mg-hover-line77-color {
+    fill: rgb(177,204,81);
+}
+
+.mg-line77-legend-color {
+    color: rgb(177,204,81);
+}
+
+.mg-line78-color {
+    stroke: rgb(110,127,51);
+}
+
+.mg-area78-color {
+    fill: rgb(110,127,51);
+}
+
+.mg-hover-line78-color {
+    fill: rgb(110,127,51);
+}
+
+.mg-line78-legend-color {
+    color: rgb(110,127,51);
+}
+
+.mg-line79-color {
+    stroke: rgb(154,204,81);
+}
+
+.mg-area79-color {
+    fill: rgb(154,204,81);
+}
+
+.mg-hover-line79-color {
+    fill: rgb(154,204,81);
+}
+
+.mg-line79-legend-color {
+    color: rgb(154,204,81);
+}
+
+.mg-line80-color {
+    stroke: rgb(96,127,51);
+}
+
+.mg-area80-color {
+    fill: rgb(96,127,51);
+}
+
+.mg-hover-line80-color {
+    fill: rgb(96,127,51);
+}
+
+.mg-line80-legend-color {
+    color: rgb(96,127,51);
+}
+
+.mg-line81-color {
+    stroke: rgb(131,204,81);
+}
+
+.mg-area81-color {
+    fill: rgb(131,204,81);
+}
+
+.mg-hover-line81-color {
+    fill: rgb(131,204,81);
+}
+
+.mg-line81-legend-color {
+    color: rgb(131,204,81);
+}
+
+.mg-line82-color {
+    stroke: rgb(82,127,51);
+}
+
+.mg-area82-color {
+    fill: rgb(82,127,51);
+}
+
+.mg-hover-line82-color {
+    fill: rgb(82,127,51);
+}
+
+.mg-line82-legend-color {
+    color: rgb(82,127,51);
+}
+
+.mg-line83-color {
+    stroke: rgb(108,204,81);
+}
+
+.mg-area83-color {
+    fill: rgb(108,204,81);
+}
+
+.mg-hover-line83-color {
+    fill: rgb(108,204,81);
+}
+
+.mg-line83-legend-color {
+    color: rgb(108,204,81);
+}
+
+.mg-line84-color {
+    stroke: rgb(67,127,51);
+}
+
+.mg-area84-color {
+    fill: rgb(67,127,51);
+}
+
+.mg-hover-line84-color {
+    fill: rgb(67,127,51);
+}
+
+.mg-line84-legend-color {
+    color: rgb(67,127,51);
+}
+
+.mg-line85-color {
+    stroke: rgb(85,204,81);
+}
+
+.mg-area85-color {
+    fill: rgb(85,204,81);
+}
+
+.mg-hover-line85-color {
+    fill: rgb(85,204,81);
+}
+
+.mg-line85-legend-color {
+    color: rgb(85,204,81);
+}
+
+.mg-line86-color {
+    stroke: rgb(53,127,51);
+}
+
+.mg-area86-color {
+    fill: rgb(53,127,51);
+}
+
+.mg-hover-line86-color {
+    fill: rgb(53,127,51);
+}
+
+.mg-line86-legend-color {
+    color: rgb(53,127,51);
+}
+
+.mg-line87-color {
+    stroke: rgb(81,204,100);
+}
+
+.mg-area87-color {
+    fill: rgb(81,204,100);
+}
+
+.mg-hover-line87-color {
+    fill: rgb(81,204,100);
+}
+
+.mg-line87-legend-color {
+    color: rgb(81,204,100);
+}
+
+.mg-line88-color {
+    stroke: rgb(51,127,62);
+}
+
+.mg-area88-color {
+    fill: rgb(51,127,62);
+}
+
+.mg-hover-line88-color {
+    fill: rgb(51,127,62);
+}
+
+.mg-line88-legend-color {
+    color: rgb(51,127,62);
+}
+
+.mg-line89-color {
+    stroke: rgb(81,204,123);
+}
+
+.mg-area89-color {
+    fill: rgb(81,204,123);
+}
+
+.mg-hover-line89-color {
+    fill: rgb(81,204,123);
+}
+
+.mg-line89-legend-color {
+    color: rgb(81,204,123);
+}
+
+.mg-line90-color {
+    stroke: rgb(51,127,77);
+}
+
+.mg-area90-color {
+    fill: rgb(51,127,77);
+}
+
+.mg-hover-line90-color {
+    fill: rgb(51,127,77);
+}
+
+.mg-line90-legend-color {
+    color: rgb(51,127,77);
+}
+
+.mg-line91-color {
+    stroke: rgb(81,204,146);
+}
+
+.mg-area91-color {
+    fill: rgb(81,204,146);
+}
+
+.mg-hover-line91-color {
+    fill: rgb(81,204,146);
+}
+
+.mg-line91-legend-color {
+    color: rgb(81,204,146);
+}
+
+.mg-line92-color {
+    stroke: rgb(51,127,91);
+}
+
+.mg-area92-color {
+    fill: rgb(51,127,91);
+}
+
+.mg-hover-line92-color {
+    fill: rgb(51,127,91);
+}
+
+.mg-line92-legend-color {
+    color: rgb(51,127,91);
+}
+
+.mg-line93-color {
+    stroke: rgb(81,204,169);
+}
+
+.mg-area93-color {
+    fill: rgb(81,204,169);
+}
+
+.mg-hover-line93-color {
+    fill: rgb(81,204,169);
+}
+
+.mg-line93-legend-color {
+    color: rgb(81,204,169);
+}
+
+.mg-line94-color {
+    stroke: rgb(51,127,105);
+}
+
+.mg-area94-color {
+    fill: rgb(51,127,105);
+}
+
+.mg-hover-line94-color {
+    fill: rgb(51,127,105);
+}
+
+.mg-line94-legend-color {
+    color: rgb(51,127,105);
+}
+
+.mg-line95-color {
+    stroke: rgb(81,204,192);
+}
+
+.mg-area95-color {
+    fill: rgb(81,204,192);
+}
+
+.mg-hover-line95-color {
+    fill: rgb(81,204,192);
+}
+
+.mg-line95-legend-color {
+    color: rgb(81,204,192);
+}
+
+.mg-line96-color {
+    stroke: rgb(51,127,120);
+}
+
+.mg-area96-color {
+    fill: rgb(51,127,120);
+}
+
+.mg-hover-line96-color {
+    fill: rgb(51,127,120);
+}
+
+.mg-line96-legend-color {
+    color: rgb(51,127,120);
+}
+
+.mg-line97-color {
+    stroke: rgb(81,192,204);
+}
+
+.mg-area97-color {
+    fill: rgb(81,192,204);
+}
+
+.mg-hover-line97-color {
+    fill: rgb(81,192,204);
+}
+
+.mg-line97-legend-color {
+    color: rgb(81,192,204);
+}
+
+.mg-line98-color {
+    stroke: rgb(51,120,127);
+}
+
+.mg-area98-color {
+    fill: rgb(51,120,127);
+}
+
+.mg-hover-line98-color {
+    fill: rgb(51,120,127);
+}
+
+.mg-line98-legend-color {
+    color: rgb(51,120,127);
+}
+
+.mg-line99-color {
+    stroke: rgb(81,169,204);
+}
+
+.mg-area99-color {
+    fill: rgb(81,169,204);
+}
+
+.mg-hover-line99-color {
+    fill: rgb(81,169,204);
+}
+
+.mg-line99-legend-color {
+    color: rgb(81,169,204);
+}
+
+.mg-line100-color {
+    stroke: rgb(51,105,127);
+}
+
+.mg-area100-color {
+    fill: rgb(51,105,127);
+}
+
+.mg-hover-line100-color {
+    fill: rgb(51,105,127);
+}
+
+.mg-line100-legend-color {
+    color: rgb(51,105,127);
+}
+
+.mg-line101-color {
+    stroke: rgb(81,146,204);
+}
+
+.mg-area101-color {
+    fill: rgb(81,146,204);
+}
+
+.mg-hover-line101-color {
+    fill: rgb(81,146,204);
+}
+
+.mg-line101-legend-color {
+    color: rgb(81,146,204);
+}
+
+.mg-line102-color {
+    stroke: rgb(51,91,127);
+}
+
+.mg-area102-color {
+    fill: rgb(51,91,127);
+}
+
+.mg-hover-line102-color {
+    fill: rgb(51,91,127);
+}
+
+.mg-line102-legend-color {
+    color: rgb(51,91,127);
+}
+
+.mg-line103-color {
+    stroke: rgb(81,123,204);
+}
+
+.mg-area103-color {
+    fill: rgb(81,123,204);
+}
+
+.mg-hover-line103-color {
+    fill: rgb(81,123,204);
+}
+
+.mg-line103-legend-color {
+    color: rgb(81,123,204);
+}
+
+.mg-line104-color {
+    stroke: rgb(51,77,127);
+}
+
+.mg-area104-color {
+    fill: rgb(51,77,127);
+}
+
+.mg-hover-line104-color {
+    fill: rgb(51,77,127);
+}
+
+.mg-line104-legend-color {
+    color: rgb(51,77,127);
+}
+
+.mg-line105-color {
+    stroke: rgb(81,100,204);
+}
+
+.mg-area105-color {
+    fill: rgb(81,100,204);
+}
+
+.mg-hover-line105-color {
+    fill: rgb(81,100,204);
+}
+
+.mg-line105-legend-color {
+    color: rgb(81,100,204);
+}
+
+.mg-line106-color {
+    stroke: rgb(51,62,127);
+}
+
+.mg-area106-color {
+    fill: rgb(51,62,127);
+}
+
+.mg-hover-line106-color {
+    fill: rgb(51,62,127);
+}
+
+.mg-line106-legend-color {
+    color: rgb(51,62,127);
+}
+
+.mg-line107-color {
+    stroke: rgb(85,81,204);
+}
+
+.mg-area107-color {
+    fill: rgb(85,81,204);
+}
+
+.mg-hover-line107-color {
+    fill: rgb(85,81,204);
+}
+
+.mg-line107-legend-color {
+    color: rgb(85,81,204);
+}
+
+.mg-line108-color {
+    stroke: rgb(53,51,127);
+}
+
+.mg-area108-color {
+    fill: rgb(53,51,127);
+}
+
+.mg-hover-line108-color {
+    fill: rgb(53,51,127);
+}
+
+.mg-line108-legend-color {
+    color: rgb(53,51,127);
+}
+
+.mg-line109-color {
+    stroke: rgb(108,81,204);
+}
+
+.mg-area109-color {
+    fill: rgb(108,81,204);
+}
+
+.mg-hover-line109-color {
+    fill: rgb(108,81,204);
+}
+
+.mg-line109-legend-color {
+    color: rgb(108,81,204);
+}
+
+.mg-line110-color {
+    stroke: rgb(67,51,127);
+}
+
+.mg-area110-color {
+    fill: rgb(67,51,127);
+}
+
+.mg-hover-line110-color {
+    fill: rgb(67,51,127);
+}
+
+.mg-line110-legend-color {
+    color: rgb(67,51,127);
+}
+
+.mg-line111-color {
+    stroke: rgb(131,81,204);
+}
+
+.mg-area111-color {
+    fill: rgb(131,81,204);
+}
+
+.mg-hover-line111-color {
+    fill: rgb(131,81,204);
+}
+
+.mg-line111-legend-color {
+    color: rgb(131,81,204);
+}
+
+.mg-line112-color {
+    stroke: rgb(82,51,127);
+}
+
+.mg-area112-color {
+    fill: rgb(82,51,127);
+}
+
+.mg-hover-line112-color {
+    fill: rgb(82,51,127);
+}
+
+.mg-line112-legend-color {
+    color: rgb(82,51,127);
+}
+
+.mg-line113-color {
+    stroke: rgb(154,81,204);
+}
+
+.mg-area113-color {
+    fill: rgb(154,81,204);
+}
+
+.mg-hover-line113-color {
+    fill: rgb(154,81,204);
+}
+
+.mg-line113-legend-color {
+    color: rgb(154,81,204);
+}
+
+.mg-line114-color {
+    stroke: rgb(96,51,127);
+}
+
+.mg-area114-color {
+    fill: rgb(96,51,127);
+}
+
+.mg-hover-line114-color {
+    fill: rgb(96,51,127);
+}
+
+.mg-line114-legend-color {
+    color: rgb(96,51,127);
+}
+
+.mg-line115-color {
+    stroke: rgb(177,81,204);
+}
+
+.mg-area115-color {
+    fill: rgb(177,81,204);
+}
+
+.mg-hover-line115-color {
+    fill: rgb(177,81,204);
+}
+
+.mg-line115-legend-color {
+    color: rgb(177,81,204);
+}
+
+.mg-line116-color {
+    stroke: rgb(110,51,127);
+}
+
+.mg-area116-color {
+    fill: rgb(110,51,127);
+}
+
+.mg-hover-line116-color {
+    fill: rgb(110,51,127);
+}
+
+.mg-line116-legend-color {
+    color: rgb(110,51,127);
+}
+
+.mg-line117-color {
+    stroke: rgb(200,81,204);
+}
+
+.mg-area117-color {
+    fill: rgb(200,81,204);
+}
+
+.mg-hover-line117-color {
+    fill: rgb(200,81,204);
+}
+
+.mg-line117-legend-color {
+    color: rgb(200,81,204);
+}
+
+.mg-line118-color {
+    stroke: rgb(125,51,127);
+}
+
+.mg-area118-color {
+    fill: rgb(125,51,127);
+}
+
+.mg-hover-line118-color {
+    fill: rgb(125,51,127);
+}
+
+.mg-line118-legend-color {
+    color: rgb(125,51,127);
+}
+
+.mg-line119-color {
+    stroke: rgb(204,81,184);
+}
+
+.mg-area119-color {
+    fill: rgb(204,81,184);
+}
+
+.mg-hover-line119-color {
+    fill: rgb(204,81,184);
+}
+
+.mg-line119-legend-color {
+    color: rgb(204,81,184);
+}
+
+.mg-line120-color {
+    stroke: rgb(127,51,115);
+}
+
+.mg-area120-color {
+    fill: rgb(127,51,115);
+}
+
+.mg-hover-line120-color {
+    fill: rgb(127,51,115);
+}
+
+.mg-line120-legend-color {
+    color: rgb(127,51,115);
+}
+
+.mg-line121-color {
+    stroke: rgb(204,81,161);
+}
+
+.mg-area121-color {
+    fill: rgb(204,81,161);
+}
+
+.mg-hover-line121-color {
+    fill: rgb(204,81,161);
+}
+
+.mg-line121-legend-color {
+    color: rgb(204,81,161);
+}
+
+.mg-line122-color {
+    stroke: rgb(127,51,101);
+}
+
+.mg-area122-color {
+    fill: rgb(127,51,101);
+}
+
+.mg-hover-line122-color {
+    fill: rgb(127,51,101);
+}
+
+.mg-line122-legend-color {
+    color: rgb(127,51,101);
+}
+
+.mg-line123-color {
+    stroke: rgb(204,81,138);
+}
+
+.mg-area123-color {
+    fill: rgb(204,81,138);
+}
+
+.mg-hover-line123-color {
+    fill: rgb(204,81,138);
+}
+
+.mg-line123-legend-color {
+    color: rgb(204,81,138);
+}
+
+.mg-line124-color {
+    stroke: rgb(127,51,86);
+}
+
+.mg-area124-color {
+    fill: rgb(127,51,86);
+}
+
+.mg-hover-line124-color {
+    fill: rgb(127,51,86);
+}
+
+.mg-line124-legend-color {
+    color: rgb(127,51,86);
+}
+
+.mg-line125-color {
+    stroke: rgb(204,81,116);
+}
+
+.mg-area125-color {
+    fill: rgb(204,81,116);
+}
+
+.mg-hover-line125-color {
+    fill: rgb(204,81,116);
+}
+
+.mg-line125-legend-color {
+    color: rgb(204,81,116);
+}
+
+.mg-line126-color {
+    stroke: rgb(127,51,72);
+}
+
+.mg-area126-color {
+    fill: rgb(127,51,72);
+}
+
+.mg-hover-line126-color {
+    fill: rgb(127,51,72);
+}
+
+.mg-line126-legend-color {
+    color: rgb(127,51,72);
+}
+
+.mg-line127-color {
+    stroke: rgb(204,81,93);
+}
+
+.mg-area127-color {
+    fill: rgb(204,81,93);
+}
+
+.mg-hover-line127-color {
+    fill: rgb(204,81,93);
+}
+
+.mg-line127-legend-color {
+    color: rgb(204,81,93);
+}
+
+.mg-line128-color {
+    stroke: rgb(127,51,58);
+}
+
+.mg-area128-color {
+    fill: rgb(127,51,58);
+}
+
+.mg-hover-line128-color {
+    fill: rgb(127,51,58);
+}
+
+.mg-line128-legend-color {
+    color: rgb(127,51,58);
+}
+
+.mg-line129-color {
+    stroke: rgb(204,87,81);
+}
+
+.mg-area129-color {
+    fill: rgb(204,87,81);
+}
+
+.mg-hover-line129-color {
+    fill: rgb(204,87,81);
+}
+
+.mg-line129-legend-color {
+    color: rgb(204,87,81);
+}
+
+.mg-line130-color {
+    stroke: rgb(127,54,51);
+}
+
+.mg-area130-color {
+    fill: rgb(127,54,51);
+}
+
+.mg-hover-line130-color {
+    fill: rgb(127,54,51);
+}
+
+.mg-line130-legend-color {
+    color: rgb(127,54,51);
+}
+
+.mg-line131-color {
+    stroke: rgb(204,98,81);
+}
+
+.mg-area131-color {
+    fill: rgb(204,98,81);
+}
+
+.mg-hover-line131-color {
+    fill: rgb(204,98,81);
+}
+
+.mg-line131-legend-color {
+    color: rgb(204,98,81);
+}
+
+.mg-line132-color {
+    stroke: rgb(127,61,51);
+}
+
+.mg-area132-color {
+    fill: rgb(127,61,51);
+}
+
+.mg-hover-line132-color {
+    fill: rgb(127,61,51);
+}
+
+.mg-line132-legend-color {
+    color: rgb(127,61,51);
+}
+
+.mg-line133-color {
+    stroke: rgb(204,110,81);
+}
+
+.mg-area133-color {
+    fill: rgb(204,110,81);
+}
+
+.mg-hover-line133-color {
+    fill: rgb(204,110,81);
+}
+
+.mg-line133-legend-color {
+    color: rgb(204,110,81);
+}
+
+.mg-line134-color {
+    stroke: rgb(127,68,51);
+}
+
+.mg-area134-color {
+    fill: rgb(127,68,51);
+}
+
+.mg-hover-line134-color {
+    fill: rgb(127,68,51);
+}
+
+.mg-line134-legend-color {
+    color: rgb(127,68,51);
+}
+
+.mg-line135-color {
+    stroke: rgb(204,121,81);
+}
+
+.mg-area135-color {
+    fill: rgb(204,121,81);
+}
+
+.mg-hover-line135-color {
+    fill: rgb(204,121,81);
+}
+
+.mg-line135-legend-color {
+    color: rgb(204,121,81);
+}
+
+.mg-line136-color {
+    stroke: rgb(127,76,51);
+}
+
+.mg-area136-color {
+    fill: rgb(127,76,51);
+}
+
+.mg-hover-line136-color {
+    fill: rgb(127,76,51);
+}
+
+.mg-line136-legend-color {
+    color: rgb(127,76,51);
+}
+
+.mg-line137-color {
+    stroke: rgb(204,133,81);
+}
+
+.mg-area137-color {
+    fill: rgb(204,133,81);
+}
+
+.mg-hover-line137-color {
+    fill: rgb(204,133,81);
+}
+
+.mg-line137-legend-color {
+    color: rgb(204,133,81);
+}
+
+.mg-line138-color {
+    stroke: rgb(127,83,51);
+}
+
+.mg-area138-color {
+    fill: rgb(127,83,51);
+}
+
+.mg-hover-line138-color {
+    fill: rgb(127,83,51);
+}
+
+.mg-line138-legend-color {
+    color: rgb(127,83,51);
+}
+
+.mg-line139-color {
+    stroke: rgb(204,144,81);
+}
+
+.mg-area139-color {
+    fill: rgb(204,144,81);
+}
+
+.mg-hover-line139-color {
+    fill: rgb(204,144,81);
+}
+
+.mg-line139-legend-color {
+    color: rgb(204,144,81);
+}
+
+.mg-line140-color {
+    stroke: rgb(127,90,51);
+}
+
+.mg-area140-color {
+    fill: rgb(127,90,51);
+}
+
+.mg-hover-line140-color {
+    fill: rgb(127,90,51);
+}
+
+.mg-line140-legend-color {
+    color: rgb(127,90,51);
+}
+
+.mg-line141-color {
+    stroke: rgb(204,156,81);
+}
+
+.mg-area141-color {
+    fill: rgb(204,156,81);
+}
+
+.mg-hover-line141-color {
+    fill: rgb(204,156,81);
+}
+
+.mg-line141-legend-color {
+    color: rgb(204,156,81);
+}
+
+.mg-line142-color {
+    stroke: rgb(127,97,51);
+}
+
+.mg-area142-color {
+    fill: rgb(127,97,51);
+}
+
+.mg-hover-line142-color {
+    fill: rgb(127,97,51);
+}
+
+.mg-line142-legend-color {
+    color: rgb(127,97,51);
+}
+
+.mg-line143-color {
+    stroke: rgb(204,167,81);
+}
+
+.mg-area143-color {
+    fill: rgb(204,167,81);
+}
+
+.mg-hover-line143-color {
+    fill: rgb(204,167,81);
+}
+
+.mg-line143-legend-color {
+    color: rgb(204,167,81);
+}
+
+.mg-line144-color {
+    stroke: rgb(127,104,51);
+}
+
+.mg-area144-color {
+    fill: rgb(127,104,51);
+}
+
+.mg-hover-line144-color {
+    fill: rgb(127,104,51);
+}
+
+.mg-line144-legend-color {
+    color: rgb(127,104,51);
+}
+
+.mg-line145-color {
+    stroke: rgb(204,179,81);
+}
+
+.mg-area145-color {
+    fill: rgb(204,179,81);
+}
+
+.mg-hover-line145-color {
+    fill: rgb(204,179,81);
+}
+
+.mg-line145-legend-color {
+    color: rgb(204,179,81);
+}
+
+.mg-line146-color {
+    stroke: rgb(127,111,51);
+}
+
+.mg-area146-color {
+    fill: rgb(127,111,51);
+}
+
+.mg-hover-line146-color {
+    fill: rgb(127,111,51);
+}
+
+.mg-line146-legend-color {
+    color: rgb(127,111,51);
+}
+
+.mg-line147-color {
+    stroke: rgb(204,190,81);
+}
+
+.mg-area147-color {
+    fill: rgb(204,190,81);
+}
+
+.mg-hover-line147-color {
+    fill: rgb(204,190,81);
+}
+
+.mg-line147-legend-color {
+    color: rgb(204,190,81);
+}
+
+.mg-line148-color {
+    stroke: rgb(127,119,51);
+}
+
+.mg-area148-color {
+    fill: rgb(127,119,51);
+}
+
+.mg-hover-line148-color {
+    fill: rgb(127,119,51);
+}
+
+.mg-line148-legend-color {
+    color: rgb(127,119,51);
+}
+
+.mg-line149-color {
+    stroke: rgb(204,202,81);
+}
+
+.mg-area149-color {
+    fill: rgb(204,202,81);
+}
+
+.mg-hover-line149-color {
+    fill: rgb(204,202,81);
+}
+
+.mg-line149-legend-color {
+    color: rgb(204,202,81);
+}
+
+.mg-line150-color {
+    stroke: rgb(127,126,51);
+}
+
+.mg-area150-color {
+    fill: rgb(127,126,51);
+}
+
+.mg-hover-line150-color {
+    fill: rgb(127,126,51);
+}
+
+.mg-line150-legend-color {
+    color: rgb(127,126,51);
+}
+
+.mg-line151-color {
+    stroke: rgb(194,204,81);
+}
+
+.mg-area151-color {
+    fill: rgb(194,204,81);
+}
+
+.mg-hover-line151-color {
+    fill: rgb(194,204,81);
+}
+
+.mg-line151-legend-color {
+    color: rgb(194,204,81);
+}
+
+.mg-line152-color {
+    stroke: rgb(121,127,51);
+}
+
+.mg-area152-color {
+    fill: rgb(121,127,51);
+}
+
+.mg-hover-line152-color {
+    fill: rgb(121,127,51);
+}
+
+.mg-line152-legend-color {
+    color: rgb(121,127,51);
+}
+
+.mg-line153-color {
+    stroke: rgb(182,204,81);
+}
+
+.mg-area153-color {
+    fill: rgb(182,204,81);
+}
+
+.mg-hover-line153-color {
+    fill: rgb(182,204,81);
+}
+
+.mg-line153-legend-color {
+    color: rgb(182,204,81);
+}
+
+.mg-line154-color {
+    stroke: rgb(114,127,51);
+}
+
+.mg-area154-color {
+    fill: rgb(114,127,51);
+}
+
+.mg-hover-line154-color {
+    fill: rgb(114,127,51);
+}
+
+.mg-line154-legend-color {
+    color: rgb(114,127,51);
+}
+
+.mg-line155-color {
+    stroke: rgb(171,204,81);
+}
+
+.mg-area155-color {
+    fill: rgb(171,204,81);
+}
+
+.mg-hover-line155-color {
+    fill: rgb(171,204,81);
+}
+
+.mg-line155-legend-color {
+    color: rgb(171,204,81);
+}
+
+.mg-line156-color {
+    stroke: rgb(107,127,51);
+}
+
+.mg-area156-color {
+    fill: rgb(107,127,51);
+}
+
+.mg-hover-line156-color {
+    fill: rgb(107,127,51);
+}
+
+.mg-line156-legend-color {
+    color: rgb(107,127,51);
+}
+
+.mg-line157-color {
+    stroke: rgb(160,204,81);
+}
+
+.mg-area157-color {
+    fill: rgb(160,204,81);
+}
+
+.mg-hover-line157-color {
+    fill: rgb(160,204,81);
+}
+
+.mg-line157-legend-color {
+    color: rgb(160,204,81);
+}
+
+.mg-line158-color {
+    stroke: rgb(100,127,51);
+}
+
+.mg-area158-color {
+    fill: rgb(100,127,51);
+}
+
+.mg-hover-line158-color {
+    fill: rgb(100,127,51);
+}
+
+.mg-line158-legend-color {
+    color: rgb(100,127,51);
+}
+
+.mg-line159-color {
+    stroke: rgb(148,204,81);
+}
+
+.mg-area159-color {
+    fill: rgb(148,204,81);
+}
+
+.mg-hover-line159-color {
+    fill: rgb(148,204,81);
+}
+
+.mg-line159-legend-color {
+    color: rgb(148,204,81);
+}
+
+.mg-line160-color {
+    stroke: rgb(92,127,51);
+}
+
+.mg-area160-color {
+    fill: rgb(92,127,51);
+}
+
+.mg-hover-line160-color {
+    fill: rgb(92,127,51);
+}
+
+.mg-line160-legend-color {
+    color: rgb(92,127,51);
+}
+
+.mg-line161-color {
+    stroke: rgb(137,204,81);
+}
+
+.mg-area161-color {
+    fill: rgb(137,204,81);
+}
+
+.mg-hover-line161-color {
+    fill: rgb(137,204,81);
+}
+
+.mg-line161-legend-color {
+    color: rgb(137,204,81);
+}
+
+.mg-line162-color {
+    stroke: rgb(85,127,51);
+}
+
+.mg-area162-color {
+    fill: rgb(85,127,51);
+}
+
+.mg-hover-line162-color {
+    fill: rgb(85,127,51);
+}
+
+.mg-line162-legend-color {
+    color: rgb(85,127,51);
+}
+
+.mg-line163-color {
+    stroke: rgb(125,204,81);
+}
+
+.mg-area163-color {
+    fill: rgb(125,204,81);
+}
+
+.mg-hover-line163-color {
+    fill: rgb(125,204,81);
+}
+
+.mg-line163-legend-color {
+    color: rgb(125,204,81);
+}
+
+.mg-line164-color {
+    stroke: rgb(78,127,51);
+}
+
+.mg-area164-color {
+    fill: rgb(78,127,51);
+}
+
+.mg-hover-line164-color {
+    fill: rgb(78,127,51);
+}
+
+.mg-line164-legend-color {
+    color: rgb(78,127,51);
+}
+
+.mg-line165-color {
+    stroke: rgb(114,204,81);
+}
+
+.mg-area165-color {
+    fill: rgb(114,204,81);
+}
+
+.mg-hover-line165-color {
+    fill: rgb(114,204,81);
+}
+
+.mg-line165-legend-color {
+    color: rgb(114,204,81);
+}
+
+.mg-line166-color {
+    stroke: rgb(71,127,51);
+}
+
+.mg-area166-color {
+    fill: rgb(71,127,51);
+}
+
+.mg-hover-line166-color {
+    fill: rgb(71,127,51);
+}
+
+.mg-line166-legend-color {
+    color: rgb(71,127,51);
+}
+
+.mg-line167-color {
+    stroke: rgb(102,204,81);
+}
+
+.mg-area167-color {
+    fill: rgb(102,204,81);
+}
+
+.mg-hover-line167-color {
+    fill: rgb(102,204,81);
+}
+
+.mg-line167-legend-color {
+    color: rgb(102,204,81);
+}
+
+.mg-line168-color {
+    stroke: rgb(64,127,51);
+}
+
+.mg-area168-color {
+    fill: rgb(64,127,51);
+}
+
+.mg-hover-line168-color {
+    fill: rgb(64,127,51);
+}
+
+.mg-line168-legend-color {
+    color: rgb(64,127,51);
+}
+
+.mg-line169-color {
+    stroke: rgb(91,204,81);
+}
+
+.mg-area169-color {
+    fill: rgb(91,204,81);
+}
+
+.mg-hover-line169-color {
+    fill: rgb(91,204,81);
+}
+
+.mg-line169-legend-color {
+    color: rgb(91,204,81);
+}
+
+.mg-line170-color {
+    stroke: rgb(56,127,51);
+}
+
+.mg-area170-color {
+    fill: rgb(56,127,51);
+}
+
+.mg-hover-line170-color {
+    fill: rgb(56,127,51);
+}
+
+.mg-line170-legend-color {
+    color: rgb(56,127,51);
+}
+
+.mg-line171-color {
+    stroke: rgb(81,204,83);
+}
+
+.mg-area171-color {
+    fill: rgb(81,204,83);
+}
+
+.mg-hover-line171-color {
+    fill: rgb(81,204,83);
+}
+
+.mg-line171-legend-color {
+    color: rgb(81,204,83);
+}
+
+.mg-line172-color {
+    stroke: rgb(51,127,52);
+}
+
+.mg-area172-color {
+    fill: rgb(51,127,52);
+}
+
+.mg-hover-line172-color {
+    fill: rgb(51,127,52);
+}
+
+.mg-line172-legend-color {
+    color: rgb(51,127,52);
+}
+
+.mg-line173-color {
+    stroke: rgb(81,204,94);
+}
+
+.mg-area173-color {
+    fill: rgb(81,204,94);
+}
+
+.mg-hover-line173-color {
+    fill: rgb(81,204,94);
+}
+
+.mg-line173-legend-color {
+    color: rgb(81,204,94);
+}
+
+.mg-line174-color {
+    stroke: rgb(51,127,59);
+}
+
+.mg-area174-color {
+    fill: rgb(51,127,59);
+}
+
+.mg-hover-line174-color {
+    fill: rgb(51,127,59);
+}
+
+.mg-line174-legend-color {
+    color: rgb(51,127,59);
+}
+
+.mg-line175-color {
+    stroke: rgb(81,204,106);
+}
+
+.mg-area175-color {
+    fill: rgb(81,204,106);
+}
+
+.mg-hover-line175-color {
+    fill: rgb(81,204,106);
+}
+
+.mg-line175-legend-color {
+    color: rgb(81,204,106);
+}
+
+.mg-line176-color {
+    stroke: rgb(51,127,66);
+}
+
+.mg-area176-color {
+    fill: rgb(51,127,66);
+}
+
+.mg-hover-line176-color {
+    fill: rgb(51,127,66);
+}
+
+.mg-line176-legend-color {
+    color: rgb(51,127,66);
+}
+
+.mg-line177-color {
+    stroke: rgb(81,204,117);
+}
+
+.mg-area177-color {
+    fill: rgb(81,204,117);
+}
+
+.mg-hover-line177-color {
+    fill: rgb(81,204,117);
+}
+
+.mg-line177-legend-color {
+    color: rgb(81,204,117);
+}
+
+.mg-line178-color {
+    stroke: rgb(51,127,73);
+}
+
+.mg-area178-color {
+    fill: rgb(51,127,73);
+}
+
+.mg-hover-line178-color {
+    fill: rgb(51,127,73);
+}
+
+.mg-line178-legend-color {
+    color: rgb(51,127,73);
+}
+
+.mg-line179-color {
+    stroke: rgb(81,204,129);
+}
+
+.mg-area179-color {
+    fill: rgb(81,204,129);
+}
+
+.mg-hover-line179-color {
+    fill: rgb(81,204,129);
+}
+
+.mg-line179-legend-color {
+    color: rgb(81,204,129);
+}
+
+.mg-line180-color {
+    stroke: rgb(51,127,80);
+}
+
+.mg-area180-color {
+    fill: rgb(51,127,80);
+}
+
+.mg-hover-line180-color {
+    fill: rgb(51,127,80);
+}
+
+.mg-line180-legend-color {
+    color: rgb(51,127,80);
+}
+
+.mg-line181-color {
+    stroke: rgb(81,204,140);
+}
+
+.mg-area181-color {
+    fill: rgb(81,204,140);
+}
+
+.mg-hover-line181-color {
+    fill: rgb(81,204,140);
+}
+
+.mg-line181-legend-color {
+    color: rgb(81,204,140);
+}
+
+.mg-line182-color {
+    stroke: rgb(51,127,88);
+}
+
+.mg-area182-color {
+    fill: rgb(51,127,88);
+}
+
+.mg-hover-line182-color {
+    fill: rgb(51,127,88);
+}
+
+.mg-line182-legend-color {
+    color: rgb(51,127,88);
+}
+
+.mg-line183-color {
+    stroke: rgb(81,204,152);
+}
+
+.mg-area183-color {
+    fill: rgb(81,204,152);
+}
+
+.mg-hover-line183-color {
+    fill: rgb(81,204,152);
+}
+
+.mg-line183-legend-color {
+    color: rgb(81,204,152);
+}
+
+.mg-line184-color {
+    stroke: rgb(51,127,95);
+}
+
+.mg-area184-color {
+    fill: rgb(51,127,95);
+}
+
+.mg-hover-line184-color {
+    fill: rgb(51,127,95);
+}
+
+.mg-line184-legend-color {
+    color: rgb(51,127,95);
+}
+
+.mg-line185-color {
+    stroke: rgb(81,204,163);
+}
+
+.mg-area185-color {
+    fill: rgb(81,204,163);
+}
+
+.mg-hover-line185-color {
+    fill: rgb(81,204,163);
+}
+
+.mg-line185-legend-color {
+    color: rgb(81,204,163);
+}
+
+.mg-line186-color {
+    stroke: rgb(51,127,102);
+}
+
+.mg-area186-color {
+    fill: rgb(51,127,102);
+}
+
+.mg-hover-line186-color {
+    fill: rgb(51,127,102);
+}
+
+.mg-line186-legend-color {
+    color: rgb(51,127,102);
+}
+
+.mg-line187-color {
+    stroke: rgb(81,204,175);
+}
+
+.mg-area187-color {
+    fill: rgb(81,204,175);
+}
+
+.mg-hover-line187-color {
+    fill: rgb(81,204,175);
+}
+
+.mg-line187-legend-color {
+    color: rgb(81,204,175);
+}
+
+.mg-line188-color {
+    stroke: rgb(51,127,109);
+}
+
+.mg-area188-color {
+    fill: rgb(51,127,109);
+}
+
+.mg-hover-line188-color {
+    fill: rgb(51,127,109);
+}
+
+.mg-line188-legend-color {
+    color: rgb(51,127,109);
+}
+
+.mg-line189-color {
+    stroke: rgb(81,204,186);
+}
+
+.mg-area189-color {
+    fill: rgb(81,204,186);
+}
+
+.mg-hover-line189-color {
+    fill: rgb(81,204,186);
+}
+
+.mg-line189-legend-color {
+    color: rgb(81,204,186);
+}
+
+.mg-line190-color {
+    stroke: rgb(51,127,116);
+}
+
+.mg-area190-color {
+    fill: rgb(51,127,116);
+}
+
+.mg-hover-line190-color {
+    fill: rgb(51,127,116);
+}
+
+.mg-line190-legend-color {
+    color: rgb(51,127,116);
+}
+
+.mg-line191-color {
+    stroke: rgb(81,204,198);
+}
+
+.mg-area191-color {
+    fill: rgb(81,204,198);
+}
+
+.mg-hover-line191-color {
+    fill: rgb(81,204,198);
+}
+
+.mg-line191-legend-color {
+    color: rgb(81,204,198);
+}
+
+.mg-line192-color {
+    stroke: rgb(51,127,123);
+}
+
+.mg-area192-color {
+    fill: rgb(51,127,123);
+}
+
+.mg-hover-line192-color {
+    fill: rgb(51,127,123);
+}
+
+.mg-line192-legend-color {
+    color: rgb(51,127,123);
+}
+
+.mg-line193-color {
+    stroke: rgb(81,198,204);
+}
+
+.mg-area193-color {
+    fill: rgb(81,198,204);
+}
+
+.mg-hover-line193-color {
+    fill: rgb(81,198,204);
+}
+
+.mg-line193-legend-color {
+    color: rgb(81,198,204);
+}
+
+.mg-line194-color {
+    stroke: rgb(51,123,127);
+}
+
+.mg-area194-color {
+    fill: rgb(51,123,127);
+}
+
+.mg-hover-line194-color {
+    fill: rgb(51,123,127);
+}
+
+.mg-line194-legend-color {
+    color: rgb(51,123,127);
+}
+
+.mg-line195-color {
+    stroke: rgb(81,186,204);
+}
+
+.mg-area195-color {
+    fill: rgb(81,186,204);
+}
+
+.mg-hover-line195-color {
+    fill: rgb(81,186,204);
+}
+
+.mg-line195-legend-color {
+    color: rgb(81,186,204);
+}
+
+.mg-line196-color {
+    stroke: rgb(51,116,127);
+}
+
+.mg-area196-color {
+    fill: rgb(51,116,127);
+}
+
+.mg-hover-line196-color {
+    fill: rgb(51,116,127);
+}
+
+.mg-line196-legend-color {
+    color: rgb(51,116,127);
+}
+
+.mg-line197-color {
+    stroke: rgb(81,175,204);
+}
+
+.mg-area197-color {
+    fill: rgb(81,175,204);
+}
+
+.mg-hover-line197-color {
+    fill: rgb(81,175,204);
+}
+
+.mg-line197-legend-color {
+    color: rgb(81,175,204);
+}
+
+.mg-line198-color {
+    stroke: rgb(51,109,127);
+}
+
+.mg-area198-color {
+    fill: rgb(51,109,127);
+}
+
+.mg-hover-line198-color {
+    fill: rgb(51,109,127);
+}
+
+.mg-line198-legend-color {
+    color: rgb(51,109,127);
+}
+
+.mg-line199-color {
+    stroke: rgb(81,163,204);
+}
+
+.mg-area199-color {
+    fill: rgb(81,163,204);
+}
+
+.mg-hover-line199-color {
+    fill: rgb(81,163,204);
+}
+
+.mg-line199-legend-color {
+    color: rgb(81,163,204);
+}
+
+.mg-line200-color {
+    stroke: rgb(51,102,127);
+}
+
+.mg-area200-color {
+    fill: rgb(51,102,127);
+}
+
+.mg-hover-line200-color {
+    fill: rgb(51,102,127);
+}
+
+.mg-line200-legend-color {
+    color: rgb(51,102,127);
+}
+
+.mg-line201-color {
+    stroke: rgb(81,152,204);
+}
+
+.mg-area201-color {
+    fill: rgb(81,152,204);
+}
+
+.mg-hover-line201-color {
+    fill: rgb(81,152,204);
+}
+
+.mg-line201-legend-color {
+    color: rgb(81,152,204);
+}
+
+.mg-line202-color {
+    stroke: rgb(51,95,127);
+}
+
+.mg-area202-color {
+    fill: rgb(51,95,127);
+}
+
+.mg-hover-line202-color {
+    fill: rgb(51,95,127);
+}
+
+.mg-line202-legend-color {
+    color: rgb(51,95,127);
+}
+
+.mg-line203-color {
+    stroke: rgb(81,140,204);
+}
+
+.mg-area203-color {
+    fill: rgb(81,140,204);
+}
+
+.mg-hover-line203-color {
+    fill: rgb(81,140,204);
+}
+
+.mg-line203-legend-color {
+    color: rgb(81,140,204);
+}
+
+.mg-line204-color {
+    stroke: rgb(51,88,127);
+}
+
+.mg-area204-color {
+    fill: rgb(51,88,127);
+}
+
+.mg-hover-line204-color {
+    fill: rgb(51,88,127);
+}
+
+.mg-line204-legend-color {
+    color: rgb(51,88,127);
+}
+
+.mg-line205-color {
+    stroke: rgb(81,129,204);
+}
+
+.mg-area205-color {
+    fill: rgb(81,129,204);
+}
+
+.mg-hover-line205-color {
+    fill: rgb(81,129,204);
+}
+
+.mg-line205-legend-color {
+    color: rgb(81,129,204);
+}
+
+.mg-line206-color {
+    stroke: rgb(51,80,127);
+}
+
+.mg-area206-color {
+    fill: rgb(51,80,127);
+}
+
+.mg-hover-line206-color {
+    fill: rgb(51,80,127);
+}
+
+.mg-line206-legend-color {
+    color: rgb(51,80,127);
+}
+
+.mg-line207-color {
+    stroke: rgb(81,117,204);
+}
+
+.mg-area207-color {
+    fill: rgb(81,117,204);
+}
+
+.mg-hover-line207-color {
+    fill: rgb(81,117,204);
+}
+
+.mg-line207-legend-color {
+    color: rgb(81,117,204);
+}
+
+.mg-line208-color {
+    stroke: rgb(51,73,127);
+}
+
+.mg-area208-color {
+    fill: rgb(51,73,127);
+}
+
+.mg-hover-line208-color {
+    fill: rgb(51,73,127);
+}
+
+.mg-line208-legend-color {
+    color: rgb(51,73,127);
+}
+
+.mg-line209-color {
+    stroke: rgb(81,106,204);
+}
+
+.mg-area209-color {
+    fill: rgb(81,106,204);
+}
+
+.mg-hover-line209-color {
+    fill: rgb(81,106,204);
+}
+
+.mg-line209-legend-color {
+    color: rgb(81,106,204);
+}
+
+.mg-line210-color {
+    stroke: rgb(51,66,127);
+}
+
+.mg-area210-color {
+    fill: rgb(51,66,127);
+}
+
+.mg-hover-line210-color {
+    fill: rgb(51,66,127);
+}
+
+.mg-line210-legend-color {
+    color: rgb(51,66,127);
+}
+
+.mg-line211-color {
+    stroke: rgb(81,94,204);
+}
+
+.mg-area211-color {
+    fill: rgb(81,94,204);
+}
+
+.mg-hover-line211-color {
+    fill: rgb(81,94,204);
+}
+
+.mg-line211-legend-color {
+    color: rgb(81,94,204);
+}
+
+.mg-line212-color {
+    stroke: rgb(51,59,127);
+}
+
+.mg-area212-color {
+    fill: rgb(51,59,127);
+}
+
+.mg-hover-line212-color {
+    fill: rgb(51,59,127);
+}
+
+.mg-line212-legend-color {
+    color: rgb(51,59,127);
+}
+
+.mg-line213-color {
+    stroke: rgb(81,83,204);
+}
+
+.mg-area213-color {
+    fill: rgb(81,83,204);
+}
+
+.mg-hover-line213-color {
+    fill: rgb(81,83,204);
+}
+
+.mg-line213-legend-color {
+    color: rgb(81,83,204);
+}
+
+.mg-line214-color {
+    stroke: rgb(51,52,127);
+}
+
+.mg-area214-color {
+    fill: rgb(51,52,127);
+}
+
+.mg-hover-line214-color {
+    fill: rgb(51,52,127);
+}
+
+.mg-line214-legend-color {
+    color: rgb(51,52,127);
+}
+
+.mg-line215-color {
+    stroke: rgb(91,81,204);
+}
+
+.mg-area215-color {
+    fill: rgb(91,81,204);
+}
+
+.mg-hover-line215-color {
+    fill: rgb(91,81,204);
+}
+
+.mg-line215-legend-color {
+    color: rgb(91,81,204);
+}
+
+.mg-line216-color {
+    stroke: rgb(56,51,127);
+}
+
+.mg-area216-color {
+    fill: rgb(56,51,127);
+}
+
+.mg-hover-line216-color {
+    fill: rgb(56,51,127);
+}
+
+.mg-line216-legend-color {
+    color: rgb(56,51,127);
+}
+
+.mg-line217-color {
+    stroke: rgb(102,81,204);
+}
+
+.mg-area217-color {
+    fill: rgb(102,81,204);
+}
+
+.mg-hover-line217-color {
+    fill: rgb(102,81,204);
+}
+
+.mg-line217-legend-color {
+    color: rgb(102,81,204);
+}
+
+.mg-line218-color {
+    stroke: rgb(64,51,127);
+}
+
+.mg-area218-color {
+    fill: rgb(64,51,127);
+}
+
+.mg-hover-line218-color {
+    fill: rgb(64,51,127);
+}
+
+.mg-line218-legend-color {
+    color: rgb(64,51,127);
+}
+
+.mg-line219-color {
+    stroke: rgb(114,81,204);
+}
+
+.mg-area219-color {
+    fill: rgb(114,81,204);
+}
+
+.mg-hover-line219-color {
+    fill: rgb(114,81,204);
+}
+
+.mg-line219-legend-color {
+    color: rgb(114,81,204);
+}
+
+.mg-line220-color {
+    stroke: rgb(71,51,127);
+}
+
+.mg-area220-color {
+    fill: rgb(71,51,127);
+}
+
+.mg-hover-line220-color {
+    fill: rgb(71,51,127);
+}
+
+.mg-line220-legend-color {
+    color: rgb(71,51,127);
+}
+
+.mg-line221-color {
+    stroke: rgb(125,81,204);
+}
+
+.mg-area221-color {
+    fill: rgb(125,81,204);
+}
+
+.mg-hover-line221-color {
+    fill: rgb(125,81,204);
+}
+
+.mg-line221-legend-color {
+    color: rgb(125,81,204);
+}
+
+.mg-line222-color {
+    stroke: rgb(78,51,127);
+}
+
+.mg-area222-color {
+    fill: rgb(78,51,127);
+}
+
+.mg-hover-line222-color {
+    fill: rgb(78,51,127);
+}
+
+.mg-line222-legend-color {
+    color: rgb(78,51,127);
+}
+
+.mg-line223-color {
+    stroke: rgb(137,81,204);
+}
+
+.mg-area223-color {
+    fill: rgb(137,81,204);
+}
+
+.mg-hover-line223-color {
+    fill: rgb(137,81,204);
+}
+
+.mg-line223-legend-color {
+    color: rgb(137,81,204);
+}
+
+.mg-line224-color {
+    stroke: rgb(85,51,127);
+}
+
+.mg-area224-color {
+    fill: rgb(85,51,127);
+}
+
+.mg-hover-line224-color {
+    fill: rgb(85,51,127);
+}
+
+.mg-line224-legend-color {
+    color: rgb(85,51,127);
+}
+
+.mg-line225-color {
+    stroke: rgb(148,81,204);
+}
+
+.mg-area225-color {
+    fill: rgb(148,81,204);
+}
+
+.mg-hover-line225-color {
+    fill: rgb(148,81,204);
+}
+
+.mg-line225-legend-color {
+    color: rgb(148,81,204);
+}
+
+.mg-line226-color {
+    stroke: rgb(92,51,127);
+}
+
+.mg-area226-color {
+    fill: rgb(92,51,127);
+}
+
+.mg-hover-line226-color {
+    fill: rgb(92,51,127);
+}
+
+.mg-line226-legend-color {
+    color: rgb(92,51,127);
+}
+
+.mg-line227-color {
+    stroke: rgb(160,81,204);
+}
+
+.mg-area227-color {
+    fill: rgb(160,81,204);
+}
+
+.mg-hover-line227-color {
+    fill: rgb(160,81,204);
+}
+
+.mg-line227-legend-color {
+    color: rgb(160,81,204);
+}
+
+.mg-line228-color {
+    stroke: rgb(100,51,127);
+}
+
+.mg-area228-color {
+    fill: rgb(100,51,127);
+}
+
+.mg-hover-line228-color {
+    fill: rgb(100,51,127);
+}
+
+.mg-line228-legend-color {
+    color: rgb(100,51,127);
+}
+
+.mg-line229-color {
+    stroke: rgb(171,81,204);
+}
+
+.mg-area229-color {
+    fill: rgb(171,81,204);
+}
+
+.mg-hover-line229-color {
+    fill: rgb(171,81,204);
+}
+
+.mg-line229-legend-color {
+    color: rgb(171,81,204);
+}
+
+.mg-line230-color {
+    stroke: rgb(107,51,127);
+}
+
+.mg-area230-color {
+    fill: rgb(107,51,127);
+}
+
+.mg-hover-line230-color {
+    fill: rgb(107,51,127);
+}
+
+.mg-line230-legend-color {
+    color: rgb(107,51,127);
+}
+
+.mg-line231-color {
+    stroke: rgb(182,81,204);
+}
+
+.mg-area231-color {
+    fill: rgb(182,81,204);
+}
+
+.mg-hover-line231-color {
+    fill: rgb(182,81,204);
+}
+
+.mg-line231-legend-color {
+    color: rgb(182,81,204);
+}
+
+.mg-line232-color {
+    stroke: rgb(114,51,127);
+}
+
+.mg-area232-color {
+    fill: rgb(114,51,127);
+}
+
+.mg-hover-line232-color {
+    fill: rgb(114,51,127);
+}
+
+.mg-line232-legend-color {
+    color: rgb(114,51,127);
+}
+
+.mg-line233-color {
+    stroke: rgb(194,81,204);
+}
+
+.mg-area233-color {
+    fill: rgb(194,81,204);
+}
+
+.mg-hover-line233-color {
+    fill: rgb(194,81,204);
+}
+
+.mg-line233-legend-color {
+    color: rgb(194,81,204);
+}
+
+.mg-line234-color {
+    stroke: rgb(121,51,127);
+}
+
+.mg-area234-color {
+    fill: rgb(121,51,127);
+}
+
+.mg-hover-line234-color {
+    fill: rgb(121,51,127);
+}
+
+.mg-line234-legend-color {
+    color: rgb(121,51,127);
+}
+
+.mg-line235-color {
+    stroke: rgb(204,81,202);
+}
+
+.mg-area235-color {
+    fill: rgb(204,81,202);
+}
+
+.mg-hover-line235-color {
+    fill: rgb(204,81,202);
+}
+
+.mg-line235-legend-color {
+    color: rgb(204,81,202);
+}
+
+.mg-line236-color {
+    stroke: rgb(127,51,126);
+}
+
+.mg-area236-color {
+    fill: rgb(127,51,126);
+}
+
+.mg-hover-line236-color {
+    fill: rgb(127,51,126);
+}
+
+.mg-line236-legend-color {
+    color: rgb(127,51,126);
+}
+
+.mg-line237-color {
+    stroke: rgb(204,81,190);
+}
+
+.mg-area237-color {
+    fill: rgb(204,81,190);
+}
+
+.mg-hover-line237-color {
+    fill: rgb(204,81,190);
+}
+
+.mg-line237-legend-color {
+    color: rgb(204,81,190);
+}
+
+.mg-line238-color {
+    stroke: rgb(127,51,119);
+}
+
+.mg-area238-color {
+    fill: rgb(127,51,119);
+}
+
+.mg-hover-line238-color {
+    fill: rgb(127,51,119);
+}
+
+.mg-line238-legend-color {
+    color: rgb(127,51,119);
+}
+
+.mg-line239-color {
+    stroke: rgb(204,81,179);
+}
+
+.mg-area239-color {
+    fill: rgb(204,81,179);
+}
+
+.mg-hover-line239-color {
+    fill: rgb(204,81,179);
+}
+
+.mg-line239-legend-color {
+    color: rgb(204,81,179);
+}
+
+.mg-line240-color {
+    stroke: rgb(127,51,111);
+}
+
+.mg-area240-color {
+    fill: rgb(127,51,111);
+}
+
+.mg-hover-line240-color {
+    fill: rgb(127,51,111);
+}
+
+.mg-line240-legend-color {
+    color: rgb(127,51,111);
+}
+
+.mg-line241-color {
+    stroke: rgb(204,81,167);
+}
+
+.mg-area241-color {
+    fill: rgb(204,81,167);
+}
+
+.mg-hover-line241-color {
+    fill: rgb(204,81,167);
+}
+
+.mg-line241-legend-color {
+    color: rgb(204,81,167);
+}
+
+.mg-line242-color {
+    stroke: rgb(127,51,104);
+}
+
+.mg-area242-color {
+    fill: rgb(127,51,104);
+}
+
+.mg-hover-line242-color {
+    fill: rgb(127,51,104);
+}
+
+.mg-line242-legend-color {
+    color: rgb(127,51,104);
+}
+
+.mg-line243-color {
+    stroke: rgb(204,81,156);
+}
+
+.mg-area243-color {
+    fill: rgb(204,81,156);
+}
+
+.mg-hover-line243-color {
+    fill: rgb(204,81,156);
+}
+
+.mg-line243-legend-color {
+    color: rgb(204,81,156);
+}
+
+.mg-line244-color {
+    stroke: rgb(127,51,97);
+}
+
+.mg-area244-color {
+    fill: rgb(127,51,97);
+}
+
+.mg-hover-line244-color {
+    fill: rgb(127,51,97);
+}
+
+.mg-line244-legend-color {
+    color: rgb(127,51,97);
+}
+
+.mg-line245-color {
+    stroke: rgb(204,81,144);
+}
+
+.mg-area245-color {
+    fill: rgb(204,81,144);
+}
+
+.mg-hover-line245-color {
+    fill: rgb(204,81,144);
+}
+
+.mg-line245-legend-color {
+    color: rgb(204,81,144);
+}
+
+.mg-line246-color {
+    stroke: rgb(127,51,90);
+}
+
+.mg-area246-color {
+    fill: rgb(127,51,90);
+}
+
+.mg-hover-line246-color {
+    fill: rgb(127,51,90);
+}
+
+.mg-line246-legend-color {
+    color: rgb(127,51,90);
+}
+
+.mg-line247-color {
+    stroke: rgb(204,81,133);
+}
+
+.mg-area247-color {
+    fill: rgb(204,81,133);
+}
+
+.mg-hover-line247-color {
+    fill: rgb(204,81,133);
+}
+
+.mg-line247-legend-color {
+    color: rgb(204,81,133);
+}
+
+.mg-line248-color {
+    stroke: rgb(127,51,83);
+}
+
+.mg-area248-color {
+    fill: rgb(127,51,83);
+}
+
+.mg-hover-line248-color {
+    fill: rgb(127,51,83);
+}
+
+.mg-line248-legend-color {
+    color: rgb(127,51,83);
+}
+
+.mg-line249-color {
+    stroke: rgb(204,81,121);
+}
+
+.mg-area249-color {
+    fill: rgb(204,81,121);
+}
+
+.mg-hover-line249-color {
+    fill: rgb(204,81,121);
+}
+
+.mg-line249-legend-color {
+    color: rgb(204,81,121);
+}
+
+.mg-line250-color {
+    stroke: rgb(127,51,76);
+}
+
+.mg-area250-color {
+    fill: rgb(127,51,76);
+}
+
+.mg-hover-line250-color {
+    fill: rgb(127,51,76);
+}
+
+.mg-line250-legend-color {
+    color: rgb(127,51,76);
+}
+

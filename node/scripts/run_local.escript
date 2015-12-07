@@ -88,6 +88,7 @@ setup_logger(Handlers) ->
     ok = application:load(lager),
     ok = application:set_env(lager, handlers, Handlers),
     ok = application:set_env(lager, crash_log, undefined),
+    ok = application:set_env(lager, extra_sinks, [{system_log_lager_event, [{handlers, Handlers}]}]),
     {ok, _} = application:ensure_all_started(lager),
 
     application:load(sasl),

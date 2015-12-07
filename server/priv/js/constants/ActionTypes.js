@@ -9,12 +9,12 @@ export default keyMirror({
     HIDE_TIMELINE_LOADING_MASK: null,
     SELECT_BENCH_BY_ID: null,
     SELECT_ACTIVE_TAB: null,
-    METRIC_STORE_RESET: null,
-    METRIC_UPDATE: null,
     NOTIFY: null,
     NEW_BENCH: null,
     SERVER_INFO: null,
     MODIFY_NEW_BENCH: null,
     CLEAN_NEW_BENCH: null,
-    CLONE_BENCH: null
+    CLONE_BENCH: null,
+    METRIC_DATA: null,
+    SUBSCRIBE_METRICS: null
 });

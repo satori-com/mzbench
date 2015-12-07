@@ -92,10 +92,19 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
 
 handle(<<"GET">>, <<"/data">>, Req) ->
     with_bench_id(Req, fun(Id) ->
-        #{config:= Config} = mzb_api_server:status(Id),
-        #{metrics_compression:= Compression} = Config,
-        Filename = mzb_api_bench:metrics_file(Config),
-        {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
+        #{config:= Config, metrics:= Metrics} =
+            fun WaitMetricsCreations() ->
+                #{status:= S} = Status = mzb_api_server:status(Id),
+                case lists:member(S, [running, stopped, complete, crashed]) of
+                    true -> Status;
+                    false ->
+                        timer:sleep(1000),
+                        WaitMetricsCreations()
+                end
+            end (),
+        MetricNames = mzb_api_metrics:extract_metric_names(Metrics),
+        Filenames = [{N, mzb_api_bench:metrics_file(N, Config)} || N <- MetricNames],
+        {ok, stream_metrics_from_files(Filenames, Id, Req), #{}}
     end);
 
 handle(<<"GET">>, <<"/email_report">>, Req) ->
@@ -127,7 +136,7 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
                                          IdA >= IdB
                                  end, BenchInfo),
     Body = lists:map(
-             fun({Id, #{status:= Status, config:= Config, start_time:= StartTime, finish_time:= FinishTime, metrics:= Metrics}}) ->
+             fun({Id, #{status:= Status, config:= Config, start_time:= StartTime, finish_time:= FinishTime}}) ->
                      ScriptName = case Config of
                                       #{script:= #{name:= SN}} -> SN;
                                       #{script:= SN} -> SN
@@ -138,11 +147,10 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
                                     Time when is_number(Time) ->
                                         FinishTime - StartTime
                                 end,
-                     HasGraphite = maps:is_key(<<"graphite_url">>, Metrics),
                      [Id, list_to_binary(iso_8601_fmt(StartTime)), list_to_binary(ScriptName),
-                      Status, Duration, HasGraphite];
+                      Status, Duration];
                 ({Id, #{status:= failed, reason:= {crashed, _}}}) ->
-                     [Id, <<"n/a">>, <<"n/a">>, crashed, 0, false]
+                     [Id, <<"n/a">>, <<"n/a">>, crashed, 0]
              end, SortedBenchInfo),
     {ok, reply_json(200, #{data => Body}, Req), #{}};
 
@@ -179,11 +187,20 @@ terminate(_Reason, _Req, _State) ->
 multipart(Req, Res) ->
     case cowboy_req:part(Req) of
         {ok, Headers, Req2} ->
-            {ok, Body, Req3} = cowboy_req:part_body(Req2),
+            {ok, Body, Req3} = read_big_file(Req2),
             {file, Field, Filename, _CT, _Enc} = cow_multipart:form_data(Headers),
             multipart(Req3, [{Field, {binary_to_list(Filename), Body}}|Res]);
         {done, Req2} ->
             {Res, Req2}
+    end.
+
+read_big_file(Req) ->
+    read_big_file(Req, <<>>).
+
+read_big_file(Req, Acc) ->
+    case cowboy_req:part_body(Req) of
+        {ok, Body, Req2} -> {ok, <<Acc/binary, Body/binary>>, Req2};
+        {more, Body, Req2} -> read_big_file(Req2, <<Acc/binary, Body/binary>>)
     end.
 
 reply_json(Code, Map, Req) ->
@@ -350,4 +367,47 @@ stream_data_from_file(H, Streamer, IsFinished, Timeout) ->
         {error, Reason} ->
             erlang:error({log_read_error, Reason})
     end.
+
+stream_metrics_from_files(Files, BenchId, Req) ->
+    Headers = [{<<"content-type">>, <<"text/plain">>},
+               {<<"content-encoding">>, <<"identity">>}],
+    IsFinished =
+        fun () ->
+            mzb_api_server:is_datastream_ended(BenchId)
+        end,
+
+    Req2 = cowboy_req:chunked_reply(200, Headers, Req),
+    Streamer = fun (Bin) -> cowboy_req:chunk(Bin, Req2) end,
+    ReadAtOnce = application:get_env(mzbench_api, bench_read_at_once, undefined),
+    hd(mzb_lists:pmap(
+        fun ({Name, File}) ->
+            case file:open(File, [raw, read, binary, {read_ahead, ReadAtOnce}]) of
+                {ok, H} ->
+                    try
+                        PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
+                        fun R() ->
+                            IsLastTime = IsFinished(),
+                            case file:read_line(H) of
+                                {ok, <<>>} ->
+                                    R();
+                                {ok, D} ->
+                                    [Timestamp, Value] = binary:split(D, <<"\t">>),
+                                    Streamer(<<Timestamp/binary, "\t", Name/binary, "\t", Value/binary>>),
+                                    R();
+                                eof when IsLastTime ->
+                                    ok;
+                                eof ->
+                                    timer:sleep(PollTimeout),
+                                    R();
+                                {error, Reason} ->
+                                    erlang:error({metrics_read_error, Reason})
+                            end
+                        end (),
+                        Req2
+                    after
+                        file:close(H)
+                    end;
+                {error, enoent} -> Req
+            end
+        end, Files)).
 

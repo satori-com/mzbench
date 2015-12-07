@@ -1,11 +1,29 @@
 import React from 'react';
+import MZBenchActions from '../actions/MZBenchActions';
+import MetricsStore from '../stores/MetricsStore';
 import Graph from './Graph.react'
 import LoadingSpinner from './LoadingSpinner.react';
 
 class BenchGraphs extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {toggles: new Set([0])};
+        this.state = {
+            isLoaded: MetricsStore.isDataLoaded(),
+            toggles: new Set([0])
+        };
+
+        var benchId = this.props.bench.id;
+        MetricsStore.resetSubscriptions(benchId);
+
+        this._onChange = this._onChange.bind(this);
+    }
+
+    componentDidMount() {
+        MetricsStore.onChange(this._onChange);
+    }
+
+    componentWillUnmount() {
+        MetricsStore.off(this._onChange);
     }
 
     renderWaitMetrics() {
@@ -14,36 +32,16 @@ class BenchGraphs extends React.Component {
         );
     }
 
-    renderUnknownGraphite() {
-        return (
-            <div className="alert alert-warning" role="alert">
-                <strong>Graphite is not specified!</strong> You should specify the Graphite server in the server config. You could find addition details by the following <a href="https://github.com/machinezone/mzbench/blob/master/doc/deployment_guide.md#configuration-file-format" target="_blank">link</a>.
-            </div>
-        );
-    }
-
-    renderEmptyGraphs() {
-        return (
-            <div className="panel-body">
-                <div className="alert alert-warning" role="alert">
-                    <strong>Oh snap!</strong> This group doesn't have any graphs
-                </div>
-            </div>
-        );
-    }
-
     renderEmptyGroups() {
         const link = `#/bench/${this.props.bench.id}/logs`;
         return (
             <div className="alert alert-warning" role="alert">
-                <strong>Oh snap!</strong> This bench hasn't recordered any metrics. See <a href={link}>Logs</a> for the additional information.
+                <strong>Oh snap!</strong> This bench has not recordered any metrics. See <a href={link}>Logs</a> for the additional information.
             </div>
         );
     }
 
     renderGraphs(group) {
-        const graphitePrefix = this.props.bench.metrics.graphite_prefix;
-        const graphiteUrl = this.props.bench.metrics.graphite_url;
         const graphs = group.graphs || [];
 
         if (0 == graphs.length) {
@@ -55,22 +53,13 @@ class BenchGraphs extends React.Component {
                 {graphs.map((graph, idx) => {
 
                     let targets = graph.metrics.map((m) => {
-                        const parts = [graphitePrefix, m.name];
-                        return parts.filter(x => x).join(".");
+                        return m.name;
                     });
 
                     return (
                         <div key={idx} className="col-xs-12 col-md-6">
-                            <Graph
-                                url={graphiteUrl + "/render/"}
-                                bench={this.props.bench}
-                                graphiteOpts={{
-                                    target: targets,
-                                    title: graph.title,
-                                    vtitle: graph.units,
-                                    width: 555,
-                                    height: 418
-                                }} />
+                            <Graph is_running={this.props.bench.isRunning()} targets={targets}
+                                title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
                         </div>
                     );
                 })}
@@ -107,15 +96,10 @@ class BenchGraphs extends React.Component {
 
     render() {
         const bench = this.props.bench;
-        const hasGraphite = bench.metrics.graphite_url;
         const hasGroups = bench.metrics.groups;
 
-        if (bench.isRunning() && !hasGroups) {
+        if ((bench.isRunning() && !hasGroups) || !this.state.isLoaded) {
             return this.renderWaitMetrics();
-        }
-
-        if (hasGroups && !hasGraphite) {
-            return this.renderUnknownGraphite();
         }
 
         return this.renderGroups();
@@ -125,6 +109,10 @@ class BenchGraphs extends React.Component {
         let { toggles } = this.state;
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
         this.setState({toggles: toggles});
+    }
+
+    _onChange() {
+        this.setState({isLoaded: MetricsStore.isDataLoaded()});
     }
 };
 

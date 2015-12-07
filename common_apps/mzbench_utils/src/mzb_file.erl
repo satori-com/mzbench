@@ -1,7 +1,7 @@
 -module(mzb_file).
 
 -ifdef(deprecated_now).
--define(NOW, os:timestamp()).
+-define(NOW, erlang:timestamp()).
 -else.
 -define(NOW, erlang:now()).
 -endif.
