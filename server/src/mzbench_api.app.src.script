@@ -54,7 +54,7 @@
 %        {graphite, "172.21.6.181"},
 %        {graphite_api_key, ""}, % only for hostedgraphite
 %        {graphite_url, ""}, % only for hostedgraphite
-        {node_git, "https://github.com/machinezone/mzbench.git"},
+        {node_git, string:strip(os:cmd("git ls-remote --get-url"))},
         {node_deployment_path, "~/.local/share"},
         {worker_deployment_path, "~/.local/share/mzbench_workers"},
         {plugins_dir, "../../../../plugins"},
