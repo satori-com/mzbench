@@ -24,6 +24,9 @@ def main():
         if not nose.run(defaultTest=['mzb_basic_tests', 'mzb_signal_tests', 'mzb_negative_tests']):
             raise RuntimeError("some tests failed")
 
+    if not nose.run(defaultTest='mzb_migrations_tests'):
+        raise RuntimeError("some tests failed")
+
 
 if __name__ == '__main__':
     main()

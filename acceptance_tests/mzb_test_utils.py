@@ -20,16 +20,22 @@ scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
 @contextmanager
-def start_mzbench_server():
+def start_mzbench_server(custom_data_location=None):
     if 'MZBENCH_RSYNC' in os.environ:
         node_location_param = '{{node_rsync, "{0}"}},'.format(os.environ['MZBENCH_RSYNC'])
     elif 'MZBENCH_REPO' in os.environ:
         node_location_param = '{{node_git, "{0}"}},'.format(os.environ['MZBENCH_REPO'])
     else:
         node_location_param = ''
+    
+    if custom_data_location:
+        custom_data_location_param = '{{bench_data_dir, "{0}"}},'.format(custom_data_location)
+    else:
+        custom_data_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0}{{node_log_port, 0}}, {{node_management_port, 0}}]}}].'.format(node_location_param))
+        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_management_port, 0}}]}}].'
+                     .format(node_location_param, custom_data_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
         print(f.read())

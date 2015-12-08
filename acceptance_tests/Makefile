@@ -1,6 +1,6 @@
 
 .PHONY: check
-check: local-tests basic-tests
+check: local-tests basic-tests migrations-tests
 
 .PHONY: local-tests
 local-tests:
@@ -9,6 +9,10 @@ local-tests:
 .PHONY: basic-tests
 basic-tests:
 	./mzb_basic_tests.py -v --processes=10 --process-timeout=1200
+
+.PHONY: migrations-tests
+migrations-tests:
+	./mzb_migrations_tests.py -v
 
 .PHONY: quick-test
 quick-test:
