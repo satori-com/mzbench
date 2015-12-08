@@ -7,6 +7,7 @@ main([BenchDir]) ->
             case Metrics of
                 #{graphite_url := _GraphiteUrl} -> ok;
                 #{<<"graphite_url">> := _GraphiteUrl} -> ok;
+                #{<<"groups">> := _Groups} -> ok;
                 M when is_map(M), map_size(M) == 0 -> ok;
                 M when is_map(M) ->
                     ScriptName = case Status of
@@ -29,9 +30,7 @@ main([BenchDir]) ->
                     [{GraphiteUrl, OldMetics}] = maps:to_list(Metrics),
 
                     Graphs = [#{<<"metrics">> => [#{ <<"name">> => TargetMigrator(T) } || T <- Targets]} || Targets <- OldMetics],
-                    NewMetrics = #{ <<"graphite_url">> => GraphiteUrl,
-                                    <<"graphite_prefix">> => BinGraphitePrefix,
-                                    <<"groups">> => [#{<<"name">> => <<"Default">>,
+                    NewMetrics = #{<<"groups">> => [#{<<"name">> => <<"Default">>,
                                                        <<"graphs">> => Graphs}]},
 
                     NewStatusContent = io_lib:format("~p.", [Status#{metrics => NewMetrics}]),
