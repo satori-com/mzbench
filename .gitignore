@@ -12,6 +12,9 @@ server/rel/mzbench_api
 log
 *.rpm
 *.tgz
+*.*~
+.*~
+*~
 pkgroot
 dialyzer.log
 *.pyc
@@ -21,3 +24,6 @@ server/plugins
 acceptance_tests/test_server.config
 _build
 rebar.lock
+*.*~
+.*~
+*~
