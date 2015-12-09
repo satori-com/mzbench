@@ -97,26 +97,46 @@ class Graph extends React.Component {
     }
     
     _formatRolloverText(data, i) {
-        const date_string = this._formatDate(data.date);
-        const text = `${date_string} -> ${data.value}`;
+        let rollover_text_container = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
+        rollover_text_container.selectAll('*').remove();
         
-        let rollover_text_element = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
-        if(rollover_text_element) {
-            rollover_text_element.text(text);
+        if(data.key) {
+            const date_string = this._formatDate(data.values[0].date);
+            rollover_text_container.append('tspan').text(date_string);
+            
+            let lineCount = 1;
+            let lineHeight = 1.1;
+            data.values.forEach((value) => {
+                let label = rollover_text_container.append('tspan')
+                            .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
+                            .text(value.value);
+                
+                rollover_text_container.append('tspan')
+                .attr({ x: -label.node().getComputedTextLength(), y: (lineCount * lineHeight) + 'em' })
+                .text('\u2014 ')
+                .classed('mg-line' + value.line_id + '-color', true);
+                
+                ++lineCount;
+            });
+        } else {
+            const date_string = this._formatDate(data.date);
+            const text = `${date_string} -> ${data.value}`;
+            
+            rollover_text_container.append('tspan').text(text);
         }
     }
-    
+
     _renderGraph() {
         let graph_options = {
             title: this.props.title,
             y_label: this.props.units,
             missing_text: "No data was reported yet for these metrics.",
-    
+
             buffer: 0,
             left: 65,
             right: 0,
             height: 400,
-    
+
             area: false,
             interpolate: 'linear',
             x_extended_ticks: true,
@@ -146,6 +166,8 @@ class Graph extends React.Component {
             graph_options.y_accessor = 'value';
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
+            
+            graph_options.brushing = !this.props.is_running;
             
             graph_options.min_x = this.props.is_running?this.state.max_date - RUNNING_GRAPH_SHOWED_DURATION*60:0;
             graph_options.max_x = this.state.max_date;
