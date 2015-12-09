@@ -1,7 +1,8 @@
 import React from 'react';
 import MZBenchActions from '../actions/MZBenchActions';
 import MetricsStore from '../stores/MetricsStore';
-import Graph from './Graph.react'
+import Graph from './Graph.react';
+import Modal from './Modal.react';
 import LoadingSpinner from './LoadingSpinner.react';
 
 class BenchGraphs extends React.Component {
@@ -9,7 +10,8 @@ class BenchGraphs extends React.Component {
         super(props);
         this.state = {
             isLoaded: MetricsStore.isDataLoaded(),
-            toggles: new Set([0])
+            toggles: new Set([0]),
+            fullScreenGraph: undefined
         };
 
         var benchId = this.props.bench.id;
@@ -41,7 +43,26 @@ class BenchGraphs extends React.Component {
         );
     }
 
-    renderGraphs(group) {
+    renderModalGraph() {
+        let fullScreenGraph = this.state.fullScreenGraph;
+        if(fullScreenGraph) {
+            const group = this.props.bench.metrics.groups[fullScreenGraph.group_idx];
+            const graph = group.graphs[fullScreenGraph.graph_idx];
+            const targets = graph.metrics.map((m) => {
+                return m.name;
+            });
+
+            return (
+                <Graph is_running={this.props.bench.isRunning()} targets={targets}
+                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}
+                    dom_prefix="modal-" render_fullscreen={true}/>
+            );
+        } else {
+            return;
+        }
+    }
+
+    renderGraphs(group_idx, group) {
         const graphs = group.graphs || [];
 
         if (0 == graphs.length) {
@@ -57,7 +78,7 @@ class BenchGraphs extends React.Component {
                     });
 
                     return (
-                        <div key={idx} className="col-xs-12 col-md-6">
+                        <div key={idx} className="col-xs-12 col-md-6" onClick={this._onGraphClick.bind(this, group_idx, idx)}>
                             <Graph is_running={this.props.bench.isRunning()} targets={targets}
                                 title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
                         </div>
@@ -76,6 +97,11 @@ class BenchGraphs extends React.Component {
 
         return (
             <div>
+                <Modal ref="fullScreenGraphModal" onOk={this._onCloseGraph} render_fullscreen={true} 
+                        render_title={false} render_submit_button={false}>
+                    {this.renderModalGraph()}
+                </Modal>
+            
                 {groups.map((group, idx) => {
                     let isExpanded = this.state.toggles.has(idx);
                     let iconClass = isExpanded ? "glyphicon-collapse-down" : "glyphicon-expand";
@@ -87,7 +113,7 @@ class BenchGraphs extends React.Component {
                                     <span className="graph-group-title" role="button" onClick={this._onToggle.bind(this, idx)}>{group.name}</span>
                                 </h3>
                             </div>
-                            {isExpanded ? this.renderGraphs(group) : null}
+                            {isExpanded ? this.renderGraphs(idx, group) : null}
                         </div>);
                 })}
             </div>
@@ -109,6 +135,15 @@ class BenchGraphs extends React.Component {
         let { toggles } = this.state;
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
         this.setState({toggles: toggles});
+    }
+    
+    _onGraphClick(group_idx, graph_idx) {
+        this.setState({fullScreenGraph: {group_idx: group_idx, graph_idx: graph_idx}});
+        this.refs.fullScreenGraphModal.open();
+    }
+    
+    _onCloseGraph() {
+        this.refs.fullScreenGraphModal.close();
     }
 
     _onChange() {

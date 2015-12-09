@@ -239,3 +239,8 @@ iframe {
     font-size: 9px;
     min-height: 50px;
 }
+
+.fullscreen-modal-dialog {
+    width: auto;
+    margin: 30px;
+}
