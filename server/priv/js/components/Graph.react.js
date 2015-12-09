@@ -153,7 +153,6 @@ class Graph extends React.Component {
             graph_options.full_width = false;
             
             graph_options.brushing = true;
-            graph_options.transition_on_update = true;
         }
         
         let data_is_ready = this.state.data.reduce((result, data) => {
