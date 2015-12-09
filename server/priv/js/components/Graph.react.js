@@ -177,8 +177,6 @@ class Graph extends React.Component {
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
             
-            graph_options.brushing = !this.props.is_running;
-            
             graph_options.min_x = this.props.is_running?this.state.max_date - RUNNING_GRAPH_SHOWED_DURATION*60:0;
             graph_options.max_x = this.state.max_date;
             
