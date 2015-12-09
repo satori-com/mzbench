@@ -31,7 +31,7 @@ class Graph extends React.Component {
             // of the MetricsGraphics.js targets. Its the only case
             // when rendering should be done.
             //
-            // Should never happen, but just in case.
+            // Happens in fullscreen mode.
             return true;
         } else {
             // Graph should probably be updated, but not the DOM.
@@ -41,8 +41,8 @@ class Graph extends React.Component {
     }
     
     componentDidUpdate() {
-        // Should never happen in normal operation.
-        this._renderGraph();
+        this._onChange();
+        setTimeout(this._renderGraph.bind(this), 1);
     }
     
     render() {
@@ -55,11 +55,11 @@ class Graph extends React.Component {
     }
     
     _graphDOMId() {
-        return this.props.targets[0].replace(/\./g, "-") + "-graph";
+        return this.props.dom_prefix + this.props.targets[0].replace(/\./g, "-") + "-graph";
     }
     
     _legendDOMId() {
-        return this.props.targets[0].replace(/\./g, "-") + "-legend";
+        return this.props.dom_prefix + this.props.targets[0].replace(/\./g, "-") + "-legend";
     }
     
     _formatClockNumber(number) {
@@ -138,12 +138,23 @@ class Graph extends React.Component {
             height: 400,
 
             area: false,
+            brushing: false,
             interpolate: 'linear',
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
+            aggregate_rollover: true,
             transition_on_update: false
         };
+        
+        if(this.props.render_fullscreen) {
+            graph_options.width = window.innerWidth - 100;
+            graph_options.height = window.innerHeight - 200;
+            graph_options.full_width = false;
+            
+            graph_options.brushing = true;
+            graph_options.transition_on_update = true;
+        }
         
         let data_is_ready = this.state.data.reduce((result, data) => {
             if (data.length > 0) {
@@ -235,13 +246,19 @@ Graph.propTypes = {
     targets: React.PropTypes.array.isRequired,
     is_running: React.PropTypes.bool,
     title: React.PropTypes.string,
-    units: React.PropTypes.string
+    units: React.PropTypes.string,
+    
+    dom_prefix: React.PropTypes.string,
+    render_fullscreen: React.PropTypes.bool
 };
 
 Graph.defaultProps = {
     is_running: false,
     title: "",
-    units: ""
+    units: "",
+    
+    dom_prefix: "",
+    render_fullscreen: false
 };
 
 export default Graph;
