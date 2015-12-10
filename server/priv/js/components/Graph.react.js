@@ -177,7 +177,7 @@ class Graph extends React.Component {
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
             
-            graph_options.min_x = this.props.is_running?this.state.max_date - RUNNING_GRAPH_SHOWED_DURATION*60:0;
+            graph_options.min_x = (this.props.is_running && !this.props.render_fullscreen)?this.state.max_date - RUNNING_GRAPH_SHOWED_DURATION*60:0;
             graph_options.max_x = this.state.max_date;
             
             MG.data_graphic(graph_options);
@@ -192,6 +192,10 @@ class Graph extends React.Component {
     }
     
     _updateGraph() {
+        if(this.props.render_fullscreen) {
+            return;
+        }
+        
         if(this.previously_running != this.props.is_running) {
             this._renderGraph();
             this.previously_running = this.props.is_running;

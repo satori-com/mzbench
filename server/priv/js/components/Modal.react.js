@@ -41,7 +41,7 @@ class Modal extends React.Component {
         } else {
             return (
                 <div className="modal-footer">
-                    <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" className="btn btn-default" onClick={this.props.onOk}>Close</button>
                 </div>
             );
         }
