@@ -318,7 +318,7 @@ perform_streaming(Id, FileReader, SendFun, Timeout) ->
     perform_streaming(Id, FileReader, SendFun, Timeout, [], 0).
 perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead) ->
     case FileReader(read_line) of
-        {ok, Data} when LinesRead > 500 ->
+        {ok, Data} when LinesRead > 2500 ->
             Buf = [Data|Buffer],
             _ = SendFun(lists:reverse(Buf)),
             perform_streaming(Id, FileReader, SendFun, Timeout, [], 0);
