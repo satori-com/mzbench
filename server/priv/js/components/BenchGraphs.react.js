@@ -97,7 +97,7 @@ class BenchGraphs extends React.Component {
 
         return (
             <div>
-                <Modal ref="fullScreenGraphModal" onOk={this._onCloseGraph} render_fullscreen={true} 
+                <Modal ref="fullScreenGraphModal" onOk={this._onCloseGraph.bind(this)} render_fullscreen={true} 
                         render_title={false} render_submit_button={false}>
                     {this.renderModalGraph()}
                 </Modal>
@@ -144,6 +144,7 @@ class BenchGraphs extends React.Component {
     
     _onCloseGraph() {
         this.refs.fullScreenGraphModal.close();
+        this.setState({fullScreenGraph: undefined});
     }
 
     _onChange() {
