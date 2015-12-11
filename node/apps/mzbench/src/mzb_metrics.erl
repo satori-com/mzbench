@@ -289,12 +289,15 @@ get_local_values(Metrics) ->
     CountersAndGauges = lists:map(
         fun ({Name, Type, _}) ->
             case exometer:get_value([?LOCALPREFIX, Name], value) of
-                {ok, [{value, Value}]} -> {Name, Value, Type};
+                {ok, [{value, Value}]} when Type == counter ->
+                    notify({Name, counter}, -Value),
+                    {Name, Value, Type};
+                {ok, [{value, Value}]}  ->
+                    {Name, Value, Type};
                 {error, _} -> ok
             end
         end,
         [M || {_, T, _} = M <- Metrics, (T == gauge) or (T == counter)]),
-    _ = [ exometer:reset([?LOCALPREFIX, N]) || {N, counter, _} <- Metrics ],
     Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data([N || {N, histogram, _} <- Metrics])],
     system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
