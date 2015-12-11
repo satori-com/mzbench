@@ -129,26 +129,16 @@ validate_pool(#operation{name = pool, args = [Opts, Script], meta = Meta} = Op) 
       end).
 
 validate_worker_start_type(undefined) -> [];
-validate_worker_start_type(#operation{name = pow, args = [Y, W, #constant{value = N, units = ms}]})
-    when is_number(N), N > 0, is_number(Y), Y > 0, is_number(W), W > 0 -> [];
+validate_worker_start_type(#operation{name = pow, args = [_, _, _]}) -> [];
 validate_worker_start_type(#operation{name = pow}) ->
     [mzb_string:format("Invalid pow parameters (should be two positive numbers followed by time constant)", [])];
-validate_worker_start_type(#operation{name = exp, args = [X, #constant{value = N, units = ms}]})
-    when is_number(N), N > 0, is_number(X), X > 1 -> [];
+validate_worker_start_type(#operation{name = exp, args = [_, _]}) -> [];
 validate_worker_start_type(#operation{name = exp}) ->
     [mzb_string:format("Invalid exp parameters (should be X > 1 followed by time constant)", [])];
-validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) when is_number(N), N > 0 -> [];
-validate_worker_start_type(#operation{name = poisson, args = [#constant{value = N, units = rps}]}) ->
-    [mzb_string:format("Invalid poisson parameter lambda (should be positive number): ~p", [N])];
-validate_worker_start_type(#operation{name = poisson, args = [N]}) ->
-    [mzb_string:format("Invalid poisson parameter lambda (should be {<N>, rps}): ~p", [N])];
+validate_worker_start_type(#operation{name = poisson, args = [_]}) -> [];
 validate_worker_start_type(#operation{name = poisson, args = Args}) ->
     [mzb_string:format("Invalid poisson arguments (only one arg is allowed, ~p were given)", [erlang:length(Args)])];
-validate_worker_start_type(#operation{name = linear, args = [#constant{value = N, units = rps}]}) when is_integer(N); N > 0 -> [];
-validate_worker_start_type(#operation{name = linear, args = [#constant{value = N, units = rps}]}) ->
-    [mzb_string:format("Invalid worker start rate (should be positive integer): ~b", [N])];
-validate_worker_start_type(#operation{name = linear, args = [Arg]}) ->
-    [mzb_string:format("Invalid worker start rate: (should be like {<N>, rps}, but '~p' was given)", [Arg])];
+validate_worker_start_type(#operation{name = linear, args = [_]}) -> [];
 validate_worker_start_type(#operation{name = linear, args = Args}) ->
     [mzb_string:format("Invalid worker start rate arguments: only one arg is allowed, ~p were given", [erlang:length(Args)])];
 validate_worker_start_type(Unknown) ->
