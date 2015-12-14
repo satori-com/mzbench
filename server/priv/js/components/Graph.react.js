@@ -143,7 +143,7 @@ class Graph extends React.Component {
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
-            aggregate_rollover: true,
+            aggregate_rollover: false,
             transition_on_update: false
         };
         
