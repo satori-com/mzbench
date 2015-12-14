@@ -78,7 +78,7 @@ class BenchGraphs extends React.Component {
                     });
 
                     return (
-                        <div key={idx} className="col-xs-12 col-md-6" role="button" onClick={this._onGraphClick.bind(this, group_idx, idx)}>
+                        <div key={idx} className="col-xs-12 col-md-6 zoomable-graph" onClick={this._onGraphClick.bind(this, group_idx, idx)}>
                             <Graph is_running={this.props.bench.isRunning()} targets={targets}
                                 title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
                         </div>
