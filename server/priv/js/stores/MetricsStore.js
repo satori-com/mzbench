@@ -94,17 +94,7 @@ class MetricsStore extends EventEmitter {
     }
 
     addSubscription(metrics) {
-        const need_to_subscribe = metrics.reduce((result, metric) => {
-            if(data.map.has(metric)) {
-                return result;
-            } else {
-                return true;
-            }
-        }, false);
-        
-        if(need_to_subscribe) {
             MZBenchActions.sendSubscribe(data.benchId, metrics, data.guid);
-        }
     }
 
     changeCurrentBench(benchId, GUID) {
