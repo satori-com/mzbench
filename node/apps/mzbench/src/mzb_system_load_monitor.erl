@@ -22,7 +22,7 @@
     last_trigger_timestamp :: erlang:timestamp() | not_available
     }).
 
-interval() -> 10000. % ten seconds
+interval() -> 5000. % ten seconds
 
 %% API functions
 
