@@ -139,6 +139,7 @@ class Graph extends React.Component {
 
             area: false,
             brushing: false,
+            brushing_history: false,
             interpolate: 'linear',
             x_extended_ticks: true,
             y_extended_ticks: true,
@@ -153,6 +154,7 @@ class Graph extends React.Component {
             graph_options.full_width = false;
             
             graph_options.brushing = true;
+            graph_options.brushing_history = true;
         }
         
         let data_is_ready = this.state.data.reduce((result, data) => {
