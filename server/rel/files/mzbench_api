@@ -178,7 +178,7 @@ case "$1" in
                     exit 1;
                 fi
                 attempts=$[$attempts-1]
-                sleep 1
+                sleep 5
             else
                 break
             fi
@@ -197,7 +197,7 @@ case "$1" in
                     exit 1;
                 fi
                 attempts=$[$attempts-1]
-                sleep 1
+                sleep 5
             fi
         done
 
