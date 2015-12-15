@@ -23,18 +23,18 @@ normalization_bc_test() ->
 graphite_one_metric_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter.value"}] },
-                      #{metrics => [#{name => "counter.rps.value"}],
+           graphs => [#{metrics => [#{name => "counter"}] },
+                      #{metrics => [#{name => "counter.rps"}],
                         units => "rps" }]}],
         build_graphite([{"counter", counter}])).
 
 graphite_pass_options_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter.value",
+           graphs => [#{metrics => [#{name => "counter",
                                       realtime => true}],
                         units   => "msg" },
-                      #{metrics => [#{name => "counter.rps.value",
+                      #{metrics => [#{name => "counter.rps",
                                       realtime => true}],
                         units   => "msg/sec" }]}],
         build_graphite([{graph, #{ units => "msg",
@@ -43,54 +43,54 @@ graphite_pass_options_test() ->
 graphite_histogram_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [ #{name => "bar.min.value"},
-                                     #{name => "bar.max.value"},
-                                     #{name => "bar.mean.value"},
-                                     #{name => "bar.50.value"},
-                                     #{name => "bar.75.value"},
-                                     #{name => "bar.90.value"},
-                                     #{name => "bar.95.value"},
-                                     #{name => "bar.99.value"},
-                                     #{name => "bar.999.value"}]}]}],
+           graphs => [#{metrics => [ #{name => "bar.min"},
+                                     #{name => "bar.max"},
+                                     #{name => "bar.mean"},
+                                     #{name => "bar.50"},
+                                     #{name => "bar.75"},
+                                     #{name => "bar.90"},
+                                     #{name => "bar.95"},
+                                     #{name => "bar.99"},
+                                     #{name => "bar.999"}]}]}],
         build_graphite([{"bar", histogram}])).
 
 graphite_counter_with_gauge_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [ #{name => "gauge.value"},
-                                     #{name => "counter.value"} ]},
-                      #{metrics => [ #{name => "gauge.value"},
-                                     #{name => "counter.rps.value"}]}]}],
+           graphs => [#{metrics => [ #{name => "gauge"},
+                                     #{name => "counter"} ]},
+                      #{metrics => [ #{name => "gauge"},
+                                     #{name => "counter.rps"}]}]}],
         build_graphite([[{"counter", counter}, {"gauge", gauge}]])).
 
 graphite_all_in_one_group_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [ #{name => "counter.value"},
-                                     #{name => "counter.rps.value"},
-                                     #{name => "gauge.value"},
-                                     #{name => "histogram.min.value"},
-                                     #{name => "histogram.max.value"},
-                                     #{name => "histogram.mean.value"},
-                                     #{name => "histogram.50.value"},
-                                     #{name => "histogram.75.value"},
-                                     #{name => "histogram.90.value"},
-                                     #{name => "histogram.95.value"},
-                                     #{name => "histogram.99.value"},
-                                     #{name => "histogram.999.value"}]}]}],
+           graphs => [#{metrics => [ #{name => "counter"},
+                                     #{name => "counter.rps"},
+                                     #{name => "gauge"},
+                                     #{name => "histogram.min"},
+                                     #{name => "histogram.max"},
+                                     #{name => "histogram.mean"},
+                                     #{name => "histogram.50"},
+                                     #{name => "histogram.75"},
+                                     #{name => "histogram.90"},
+                                     #{name => "histogram.95"},
+                                     #{name => "histogram.99"},
+                                     #{name => "histogram.999"}]}]}],
         build_graphite([[{"counter", counter}, {"gauge", gauge}, {"histogram", histogram}]])).
 
 graphite_groups_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [ #{name => "gauge.value"} ]}] },
+           graphs => [#{metrics => [ #{name => "gauge"} ]}] },
         #{ name => "Group1",
-           graphs => [#{metrics => [ #{name => "counter1.value"}]},
-                      #{metrics => [ #{name => "counter1.rps.value"}],
+           graphs => [#{metrics => [ #{name => "counter1"}]},
+                      #{metrics => [ #{name => "counter1.rps"}],
                         units   => "rps" }]},
         #{ name => "Group2",
-           graphs => [#{metrics => [ #{name => "counter2.value"}]},
-                      #{metrics => [ #{name => "counter2.rps.value"}],
+           graphs => [#{metrics => [ #{name => "counter2"}]},
+                      #{metrics => [ #{name => "counter2.rps"}],
                         units   => "rps" }]}],
         build_graphite([{group, "Group1", [
                             {graph, #{metrics => [{"counter1", counter}]}}]},

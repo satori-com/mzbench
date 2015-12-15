@@ -375,7 +375,7 @@ init_exometer(Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(
-        fun ({Metric, Type, _Opts}) -> 
+        fun ({Metric, Type, _Opts}) ->
             exometer:new([Metric], Type)
         end, ExometerMetrics),
 

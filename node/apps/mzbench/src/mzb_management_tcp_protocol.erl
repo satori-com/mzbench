@@ -115,8 +115,8 @@ handle_cast(Msg, State) ->
     system_log:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
-handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
-    Name = name([P || P <- Probe, P /= []], DataPoint),
+handle_call({report, [Probe, _DataPoint, Value]}, _From, State = #state{}) ->
+    Name = string:join(Probe, "."),
     Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
     send_message({metric_value, Name, Metric}, State),
     {reply, ok, State};
@@ -132,13 +132,6 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-name(Probe, DataPoint) -> [[[str(I), $.] || I <- Probe], str(DataPoint)].
-
-str(V) when is_atom(V) -> atom_to_list(V);
-str(V) when is_binary(V) -> binary_to_list(V);
-str(V) when is_integer(V) -> integer_to_list(V);
-str(V) when is_list(V) -> V.
 
 unix_time() ->
     {Mega, Secs, _} = os:timestamp(),

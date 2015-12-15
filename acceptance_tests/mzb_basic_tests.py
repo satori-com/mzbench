@@ -136,8 +136,8 @@ def data_endpoint_test():
 
     assert csv_data_ret_code == 0
     assert json_data_ret_code == 0
-    assert 'print.value,' in csv_out
-    assert 'print.value' in\
+    assert 'print,' in csv_out
+    assert 'print' in\
         [metric['target'] for metric in json.loads(json_out)]
 
 
@@ -236,7 +236,7 @@ def env_change_test():
 
     json_data_ret_code = json_data_process.poll()
     assert json_data_ret_code == 0
-    datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps.value'][0]
+    datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps'][0]
     values = [d[0] for d in datapoints]
     print "Datapoints: {0}".format(values)
     assert(0.8 < values[4] < 1.2)
