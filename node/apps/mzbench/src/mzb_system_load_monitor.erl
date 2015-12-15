@@ -49,16 +49,16 @@ metric_names(Nodes) ->
 
         {graph, #{title => "Network receive",
                   units => "bytes",
-                  metrics => [{metric_name("netrx", N), gauge} || N <- Nodes]}},
-
-        {graph, #{title => "Report interval",
-                  units => "sec",
-                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}]},
+                  metrics => [{metric_name("netrx", N), gauge} || N <- Nodes]}}
+                  ]},
      {group, "MZBench Internals", [
         {graph, #{title => "Mailbox messages",
                   metrics => [{metric_name("message_queue", N), gauge} || N <- Nodes]}},
         {graph, #{title => "Erlang processes",
-                  metrics => [{metric_name("process_count", N), gauge} || N <- Nodes]}}
+                  metrics => [{metric_name("process_count", N), gauge} || N <- Nodes]}},
+        {graph, #{title => "System metrics report interval",
+                  units => "sec",
+                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}
         ]}].
 
 %% gen_server callbacks

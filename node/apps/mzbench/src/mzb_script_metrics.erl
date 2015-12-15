@@ -19,16 +19,16 @@ script_metrics(Pools, _WorkerNodes) ->
     MZBenchInternal = [{group, "MZBench Internals",
                         WorkerStatusGraphs ++
                         [
-                          {graph, #{title => "Metric merging time",
-                                    units => "ms",
-                                    metrics => [{"metric_merging_time", gauge}]}},
                           {graph, #{title => "Errors",
                                     metrics => [{"errors", counter}]}},
                           {graph, #{title => "Logs",
                                     metrics => [{"logs.written", counter},
                                                 {"logs.dropped.mailbox_overflow", counter},
                                                 {"logs.dropped.rate_limiter", counter}
-                                                ]}}
+                                                ]}},
+                          {graph, #{title => "Metric merging time",
+                                    units => "ms",
+                                    metrics => [{"metric_merging_time", gauge}]}}
                         ]}],
 
     SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | nodes()]),
