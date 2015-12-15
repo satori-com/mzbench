@@ -144,10 +144,9 @@ build_metric_groups_json(Groups) ->
         NewGraphs = lists:map(fun ({graph, GraphOpts}) ->
             Metrics = mzb_bc:maps_get(metrics, GraphOpts, []),
 
-            MetricMap = lists:flatmap(fun({Name, Type, Opts}) ->
-                DPs = [mzb_metrics:datapoint2str(DP) || DP <- mzb_metrics:datapoints(Type)],
+            MetricMap = lists:flatmap(fun({Name, _Type, Opts}) ->
                 Opts1 = mzb_bc:maps_without([rps, worker], Opts),
-                [Opts1#{name => (Name ++ "."++ S)} || S <- DPs]
+                [Opts1#{name => Name}]
             end, Metrics),
 
             GraphOpts1 = maybe_append_rps_units(GraphOpts, Metrics),
