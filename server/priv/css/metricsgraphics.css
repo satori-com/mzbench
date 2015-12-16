@@ -281,7 +281,7 @@ path.mg-confidence-band {
 path.mg-main-line {
     fill: none;
     opacity: 0.8;
-    stroke-width: 1.1px;
+    stroke-width: 1.5px;
 }
 
 .mg-points circle {

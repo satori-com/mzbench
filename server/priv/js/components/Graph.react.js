@@ -130,7 +130,7 @@ class Graph extends React.Component {
         let graph_options = {
             title: this.props.title,
             y_label: this.props.units,
-            missing_text: "No data was reported yet for these metrics.",
+            missing_text: "No data has been reported yet for these metrics",
 
             buffer: 0,
             left: 65,
@@ -140,7 +140,7 @@ class Graph extends React.Component {
             area: false,
             brushing: false,
             brushing_history: false,
-            interpolate: 'linear',
+            interpolate: 'monotone',
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
