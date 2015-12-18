@@ -2177,7 +2177,7 @@ function mg_if_aspect_ratio_resize_svg(args) {
     if (args.full_width || args.full_height) {
         window.addEventListener('resize', function() {
             var svg = d3.select(args.target).select('svg');
-            var aspect = svg.attr('height') / svg.attr('width');
+            var aspect = (svg.attr('width') != 0)?(svg.attr('height') / svg.attr('width')):0;
             var newWidth = get_width(args.target);
 
             svg.attr('width', newWidth);
@@ -2937,8 +2937,7 @@ MG.button_layout = function(target) {
             else if (args.data.length > 1 && args.aggregate_rollover) {
                 data_nested = d3.nest()
                     .key(function(d) { return d[args.x_accessor]; })
-                    .entries(d3.merge(args.data))
-                    .sort(function(a, b) { return new Date(a.key) - new Date(b.key); });
+                    .entries(d3.merge(args.data));
 
                 // Undo the keys getting coerced to strings, by setting the keys from the values
                 // This is necessary for when we have X axis keys that are things like 
@@ -2946,6 +2945,11 @@ MG.button_layout = function(target) {
                     var datum = entry.values[0];
                     entry.key = datum[args.x_accessor];
                 });
+
+                if(args.x_sort) {
+                    sorted_data = data_nested.sort(function(a, b) { return new Date(a.key) - new Date(b.key); });
+                    data_nested = sorted_data;
+                }
 
                 xf = data_nested.map(function(di) {
                     return args.scales.X(di.key);

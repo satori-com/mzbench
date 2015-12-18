@@ -96,7 +96,36 @@ class Graph extends React.Component {
         }
     }
     
-    _formatRolloverText(data, i) {
+    _formatRolloverTextFullscreen(data, i) {
+        let rollover_text_container = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
+        rollover_text_container.selectAll('*').remove();
+        
+        if(data.key) {
+            const date_string = this._formatDate(data.values[0].date);
+            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
+            
+            let lineCount = 1;
+            let lineHeight = 1.1;
+            data.values.forEach((value) => {
+                let label = rollover_text_container.append('tspan')
+                            .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
+                            .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
+                            .classed('mg-area' + value.line_id + '-color', true);
+                
+                ++lineCount;
+            });
+        } else {
+            const date_string = this._formatDate(data.date);
+            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
+            
+            let label = rollover_text_container.append('tspan')
+                        .attr({ x: 0, y: 1.1 + 'em' })
+                        .text(`${this.props.targets[0]}: ${data.value}`)
+                        .classed('mg-area1-color', true);
+        }
+    }
+    
+    _formatRolloverTextNormal(data, i) {
         let rollover_text_container = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
         rollover_text_container.selectAll('*').remove();
         
@@ -112,17 +141,32 @@ class Graph extends React.Component {
                             .text(value.value);
                 
                 rollover_text_container.append('tspan')
-                .attr({ x: -label.node().getComputedTextLength(), y: (lineCount * lineHeight) + 'em' })
-                .text('\u2014 ')
-                .classed('mg-line' + value.line_id + '-color', true);
+                                       .attr({ x: -label.node().getComputedTextLength(), y: (lineCount * lineHeight) + 'em' })
+                                       .text('\u2014 ')
+                                       .classed('mg-line' + value.line_id + '-color', true);
                 
                 ++lineCount;
             });
         } else {
             const date_string = this._formatDate(data.date);
-            const text = `${date_string} -> ${data.value}`;
+            rollover_text_container.append('tspan').text(date_string);
             
-            rollover_text_container.append('tspan').text(text);
+            let label = rollover_text_container.append('tspan')
+                        .attr({ x: 0, y: 1.1 + 'em' })
+                        .text(data.value);
+            
+            rollover_text_container.append('tspan')
+                                   .attr({ x: -label.node().getComputedTextLength() - 1, y: 1.1 + 'em' })
+                                   .text('\u2014 ')
+                                   .classed('mg-line1-color', true);
+        }
+    }
+    
+    _formatRolloverText(data, i) {
+        if(this.props.render_fullscreen) {
+            this._formatRolloverTextFullscreen(data, i);
+        } else {
+            this._formatRolloverTextNormal(data, i);
         }
     }
 
@@ -144,7 +188,7 @@ class Graph extends React.Component {
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
-            aggregate_rollover: false,
+            aggregate_rollover: true,
             transition_on_update: false
         };
         
@@ -173,9 +217,7 @@ class Graph extends React.Component {
             graph_options.target = document.getElementById(this._graphDOMId());
             graph_options.legend_target = document.getElementById(this._legendDOMId());
             
-            graph_options.x_accessor = 'date';
             graph_options.xax_format = this._formatDate.bind(this);
-            graph_options.y_accessor = 'value';
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
             
