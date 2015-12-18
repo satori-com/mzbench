@@ -18,8 +18,8 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
             erlang:raise(C,E,ST)
     end.
 
-extract_metric_names(#{<<"groups">>:= Groups} = _Metrics) ->
-    [Name || #{<<"graphs">>:= Graphs} <- Groups, #{<<"metrics">>:= Metrics} <- Graphs, #{<<"name">>:= Name} <- Metrics];
+extract_metric_names(#{groups:= Groups} = _Metrics) ->
+    [Name || #{graphs:= Graphs} <- Groups, #{metrics:= Metrics} <- Graphs, #{name:= Name} <- Metrics];
 extract_metric_names(#{}) ->
     [].
 

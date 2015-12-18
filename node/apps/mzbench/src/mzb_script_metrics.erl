@@ -59,9 +59,7 @@ metrics(Path, EnvFromClient) ->
 
     ScriptMetrics = script_metrics(Pools, Nodes),
 
-    MetricJson = #{ groups => build_metric_groups_json(ScriptMetrics) },
-
-    mzb_string:str_to_bstr(MetricJson).
+    #{ groups => build_metric_groups_json(ScriptMetrics) }.
 
 %% normalize any user metrics to inner format
 

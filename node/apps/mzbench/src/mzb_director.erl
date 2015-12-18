@@ -1,6 +1,6 @@
 -module(mzb_director).
 
--export([start_link/5,
+-export([start_link/6,
          pool_report/3,
          change_env/1,
          attach/0,
@@ -28,15 +28,16 @@
     stop_reason = undefined,
     script     = undefined,
     env        = undefined,
-    nodes      = []
+    nodes      = [],
+    continuation = undefined
 }).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-start_link(SuperPid, BenchName, Script, Nodes, Env) ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env], []).
+start_link(SuperPid, BenchName, Script, Nodes, Env, Continuation) ->
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env, Continuation], []).
 
 pool_report(PoolPid, Info, IsFinal) ->
     gen_server:cast({global, ?MODULE}, {pool_report, PoolPid, Info, IsFinal}).
@@ -54,7 +55,7 @@ stop_benchmark(Reason) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([SuperPid, BenchName, Script, Nodes, Env]) ->
+init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     system_log:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
@@ -65,7 +66,8 @@ init([SuperPid, BenchName, Script, Nodes, Env]) ->
         env = Env2,
         nodes = Nodes,
         bench_name = BenchName,
-        super_pid = SuperPid
+        super_pid = SuperPid,
+        continuation = Continuation
     }}.
 
 handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, nodes = Nodes} = State) ->
@@ -208,7 +210,8 @@ maybe_report_and_stop(#state{stop_reason = undefined} = State) ->
 maybe_report_and_stop(#state{owner = undefined} = State) ->
     system_log:info("[ director ] Waiting for someone to report results..."),
     {noreply, State};
-maybe_report_and_stop(#state{owner = Owner} = State) ->
+maybe_report_and_stop(#state{owner = Owner, continuation = Continuation} = State) ->
+    Continuation(),
     system_log:info("[ director ] Reporting benchmark results to ~p", [Owner]),
     Res = format_results(State),
     gen_server:reply(Owner, Res),

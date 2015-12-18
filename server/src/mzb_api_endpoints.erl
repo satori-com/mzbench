@@ -392,7 +392,7 @@ stream_metrics_from_files(Files, BenchId, Req) ->
                                     R();
                                 {ok, D} ->
                                     [Timestamp, Value] = binary:split(D, <<"\t">>),
-                                    Streamer(<<Timestamp/binary, "\t", Name/binary, "\t", Value/binary>>),
+                                    Streamer(<<Timestamp/binary, "\t", (erlang:list_to_binary(Name))/binary, "\t", Value/binary>>),
                                     R();
                                 eof when IsLastTime ->
                                     ok;
