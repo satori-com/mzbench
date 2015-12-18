@@ -9,9 +9,9 @@
 initial_state() -> "".
 
 metrics() ->
-    [{"print", counter},
-     {"dummy", histogram},
-     {"derived", derived, #{resolver => doubled_print_counter}}].
+    [{"print", counter, #{visibility => false, rps_visibility => true}},
+     {"dummy", histogram, #{visibility => true}},
+     {"derived", derived, #{resolver => doubled_print_counter, visibility => false}}].
 
 doubled_print_counter() ->
     2 * mzb_metrics:get_value("print").

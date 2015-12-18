@@ -322,7 +322,12 @@ extract_exometer_metrics(Groups) ->
     Metrics.
 
 get_exometer_metrics({Name, counter, Opts}) ->
-    RateOpts = Opts#{rps => true},
+    NewOpts =
+        case maps:find(rps_visibility, Opts) of
+            {ok, Val} -> maps:put(visibility, Val, maps:remove(rps_visibility, Opts));
+            error -> Opts
+        end,
+    RateOpts = NewOpts#{rps => true},
     [[{Name, counter, Opts}], [{Name ++ ".rps", gauge, RateOpts}]];
 get_exometer_metrics({Name, gauge, Opts}) ->
     [[{Name, gauge, Opts}]];

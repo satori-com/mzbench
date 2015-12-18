@@ -121,10 +121,15 @@ normalize_metric(UnknownFormat) ->
     erlang:error({unknown_metric_format, UnknownFormat}).
 
 normalize_metric_opts(#{} = Opts) ->
+    Visibility =
+        case maps:find(visibility, Opts) of
+            {ok, V} -> V;
+            error -> true
+        end,
     maps:from_list(lists:map(
         fun ({K, V}) when is_list(K) -> {list_to_atom(K), V};
             ({K, V}) when is_atom(K) -> {K, V}
-        end, maps:to_list(Opts))).
+        end, maps:to_list(maps:put(visibility, Visibility,  Opts)))).
 
 maybe_append_rps_units(GraphOpts, Metrics) ->
     IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not mzb_bc:maps_get(rps, Opts, false)]),
