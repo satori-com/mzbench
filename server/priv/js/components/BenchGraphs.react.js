@@ -73,9 +73,16 @@ class BenchGraphs extends React.Component {
             <div className="panel-body">
                 {graphs.map((graph, idx) => {
 
-                    let targets = graph.metrics.map((m) => {
-                        return m.name;
-                    });
+                    let targets = graph.metrics.reduce((acc, m) => {
+                        if (m.visibility) {
+                            acc.push(m.name);
+                        }
+                        return acc;
+                    }, []);
+
+                    if (0 == targets.length) {
+                        return;
+                    }
 
                     return (
                         <div key={idx} className="col-xs-12 col-md-6 zoomable-graph" onClick={this._onGraphClick.bind(this, group_idx, idx)}>
