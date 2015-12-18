@@ -219,7 +219,7 @@ def env_change_test():
                 scripts_dir + 'loop_with_vars.erl',
                 post_start=change_var,
                 expected_log_message_regex=r'zzz',
-                env={'time': '60', 'rate': '1', 'message':'zzz'})
+                env={'time': '60', 'rate': '1', 'message':'abc'})
 
     json_data_process = subprocess.Popen(
         [mzbench_script,

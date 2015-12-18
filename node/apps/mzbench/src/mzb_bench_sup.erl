@@ -1,5 +1,5 @@
 -module(mzb_bench_sup).
--export([start_link/0, is_ready/0, connect_nodes/1, run_bench/2, start_pool/1]).
+-export([start_link/0, is_ready/0, connect_nodes/1, run_bench/2, get_results/0, start_pool/1]).
 
 -behaviour(supervisor).
 -export([init/1]).
@@ -17,9 +17,17 @@ run_bench(ScriptPath, DefaultEnv) ->
         {Body0, Env0} = read_and_validate(ScriptPath, mzbl_script:normalize_env(DefaultEnv)),
         Env1 = mzb_script_hooks:pre_hooks(Body0, Env0),
         {Body2, Env2} = read_and_validate(ScriptPath, Env1),
-        Result = run_director(Body2, Env2),
-        mzb_script_hooks:post_hooks(Body2, Env2),
-        {ok, Result}
+        PostHookFun = fun () ->
+                mzb_script_hooks:post_hooks(Body2, Env2)
+            end,
+
+        Nodes = retrieve_worker_nodes(),
+
+        case start_director(Body2, Nodes, Env2, PostHookFun) of
+            {ok, _, _} -> ok;
+            {ok, _} -> ok;
+            {error, Error} -> erlang:error({error, [mzb_string:format("Unable to start director supervisor: ~p", [Error])]})
+        end
     catch _C:{error, Errors} = E when is_list(Errors) -> E;
           C:E ->
               ST = erlang:get_stacktrace(),
@@ -31,20 +39,6 @@ read_and_validate(Path, Env) ->
     case mzb_script_validator:read_and_validate(Path, Env) of
         {ok, Body, NewEnv} -> {Body, NewEnv};
         {error, _, _, _, Errors} -> erlang:error({error, Errors})
-    end.
-
-run_director(Body, Env) ->
-    Nodes = retrieve_worker_nodes(),
-
-    case start_director(Body, Nodes, Env) of
-        {ok, _, _} -> ok;
-        {ok, _} -> ok;
-        {error, _Error} -> erlang:error({error, ["Unable to start director supervisor"]})
-    end,
-
-    case get_results() of
-        {error, _, Error} -> erlang:error({error, [Error]});
-        {ok, Result} -> Result
     end.
 
 is_ready() ->
@@ -91,12 +85,12 @@ init([]) ->
 child_spec(Name, Module, Args, Restart) ->
     {Name, {Module, start_link, Args}, Restart, 5000, worker, [Module]}.
 
-start_director(Body, Nodes, Env) ->
+start_director(Body, Nodes, Env, Continuation) ->
     BenchName = mzbl_script:get_benchname(mzbl_script:get_real_script_name(Env)),
     system_log:info("[ mzb_bench_sup ] Loading ~p Nodes: ~p", [BenchName, Nodes]),
     supervisor:start_child(?MODULE,
                             child_spec(director, mzb_director,
-                                       [whereis(?MODULE), BenchName, Body, Nodes, Env],
+                                       [whereis(?MODULE), BenchName, Body, Nodes, Env, Continuation],
                                        transient)).
 
 retrieve_worker_nodes() ->

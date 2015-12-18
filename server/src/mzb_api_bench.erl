@@ -130,6 +130,7 @@ workflow_config(_State) ->
                   uploading_script,
                   uploading_includes,
                   gathering_metric_names,
+                  starting,
                   running
                 ]},
      {finalize, [ saving_bench_results,
@@ -185,11 +186,8 @@ handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
     #{script:= Script,
       director_host:= DirectorHost,
-      worker_hosts:= WorkerHosts,
-      env:= Env} = Config,
+      worker_hosts:= WorkerHosts} = Config,
 
-    Environ = jiffy:encode({Env}),
-    mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Environ, "environ.txt", Config, get_logger(State)),
     case Script of
         #{name := _Name, body := Body, filename := FileName} ->
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Body, FileName, Config, get_logger(State));
@@ -207,7 +205,7 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
 handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes} = State) ->
     LogFileHandler = maps:get(log_file_handler, State),
     LogsCollectors = mzb_lists:pmap(fun ({Node, Host}) ->
-        Port = director_call(Connection, {get_log_port, Node}),
+        {ok, Port} = director_call(Connection, {get_log_port, Node}, 30000),
         info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
         mzb_api_connection:start_link(logs, Host, Port,
             fun ({message, Msg}, S) -> {LogFileHandler({write, Msg}), S};
@@ -216,26 +214,35 @@ handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, n
     end, Nodes),
     fun (S) -> S#{collectors => LogsCollectors} end;
 
-handle_stage(pipeline, gathering_metric_names, #{director_node:= DirNode, config:= Config}) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
-    [RemoteScript, RemoteEnv] = [remote_path(F, Config) || F <- [script_path(Script), "environ.txt"]],
-    MetricsMap = mzb_api_metrics:get_metrics(UserName, DirNode, DirectorHost, RemoteScript, RemoteEnv),
-    lists:foreach(
-        fun (M) ->
-            File = metrics_file(M, Config),
-            {ok, H} = file:open(File, [write]),
-            file:close(H)
-        end, mzb_api_metrics:extract_metric_names(MetricsMap)),
-    fun (S) -> S#{metrics => MetricsMap} end;
+handle_stage(pipeline, gathering_metric_names, #{cluster_connection:= Connection, config:= Config} = State) ->
+    #{script:= Script, env:= Env} = Config,
+    case director_call(Connection, {metric_names, remote_path(script_path(Script), Config), Env}) of
+        {ok, MetricsMap} ->
+            lists:foreach(
+                fun (M) ->
+                    File = metrics_file(M, Config),
+                    {ok, H} = file:open(File, [write]),
+                    file:close(H)
+                end, mzb_api_metrics:extract_metric_names(MetricsMap)),
+            fun (S) -> S#{metrics => MetricsMap} end;
+        {error, Error} ->
+            error("Can't get metrics info: ~p", [Error], State),
+            erlang:error({get_metrics_error, Error})
+    end;
 
-handle_stage(pipeline, running, #{director_node:= DirNode, config:= Config} = State) ->
-    #{user_name:= UserName, director_host:= DirectorHost, script:= Script} = Config,
+handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Config}) ->
+    #{script:= Script, env:= Env} = Config,
     ScriptFilePath = script_path(Script),
-    _ = mzb_subprocess:remote_cmd(UserName, [DirectorHost],
-        io_lib:format("~s/mzbench/bin/run.escript", [mzb_api_paths:node_deployment_path()]),
-        [DirNode] ++ [remote_path(F, Config) || F <- [ScriptFilePath, "environ.txt"]],
-        get_logger(State)),
+    ok = director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}, 30000),
     ok;
+
+handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
+    case director_call(Connection, get_results) of
+        {ok, Str} -> info("Benchmark result: ~s", [Str], State);
+        {error, Reason, ReasonStr} ->
+            error("Benchmark result: ~s", [ReasonStr], State),
+            erlang:error({benchmark_failed, Reason})
+    end;
 
 handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
     mzb_api_server:bench_finished(Id, status(State));
@@ -698,6 +705,9 @@ director_async_call(Connection, Msg, Continuation) ->
     mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
 
 director_call(Connection, Msg) ->
+    director_call(Connection, Msg, infinity).
+
+director_call(Connection, Msg, Timeout) ->
     Ref = erlang:make_ref(),
     Self = self(),
     Cont =
@@ -705,8 +715,17 @@ director_call(Connection, Msg) ->
             Self ! {Ref, Res}
         end,
     director_async_call(Connection, Msg, Cont),
-    receive
-        {Ref, Res} -> Res
+    case Timeout of
+        infinity ->
+            receive
+                {Ref, Res} -> Res
+            end;
+        _ ->
+            receive
+                {Ref, Res} -> Res
+            after Timeout ->
+                erlang:error({director_call_timeout, Msg})
+            end
     end.
 
 handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handlers} = S) ->
@@ -727,5 +746,5 @@ handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handle
             {ok, S}
     end;
 handle_management_msg({error, _}, _, S = #{handlers:= Handlers}) ->
-    _ = [ H(close) || H <- Handlers],
+    _ = [ H(close) || {_, H} <- maps:to_list(Handlers)],
     {ok, S#{handlers => #{}}}.

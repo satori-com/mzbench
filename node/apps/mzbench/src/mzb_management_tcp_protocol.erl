@@ -30,9 +30,15 @@ start_link(Ref, Socket, Transport, Opts) ->
 
 dispatch({request, Ref, Msg}, State) ->
     system_log:info("Received request: ~p", [Msg]),
-    case handle_message(Msg) of
-        {ok, Res} -> send_message({response, Ref, Res}, State);
-        {error, Reason} -> system_log:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
+    try
+        ReplyFun = fun (Reply) ->  send_message({response, Ref, Reply}, State) end,
+        case handle_message(Msg, ReplyFun) of
+            {reply, Reply} -> ReplyFun(Reply);
+            noreply -> ok
+        end
+    catch
+        _:Error ->
+            system_log:error("Api server message handling exception: ~p~n~p", [Error, erlang:get_stacktrace()])
     end,
     {noreply, State};
 
@@ -47,17 +53,36 @@ dispatch(Unhandled, State) ->
 get_port() ->
     ranch:get_port(management_tcp_server).
 
-handle_message({change_env, Env}) ->
-    {ok, mzb_director:change_env(Env)};
+handle_message({start_benchmark, ScriptPath, Env}, _) ->
+    {reply, mzb_bench_sup:run_bench(ScriptPath, Env)};
 
-handle_message({get_log_port, Node}) ->
-    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
-        {badrpc, Reason} -> {error, {badrpc, Node, Reason}};
-        Port -> {ok, Port}
+handle_message(get_results, ReplyFun) ->
+    _ = erlang:spawn(fun () -> ReplyFun(mzb_bench_sup:get_results()) end),
+    noreply;
+
+handle_message({metric_names, ScriptPath, Env}, _) ->
+    try
+        case mzb_script_validator:read_and_validate(ScriptPath, mzbl_script:normalize_env(Env)) of
+            {ok, _Body0, Env0} ->
+                {reply, {ok, mzb_script_metrics:metrics(ScriptPath, Env0)}};
+            {error, _, _, _, Errors} ->
+                {reply, {error, Errors}}
+        end
+    catch
+        _:E -> {reply, {error, [mzb_string:format("Unexpected exception on metrics gathering: ~p~n~p", [E, erlang:get_stacktrace()])]}}
     end;
 
-handle_message(Msg) ->
-    {error, {unhandled, Msg}}.
+handle_message({change_env, Env}, _) ->
+    {reply, mzb_director:change_env(Env)};
+
+handle_message({get_log_port, Node}, _) ->
+    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
+        {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
+        Port -> {reply, {ok, Port}}
+    end;
+
+handle_message(Msg, _) ->
+    erlang:error({unhandled, Msg}).
 
 init([State]) -> {ok, State}.
 
@@ -101,6 +126,7 @@ handle_call(Request, _From, State) ->
     {reply, ignore, State}.
 
 terminate(_Reason, _State) ->
+    lager:info("Management tcp connection terminated: ~p", [_Reason]),
     gen_event:delete_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, []),
     ok.
 
