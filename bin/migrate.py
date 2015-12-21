@@ -97,7 +97,6 @@ def migration_worker((bench_id, script_path, data_dir)):
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         res_out, res_err = p.communicate()
-        return res_err
     except:
         print("Unexpected error: {0}".format(sys.exc_info()))
         raise
@@ -105,6 +104,8 @@ def migration_worker((bench_id, script_path, data_dir)):
     if p.returncode != 0:
         print('ERROR: Migration "{0}" returned {1}\nOutput: {2}\nStderr: {3}\n'.format(cmd_str, p.returncode, res_out, res_err))
         raise Exception('Migration "{0}" failed'.format(cmd_str))
+
+    return res_err
 
 @contextmanager
 def backup(name, data_dir):
