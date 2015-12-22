@@ -22,7 +22,7 @@ MZBench is:
 
 To use MZBench, you'll need:
 
- - Erlang R17
+ - Erlang >= 17.1
  - C++ compiler
  - Python 2.6 or 2.7 with pip
 
