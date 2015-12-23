@@ -108,7 +108,7 @@ msnow() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     MegaSecs * 1000000000 + Secs * 1000 + MicroSecs div 1000.
 
--spec time_of_next_iteration(#const_rate{} | #linear_rate{}, number(), integer())
+-spec time_of_next_iteration(#const_rate{} | #linear_rate{}, number(), float())
     -> number().
 time_of_next_iteration(#const_rate{value = undefined}, _, _) -> 0;
 time_of_next_iteration(#const_rate{value = 0}, Duration, _) -> Duration * 2; % should be more than loop length "2" does not stand for anything important
@@ -162,18 +162,20 @@ superloop(TimeFun, Rates, Body, WorkerProvider, State, Env, Opts) ->
     end.
 
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = 1})  ->
-    timerun(msnow(), TimeFun, Rate, Body, WorkerProvider, Env, Opts, 1, State, 0);
+    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0);
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = N}) ->
+    StartTime = msnow(),
     _ = mzb_lists:pmap(fun (I) ->
-        timerun(msnow(), TimeFun, Rate, Body, WorkerProvider, Env, Opts, 1, State, I)
+        _ = random:seed(now()),
+        timerun(StartTime, random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, I)
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, OldDone) ->
+timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
-    ShouldBe = time_of_next_iteration(NewRate, Time, Done),
+    ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
 
     Remain = round(ShouldBe) - LocalTime,
     GotTime = round(Time) - LocalTime,
@@ -205,9 +207,12 @@ timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, Old
                         k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
                 end,
             BatchEnd = msnow(),
-            NewBatch = batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch),
+            NewBatch = case IsFirst of
+                true -> Batch;
+                false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
+            end,
 
-            timerun(Start, TimeFun, NewRate, Body, WorkerProvider, Env, Opts, NewBatch, NextState, Done + Step*Batch)
+            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
     end.
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
@@ -218,7 +223,7 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
             {Prev, _} -> Done;
             {undefined, _} -> Done;
             {New, 0} -> round(New * CurTime / 1000);
-            {New, undefined} -> round(New * CurTime / 1000);
+            {_New, undefined} -> Done;
             {New, _} -> round(New * CurTime / 1000)
         end,
     {RateState#const_rate{value = Rate}, NewDone, State1};
