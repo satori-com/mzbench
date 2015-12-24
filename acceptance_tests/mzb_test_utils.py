@@ -161,26 +161,26 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
             log = cmd(log_cmd)
 
-            re_match = None
             if expected_log_message_regex:
                 if isinstance(expected_log_message_regex, str) or isinstance(expected_log_message_regex, unicode):
                     regex = re.compile(expected_log_message_regex, re.DOTALL + re.UNICODE)
                 else:
                     regex = expected_log_message_regex
-                re_match = regex.search(log)
 
-            maybe_error = None
+                if not regex.search(log):
+                    print
+                    print u"Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
+                    print log
+                    raise RuntimeError
+
             if check_log_function:
                 maybe_error = check_log_function(log)
-
-            if not re_match or maybe_error:
-                print
+                
                 if maybe_error:
+                    print
                     print "Log doesn't pass custom check:\n{0}\n\n".format(maybe_error)
-                if not re_match:
-                    print u"Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
-                print log
-                raise RuntimeError
+                    print log
+                    raise RuntimeError
 
             return bench_id
 

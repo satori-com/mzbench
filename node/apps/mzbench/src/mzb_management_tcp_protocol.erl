@@ -63,7 +63,7 @@ handle_message(get_results, ReplyFun) ->
 handle_message({metric_names, ScriptPath, Env}, _) ->
     try
         case mzb_script_validator:read_and_validate(ScriptPath, mzbl_script:normalize_env(Env)) of
-            {ok, _Body0, Env0} ->
+            {ok, _Warnings, _Body0, Env0} ->
                 {reply, {ok, mzb_script_metrics:metrics(ScriptPath, Env0)}};
             {error, _, _, _, Errors} ->
                 {reply, {error, Errors}}
