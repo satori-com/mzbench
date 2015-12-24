@@ -72,6 +72,21 @@ def env_test():
         'loop_rate': '2'})
 
 
+def vars_defaults_test():
+    def check_log(log):
+        regexp1 = re.compile('the_var1_value_is_var1_default_value', re.DOTALL + re.UNICODE)
+        regexp2 = re.compile('the_var2_value_is_var2_new_value', re.DOTALL + re.UNICODE)
+        
+        if regexp1.search(log) and regexp2.search(log):
+            return False
+        else:
+            return 'Unable to find correct values in log'
+
+    run_successful_bench(scripts_dir + 'vars_defaults.erl',
+        env={'var2': 'var2_new_value'},
+        check_log_function=check_log)
+
+
 def poisson_worker_start_test():
     run_successful_bench(mzbench_dir + 'examples/worker_start_poisson.erl',
         expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')

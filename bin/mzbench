@@ -411,6 +411,8 @@ def run_or_validate(script, env, validate):
                 print(out)
             print(err)
         else:
+            if out:
+                print(out)
             print('ok')
         return p.returncode
     else:

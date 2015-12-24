@@ -100,6 +100,8 @@ extract_pools_and_env(Script, Env) ->
                     Name = mzbl_interpreter:eval_std(NameExpr, Env),
                     Path = mzbl_interpreter:eval_std(PathExpr, Env),
                     [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
+                (#operation{name = defaults, args = [DefaultsList]}, Acc) ->
+                    interpret_defaults(DefaultsList, Env) ++ Acc;
                 (#operation{name = assert, args = [Time, Expr]}, Acc) ->
                     {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
                     [{asserts, [{Time, normalize_assert(Expr)}|Asserts]}|Acc2];
@@ -141,6 +143,18 @@ import_resource(Env, File, Type) ->
             end
     end,
     convert(Content, Type).
+
+-spec interpret_defaults([{string(), script_expr()}], [{term(), term()}]) -> [{term(), term()}].
+interpret_defaults(DefaultsList, Env) ->
+    lists:foldl(
+        fun ({Name, Value}, Acc) ->
+            case proplists:is_defined(Name, Env) of
+                false ->
+                    NewValue = mzbl_interpreter:eval_std(Value, Env),
+                    [{Name, NewValue} | Acc];
+                true -> Acc
+            end
+        end, [], DefaultsList).
 
 -spec convert(string() | binary(), erlang) -> term();
              (string() | binary(), binary) -> binary();

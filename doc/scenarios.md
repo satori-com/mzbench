@@ -59,6 +59,16 @@ If `branch` is not specified, the default git branch is used.
 
 If `dir` is not specified, `.` is used.
 
+### defaults
+
+```erlang
+{defaults, [{"<VarName1>", <Value1>}, {"<VarName2>", <Value2>}, ...]}
+```
+
+Allows to define the default values for environment variables, i.e. the values used if no value was provided for this variable on the command line.
+
+See [Environment Variables](#environment-variables) for additional information.
+
 ### include_resource
 
 ```erlang
@@ -407,7 +417,6 @@ $ ./bin/mzbench run --env foo=bar --env n=42
 
 ```erlang
 {var, "<VarName>"}
-{var, "<VarName>", <DefaultValue>}
 ```
 
 To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
@@ -417,17 +426,12 @@ To get the value of a variable, refer to it by the name: `{var, "<VarName>"}`.
 {var, "n"} % returns "42", a string
 ```
 
-If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: `{var, "<VarName>", <DefaultValue>}`:
-
-```erlang
-{var, "anothervar", "Foo"} % returns "Foo" if anothervar is not set
-```
+If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable, see [defaults top-level directive](#defaults).
 
 ### numvar
 
 ```erlang
 {numvar, "<VarName>"}
-{numvar, "<VarName>", <DefaultValue>}
 ```
 
 By default, variable values are considered strings. To get a numerical value (integer or float), use `{numvar, "VarName"}`:

@@ -13,8 +13,8 @@ read_and_validate(ScriptFileName, Env) ->
                    {"bench_script_dir", filename:dirname(ScriptFileName)},
                    {"bench_workers_dir", WorkerDirs}],
         Body = mzbl_script:read(ScriptFileName),
-        ok = validate(Body),
-        {ok, Body, AutoEnv ++ Env}
+        {ok, Warnings} = validate(Body),
+        {ok, Warnings, Body, AutoEnv ++ Env}
     catch
         C:{read_file_error, File, E} = Error ->
             Message = mzb_string:format(
@@ -64,6 +64,8 @@ validate(Script) ->
                 mzb_script_hooks:validate(Op) ++ Acc;
             (#operation{name = post_hook} = Op, Acc) ->
                 mzb_script_hooks:validate(Op) ++ Acc;
+            (#operation{name = defaults, args = [DefaultsList]}, Acc) ->
+              validate_defaults_list(DefaultsList) ++ Acc;
             (#operation{name = pool} = Pool, Acc) -> validate_pool(Pool) ++ Acc;
             (#operation{name = F, args = A, meta = M}, Acc) ->
                 [mzb_string:format("~sUnknown function: ~p/~p",
@@ -78,7 +80,8 @@ validate(Script) ->
     end,
 
     mzb_signal_validation:validate(Script2),
-    ok.
+    Warnings = check_deprecated_defaults(Script2),
+    {ok, Warnings}.
 
 validate_resource_filename(#operation{name = 'var'}) -> [];
 validate_resource_filename(Filename) ->
@@ -143,3 +146,34 @@ validate_worker_start_type(#operation{name = linear, args = Args}) ->
     [mzb_string:format("Invalid worker start rate arguments: only one arg is allowed, ~p were given", [erlang:length(Args)])];
 validate_worker_start_type(Unknown) ->
     [mzb_string:format("Unknown worker start type: ~p", [Unknown])].
+
+-spec validate_defaults_list(list()) -> [string()].
+validate_defaults_list(L) ->
+  lists:foldl(
+    fun ({Name, _Value}, Acc) ->
+          case mzbl_typecheck:check(Name, string) of
+            {false, Reason, undefined} ->
+                [mzb_string:format("Type error ~p", [Reason])|Acc];
+            {false, Reason, Location} ->
+                [mzb_string:format("~sType error ~p", [Location, Reason])|Acc];
+            _ -> Acc
+          end;
+        (Term, Acc) ->
+          [mzb_string:format("Invalid term in the list of default values was encountered: ~p", [Term])|Acc]
+    end, [], L).
+
+-spec check_deprecated_defaults(script_expr()) -> [string()].
+check_deprecated_defaults(Script) ->
+    VarsWithDefault = mzbl_ast:fold(
+        fun (#operation{name = VarType, args = Args} = Op, Acc) when VarType == var; VarType == numvar ->
+                case length(Args) of
+                    2 -> [Op | Acc];
+                    _ -> Acc
+                end;
+            (_, Acc) -> Acc
+        end, [], Script),
+    
+    lists:map(
+        fun (#operation{args = [Name|_], meta = M}) ->
+            mzb_string:format("~sWarning: ~s uses a deprecated default value declaration format", [mzbl_script:meta_to_location_string(M), Name])
+        end, lists:reverse(VarsWithDefault)).

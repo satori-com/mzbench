@@ -75,8 +75,8 @@ validate(Script, Env) ->
     ok = application:load(mzbench),
 
     case mzb_script_validator:read_and_validate(filename:absname(Script), Env) of
-        {ok, _, _} ->
-            terminate_node(0, "ok");
+        {ok, Warnings, _, _} ->
+            terminate_node(0, string:join(Warnings, "\n"));
         {error, _, _, _, Messages} ->
             terminate_node(1, string:join(Messages, "\n"))
     end.
