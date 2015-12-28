@@ -206,14 +206,13 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
       cloud:=          Cloud,
       env:=            Env} = Config,
     BinaryEnv = lists:map(fun ensure_binary_tuple/1, Env),
-    EnvStr = erlang:iolist_to_binary(lists:flatten(
-      [[K, <<"=">>, V, <<",">>] || {K, V} <- BinaryEnv, K =/= <<"mzb_script_name">>])),
+    EnvMap = maps:remove(<<"mzb_script_name">>, maps:from_list(BinaryEnv)),
     ScriptFields = #{script_body => ScriptBody,
                      script_name => ScriptName,
                      benchmark_name => BenchName,
                      nodes => Nodes,
                      cloud => Cloud,
-                     env => EnvStr},
+                     env => EnvMap},
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,
                 #{id => Id},

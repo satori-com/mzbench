@@ -116,7 +116,8 @@ init([Id, Params]) ->
         metrics => #{},
         emails => maps:get(email, Params),
         self => self(), % stages are spawned, so we can't get pipeline pid from callback
-        director_node => undefined
+        director_node => undefined,
+        previous_status => undefined
     },
     info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
@@ -294,11 +295,13 @@ handle_call(status, _From, State) ->
 handle_call({request_report, Emails}, _, #{emails:= OldEmails} = State) ->
     {reply, ok, State#{emails:= OldEmails ++ Emails}};
 
-handle_call({change_env, Env}, From, #{status:= running, cluster_connection:= Connection} = State) ->
-    info("Change env req received: ~p", [Env], State),
+handle_call({change_env, Env}, From, #{status:= running, config:= Config, cluster_connection:= Connection} = State) ->
+    info("Change env req received: ~p~nOldEnv: ~p", [Env, maps:get(env, Config)], State),
+    Self = self(),
     director_async_call(Connection, {change_env, Env},
         fun (Res) ->
             info("Received change_env response: ~p", [Res], State),
+            ok == Res andalso mzb_pipeline:cast(Self, {env_changed, Env}),
             mzb_pipeline:reply(From, Res)
         end),
     {noreply, State};
@@ -313,6 +316,15 @@ handle_call(_Request, _From, State) ->
 handle_cast({director_message, Unknown}, State) ->
     lager:error("Unknown director message ~p", [Unknown]),
     {noreply, State};
+
+handle_cast({env_changed, NewEnv}, State = #{config:= Config}) ->
+    #{env:= Env} = Config,
+    Env2 = lists:foldl(
+        fun ({K, V}, Acc) ->
+            lists:keystore(K, 1, Acc, {K, V})
+        end, Env, NewEnv),
+    NewState = State#{config => Config#{env => Env2}},
+    {noreply, maybe_update_bench(NewState)};
 
 handle_cast(_Msg, State) ->
     error("Unhandled cast: ~p", [_Msg], State),
@@ -360,8 +372,15 @@ terminate(Reason, #{id:= Id} = State) ->
 
 handle_pipeline_status(Info, State) ->
     NewState = handle_pipeline_status_ll(Info, State),
-    mzb_api_firehose:update_bench(status(NewState)),
-    NewState.
+    maybe_update_bench(NewState).
+
+maybe_update_bench(State = #{previous_status:= OldStatus}) ->
+    case status(State) of
+        OldStatus -> State;
+        NewStatus ->
+            mzb_api_firehose:update_bench(NewStatus),
+            State#{previous_status => NewStatus}
+    end.
 
 handle_pipeline_status_ll({start, Phase, Stage}, State) ->
     info("Stage '~s - ~s': started", [Phase, Stage], State),

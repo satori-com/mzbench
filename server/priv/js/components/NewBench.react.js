@@ -21,6 +21,10 @@ class NewBench extends React.Component {
     render() {
         let clouds = this.props.clouds;
         let bench = this.props.bench;
+        let envStr = Object.keys(bench.env).map(
+            (key) => {
+                return key.toString() + "=" + bench.env[key].toString()
+            }).join(", ");
 
         return (
             <div className="fluid-container">
@@ -43,7 +47,7 @@ class NewBench extends React.Component {
                 <div className="row">
                     <div className="form-group col-md-12">
                         <label>Environmental variables (name1=value1[,;\n]name2=value2)</label>
-                        <textarea className="form-control" onChange={this._onChangeEnv} rows="2" defaultValue={bench.env}></textarea>
+                        <textarea className="form-control" onChange={this._onChangeEnv} rows="2" defaultValue={envStr}></textarea>
                     </div>
                 </div>
                 <div className="row">
@@ -87,7 +91,18 @@ class NewBench extends React.Component {
         MZBenchActions.withNewBench((b) => {b.cloud = event.target.value});
     }
     _onChangeEnv(event) {
-        MZBenchActions.withNewBench((b) => {b.env = event.target.value});
+        MZBenchActions.withNewBench((b) => {
+            b.env = {};
+            event.target.value.split(/[\n,;]+/).reduce((acc, x) => {
+                var d = x.split("=");
+                if (d.length >= 2) {
+                    var key = d[0].trim();
+                    var value = d[1].trim();
+                    acc.env[key] = value;
+                }
+                return acc;
+            }, b)
+        });
     }
 
     _onStart(event) {
@@ -102,7 +117,7 @@ class NewBench extends React.Component {
             nodes: bench.nodes,
             cloud: bench.cloud});
 
-        query += bench.env.split(/[\n,;]+/).map((x) => x ? "&" + x : "").join("");
+        query += Object.keys(bench.env).map((x) => x ? "&" + x + "=" + bench.env[x] : "").join("");
 
         $.ajax({url: query, type : 'POST',
             processData: false,
