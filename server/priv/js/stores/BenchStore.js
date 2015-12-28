@@ -24,7 +24,7 @@ const defaultData = {
                         +"                [{print, \"FOO\"}]}]} % this operation prints \"FOO\" to console\n].",
         nodes: "1",
         cloud: "",
-        env: ""},
+        env: {}},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined
@@ -46,7 +46,7 @@ class Bench {
         }
         return true;
     }
-    
+
     get start_time_client() {
         return moment(this.start_time).add(data.server_date_diff);
     }
