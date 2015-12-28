@@ -1,12 +1,13 @@
 -module(mzb_api_connection).
 
--export([start_link/5,
+-export([start_and_link_with/6,
          send_message/2,
          wait_close/2]).
 
-start_link(Purpose, Host, Port, Dispatcher, State) ->
+start_and_link_with(PidToLinkWith, Purpose, Host, Port, Dispatcher, State) ->
     Self = self(),
-    Pid = spawn_link(fun () ->
+    Pid = spawn(fun () ->
+        link(PidToLinkWith),
         try gen_tcp:connect(Host, Port, [{active, false}, {packet, 4}, binary]) of
             {ok, Socket} ->
                 lager:info("Connection is started for ~p on ~s", [Purpose, Host]),
