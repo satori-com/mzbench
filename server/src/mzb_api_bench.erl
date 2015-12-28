@@ -178,8 +178,8 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
     {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     #{director_host:= DirectorHost} = Config,
-    Connection = mzb_api_connection:start_link(
-                    management, DirectorHost, Port,
+    Connection = mzb_api_connection:start_and_link_with(
+                    Self, management, DirectorHost, Port,
                     fun (Msg, S) -> handle_management_msg(Msg, Self, S) end,
                     #{config => Config, handlers => #{}}),
     fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
@@ -203,12 +203,12 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
-handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes} = State) ->
+handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes, self:= Self} = State) ->
     LogFileHandler = maps:get(log_file_handler, State),
     LogsCollectors = mzb_lists:pmap(fun ({Node, Host}) ->
         {ok, Port} = director_call(Connection, {get_log_port, Node}, 30000),
         info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
-        mzb_api_connection:start_link(logs, Host, Port,
+        mzb_api_connection:start_and_link_with(Self, logs, Host, Port,
             fun ({message, Msg}, S) -> {LogFileHandler({write, Msg}), S};
                 (_, S) -> {ok, S}
             end, [])
@@ -653,7 +653,9 @@ generate_script_filename(#{name := _Name, body := Body} = Script) ->
 get_file_writer(Filename, none) ->
     {ok, H} = file:open(Filename, [write]),
     fun (close) -> file:close(H);
-        ({write, Data}) -> file:write(H, Data)
+        ({write, Data}) -> 
+            ok = file:write(H, Data),
+            ok
     end;
 get_file_writer(Filename, deflate) ->
     P = erlang:spawn_link(fun () -> deflate_process(Filename) end),
