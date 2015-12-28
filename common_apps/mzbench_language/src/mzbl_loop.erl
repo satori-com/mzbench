@@ -7,6 +7,8 @@
 % For Common and EUnit tests
 -export([time_of_next_iteration/3, msnow/0]).
 
+-define(MAXSLEEP, 10000).
+
 -include("mzbl_types.hrl").
 
 -record(const_rate, {
@@ -186,33 +188,36 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
             true -> max(0, min(round(-Remain * math:log(random:uniform())), GotTime));
             false -> NeedToSleep
         end,
-    if
-        Sleep > 0 -> timer:sleep(Sleep);
-        true -> ok
-    end,
-    case Time =< LocalTime + Sleep of
-        true -> {nil, State2};
+    case Sleep > ?MAXSLEEP of
+        true ->
+            timer:sleep(?MAXSLEEP),
+            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done);
         false ->
-            BatchStart = msnow(),
-            Iterator = Opts#opts.iterator,
-            Step = Opts#opts.parallel,
-            NextState =
-                case Opts#opts.spawn of
-                    false ->
-                        case Iterator of
-                            undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
-                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                        end;
-                    true ->
-                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                end,
-            BatchEnd = msnow(),
-            NewBatch = case IsFirst of
-                true -> Batch;
-                false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
-            end,
+            Sleep > 0 andalso timer:sleep(Sleep),
+            case Time =< LocalTime + Sleep of
+                true -> {nil, State2};
+                false ->
+                    BatchStart = msnow(),
+                    Iterator = Opts#opts.iterator,
+                    Step = Opts#opts.parallel,
+                    NextState =
+                        case Opts#opts.spawn of
+                            false ->
+                                case Iterator of
+                                    undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
+                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                end;
+                            true ->
+                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                        end,
+                    BatchEnd = msnow(),
+                    NewBatch = case IsFirst of
+                        true -> Batch;
+                        false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
+                    end,
 
-            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+            end
     end.
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
