@@ -27,7 +27,8 @@ const defaultData = {
         env: {}},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
-    activeTab: undefined
+    activeTab: undefined,
+    activeGraph: undefined
 };
 
 let data = jQuery.extend(true, {}, defaultData); // extend is used to copy object recursively
@@ -114,6 +115,10 @@ class BenchStore extends EventEmitter {
         return data.activeTab;
     }
 
+    getSelectedGraph() {
+        return data.activeGraph;
+    }
+
     isLoaded() {
         return data.isLoaded;
     }
@@ -171,7 +176,7 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
 
         case ActionTypes.INIT_TIMELINE:
             data.server_date_diff = moment().diff(moment(action.server_date));
-            
+
             _BenchStore.loadAll(action.data);
             data.pager = action.pager;
             data.isShowTimelineLoadingMask = false;
@@ -190,6 +195,16 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
 
         case ActionTypes.SELECT_ACTIVE_TAB:
             data.activeTab = action.data;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.SELECT_GRAPH:
+            data.activeGraph = action.data.graphData;
+            _BenchStore.emitChange();
+            break;
+
+        case ActionTypes.DESELECT_GRAPH:
+            data.activeGraph = undefined;
             _BenchStore.emitChange();
             break;
 

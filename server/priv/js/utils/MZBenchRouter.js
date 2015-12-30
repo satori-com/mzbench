@@ -3,6 +3,16 @@ import MZBenchActions from '../actions/MZBenchActions';
 import BenchStore from '../stores/BenchStore';
 
 const routes = {
+    '/bench/:benchId/graphs/:graphGroupId/:graphId': (benchId, graphGroupId, graphId) => {
+        MZBenchActions.selectBenchById(benchId);
+
+        // If 'back' button is pressed then old bench could be not
+        // presented in the currently loaded timeline
+        if (!BenchStore.getSelectedBench() && !isNaN(benchId)) {
+            MZBenchActions.getTimeline({bench_id: parseInt(benchId)});
+        }
+        MZBenchActions.selectGraph(graphGroupId, graphId);
+    },
     '/bench/:benchId/:activeTab': (benchId, activeTab) => {
         MZBenchActions.selectBenchById(benchId);
 

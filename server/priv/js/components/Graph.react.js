@@ -8,7 +8,7 @@ class Graph extends React.Component {
     constructor(props) {
         super(props);
         this.previously_running = undefined;
-        this.targets_max_date = [];
+        this.updatesCounter = 0;
         this.state = this._resolveState();
         this._onChange = this._onChange.bind(this);
     }
@@ -16,7 +16,6 @@ class Graph extends React.Component {
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
         this.previously_running = this.props.is_running;
-        this.targets_max_date = this.state.data.map((dataset) => { return dataset.length; });
         MetricsStore.addSubscription(this.props.targets);
         this._renderGraph();
     }
@@ -174,7 +173,7 @@ class Graph extends React.Component {
         let graph_options = {
             title: this.props.title,
             y_label: this.props.units,
-            missing_text: "No data has been reported yet for these metrics",
+            missing_text: "Loading...",
 
             buffer: 0,
             left: 65,
@@ -200,18 +199,18 @@ class Graph extends React.Component {
             graph_options.brushing = true;
             graph_options.brushing_history = true;
         }
-        
-        let data_is_ready = this.state.data.reduce((result, data) => {
-            if (data.length > 0) {
-                return result;
-            } else {
-                return false;
-            }
-        }, true);
 
-        
-        if(data_is_ready) {
-            graph_options.data = this.state.data;
+        if(this.state.isLoaded) {
+            if (this.props.render_fullscreen && this.rendered) {
+                return;
+            }
+            this.rendered = true;
+
+            let isEmpty = this.state.data.reduce((prev, dataset) => {
+                    if (dataset.length > 0) return false;
+                    else return prev;
+                }, true);
+            graph_options.data = isEmpty ? [[{date: 0, value: 0}]] : this.state.data;
             graph_options.legend = this.props.targets;
             
             graph_options.target = document.getElementById(this._graphDOMId());
@@ -234,35 +233,24 @@ class Graph extends React.Component {
             MG.data_graphic(graph_options);
         }
     }
-    
+
     _updateGraph() {
-        if(this.props.render_fullscreen) {
-            return;
-        }
-        
-        if(this.previously_running != this.props.is_running) {
+        if (!this.state.isLoaded) return;
+
+        if (this.previously_running != this.props.is_running) {
             this._renderGraph();
             this.previously_running = this.props.is_running;
         } else {
-            const data_updated = this.targets_max_date.reduce((result, prev_max_data, target_idx) => {
-                if(target_idx < this.state.data.length) {
-                    if(prev_max_data != this.state.data[target_idx].length) {
-                        return true;
-                    } else {
-                        return result;
-                    }
-                } else {
-                    return true;
-                }
-            }, false);
+            const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b}, 0);
+            let dataUpdated = newUpdatesCounter > this.updatesCounter;
 
-            if(data_updated) {
+            if(dataUpdated) {
                 this._renderGraph();
-                this.targets_max_date = this.state.data.map((dataset) => { return dataset.length; });
+                this.updatesCounter = newUpdatesCounter;
             }
         }
     }
-    
+
     _resolveState() {
         const max_date = this.props.targets.reduce((max_date, metric) => {
             const metric_max_date = MetricsStore.getMetricMaxDate(metric);
@@ -275,10 +263,22 @@ class Graph extends React.Component {
 
         const metricData = this.props.targets.map((metric) => {
                 return MetricsStore.getMetricData(metric);
-            })
+            });
+
+        const metricBatchs = this.props.targets.map((metric) => {
+                return MetricsStore.getBatchCounter(metric);
+            });
+
+        const isLoaded = metricBatchs.reduce((prev, v) => {
+                    if (v <= 0) return false;
+                    else return prev;
+                }, true);
+
         return {
             max_date: max_date,
-            data: metricData
+            data: metricData,
+            dataBatchs: metricBatchs,
+            isLoaded: isLoaded
         };
     }
 
@@ -292,7 +292,7 @@ Graph.propTypes = {
     is_running: React.PropTypes.bool,
     title: React.PropTypes.string,
     units: React.PropTypes.string,
-    
+
     dom_prefix: React.PropTypes.string,
     render_fullscreen: React.PropTypes.bool
 };
@@ -301,7 +301,7 @@ Graph.defaultProps = {
     is_running: false,
     title: "",
     units: "",
-    
+
     dom_prefix: "",
     render_fullscreen: false
 };

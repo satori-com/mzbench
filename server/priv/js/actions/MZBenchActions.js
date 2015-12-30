@@ -105,6 +105,14 @@ export default {
         Dispatcher.dispatch({ type: Constants.SELECT_ACTIVE_TAB, data: tab });
     },
 
+    selectGraph(groupId, graphId) {
+        Dispatcher.dispatch({ type: Constants.SELECT_GRAPH, data: {graphData: {groupId: groupId, graphId: graphId}}});
+    },
+
+    deselectGraph() {
+        Dispatcher.dispatch({ type: Constants.DESELECT_GRAPH });
+    },
+
     cloneBench(id) {
         Dispatcher.dispatch({ type: Constants.CLONE_BENCH, data: id });
     },

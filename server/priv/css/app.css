@@ -235,10 +235,6 @@ iframe {
     left: 0;
 }
 
-.zoomable-graph {
-    cursor: zoom-in;
-}
-
 .graph-legend {
     font-size: 9px;
     min-height: 50px;

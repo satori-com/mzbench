@@ -9,6 +9,8 @@ export default keyMirror({
     HIDE_TIMELINE_LOADING_MASK: null,
     SELECT_BENCH_BY_ID: null,
     SELECT_ACTIVE_TAB: null,
+    SELECT_GRAPH: null,
+    DESELECT_GRAPH: null,
     NOTIFY: null,
     NEW_BENCH: null,
     SERVER_INFO: null,
@@ -16,5 +18,6 @@ export default keyMirror({
     CLEAN_NEW_BENCH: null,
     CLONE_BENCH: null,
     METRIC_DATA: null,
+    METRIC_BATCH_END: null,
     SUBSCRIBE_METRICS: null
 });
