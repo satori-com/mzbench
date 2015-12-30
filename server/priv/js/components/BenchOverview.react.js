@@ -12,7 +12,7 @@ class BenchOverview extends React.Component {
                     <BenchSummary bench={this.props.bench} />
                 </Duration>
                 <hr />
-                <BenchOverviewGraphs bench={this.props.bench} />
+                <BenchOverviewGraphs bench={this.props.bench} activeGraph={this.props.activeGraph}/>
             </div>
         );
     }

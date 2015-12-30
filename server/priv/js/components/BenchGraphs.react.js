@@ -4,24 +4,37 @@ import MetricsStore from '../stores/MetricsStore';
 import Graph from './Graph.react';
 import Modal from './Modal.react';
 import LoadingSpinner from './LoadingSpinner.react';
+import MZBenchRouter from '../utils/MZBenchRouter';
 
 class BenchGraphs extends React.Component {
     constructor(props) {
         super(props);
+
         this.state = {
             isLoaded: MetricsStore.isDataLoaded(),
-            toggles: new Set([0]),
-            fullScreenGraph: undefined
+            toggles: new Set([0])
         };
 
         var benchId = this.props.bench.id;
         MetricsStore.resetSubscriptions(benchId);
 
         this._onChange = this._onChange.bind(this);
+        this.isGraphOpen = false;
     }
 
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
+        if (this.props.activeGraph && !this.isGraphOpen) {
+            this.refs.fullScreenGraphModal.open();
+            this.isGraphOpen = true
+        }
+    }
+
+    componentDidUpdate() {
+        if (this.props.activeGraph && !this.isGraphOpen) {
+            this.refs.fullScreenGraphModal.open();
+            this.isGraphOpen = true
+        }
     }
 
     componentWillUnmount() {
@@ -44,10 +57,10 @@ class BenchGraphs extends React.Component {
     }
 
     renderModalGraph() {
-        let fullScreenGraph = this.state.fullScreenGraph;
+        let fullScreenGraph = this.props.activeGraph;
         if(fullScreenGraph) {
-            const group = this.props.bench.metrics.groups[fullScreenGraph.group_idx];
-            const graph = group.graphs[fullScreenGraph.graph_idx];
+            const group = this.props.bench.metrics.groups[fullScreenGraph.groupId];
+            const graph = group.graphs[fullScreenGraph.graphId];
             const targets = graph.metrics.map((m) => {
                 return m.name;
             });
@@ -84,10 +97,14 @@ class BenchGraphs extends React.Component {
                         return;
                     }
 
+                    const link = `#/bench/${this.props.bench.id}/graphs/${group_idx}/${idx}`;
+
                     return (
-                        <div key={idx} className="col-xs-12 col-md-6 zoomable-graph" onClick={this._onGraphClick.bind(this, group_idx, idx)}>
-                            <Graph is_running={this.props.bench.isRunning()} targets={targets}
-                                title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
+                        <div key={idx} className="col-xs-12 col-md-6">
+                            <a href={link} className="bs-link">
+                                <Graph is_running={this.props.bench.isRunning()} targets={targets}
+                                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
+                            </a>
                         </div>
                     );
                 })}
@@ -108,7 +125,7 @@ class BenchGraphs extends React.Component {
                         render_title={false} render_submit_button={false}>
                     {this.renderModalGraph()}
                 </Modal>
-            
+
                 {groups.map((group, idx) => {
                     let isExpanded = this.state.toggles.has(idx);
                     let iconClass = isExpanded ? "glyphicon-collapse-down" : "glyphicon-expand";
@@ -143,15 +160,12 @@ class BenchGraphs extends React.Component {
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
         this.setState({toggles: toggles});
     }
-    
-    _onGraphClick(group_idx, graph_idx) {
-        this.setState({fullScreenGraph: {group_idx: group_idx, graph_idx: graph_idx}});
-        this.refs.fullScreenGraphModal.open();
-    }
-    
+
     _onCloseGraph() {
+        MZBenchRouter.navigate(`/bench/${this.props.bench.id}/overview`, {});
+        MZBenchActions.deselectGraph();
         this.refs.fullScreenGraphModal.close();
-        this.setState({fullScreenGraph: undefined});
+        this.isGraphOpen = false;
     }
 
     _onChange() {

@@ -12,8 +12,6 @@
 
 -record(state, {
           ref = undefined :: undefined | reference(),
-          currently_selected_bench = undefined :: undefined | non_neg_integer(),
-          current_transmission_guid = undefined :: undefined | string(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           metrics_streamers = #{} :: #{},
@@ -67,11 +65,8 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
-dispatch_info({metrics_batch_finished, Guid}, State = #state{current_transmission_guid = Guid}) ->
-    {reply, #{type => "METRICS_BATCH_FINISHED", guid => Guid}, State};
-
-dispatch_info({metrics_batch_finished, _Guid}, State = #state{}) ->
-    {ok, State};
+dispatch_info({metric_batch_end, Guid, Metric}, State = #state{}) ->
+    {reply, #{type => "METRIC_BATCH_END", guid => Guid, metric => Metric}, State};
 
 dispatch_info({metric_value, Guid, Metric, Values}, State) ->
     Event = #{
@@ -157,7 +152,9 @@ add_streamers(BenchId, Metrics, #state{metrics_streamers = Streamers, guid = Gui
                 case maps:find(Metric, Acc) of
                     {ok, _} -> Acc;
                     error ->
-                        SendMetricsFun = fun (Values) -> Self ! {metric_value, Guid, Metric, Values} end,
+                        SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, Guid, Metric, Values};
+                                             (batch_end)      -> Self ! {metric_batch_end, Guid, Metric}
+                                         end,
                         R2 = erlang:spawn_monitor(fun() ->
                             stream_metric(BenchId, Metric, SendMetricsFun)
                         end),
@@ -314,30 +311,31 @@ stream_metric(Id, Metric, SendFun) ->
     end.
 
 perform_streaming(Id, FileReader, SendFun, Timeout) ->
-    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0).
-perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead) ->
+    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 1). % 1, because if we have no data right now we have to send first bench_end anyway
+perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->
             Buf = [Data|Buffer],
-            _ = SendFun(lists:reverse(Buf)),
-            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0);
+            _ = SendFun({data, lists:reverse(Buf)}),
+            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, LinesInBatch + 1);
         {ok, Data} ->
-            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1);
+            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1, LinesInBatch + 1);
         eof ->
             case Buffer of
                 [] -> ok;
-                _ -> SendFun(lists:reverse(Buffer))
+                _ -> SendFun({data, lists:reverse(Buffer)})
             end,
+            LinesInBatch > 0 andalso SendFun(batch_end),
             case mzb_api_server:is_datastream_ended(Id) of
                 true  -> ok;
                 false ->
                     timer:sleep(Timeout),
-                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0)
+                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 0)
             end;
         {error, Reason} ->
             case Buffer of
                 [] -> ok;
-                _ -> SendFun(lists:reverse(Buffer))
+                _ -> SendFun({data, lists:reverse(Buffer)})
             end,
             erlang:error(Reason)
     end.

@@ -30,7 +30,7 @@ class Bench extends React.Component {
         let component;
         switch (this.state.tab) {
             case "graphs":
-                component = <BenchGraphs bench = {this.state.bench} />;
+                component = <BenchGraphs bench = {this.state.bench} activeGraph = {this.state.activeGraph}/>;
                 break;
             case "reports":
                 component = <BenchReports bench = {this.state.bench } />;
@@ -42,7 +42,7 @@ class Bench extends React.Component {
                 component = <BenchLog bench = {this.state.bench} />;
                 break;
             default:
-                component = <BenchOverview bench = {this.state.bench} />;
+                component = <BenchOverview bench = {this.state.bench} activeGraph = {this.state.activeGraph}/>;
                 break;
 
         }
@@ -96,7 +96,8 @@ class Bench extends React.Component {
             isLoaded: true,
             isNewSelected: false,
             bench: BenchStore.getSelectedBench(),
-            tab: BenchStore.getActiveTab()
+            tab: BenchStore.getActiveTab(),
+            activeGraph: BenchStore.getSelectedGraph()
         };
     }
 

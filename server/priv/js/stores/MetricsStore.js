@@ -9,15 +9,15 @@ const CHANGE_EVENT = 'metrics_change';
 let data = {
     benchId: undefined,
     guid: undefined,
-    is_loaded: false,
     starting_date: undefined,
-    map: new Map([])
+    map: new Map([]),
+    batch_counter: new Map([])
 };
 
 function _clearData() {
-    data.is_loaded = false;
     data.starting_date = undefined;
     data.map.clear();
+    data.batch_counter.clear();
 }
 
 function _updateData(metric, rawData) {
@@ -25,6 +25,15 @@ function _updateData(metric, rawData) {
     updates.forEach((update) => {
         _applyUpdate(metric, update);
     });
+}
+
+function _updateBatchCounter(metric) {
+    let m = data.batch_counter;
+    if (m.has(metric)) {
+        m.set(metric, m.get(metric) + 1);
+    } else {
+        m.set(metric, 1);
+    }
 }
 
 function _applyUpdate(metric, update) {
@@ -87,14 +96,13 @@ class MetricsStore extends EventEmitter {
     }
 
     resetSubscriptions(newBenchId) {
+        _clearData();
         data.benchId = newBenchId;
         data.guid = Misc.gen_guid();
-        data.starting_date = undefined;
-        data.map = new Map([]);
     }
 
     addSubscription(metrics) {
-            MZBenchActions.sendSubscribe(data.benchId, metrics, data.guid);
+        MZBenchActions.sendSubscribe(data.benchId, metrics, data.guid);
     }
 
     changeCurrentBench(benchId, GUID) {
@@ -113,9 +121,9 @@ class MetricsStore extends EventEmitter {
         }
     }
 
-    metricsBatchFinished(guid) {
+    updateMetricBatchCounter(metric, guid) {
         if(data.guid == guid) {
-            data.is_loaded = true;
+            _updateBatchCounter(metric);
         }
     }
 
@@ -124,6 +132,14 @@ class MetricsStore extends EventEmitter {
             return data.map.get(metric);
         } else {
             return [];
+        }
+    }
+
+    getBatchCounter(metric) {
+        if(data.batch_counter.has(metric)) {
+            return data.batch_counter.get(metric);
+        } else {
+            return 0;
         }
     }
 
@@ -147,6 +163,10 @@ _MetricsStore.dispatchToken = Dispatcher.register((action) => {
             break;
         case ActionTypes.METRIC_DATA:
             _MetricsStore.updateMetricData(action.metric, action.guid, action.data);
+            _MetricsStore.emitChange();
+            break;
+        case ActionTypes.METRIC_BATCH_END:
+            _MetricsStore.updateMetricBatchCounter(action.metric, action.guid);
             _MetricsStore.emitChange();
             break;
         default:

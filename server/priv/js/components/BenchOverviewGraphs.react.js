@@ -6,7 +6,7 @@ class BenchOverviewGraphs extends React.Component {
         return (
             <div>
                 <h3>Graphs</h3>
-                <BenchGraphs bench={this.props.bench}/>
+                <BenchGraphs bench={this.props.bench} activeGraph={this.props.activeGraph}/>
             </div>
         );
     }
