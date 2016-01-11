@@ -736,15 +736,25 @@ director_call(Connection, Msg, Timeout) ->
             Self ! {Ref, Res}
         end,
     director_async_call(Connection, Msg, Cont),
+    Mon = mzb_api_connection:monitor(Connection),
     case Timeout of
         infinity ->
             receive
-                {Ref, Res} -> Res
+                {Ref, Res} ->
+                    mzb_api_connection:demonitor(Mon),
+                    Res;
+                {'DOWN', Mon, _, _, _} ->
+                    erlang:error(director_connection_down)
             end;
         _ ->
             receive
-                {Ref, Res} -> Res
+                {Ref, Res} ->
+                    mzb_api_connection:demonitor(Mon),
+                    Res;
+                {'DOWN', Mon, _, _, _} ->
+                    erlang:error(director_connection_down)
             after Timeout ->
+                mzb_api_connection:demonitor(Mon),
                 erlang:error({director_call_timeout, Msg})
             end
     end.

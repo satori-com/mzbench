@@ -2,7 +2,9 @@
 
 -export([start_and_link_with/6,
          send_message/2,
-         wait_close/2]).
+         wait_close/2,
+         monitor/1,
+         demonitor/1]).
 
 start_and_link_with(PidToLinkWith, Purpose, Host, Port, Dispatcher, State) ->
     Self = self(),
@@ -33,6 +35,12 @@ start_and_link_with(PidToLinkWith, Purpose, Host, Port, Dispatcher, State) ->
 
 send_message({_, Socket, _, _}, Message) ->
     gen_tcp:send(Socket, erlang:term_to_binary(Message)).
+
+monitor({Pid, _, _, _}) ->
+    erlang:monitor(process, Pid).
+
+demonitor(MonRef) ->
+    erlang:demonitor(MonRef, [flush]).
 
 wait_close({Pid, _, Purpose, Host}, Timeout) ->
     Ref = erlang:monitor(process, Pid),
