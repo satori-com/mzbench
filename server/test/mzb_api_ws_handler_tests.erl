@@ -32,7 +32,7 @@ normalize_test() ->
           start_time => "2015-07-22T07:24:02Z",
           nodes => "1",
           cloud => "",
-          env => <<>>,
+          env => #{},
           status => success},
         #{id => 1,
           benchmark_name => "Test bench",
@@ -42,7 +42,7 @@ normalize_test() ->
           start_time => "2015-07-22T07:24:02Z",
           nodes => "1",
           cloud => "",
-          env => <<>>,
+          env => #{},
           status => failed}],
         Normalized).
 
