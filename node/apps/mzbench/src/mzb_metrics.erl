@@ -93,7 +93,7 @@ handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
     exometer_report:trigger_interval(mzb_exometer_report_apiserver, ?INTERVALNAME),
     timer:sleep(3000),  % Let exometer the time to finish reporting
-    
+
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
@@ -202,7 +202,7 @@ check_assertions(TimePeriod, #s{asserts = Asserts} = State) ->
         [] -> ok;
         _  ->
             system_log:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
-            mzb_director:stop_benchmark({assertions_failed, FailedAsserts})
+            mzb_director:notify({assertions_failed, FailedAsserts})
     end,
     State#s{asserts = NewAsserts}.
 
