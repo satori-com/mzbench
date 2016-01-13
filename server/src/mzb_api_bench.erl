@@ -436,7 +436,7 @@ extract_node_install_spec(Params) ->
                         GitRev;
                     B -> B
                 end,
-            mzbl_script:make_git_install_spec(GitRepo, GitBranch, "node");
+            mzbl_script:make_git_install_spec(GitRepo, GitBranch, "node", "");
         Remote ->
             mzbl_script:make_rsync_install_spec(Remote, "node", [])
     end.
