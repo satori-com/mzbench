@@ -6,15 +6,15 @@ empty_test() ->
     install_specs_check([], "[{pool, [{size, 1}], [{do_stuff}]}].").
 
 git_one_test() ->
-    install_specs_check([#git_install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = "d"}],
+    install_specs_check([#git_install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = "d", build = ""}],
         "[{make_install, ["
             "{git, \"git@github.com:foo/bar\"},"
             "{branch, \"b\"},"
             "{dir, \"d\"}]}].").
 
 git_two_test() ->
-    install_specs_check([#git_install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = "."},
-        #git_install_spec{repo = "https://github.com/baz/quux", branch = "", dir = "d"}],
+    install_specs_check([#git_install_spec{repo = "git@github.com:foo/bar", branch = "b", dir = ".", build = ""},
+        #git_install_spec{repo = "https://github.com/baz/quux", branch = "", dir = "d", build = ""}],
        "[{make_install, [{git, \"git@github.com:foo/bar\"}, {branch, \"b\"}]},"
        "{make_install, [{git, \"https://github.com/baz/quux\"}, {dir, \"d\"}]}].").
 

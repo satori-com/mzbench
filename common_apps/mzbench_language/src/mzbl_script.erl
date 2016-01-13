@@ -239,7 +239,7 @@ extract_install_specs(AST, Env) ->
                 [Repo] ->
                     [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
                     [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
-                    [Build] = mzbl_ast:find_operation_and_extract_args(build, Args, [undefined]),
+                    [Build] = mzbl_ast:find_operation_and_extract_args(build, Args, [""]),
                     make_git_install_spec(Repo, Branch, Subdir, Build)
             end
         end,
