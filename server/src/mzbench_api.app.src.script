@@ -57,7 +57,7 @@
         {node_git, "https://github.com/machinezone/mzbench.git"},
         {node_deployment_path, "~/.local/share"},
         {worker_deployment_path, "~/.local/share/mzbench_workers"},
-        {plugins_dir, "../../../../plugins"},
+        {plugins_dir, "~/.local/share/mzbench_api/plugins"},
         {bench_data_dir, "~/.local/share/mzbench_api/data"},
         {tgz_packages_dir, "~/.local/cache/mzbench_api/packages"},
         {server_configs, ["~/.config/mzbench/server.config", "/etc/mzbench/server.config"]},
