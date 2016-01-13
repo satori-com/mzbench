@@ -95,6 +95,7 @@ init(Ref, Socket, Transport, _Opts = []) ->
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}, ?TIMEOUT).
 
 handle_info({tcp_closed, _Socket}, State) ->
+    mzb_director:notify(server_connection_closed),
     {stop, normal, State};
 
 handle_info(timeout, State) ->

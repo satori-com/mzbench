@@ -22,7 +22,8 @@ init([]) ->
         child_spec(supervisor, metrics_event_manager, gen_event, permanent, [{local, metrics_event_manager}]),
         child_spec(worker, system_load_monitor, mzb_system_load_monitor, permanent, []),
         child_spec(supervisor, bench_sup, mzb_bench_sup, permanent, []),
-        child_spec(worker, garbage_cleaner, mzb_gc, permanent, [])
+        child_spec(worker, garbage_cleaner, mzb_gc, permanent, []),
+        child_spec(worker, watchdog, mzb_watchdog, permanent, [])
     ]
     }}.
 
