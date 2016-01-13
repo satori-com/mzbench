@@ -1,6 +1,26 @@
 [
   {mzbench_api, [
+    % only dummyplugin which allocates on localhost is available by default
+    {cloud_plugins, [{local,#{module => mzb_dummycloud_plugin}}]},
+    % only local connections are accepted, specify 0.0.0.0 if you want your server to be accesible
+    % for the whole network
+    {network_interface, "127.0.0.1"},
+    % 80 is default http port
     {listen_port, 4800},
-    {network_interface, "127.0.0.1"}
+    {bench_log_file, "log.txt"},
+    {bench_log_compression, deflate},
+    {bench_metrics_file, "metrics_~s.txt"},
+    {bench_metrics_compression, none},
+    {bench_read_at_once, 1024},
+    {bench_poll_timeout, 1000},
+    {node_git, "https://github.com/machinezone/mzbench.git"},
+    {node_deployment_path, "~/.local/share"},
+    {worker_deployment_path, "~/.local/share/mzbench_workers"},
+    {plugins_dir, "~/.local/share/mzbench_api/plugins"},
+    {bench_data_dir, "~/.local/share/mzbench_api/data"},
+    {tgz_packages_dir, "~/.local/cache/mzbench_api/packages"},
+    {max_bench_num, 1000},
+    {vm_args, []},
+    {graphite_prefixes_num, 3}
   ]}
 ].
