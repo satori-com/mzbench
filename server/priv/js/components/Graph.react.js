@@ -45,20 +45,11 @@ class Graph extends React.Component {
     }
     
     render() {
-        return (
-            <div>
-                <div id={this._graphDOMId()}></div>
-                <div id={this._legendDOMId()} className="graph-legend"></div>
-            </div>
-        );
+        return (<div id={this._graphDOMId()}></div>);
     }
     
     _graphDOMId() {
         return this.props.dom_prefix + this.props.targets[0].replace(/\./g, "-") + "-graph";
-    }
-    
-    _legendDOMId() {
-        return this.props.dom_prefix + this.props.targets[0].replace(/\./g, "-") + "-legend";
     }
     
     _formatClockNumber(number) {
@@ -115,12 +106,12 @@ class Graph extends React.Component {
             });
         } else {
             const date_string = this._formatDate(data.date);
-            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
+            rollover_text_container.append('tspan').text(date_string).classed(`mg-area${data.line_id}-color`, true);
             
             let label = rollover_text_container.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
-                        .text(`${this.props.targets[0]}: ${data.value}`)
-                        .classed('mg-area1-color', true);
+                        .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
+                        .classed(`mg-area${data.line_id}-color`, true);
         }
     }
     
@@ -130,34 +121,26 @@ class Graph extends React.Component {
         
         if(data.key) {
             const date_string = this._formatDate(data.values[0].date);
-            rollover_text_container.append('tspan').text(date_string);
+            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
             
             let lineCount = 1;
             let lineHeight = 1.1;
             data.values.forEach((value) => {
                 let label = rollover_text_container.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
-                            .text(value.value);
-                
-                rollover_text_container.append('tspan')
-                                       .attr({ x: -label.node().getComputedTextLength(), y: (lineCount * lineHeight) + 'em' })
-                                       .text('\u2014 ')
-                                       .classed('mg-line' + value.line_id + '-color', true);
+                            .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
+                            .classed('mg-area' + value.line_id + '-color', true);
                 
                 ++lineCount;
             });
         } else {
             const date_string = this._formatDate(data.date);
-            rollover_text_container.append('tspan').text(date_string);
+            rollover_text_container.append('tspan').text(date_string).classed(`mg-area${data.line_id}-color`, true);
             
             let label = rollover_text_container.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
-                        .text(data.value);
-            
-            rollover_text_container.append('tspan')
-                                   .attr({ x: -label.node().getComputedTextLength() - 1, y: 1.1 + 'em' })
-                                   .text('\u2014 ')
-                                   .classed('mg-line1-color', true);
+                        .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
+                        .classed(`mg-area${data.line_id}-color`, true);
         }
     }
     
@@ -187,7 +170,7 @@ class Graph extends React.Component {
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
-            aggregate_rollover: true,
+            aggregate_rollover: false,
             transition_on_update: false
         };
         
@@ -198,6 +181,7 @@ class Graph extends React.Component {
             
             graph_options.brushing = true;
             graph_options.brushing_history = true;
+            graph_options.aggregate_rollover = true;
         }
 
         if(this.state.isLoaded) {
@@ -214,7 +198,6 @@ class Graph extends React.Component {
             graph_options.legend = this.props.targets;
             
             graph_options.target = document.getElementById(this._graphDOMId());
-            graph_options.legend_target = document.getElementById(this._legendDOMId());
             
             graph_options.xax_format = this._formatDate.bind(this);
             graph_options.mouseover = this._formatRolloverText.bind(this);
@@ -228,7 +211,6 @@ class Graph extends React.Component {
             graph_options.chart_type = 'missing-data';
             graph_options.legend = this.props.targets;
             graph_options.target = document.getElementById(this._graphDOMId());
-            graph_options.legend_target = document.getElementById(this._legendDOMId());
             
             MG.data_graphic(graph_options);
         }
