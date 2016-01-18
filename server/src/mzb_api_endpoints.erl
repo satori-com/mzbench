@@ -95,7 +95,7 @@ handle(<<"GET">>, <<"/data">>, Req) ->
         #{config:= Config, metrics:= Metrics} =
             fun WaitMetricsCreations() ->
                 #{status:= S} = Status = mzb_api_server:status(Id),
-                case lists:member(S, [running, stopped, complete, crashed]) of
+                case lists:member(S, [running, stopped, complete, crashed, zombie]) of
                     true -> Status;
                     false ->
                         timer:sleep(1000),

@@ -633,7 +633,7 @@ format_log(_Handler, debug, _Format, _Args) -> ok;
 format_log(Handler, Severity, Format, Args) ->
     Now = {_, _, Ms} = os:timestamp(),
     {_, {H,M,S}} = calendar:now_to_universal_time(Now),
-    _ = Handler({write, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity|Args])}),
+    _ = Handler({write, io_lib:format("~2.10.0B:~2.10.0B:~2.10.0B.~3.10.0B [~s] [ API ] ~p " ++ Format ++ "~n", [H, M, S, Ms div 1000, Severity, self()|Args])}),
     ok.
 
 format_error(_, {{cmd_failed, Cmd, Code, Output}, _}) ->

@@ -42,6 +42,7 @@ class Bench {
         switch (this.status) {
             case "complete":
             case "failed":
+            case "zombie":
             case "stopped":
                 return false;
         }

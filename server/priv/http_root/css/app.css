@@ -79,6 +79,14 @@ a.bs-link {
     background-color: #d9534f;
 }
 
+.bs.bs-zombie {
+    border-left-color: #ff8000;
+}
+
+.bs.bs-zombie .label {
+    background-color: #ff8000;
+}
+
 .bs.bs-stopped {
     border-left-color: #777;
 }
