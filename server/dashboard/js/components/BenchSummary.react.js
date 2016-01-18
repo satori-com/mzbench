@@ -11,6 +11,8 @@ class BenchSummary extends React.Component {
                 return "label-success";
             case "failed":
                 return "label-danger";
+            case "zombie":
+                return "label-warning";
             case "stopped":
                 return "label-default";
         }
