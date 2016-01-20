@@ -74,6 +74,22 @@ Configuration example:
 
 Combine multiple plugins to allocate hosts from multiple sources.
 
+Configration example:
+
+```
+{cloud_plugins, [
+        {some_cloud_provider1, ...},
+        {some_cloud_provider2, ...},
+        {cloud_multi, #{module => mzb_multicloud_plugin,
+                          clouds => [
+                              {some_cloud_provider1, 3},
+                              {some_cloud_provider2, 10}
+                      ]}}
+]}
+```
+
+Here, if the cluster is allocated using `cloud_multi`, it will contain 3 nodes from `some_cloud_provider1` for every 10 nodes from `some_cloud_provider2`.
+
 
 # How to Write a Cloud Plugin
 
