@@ -61,7 +61,9 @@ get_value(Metric) ->
     end.
 
 final_trigger() ->
-    gen_server:call(?MODULE, final_trigger, infinity).
+    Reply = gen_server:call(?MODULE, final_trigger, infinity),
+    timer:sleep(3000),  % Let exometer the time to finish reporting
+    Reply.
 
 -spec get_failed_asserts() -> [term()].
 get_failed_asserts() ->
@@ -92,8 +94,6 @@ init([Env, MetricGroups, Nodes]) ->
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
     exometer_report:trigger_interval(mzb_exometer_report_apiserver, ?INTERVALNAME),
-    timer:sleep(3000),  % Let exometer the time to finish reporting
-
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
@@ -132,11 +132,17 @@ code_change(_OldVsn, State, _Extra) ->
 tick(#s{last_tick_time = LastTick} = State) ->
     Now = os:timestamp(),
     TimeSinceTick = timer:now_diff(Now, LastTick),
-    State1 = aggregate_metrics(State),
-    State2 = evaluate_derived_metrics(State1),
-    State3 = check_assertions(TimeSinceTick, State2),
-    State4 = check_signals(State3),
-    State4#s{last_tick_time = Now}.
+    case TimeSinceTick of
+        0 ->
+            system_log:info("[ metrics ] Tick dropped because its timestamp is equal to the previous one.", []),
+            State#s{last_tick_time = Now};
+        _ ->
+            State1 = aggregate_metrics(State),
+            State2 = evaluate_derived_metrics(State1),
+            State3 = check_assertions(TimeSinceTick, State2),
+            State4 = check_signals(State3),
+            State4#s{last_tick_time = Now}
+    end.
 
 aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     system_log:info("[ metrics ] METRIC AGGREGATION:"),
