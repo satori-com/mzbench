@@ -2,7 +2,7 @@ import React from 'react';
 import MZBenchActions from '../actions/MZBenchActions';
 import MetricsStore from '../stores/MetricsStore';
 import Graph from './Graph.react';
-import Modal from './Modal.react';
+import GraphModal from './GraphModal.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 
@@ -121,10 +121,9 @@ class BenchGraphs extends React.Component {
 
         return (
             <div>
-                <Modal ref="fullScreenGraphModal" onOk={this._onCloseGraph.bind(this)} render_fullscreen={true}
-                        render_title={false} render_submit_button={false}>
+                <GraphModal ref="fullScreenGraphModal" onOk={this._onCloseGraph.bind(this)}>
                     {this.renderModalGraph()}
-                </Modal>
+                </GraphModal>
 
                 {groups.map((group, idx) => {
                     let isExpanded = this.state.toggles.has(idx);
