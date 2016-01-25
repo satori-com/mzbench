@@ -26,7 +26,7 @@ class GraphModal extends Modal {
                         </div>
                         
                         <div className="modal-footer">
-                            <button ref="modal_close_button" type="button" className="btn btn-danger" onClick={this.props.onOk}>Close</button>
+                            <button type="button" className="btn btn-danger" onClick={this.props.onOk}>Close</button>
                         </div>
                     </div>
                 </div>
@@ -39,7 +39,7 @@ class GraphModal extends Modal {
         case 27:                    // Escape
         case 13:                    // Enter
             event.preventDefault();
-            $(findDOMNode(this.refs.modal_close_button)).trigger("click");
+            this.props.onOk();
             break;
         }
     }
