@@ -263,7 +263,14 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
         {ok, Pid} ->
             Mon = erlang:monitor(process, Pid),
             true = ets:insert_new(benchmarks, {Id, Pid, undefined}),
-            Status = mzb_api_bench:get_status(Pid),
+            Status = 
+                try
+                    mzb_api_bench:get_status(Pid)
+                catch
+                    _:_ ->
+                        StartTime = mzb_api_bench:seconds(),
+                        #{id => Id, status => zombie, start_time => StartTime, finish_time => StartTime, config => #{}, metrics => #{}}
+                end,
             % If server crashes for some reason we want some info about this bench to be saved on disk
             Status2 = Status#{finish_time => maps:get(start_time, Status), status => zombie},
             write_status(Id, Status2, State),
