@@ -222,7 +222,7 @@ check_loop_spec_element(#operation{name = rate, args = [Rate]}, Env) ->
 check_loop_spec_element(#operation{name = spawn, args = [Arg]}, Env) ->
     check(Arg, boolean, Env);
 check_loop_spec_element(#operation{name = parallel, args = [N]}, Env) ->
-    check(N, integer, Env);
+    check(N, number, Env);
 check_loop_spec_element(#operation{name = iterator, args = [Name]}, Env) ->
     check(Name, string, Env);
 check_loop_spec_element(#operation{name = poisson, args = [Flag]}, Env) ->
