@@ -33,7 +33,7 @@
     metrics = [] :: [{string(), metric_type(), term()}]
 }).
 
--define(INTERVAL, 5000). % in ms
+-define(INTERVAL, 10000). % in ms
 -define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
 -define(LOCALPREFIX, "local").
 -define(INTERVALNAME, report_interval).
