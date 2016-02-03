@@ -15,7 +15,6 @@
          code_change/3]).
 
 -record(state, {
-    offset = 0 :: integer()
 }).
 
 %%%===================================================================
@@ -28,12 +27,14 @@ start_link() ->
 -spec timestamp() -> {non_neg_integer(), non_neg_integer(), non_neg_integer()}.
 timestamp() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    {MegaSecs, Secs, MicroSecs + get_offset()}.
+    {MegaSecs, Secs, erlang:trunc(MicroSecs + get_offset())}.
 
 -spec get_offset() -> integer().
 get_offset() ->
-    {ok, Offset} = gen_server:call(?MODULE, get_offset),
-    Offset.
+    case ets:lookup(?MODULE, offset) of
+        [{offset, Offset}] -> Offset;
+        _ -> 0
+    end.
 
 -spec synchronize_time_with_director(string()) -> ok.
 synchronize_time_with_director(DirectorNode) ->
@@ -48,11 +49,11 @@ get_local_timestamp() ->
 %%%===================================================================
 -spec init([]) -> {ok, #state{}}.
 init([]) ->
+    _ = ets:new(?MODULE, [set, named_table, {read_concurrency, true}]),
+    ets:insert(?MODULE, {offset, 0}),
     {ok, #state{}}.
 
 -spec handle_call(term(), {pid(), term()}, #state{}) -> term().
-handle_call(get_offset, _From, #state{offset = Offset} = State) ->
-    {reply, {ok, Offset}, State};
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
@@ -67,7 +68,8 @@ handle_cast({synchronize_time_with_director, DirectorNode}, State) ->
     Offset = timer:now_diff(DirectorTimestamp, LocalTimestamp1) + RTT/2,
     
     system_log:info("[ mzb_time ] Timestamp offset between the node ~p and the director is ~p microseconds", [erlang:node(), Offset]),
-    {noreply, State#state{offset = Offset}};
+    _ = ets:update_element(?MODULE, offset, {2, Offset}),
+    {noreply, State};
 handle_cast(Msg, State) ->
     system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
