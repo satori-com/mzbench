@@ -67,6 +67,7 @@ init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     system_log:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
+    synchronize_time_with_nodes(Nodes),
     {_, []} = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}),
     gen_server:cast(self(), start_pools),
     _ = mzb_lists:pmap(fun(Node) ->
@@ -165,6 +166,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+synchronize_time_with_nodes(Nodes) ->
+    _ = mzb_lists:pmap(fun(Node) ->
+        ok = rpc:call(Node, mzb_time, synchronize_time_with_director, [erlang:node()])
+    end, lists:usort(Nodes)).
 
 start_pools([], _, _, Acc) ->
     system_log:info("[ director ] Started all pools"),

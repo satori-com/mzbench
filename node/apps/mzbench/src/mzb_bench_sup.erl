@@ -67,7 +67,8 @@ start_pool(Pool, Env, NumNodes, Offset) ->
 init([]) ->
     system_log:info("[ mzb_bench_sup ] I'm at ~p", [self()]),
     {ok, {{one_for_all, 0, 1}, [
-        child_spec(signaler, mzb_signaler, [], permanent)
+        child_spec(signaler, mzb_signaler, [], permanent),
+        child_spec(time_service, mzb_time, [], permanent)
     ]}}.
 
 %%%===================================================================
