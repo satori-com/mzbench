@@ -117,7 +117,8 @@ class NewBench extends React.Component {
             nodes: bench.nodes,
             cloud: bench.cloud});
 
-        query += Object.keys(bench.env).map((x) => x ? "&" + x + "=" + bench.env[x] : "").join("");
+        query += Object.keys(bench.env).map((x) =>
+            x ? "&" + encodeURIComponent(x) + "=" + encodeURIComponent(bench.env[x]) : "").join("");
 
         $.ajax({url: query, type : 'POST',
             processData: false,
