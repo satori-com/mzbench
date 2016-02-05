@@ -10,6 +10,8 @@
          apply_filter/2,
          apply_pagination/2 ]).
 
+-define(MAX_DATA_POINTS_PER_METRIC, 360).
+
 -record(state, {
           ref = undefined :: undefined | reference(),
           timeline_opts = undefined :: undefined | map(),
@@ -301,45 +303,63 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                  end, BenchInfos).
 
 %% Metrics reading process
-
 stream_metric(Id, Metric, SendFun) ->
-    #{config:= Config} = mzb_api_server:status(Id),
+    #{start_time:= StartTime, finish_time:= FinishTime, config:= Config} = mzb_api_server:status(Id),
     Filename = mzb_api_bench:metrics_file(Metric, Config),
     FileReader = get_file_reader(Filename),
     try
+        FinishTime2 = case FinishTime of
+            undefined -> mzb_api_bench:seconds();
+            T -> T
+        end,
+        BenchDuration = FinishTime2 - StartTime,
+        SubsamplingInterval = trunc(BenchDuration/?MAX_DATA_POINTS_PER_METRIC),
+        
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        perform_streaming(Id, FileReader, SendFun, PollTimeout),
+        perform_streaming(Id, FileReader, SendFun, SubsamplingInterval, PollTimeout),
         lager:info("Streamer for #~b ~s has finished", [Id, Metric])
     after
         FileReader(close)
     end.
 
-perform_streaming(Id, FileReader, SendFun, Timeout) ->
-    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 1). % 1, because if we have no data right now we have to send first bench_end anyway
-perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead, LinesInBatch) ->
+perform_streaming(Id, FileReader, SendFun, SubsamplingInterval, Timeout) ->
+    FilteringSendFun = 
+        fun(LastSentValueTimestamp, {data, Values}) ->
+                {NewLastSentValueTimestamp, FilteredValues} = filter_metric_values(SubsamplingInterval, LastSentValueTimestamp, Values),
+                _ = SendFun({data, FilteredValues}),
+                NewLastSentValueTimestamp;
+            (LastSentValueTimestamp, batch_end) ->
+                _ = SendFun(batch_end),
+                LastSentValueTimestamp
+        end,
+    perform_streaming(Id, FileReader, FilteringSendFun, undefined, Timeout, [], 0, 1). % 1, because if we have no data right now we have to send first bench_end anyway
+perform_streaming(Id, FileReader, FilteringSendFun, LastSentValueTimestamp, Timeout, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->
             Buf = [Data|Buffer],
-            _ = SendFun({data, lists:reverse(Buf)}),
-            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, LinesInBatch + 1);
+            NewLastSentValueTimestamp = FilteringSendFun(LastSentValueTimestamp, {data, lists:reverse(Buf)}),
+            perform_streaming(Id, FileReader, FilteringSendFun, NewLastSentValueTimestamp, Timeout, [], 0, LinesInBatch + 1);
         {ok, Data} ->
-            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1, LinesInBatch + 1);
+            perform_streaming(Id, FileReader, FilteringSendFun, LastSentValueTimestamp, Timeout, [Data|Buffer], LinesRead + 1, LinesInBatch + 1);
         eof ->
-            case Buffer of
-                [] -> ok;
-                _ -> SendFun({data, lists:reverse(Buffer)})
+            NewLastSentValueTimestamp = case Buffer of
+                [] -> LastSentValueTimestamp;
+                _ -> FilteringSendFun(LastSentValueTimestamp, {data, lists:reverse(Buffer)})
             end,
-            LinesInBatch > 0 andalso SendFun(batch_end),
+            NewLastSentValueTimestamp2 = if 
+                LinesInBatch > 0 -> FilteringSendFun(NewLastSentValueTimestamp, batch_end);
+                true -> NewLastSentValueTimestamp
+            end,
             case mzb_api_server:is_datastream_ended(Id) of
                 true  -> ok;
                 false ->
                     timer:sleep(Timeout),
-                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 0)
+                    perform_streaming(Id, FileReader, FilteringSendFun, NewLastSentValueTimestamp2, Timeout, [], 0, 0)
             end;
         {error, Reason} ->
-            case Buffer of
+            _ = case Buffer of
                 [] -> ok;
-                _ -> SendFun({data, lists:reverse(Buffer)})
+                _ -> FilteringSendFun(LastSentValueTimestamp, {data, lists:reverse(Buffer)})
             end,
             erlang:error(Reason)
     end.
@@ -351,3 +371,22 @@ get_file_reader(Filename) ->
         (read_line) -> file:read_line(H)
     end.
 
+% Metrics filtering
+filter_metric_values(SubsamplingInterval, LastSentValueTimestamp, Values) ->
+    {NewLastSentValueTimestamp, NewValuesReversed} = lists:foldl(fun(Value, {LastRetainedTime, Acc}) ->
+        ValueTimestamp = get_value_timestamp(Value),
+        case LastRetainedTime of
+            undefined -> {ValueTimestamp, [Value | Acc]};
+            Timestamp ->
+                Interval = ValueTimestamp - Timestamp,
+                case Interval < SubsamplingInterval of
+                    true -> {LastRetainedTime, Acc};
+                    false -> {ValueTimestamp, [Value | Acc]}
+                end
+        end
+    end, {LastSentValueTimestamp, []}, Values),
+    {NewLastSentValueTimestamp, lists:reverse(NewValuesReversed)}.
+
+get_value_timestamp(Value) ->
+    [TimeString | _] = string:tokens(Value, "\t"),
+    list_to_integer(TimeString).
