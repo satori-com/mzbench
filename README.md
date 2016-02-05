@@ -64,7 +64,7 @@ Go to [localhost:4800](http://localhost:4800) and see the benchmark live status:
 
 ## Read Next
 
- - [How to write scenarios →](doc/scenarios.md)
+ - [How to write scenarios →](doc/scenarios/spec.md)
  - [How to control MZBench from command line →](doc/cli.md)
  - [How to deploy MZBench →](doc/deployment.md)
  - [How to write your own worker →](doc/workers.md#how-to-write-a-worker)

@@ -1,6 +1,6 @@
 To benchmark a particular protocol or service, MZBench uses a matching _worker_.
 
-**Worker** is an Erlang application that provides [statements](scenarios.md) to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you'll probably need to write a worker for it.
+**Worker** is an Erlang application that provides [statements](scenarios/spec.md) to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you'll probably need to write a worker for it.
 
 !!!note
     You need basic Erlang knowledge to understand this tutorial. Refer to [Getting Started with Erlang User's Guide](http://www.erlang.org/doc/getting_started/users_guide.html) or to the [Learn You Some Erlang for great good!](http://learnyousomeerlang.com) book for an introduction to Erlang.
@@ -26,7 +26,7 @@ First, generate an empty worker application with [`new_worker`](cli.md#new_worke
 $ ./bin/mzbench new_worker <worker_name>
 ```
 
-It creates a new directory `<worker_name>` with a minimalistic but fully functional MZBench worker named `<worker_name>`. Particularly interesting files are `src/<worker_name>.erl`, which holds the worker source code, and `examples/<worker_name>.erl`, which contains a simple MZBench [scenario](scenarios.md) using it.
+It creates a new directory `<worker_name>` with a minimalistic but fully functional MZBench worker named `<worker_name>`. Particularly interesting files are `src/<worker_name>.erl`, which holds the worker source code, and `examples/<worker_name>.erl`, which contains a simple MZBench [scenario](scenarios/spec.md) using it.
 
 If the worker you develop works over a common protocol like TCP, the `new_worker` command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with [`list_templates`](cli.md#list_templates):
 
@@ -54,12 +54,12 @@ $ ./bin/mzbench run_local <script>
 You can define environment variables with the `--env` option.
 
 !!!note
-    All [`make_install`](scenarios.md#make_install) top-level statements are ignored in this execution mode.
+    All [`make_install`](scenarios/spec.md#make_install) top-level statements are ignored in this execution mode.
 
 
 ### Execute
 
-After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker's git address in your benchmark scenario with [`{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`](scenarios.md#make_install).
+After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker's git address in your benchmark scenario with [`{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`](scenarios/spec.md#make_install).
 
 [Simple HTTP worker example →](../workers/simple_http/examples/simple_http.erl)
 
@@ -146,7 +146,7 @@ The statement function must return a tuple of two values:
 
 Statements are processed sequentially; each statement receives the state from the previous one and passes it further.
  
-Two exceptions are the statements within the [`{parallel}`](scenarios.md#parallel_1) section and iterations within a `{loop}` with [parallel > 1](scenarios.md#parallel). In these cases the statements within the same thread share the same sequence of statements, which parallel threads don't. The final state of the whole `{parallel}` or `{loop}` statement is the one from the first "thread"; other threads' states don't affect the final state.
+Two exceptions are the statements within the [`{parallel}`](scenarios/spec.md#parallel_1) section and iterations within a `{loop}` with [parallel > 1](scenarios/spec.md#parallel). In these cases the statements within the same thread share the same sequence of statements, which parallel threads don't. The final state of the whole `{parallel}` or `{loop}` statement is the one from the first "thread"; other threads' states don't affect the final state.
 
 
 ## Metrics
@@ -232,7 +232,7 @@ pending_requests() ->
 
 ### Hooks
 
-[Pre and post hooks](scenarios.md#pre_hook-and-post_hook) let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.
+[Pre and post hooks](scenarios/spec.md#pre_hook-and-post_hook) let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.
 
 Scenario:
 
