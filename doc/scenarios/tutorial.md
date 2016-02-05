@@ -1,0 +1,1 @@
+**Scenarios** describe the behavior you want MZBench to emulate during the benchmark. If you're testing an online store, your scenario will probably include opening a product page and adding the product to cart. For a search service, the scenario may be searching for a random word. You get the idea.
