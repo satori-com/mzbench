@@ -5,16 +5,22 @@ import MZBenchActions from '../actions/MZBenchActions';
 import Misc from '../utils/Misc.js';
 
 const CHANGE_EVENT = 'metrics_change';
+const DATA_RESAMPLING_RATE = 1; // hours
 
 let data = {
     benchId: undefined,
     guid: undefined,
+    
+    last_resampling_date: undefined,
+    
     starting_date: undefined,
     map: new Map([]),
     batch_counter: new Map([])
 };
 
 function _clearData() {
+    data.last_resampling_date = Date.now();
+    
     data.starting_date = undefined;
     data.map.clear();
     data.batch_counter.clear();
@@ -95,6 +101,21 @@ class MetricsStore extends EventEmitter {
         return data.benchId;
     }
 
+    performResamplingIfNeeded() {
+        const sec_from_last_resampling = (Date.now() - data.last_resampling_date)/1000;
+        if(sec_from_last_resampling > 3*60) { // DATA_RESAMPLING_RATE*3600
+            let metrics_list = [];
+            data.map.forEach((value, key) => {
+                metrics_list.push(key);
+            });
+        
+            this.resetSubscriptions(data.benchId);
+            metrics_list.map((metric) => {
+                this.addSubscription(metric);
+            });
+        }
+    }
+
     resetSubscriptions(newBenchId) {
         _clearData();
         data.benchId = newBenchId;
@@ -124,6 +145,7 @@ class MetricsStore extends EventEmitter {
     updateMetricBatchCounter(metric, guid) {
         if(data.guid == guid) {
             _updateBatchCounter(metric);
+            this.performResamplingIfNeeded();
         }
     }
 
