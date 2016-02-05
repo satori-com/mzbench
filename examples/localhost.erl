@@ -5,18 +5,19 @@
 [ {pool,
     [
         {size, 5},
-        {worker_type, simple_http_worker}
+        {worker_type, http_worker}
     ],
     [
+        {set_host, "localhost"},
+        {set_port, 8080},
         {loop,
             [
                 {time, {1, min}},
                 {rate, {10, rps}}
             ],
             [
-                {get, "http://localhost:8080"}
+                {get, "/"}
             ]
         }
     ]
-}
-].
+}].
