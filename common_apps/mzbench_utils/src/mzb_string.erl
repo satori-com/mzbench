@@ -4,7 +4,8 @@
     format/2,
     char_substitute/3,
     iso_8601_fmt/1,
-    str_to_bstr/1
+    str_to_bstr/1,
+    list_to_number/1
 ]).
 
 -spec format(Format :: string(), Args :: [term()]) -> FlatString :: string().
@@ -32,3 +33,11 @@ str_to_bstr(T) when is_list(T) ->
     end;
 
 str_to_bstr(T) -> T.
+
+-spec list_to_number(string()) -> integer() | float().
+list_to_number(String) ->
+    try
+        list_to_float(String)
+    catch
+        _:_ -> list_to_integer(String)
+    end.
