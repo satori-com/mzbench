@@ -373,20 +373,20 @@ get_file_reader(Filename) ->
 
 % Metrics filtering
 filter_metric_values(SubsamplingInterval, LastSentValueTimestamp, Values) ->
-    {NewLastSentValueTimestamp, NewValuesReversed} = lists:foldl(fun(Value, {LastRetainedTime, Acc}) ->
-        ValueTimestamp = get_value_timestamp(Value),
+    {NewLastSentValueTimestamp, _, _, NewValuesReversed} = lists:foldl(fun(ValueString, {LastRetainedTime, SumForMean, NumValuesForMean, Acc}) ->
+        {ValueTimestamp, Value} = parse_value(ValueString),
         case LastRetainedTime of
-            undefined -> {ValueTimestamp, [Value | Acc]};
+            undefined -> {ValueTimestamp, 0, 0, [ValueString | Acc]};
             Timestamp ->
                 Interval = ValueTimestamp - Timestamp,
                 case Interval < SubsamplingInterval of
-                    true -> {LastRetainedTime, Acc};
-                    false -> {ValueTimestamp, [Value | Acc]}
+                    true -> {LastRetainedTime, SumForMean + Value, NumValuesForMean + 1, Acc};
+                    false -> {ValueTimestamp, 0, 0, [io_lib:format("~p\t~p~n", [ValueTimestamp, (SumForMean + Value)/(NumValuesForMean + 1)]) | Acc]}
                 end
         end
-    end, {LastSentValueTimestamp, []}, Values),
+    end, {LastSentValueTimestamp, 0, 0, []}, Values),
     {NewLastSentValueTimestamp, lists:reverse(NewValuesReversed)}.
 
-get_value_timestamp(Value) ->
-    [TimeString | _] = string:tokens(Value, "\t"),
-    list_to_integer(TimeString).
+parse_value(Value) ->
+    [TimeString | [ValueString | _]] = string:tokens(Value, "\t\n"),
+    {list_to_integer(TimeString), mzb_string:list_to_number(ValueString)}.
