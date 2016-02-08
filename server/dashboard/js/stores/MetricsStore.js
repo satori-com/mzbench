@@ -103,7 +103,7 @@ class MetricsStore extends EventEmitter {
 
     performResamplingIfNeeded() {
         const sec_from_last_resampling = (Date.now() - data.last_resampling_date)/1000;
-        if(sec_from_last_resampling > 3*60) { // DATA_RESAMPLING_RATE*3600
+        if(sec_from_last_resampling > DATA_RESAMPLING_RATE*3600) {
             let metrics_list = [];
             data.map.forEach((value, key) => {
                 metrics_list.push(key);
