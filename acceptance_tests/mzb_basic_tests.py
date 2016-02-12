@@ -59,6 +59,10 @@ def worker_from_git_test():
              'mzbench_repo':  mzbench_repo})
 
 
+def poisson_loop_test():
+    run_successful_bench(scripts_dir + 'loop_poisson.erl')
+
+
 def env_test():
     run_successful_bench(scripts_dir + 'env.erl', env={
         'jozin': 'bazin',
@@ -66,6 +70,21 @@ def env_test():
         'pool_size': '2',
         'loop_time': '5',
         'loop_rate': '2'})
+
+
+def vars_defaults_test():
+    def check_log(log):
+        regexp1 = re.compile('the_var1_value_is_var1_default_value', re.DOTALL + re.UNICODE)
+        regexp2 = re.compile('the_var2_value_is_var2_new_value', re.DOTALL + re.UNICODE)
+        
+        if regexp1.search(log) and regexp2.search(log):
+            return False
+        else:
+            return 'Unable to find correct values in log'
+
+    run_successful_bench(scripts_dir + 'vars_defaults.erl',
+        env={'var2': 'var2_new_value'},
+        check_log_function=check_log)
 
 
 def poisson_worker_start_test():
@@ -132,8 +151,8 @@ def data_endpoint_test():
 
     assert csv_data_ret_code == 0
     assert json_data_ret_code == 0
-    assert 'print.value,' in csv_out
-    assert 'print.value' in\
+    assert 'print,' in csv_out
+    assert 'print' in\
         [metric['target'] for metric in json.loads(json_out)]
 
 
@@ -215,7 +234,7 @@ def env_change_test():
                 scripts_dir + 'loop_with_vars.erl',
                 post_start=change_var,
                 expected_log_message_regex=r'zzz',
-                env={'time': '60', 'rate': '1', 'message':'zzz'})
+                env={'time': '60', 'rate': '1', 'message':'abc'})
 
     json_data_process = subprocess.Popen(
         [mzbench_script,
@@ -232,7 +251,7 @@ def env_change_test():
 
     json_data_ret_code = json_data_process.poll()
     assert json_data_ret_code == 0
-    datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps.value'][0]
+    datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps'][0]
     values = [d[0] for d in datapoints]
     print "Datapoints: {0}".format(values)
     assert(0.8 < values[2] < 1.2)

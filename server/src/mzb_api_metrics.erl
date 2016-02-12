@@ -9,6 +9,7 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
               [Host],
               io_lib:format("~s/mzbench/bin/metric_names.escript", [mzb_api_paths:node_deployment_path()]),
               [DirNode, RemoteScriptPath, RemoteEnvPath], mzb_api_app:default_logger(), []),
+
     try
         jiffy:decode(Res, [return_maps])
     catch
@@ -18,8 +19,8 @@ get_metrics(UserName, DirNode, Host, RemoteScriptPath, RemoteEnvPath) ->
             erlang:raise(C,E,ST)
     end.
 
-extract_metric_names(#{<<"groups">>:= Groups} = _Metrics) ->
-    [Name || #{<<"graphs">>:= Graphs} <- Groups, #{<<"metrics">>:= Metrics} <- Graphs, #{<<"name">>:= Name} <- Metrics];
+extract_metric_names(#{groups:= Groups} = _Metrics) ->
+    [Name || #{graphs:= Graphs} <- Groups, #{metrics:= Metrics} <- Graphs, #{name:= Name} <- Metrics];
 extract_metric_names(#{}) ->
     [].
 

@@ -1,0 +1,254 @@
+.navbar-default {
+    border-radius: 5px 5px 0 0;
+    border: none;
+}
+
+body {
+    font-family: "Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 13px;
+}
+
+.navbar-default .navbar-nav>li>a:focus, .navbar-default .navbar-nav>li>a:hover {
+    text-decoration: underline;
+}
+.navbar-brand {
+    padding-left:20px;
+}
+h1, h2, h3, h4, h5, h6, .navbar-brand, .brand-name,
+.table>tbody>tr>th {
+    font-weight: 350;
+    font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.timeline-pane {
+    margin-left: 20px;
+}
+.bs {
+    padding: 7px;
+    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-left-width: 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: hand;
+    cursor: pointer;
+}
+
+a.bs-link {
+    color: #333;
+    text-decoration: none;
+}
+
+.bs h6 {
+    margin: 5px 0;
+}
+.bs h6 span.label{
+    margin-left: 5px;
+}
+.bs i.ionicons {
+    margin-right: 4px;
+}
+
+.bs:hover  {
+    background-color: #f7f7f7;
+}
+
+.bs.bs-selected,
+.bs.bs-selected h6 {
+    color : white;
+    background-color: #337ab7;
+}
+
+.bs.bs-complete .label  {
+    background-color: #5cb85c;
+}
+
+.bs.bs-complete  {
+    border-left-color: #5cb85c;
+}
+
+.bs.bs-complete .label  {
+    background-color: #5cb85c;
+}
+
+.bs.bs-failed {
+    border-left-color: #d9534f;
+}
+
+.bs.bs-failed .label {
+    background-color: #d9534f;
+}
+
+.bs.bs-zombie {
+    border-left-color: #ff8000;
+}
+
+.bs.bs-zombie .label {
+    background-color: #ff8000;
+}
+
+.bs.bs-stopped {
+    border-left-color: #777;
+}
+
+.bs.bs-stopped .label {
+    background-color: #777;
+}
+
+.bs.bs-progress {
+    border-left-color: #5bc0de
+}
+
+.bs.bs-progress .label {
+    background-color: #5bc0de;
+}
+
+.bs.bs-new .label {
+    color:green;
+}
+
+.bs.bs-new.bs-selected .label {
+    color:white;
+}
+
+ul.nav.bench-nav {
+  margin-bottom: 20px;
+}
+
+.bench-actions .btn {
+    width: 110px;
+    margin-bottom: 5px;
+}
+
+.bench-actions .btn.dropdown-toggle{
+    width:  30px;
+    height: 30px;
+}
+
+.bench-actions .btn.dropdown-toggle span{
+    margin-bottom:5px;
+}
+
+.bench-actions .btn.pre-dropdown {
+    width: 80px;
+}
+
+.bench-details .table {
+  margin: 0px;
+}
+
+.bench-details .table>tbody>tr>td,
+.bench-details .table>tbody>tr>th,
+.bench-details .table>tfoot>tr>td,
+.bench-details .table>tfoot>tr>th,
+.bench-details .table>thead>tr>td,
+.bench-details .table>thead>tr>th {
+  padding: 4px;
+  line-height: 1;
+  vertical-align: top;
+  border-top: 0px;
+}
+
+.reset-query {
+    margin: 10px 0;
+}
+
+.reset-query a {
+    font-weight: bold;
+    font-size: 16px;
+    color: #5e5e5e;
+    text-decoration: none;
+}
+
+.reset-query a:hover {
+    color: #337ab7;
+    text-decoration: none;
+}
+
+img.graph {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 0;
+}
+
+.graph-panel span[role=button]:hover {
+    text-decoration: underline;
+}
+
+.glyphicon-spin {
+  -webkit-animation: spin 1000ms infinite linear;
+  animation: spin 1000ms infinite linear;
+}
+
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+.panel-report .panel-body button{
+    margin: 0px 3px;
+}
+
+iframe {
+    border: 1px solid #ddd;
+}
+
+.timeline-body {
+    position: relative !important;
+}
+
+.load-mask {
+    z-index: 100;
+    position: absolute;
+    top:0;
+    left:0;
+    -moz-opacity: 0.5;
+    opacity: .50;
+    filter: alpha(opacity=50);
+
+    background-color: #eee;
+    width: 100%;
+    height: 100%;
+    zoom: 1;
+    border-radius: 3px;
+}
+
+.spinner-wrapper {
+    width: 100%;
+    position: relative;
+    padding: 10px 0;
+}
+
+.spinner-main {
+    position: absolute;
+    top: 50%;
+    bottom: 0;
+    right: 0;
+    left: 0;
+}
+
+.graph-legend {
+    font-size: 9px;
+    min-height: 50px;
+}
+
+.fullscreen-modal-dialog {
+    width: auto;
+    margin: 30px;
+}

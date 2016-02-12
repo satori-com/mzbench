@@ -95,7 +95,7 @@ handle(<<"GET">>, <<"/data">>, Req) ->
         #{config:= Config, metrics:= Metrics} =
             fun WaitMetricsCreations() ->
                 #{status:= S} = Status = mzb_api_server:status(Id),
-                case lists:member(S, [running, stopped, complete, crashed]) of
+                case lists:member(S, [running, stopped, complete, crashed, zombie]) of
                     true -> Status;
                     false ->
                         timer:sleep(1000),
@@ -392,7 +392,7 @@ stream_metrics_from_files(Files, BenchId, Req) ->
                                     R();
                                 {ok, D} ->
                                     [Timestamp, Value] = binary:split(D, <<"\t">>),
-                                    Streamer(<<Timestamp/binary, "\t", Name/binary, "\t", Value/binary>>),
+                                    Streamer(<<Timestamp/binary, "\t", (erlang:list_to_binary(Name))/binary, "\t", Value/binary>>),
                                     R();
                                 eof when IsLastTime ->
                                     ok;

@@ -148,7 +148,7 @@ import mzbench_api_client as api
 
 
 def require(executable):
-    descriptions = {'escript': 'Erlang distribution (17.* or 18.*)', 'c++': 'C++ compiler'}
+    descriptions = {'escript': 'Erlang distribution (>17.1 or 18.*)', 'c++': 'C++ compiler'}
     from distutils.spawn import find_executable
     if not find_executable(executable):
         print('This command requires {0}.'.format(
@@ -411,6 +411,8 @@ def run_or_validate(script, env, validate):
                 print(out)
             print(err)
         else:
+            if out:
+                print(out)
             print('ok')
         return p.returncode
     else:

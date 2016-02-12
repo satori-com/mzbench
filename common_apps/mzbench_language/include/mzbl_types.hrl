@@ -37,7 +37,8 @@
 -record(git_install_spec, {
         repo :: string(),
         branch :: string(),
-        dir :: string()
+        dir :: string(),
+        build :: string()
         }).
 -type git_install_spec() :: #git_install_spec{}.
 

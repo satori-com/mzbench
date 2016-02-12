@@ -263,6 +263,17 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
         {ok, Pid} ->
             Mon = erlang:monitor(process, Pid),
             true = ets:insert_new(benchmarks, {Id, Pid, undefined}),
+            Status = 
+                try
+                    mzb_api_bench:get_status(Pid)
+                catch
+                    _:_ ->
+                        StartTime = mzb_api_bench:seconds(),
+                        #{id => Id, status => zombie, start_time => StartTime, finish_time => StartTime, config => #{}, metrics => #{}}
+                end,
+            % If server crashes for some reason we want some info about this bench to be saved on disk
+            Status2 = Status#{finish_time => maps:get(start_time, Status), status => zombie},
+            write_status(Id, Status2, State),
             NewState = State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)},
             {ok, Id, check_max_bench_num(NewState)};
         {error, Reason} ->
@@ -285,17 +296,19 @@ check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} 
         end, [], benchmarks),
     State.
 
-save_results(Id, Status, #{data_dir:= Dir}) ->
+save_results(Id, Status, State) ->
     try
-        Filename = filename:join([Dir, erlang:integer_to_list(Id), "status"]),
-        ok = filelib:ensure_dir(Filename),
-        ok = file:write_file(Filename, io_lib:format("~p.", [Status])),
-
+        write_status(Id, Status, State),
         true = ets:update_element(benchmarks, Id, {3, Status})
     catch
         _:Error ->
             lager:error("Save bench #~b results failed with reason: ~p~n~p", [Id, Error, erlang:get_stacktrace()])
     end.
+
+write_status(Id, Status, #{data_dir:= Dir}) ->
+    Filename = filename:join([Dir, erlang:integer_to_list(Id), "status"]),
+    ok = filelib:ensure_dir(Filename),
+    ok = file:write_file(Filename, io_lib:format("~p.", [Status])).
 
 import_data(Dir) ->
     lager:info("Importing server data from ~s", [Dir]),

@@ -20,16 +20,22 @@ scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
 @contextmanager
-def start_mzbench_server():
+def start_mzbench_server(custom_data_location=None):
     if 'MZBENCH_RSYNC' in os.environ:
         node_location_param = '{{node_rsync, "{0}"}},'.format(os.environ['MZBENCH_RSYNC'])
     elif 'MZBENCH_REPO' in os.environ:
         node_location_param = '{{node_git, "{0}"}},'.format(os.environ['MZBENCH_REPO'])
     else:
         node_location_param = ''
+    
+    if custom_data_location:
+        custom_data_location_param = '{{bench_data_dir, "{0}"}},'.format(custom_data_location)
+    else:
+        custom_data_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0}{{node_log_port, 0}}, {{node_management_port, 0}}]}}].'.format(node_location_param))
+        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_management_port, 0}}]}}].'
+                     .format(node_location_param, custom_data_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
         print(f.read())
@@ -155,26 +161,26 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log {0}'.format(bench_id)
             log = cmd(log_cmd)
 
-            re_match = None
             if expected_log_message_regex:
                 if isinstance(expected_log_message_regex, str) or isinstance(expected_log_message_regex, unicode):
                     regex = re.compile(expected_log_message_regex, re.DOTALL + re.UNICODE)
                 else:
                     regex = expected_log_message_regex
-                re_match = regex.search(log)
 
-            maybe_error = None
+                if not regex.search(log):
+                    print
+                    print u"Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
+                    print log
+                    raise RuntimeError
+
             if check_log_function:
                 maybe_error = check_log_function(log)
-
-            if not re_match or maybe_error:
-                print
+                
                 if maybe_error:
+                    print
                     print "Log doesn't pass custom check:\n{0}\n\n".format(maybe_error)
-                if not re_match:
-                    print u"Log doesn't contain expected log message '{0}':\n".format(regex.pattern)
-                print log
-                raise RuntimeError
+                    print log
+                    raise RuntimeError
 
             return bench_id
 
