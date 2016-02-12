@@ -50,8 +50,13 @@ run_script(Script, Env) ->
     {ok, _} = application:ensure_all_started(mzbench),
 
     case mzb_bench_sup:run_bench(filename:absname(Script), Env) of
-        {ok, R} ->
-            io:format("~s~n", [R]);
+        ok ->
+            Res =
+                case mzb_bench_sup:get_results() of
+                    {ok, R} -> R;
+                    {error, _, R} -> R
+                end,
+            io:format("~s~n", [Res]);
         {error, Messages} ->
             terminate_node(1, string:join(Messages, "\n"))
     end.
@@ -70,8 +75,8 @@ validate(Script, Env) ->
     ok = application:load(mzbench),
 
     case mzb_script_validator:read_and_validate(filename:absname(Script), Env) of
-        {ok, _, _} ->
-            terminate_node(0, "ok");
+        {ok, Warnings, _, _} ->
+            terminate_node(0, string:join(Warnings, "\n"));
         {error, _, _, _, Messages} ->
             terminate_node(1, string:join(Messages, "\n"))
     end.

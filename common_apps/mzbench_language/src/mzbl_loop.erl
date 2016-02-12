@@ -7,6 +7,8 @@
 % For Common and EUnit tests
 -export([time_of_next_iteration/3, msnow/0]).
 
+-define(MAXSLEEP, 10000).
+
 -include("mzbl_types.hrl").
 
 -record(const_rate, {
@@ -23,7 +25,8 @@
 -record(opts, {
     spawn = false        :: true | false,
     iterator = undefined :: undefined | string(),
-    parallel = 1         :: pos_integer()
+    parallel = 1         :: pos_integer(),
+    poisson = false      :: true | false
 }).
 
 -spec eval([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
@@ -70,17 +73,19 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
     {Iterator, State1} = (ArgEvaluator(iterator, LoopSpec, undefined))(State),
     {ProcNum, State2} = (ArgEvaluator(parallel, LoopSpec, 1))(State1),
     {Spawn, State3} = (ArgEvaluator(spawn, LoopSpec, false))(State2),
+    {Poisson, State4} = (ArgEvaluator(poisson, LoopSpec, false))(State3),
     Opts = #opts{
             spawn = Spawn,
             iterator = Iterator,
-            parallel = ProcNum
+            parallel = ProcNum,
+            poisson = Poisson
         },
     case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
         [#constant{value = 0, units = rps}] ->
-            {nil, State3};
+            {nil, State4};
         [#constant{value = _, units = _} = RPS] ->
             RPSFun = Evaluator(RPS),
-            looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State3, Env, Opts);
+            looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State4, Env, Opts);
         [#operation{name = think_time,
                     args = [#constant{units = _} = ThinkTime,
                             #constant{units = _} = Rate]}] ->
@@ -89,15 +94,15 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
             RPSFun2 = fun (S) -> {0, S} end,
             PeriodFun2 = Evaluator(ThinkTime),
             superloop(TimeFun, [RPSFun1, PeriodFun1, RPSFun2, PeriodFun2], Body,
-                      WorkerProvider, State3, Env, Opts);
+                      WorkerProvider, State4, Env, Opts);
         [#operation{name = comb, args = RatesAndPeriods}] ->
             RatesAndPeriodsFuns = [Evaluator(E) || E <- RatesAndPeriods],
-            superloop(TimeFun, RatesAndPeriodsFuns, Body, WorkerProvider, State3, Env, Opts);
+            superloop(TimeFun, RatesAndPeriodsFuns, Body, WorkerProvider, State4, Env, Opts);
         [#operation{name = ramp, args = [
                             linear,
                             #constant{value = _, units = _} = From,
                             #constant{value = _, units = _} = To]}] ->
-            looprun(TimeFun, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State3, Env, Opts)
+            looprun(TimeFun, #linear_rate{from_fun = Evaluator(From), to_fun = Evaluator(To)}, Body, WorkerProvider, State4, Env, Opts)
     end.
 
 -spec msnow() -> integer().
@@ -105,7 +110,7 @@ msnow() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     MegaSecs * 1000000000 + Secs * 1000 + MicroSecs div 1000.
 
--spec time_of_next_iteration(#const_rate{} | #linear_rate{}, number(), integer())
+-spec time_of_next_iteration(#const_rate{} | #linear_rate{}, number(), float())
     -> number().
 time_of_next_iteration(#const_rate{value = undefined}, _, _) -> 0;
 time_of_next_iteration(#const_rate{value = 0}, Duration, _) -> Duration * 2; % should be more than loop length "2" does not stand for anything important
@@ -159,47 +164,60 @@ superloop(TimeFun, Rates, Body, WorkerProvider, State, Env, Opts) ->
     end.
 
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = 1})  ->
-    timerun(msnow(), TimeFun, Rate, Body, WorkerProvider, Env, Opts, 1, State, 0);
+    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0);
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = N}) ->
+    StartTime = msnow(),
     _ = mzb_lists:pmap(fun (I) ->
-        timerun(msnow(), TimeFun, Rate, Body, WorkerProvider, Env, Opts, 1, State, I)
+        _ = random:seed(now()),
+        timerun(StartTime, random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, I)
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, TimeFun, Rate, Body, WorkerProvider, Env, Opts, Batch, State, OldDone) ->
+timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
-    ShouldBe = time_of_next_iteration(NewRate, Time, Done),
+    ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
 
     Remain = round(ShouldBe) - LocalTime,
     GotTime = round(Time) - LocalTime,
 
-    Sleep = max(0, min(Remain, GotTime)),
-    if
-        Sleep > 0 -> timer:sleep(Sleep);
-        true -> ok
-    end,
-    case Time =< LocalTime + Sleep of
-        true -> {nil, State2};
+    NeedToSleep = max(0, min(Remain, GotTime)),
+    Sleep =
+        case Opts#opts.poisson of
+            true -> max(0, min(round(-Remain * math:log(random:uniform())), GotTime));
+            false -> NeedToSleep
+        end,
+    case Sleep > ?MAXSLEEP of
+        true ->
+            timer:sleep(?MAXSLEEP),
+            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done);
         false ->
-            BatchStart = msnow(),
-            Iterator = Opts#opts.iterator,
-            Step = Opts#opts.parallel,
-            NextState =
-                case Opts#opts.spawn of
-                    false ->
-                        case Iterator of
-                            undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
-                            _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                        end;
-                    true ->
-                        k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
-                end,
-            BatchEnd = msnow(),
-            NewBatch = batch_size(BatchEnd - BatchStart, GotTime, Sleep, Batch),
+            Sleep > 0 andalso timer:sleep(Sleep),
+            case Time =< LocalTime + Sleep of
+                true -> {nil, State2};
+                false ->
+                    BatchStart = msnow(),
+                    Iterator = Opts#opts.iterator,
+                    Step = Opts#opts.parallel,
+                    NextState =
+                        case Opts#opts.spawn of
+                            false ->
+                                case Iterator of
+                                    undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
+                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                end;
+                            true ->
+                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                        end,
+                    BatchEnd = msnow(),
+                    NewBatch = case IsFirst of
+                        true -> Batch;
+                        false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
+                    end,
 
-            timerun(Start, TimeFun, NewRate, Body, WorkerProvider, Env, Opts, NewBatch, NextState, Done + Step*Batch)
+                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+            end
     end.
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
@@ -210,7 +228,7 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
             {Prev, _} -> Done;
             {undefined, _} -> Done;
             {New, 0} -> round(New * CurTime / 1000);
-            {New, undefined} -> round(New * CurTime / 1000);
+            {_New, undefined} -> Done;
             {New, _} -> round(New * CurTime / 1000)
         end,
     {RateState#const_rate{value = Rate}, NewDone, State1};
@@ -234,7 +252,7 @@ batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
     TimePerIter = max(0, BatchTime div Batch),
     if BatchTime * 4 > TimeLeft -> Batch div 2 + 1;
        (Sleep == 0) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
-       Sleep > 2*TimePerIter -> max(Batch - Batch div 16 - 1, 1);
+       Sleep > 2*TimePerIter -> max(Batch - Batch div 2 - 1, 1);
        true -> Batch
     end.
 

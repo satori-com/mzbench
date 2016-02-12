@@ -61,8 +61,8 @@ hostname_str(NodeStr) ->
 
 cast_to_type(Value, TypedValue) when is_binary(Value) and not is_binary(TypedValue) ->
     cast_to_type(binary_to_list(Value), TypedValue);
-cast_to_type(Value, TypedValue) when is_list(Value) and is_integer(TypedValue) ->
-    list_to_integer(Value);
+cast_to_type(Value, TypedValue) when is_list(Value) and (is_integer(TypedValue) or is_float(TypedValue)) ->
+    any_to_num(Value);
 cast_to_type(Value, TypedValue) when is_integer(Value) and is_float(TypedValue) ->
     float(Value);
 cast_to_type(Value, TypedValue) when is_list(Value) and is_float(TypedValue) ->

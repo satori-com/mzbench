@@ -13,7 +13,7 @@
          enumerate_pools/1,
          extract_worker/1,
          resolve_worker_provider/1,
-         make_git_install_spec/3,
+         make_git_install_spec/4,
          make_rsync_install_spec/3,
          eval_opts/2]).
 
@@ -100,6 +100,8 @@ extract_pools_and_env(Script, Env) ->
                     Name = mzbl_interpreter:eval_std(NameExpr, Env),
                     Path = mzbl_interpreter:eval_std(PathExpr, Env),
                     [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
+                (#operation{name = defaults, args = [DefaultsList]}, Acc) ->
+                    interpret_defaults(DefaultsList, Env) ++ Acc;
                 (#operation{name = assert, args = [Time, Expr]}, Acc) ->
                     {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
                     [{asserts, [{Time, normalize_assert(Expr)}|Asserts]}|Acc2];
@@ -141,6 +143,18 @@ import_resource(Env, File, Type) ->
             end
     end,
     convert(Content, Type).
+
+-spec interpret_defaults([{string(), script_expr()}], [{term(), term()}]) -> [{term(), term()}].
+interpret_defaults(DefaultsList, Env) ->
+    lists:foldl(
+        fun ({Name, Value}, Acc) ->
+            case proplists:is_defined(Name, Env) of
+                false ->
+                    NewValue = mzbl_interpreter:eval_std(Value, Env),
+                    [{Name, NewValue} | Acc];
+                true -> Acc
+            end
+        end, [], DefaultsList).
 
 -spec convert(string() | binary(), erlang) -> term();
              (string() | binary(), binary) -> binary();
@@ -225,17 +239,19 @@ extract_install_specs(AST, Env) ->
                 [Repo] ->
                     [Branch] = mzbl_ast:find_operation_and_extract_args(branch, Args, [""]),
                     [Subdir] = mzbl_ast:find_operation_and_extract_args(dir, Args, ["."]),
-                    make_git_install_spec(Repo, Branch, Subdir)
+                    [Build] = mzbl_ast:find_operation_and_extract_args(build, Args, [""]),
+                    make_git_install_spec(Repo, Branch, Subdir, Build)
             end
         end,
     [Convert(InstallOperation) || (#operation{name = make_install} = InstallOperation) <- AST].
 
--spec make_git_install_spec(string(), string(), string()) -> git_install_spec().
-make_git_install_spec(Repo, Branch, Dir) ->
+-spec make_git_install_spec(string(), string(), string(), string()) -> git_install_spec().
+make_git_install_spec(Repo, Branch, Dir, Build) ->
     #git_install_spec{
         repo = to_string(Repo),
         branch = to_string(Branch),
-        dir = to_string(Dir)}.
+        dir = to_string(Dir),
+        build = to_string(Build)}.
 
 -spec make_rsync_install_spec(binary() | string(), binary() | string(), [binary() | string()]) -> rsync_install_spec().
 make_rsync_install_spec(Remote, Subdir, Excludes) ->

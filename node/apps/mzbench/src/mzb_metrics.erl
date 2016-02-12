@@ -61,7 +61,9 @@ get_value(Metric) ->
     end.
 
 final_trigger() ->
-    gen_server:call(?MODULE, final_trigger, infinity).
+    Reply = gen_server:call(?MODULE, final_trigger, infinity),
+    timer:sleep(3000),  % Let exometer the time to finish reporting
+    Reply.
 
 -spec get_failed_asserts() -> [term()].
 get_failed_asserts() ->
@@ -92,8 +94,6 @@ init([Env, MetricGroups, Nodes]) ->
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
     exometer_report:trigger_interval(mzb_exometer_report_apiserver, ?INTERVALNAME),
-    timer:sleep(3000),  % Let exometer the time to finish reporting
-    
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
@@ -132,11 +132,17 @@ code_change(_OldVsn, State, _Extra) ->
 tick(#s{last_tick_time = LastTick} = State) ->
     Now = os:timestamp(),
     TimeSinceTick = timer:now_diff(Now, LastTick),
-    State1 = aggregate_metrics(State),
-    State2 = evaluate_derived_metrics(State1),
-    State3 = check_assertions(TimeSinceTick, State2),
-    State4 = check_signals(State3),
-    State4#s{last_tick_time = Now}.
+    case TimeSinceTick of
+        0 ->
+            system_log:info("[ metrics ] Tick dropped because its timestamp is equal to the previous one.", []),
+            State#s{last_tick_time = Now};
+        _ ->
+            State1 = aggregate_metrics(State),
+            State2 = evaluate_derived_metrics(State1),
+            State3 = check_assertions(TimeSinceTick, State2),
+            State4 = check_signals(State3),
+            State4#s{last_tick_time = Now}
+    end.
 
 aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     system_log:info("[ metrics ] METRIC AGGREGATION:"),
@@ -202,7 +208,7 @@ check_assertions(TimePeriod, #s{asserts = Asserts} = State) ->
         [] -> ok;
         _  ->
             system_log:error("Interrupting benchmark because of failed asserts:~n~s", [string:join([Str|| {_, Str} <- FailedAsserts], "\n")]),
-            mzb_director:stop_benchmark({assertions_failed, FailedAsserts})
+            mzb_director:notify({assertions_failed, FailedAsserts})
     end,
     State#s{asserts = NewAsserts}.
 
@@ -289,12 +295,15 @@ get_local_values(Metrics) ->
     CountersAndGauges = lists:map(
         fun ({Name, Type, _}) ->
             case exometer:get_value([?LOCALPREFIX, Name], value) of
-                {ok, [{value, Value}]} -> {Name, Value, Type};
+                {ok, [{value, Value}]} when Type == counter ->
+                    notify({Name, counter}, -Value),
+                    {Name, Value, Type};
+                {ok, [{value, Value}]}  ->
+                    {Name, Value, Type};
                 {error, _} -> ok
             end
         end,
         [M || {_, T, _} = M <- Metrics, (T == gauge) or (T == counter)]),
-    _ = [ exometer:reset([?LOCALPREFIX, N]) || {N, counter, _} <- Metrics ],
     Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data([N || {N, histogram, _} <- Metrics])],
     system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
     CountersAndGauges ++ Histograms.
@@ -319,7 +328,12 @@ extract_exometer_metrics(Groups) ->
     Metrics.
 
 get_exometer_metrics({Name, counter, Opts}) ->
-    RateOpts = Opts#{rps => true},
+    NewOpts =
+        case maps:find(rps_visibility, Opts) of
+            {ok, Val} -> maps:put(visibility, Val, maps:remove(rps_visibility, Opts));
+            error -> Opts
+        end,
+    RateOpts = NewOpts#{rps => true},
     [[{Name, counter, Opts}], [{Name ++ ".rps", gauge, RateOpts}]];
 get_exometer_metrics({Name, gauge, Opts}) ->
     [[{Name, gauge, Opts}]];
@@ -372,7 +386,7 @@ init_exometer(Metrics) ->
     ExometerMetrics = extract_exometer_metrics(Metrics),
 
     _ = lists:map(
-        fun ({Metric, Type, _Opts}) -> 
+        fun ({Metric, Type, _Opts}) ->
             exometer:new([Metric], Type)
         end, ExometerMetrics),
 

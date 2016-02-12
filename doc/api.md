@@ -125,7 +125,7 @@ $ curl http://mzbench.myserver.com/logs?id=122
 
 ## GET /data?id=number
 
-Request benchmark metrics data. The response will be tab-delimited CSV with timestamp followed by metric name and value:
+Request benchmark metrics data. The response will be a tab-delimited CSV with timestamp followed by metric name and value:
 
 ```bash
 $ curl http://mzbench.myserver.com/data?id=1236

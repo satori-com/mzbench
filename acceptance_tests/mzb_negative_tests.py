@@ -42,7 +42,7 @@ def runtime_error_test():
 
 def env_param_missing_test():
     run_failing_bench(scripts_dir + 'env.erl', env={},
-        expected_log_message_regex=r'''\[error\].*Stage 'pipeline - running': failed.*Unexpected error: {{{var_is_unbound,"pool_size"}''')
+        expected_log_message_regex=r'''Benchmark result: Unexpected error: {{{var_is_unbound,"pool_size"}''')
 
 
 def signal_timeout_test():
@@ -64,7 +64,7 @@ def worker_provisioning_fail_test():
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},
-        expected_log_message_regex=r'\[error\].*Command execution failed.*Output: FAILED\n1 assertions failed\nAssertion: print > 40')
+        expected_log_message_regex=r'''Benchmark result: FAILED.*1 assertions failed.*Assertion: print > 40.*was expected to hold for 40s.*but held for just''')
 
 
 def always_assertions_fail_test():

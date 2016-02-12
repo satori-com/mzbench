@@ -2,7 +2,7 @@ language: erlang
 
 otp_release:
  - 18.0
- - 17.0
+ - 17.1
 
 sudo: false
 
@@ -16,6 +16,7 @@ env:
  - TASK=validate-examples
  - TASK=error-messages
  - TASK=acceptance-local-tests
+ - TASK=acceptance-migrations-tests
 
 addons:
   apt:

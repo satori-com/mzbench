@@ -30,9 +30,15 @@ start_link(Ref, Socket, Transport, Opts) ->
 
 dispatch({request, Ref, Msg}, State) ->
     system_log:info("Received request: ~p", [Msg]),
-    case handle_message(Msg) of
-        {ok, Res} -> send_message({response, Ref, Res}, State);
-        {error, Reason} -> system_log:error("Api server message handling error: ~p, Reason: ~p", [Msg, Reason])
+    try
+        ReplyFun = fun (Reply) ->  send_message({response, Ref, Reply}, State) end,
+        case handle_message(Msg, ReplyFun) of
+            {reply, Reply} -> ReplyFun(Reply);
+            noreply -> ok
+        end
+    catch
+        _:Error ->
+            system_log:error("Api server message handling exception: ~p~n~p", [Error, erlang:get_stacktrace()])
     end,
     {noreply, State};
 
@@ -47,17 +53,36 @@ dispatch(Unhandled, State) ->
 get_port() ->
     ranch:get_port(management_tcp_server).
 
-handle_message({change_env, Env}) ->
-    {ok, mzb_director:change_env(Env)};
+handle_message({start_benchmark, ScriptPath, Env}, _) ->
+    {reply, mzb_bench_sup:run_bench(ScriptPath, Env)};
 
-handle_message({get_log_port, Node}) ->
-    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
-        {badrpc, Reason} -> {error, {badrpc, Node, Reason}};
-        Port -> {ok, Port}
+handle_message(get_results, ReplyFun) ->
+    _ = erlang:spawn(fun () -> ReplyFun(mzb_bench_sup:get_results()) end),
+    noreply;
+
+handle_message({metric_names, ScriptPath, Env}, _) ->
+    try
+        case mzb_script_validator:read_and_validate(ScriptPath, mzbl_script:normalize_env(Env)) of
+            {ok, _Warnings, _Body0, Env0} ->
+                {reply, {ok, mzb_script_metrics:metrics(ScriptPath, Env0)}};
+            {error, _, _, _, Errors} ->
+                {reply, {error, Errors}}
+        end
+    catch
+        _:E -> {reply, {error, [mzb_string:format("Unexpected exception on metrics gathering: ~p~n~p", [E, erlang:get_stacktrace()])]}}
     end;
 
-handle_message(Msg) ->
-    {error, {unhandled, Msg}}.
+handle_message({change_env, Env}, _) ->
+    {reply, mzb_director:change_env(Env)};
+
+handle_message({get_log_port, Node}, _) ->
+    case rpc:call(Node, mzb_lager_tcp_protocol, get_port, []) of
+        {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
+        Port -> {reply, {ok, Port}}
+    end;
+
+handle_message(Msg, _) ->
+    erlang:error({unhandled, Msg}).
 
 init([State]) -> {ok, State}.
 
@@ -70,6 +95,7 @@ init(Ref, Socket, Transport, _Opts = []) ->
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}, ?TIMEOUT).
 
 handle_info({tcp_closed, _Socket}, State) ->
+    mzb_director:notify(server_connection_closed),
     {stop, normal, State};
 
 handle_info(timeout, State) ->
@@ -90,8 +116,8 @@ handle_cast(Msg, State) ->
     system_log:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
-handle_call({report, [Probe, DataPoint, Value]}, _From, State = #state{}) ->
-    Name = name([P || P <- Probe, P /= []], DataPoint),
+handle_call({report, [Probe, _DataPoint, Value]}, _From, State = #state{}) ->
+    Name = string:join(Probe, "."),
     Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
     send_message({metric_value, Name, Metric}, State),
     {reply, ok, State};
@@ -101,18 +127,12 @@ handle_call(Request, _From, State) ->
     {reply, ignore, State}.
 
 terminate(_Reason, _State) ->
+    lager:info("Management tcp connection terminated: ~p", [_Reason]),
     gen_event:delete_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, []),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-name(Probe, DataPoint) -> [[[str(I), $.] || I <- Probe], str(DataPoint)].
-
-str(V) when is_atom(V) -> atom_to_list(V);
-str(V) when is_binary(V) -> binary_to_list(V);
-str(V) when is_integer(V) -> integer_to_list(V);
-str(V) when is_list(V) -> V.
 
 unix_time() ->
     {Mega, Secs, _} = os:timestamp(),

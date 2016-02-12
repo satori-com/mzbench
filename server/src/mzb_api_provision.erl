@@ -219,8 +219,11 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
             mzb_string:format("~p.~p.~p", [A, B, C])
     end,
     #{user_name:= User} = Config,
-    HostsAndOSs = mzb_lists:pmap(fun (Host) -> {Host, get_host_system_id(User, Host, Logger)} end, Hosts),
     PackagesDir = mzb_api_paths:tgz_packages_dir(),
+    HostsAndOSs = case InstallSpec of
+        #git_install_spec{build = "local"} -> [{H, "noarch"} || H <- Hosts];
+        _ -> mzb_lists:pmap(fun (Host) -> {Host, get_host_system_id(User, Host, Logger)} end, Hosts)
+    end,
     ok = filelib:ensure_dir(PackagesDir ++ "/"),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
     NeededTarballs =
@@ -228,8 +231,13 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
         || OS <- UniqueOSs],
     MissingTarballs = [{OS, T} || {OS, T} <- NeededTarballs, not filelib:is_file(T)],
     Logger(info, "Missing tarballs: ~p", [MissingTarballs]),
-    OSsWithMissingTarballs = [OS || {OS, _} <- MissingTarballs],
-
+    OSsWithMissingTarballs = case [OS || {OS, _} <- MissingTarballs] of
+        ["noarch"] -> Logger(info, "Building package ~s on api server", [PackageName]),
+                      [TarballPath] = [T || {_, T} <- MissingTarballs],
+                      build_package_on_host("localhost", User, TarballPath, InstallSpec, Logger),
+                      [];
+                 L -> L
+        end,
     _ = mzb_lists:pmap(fun({Host, OS}) ->
             {OS, LocalTarballPath} = lists:keyfind(OS, 1, NeededTarballs),
             RemoteTarballPath = mzb_file:tmp_filename() ++ ".tgz",

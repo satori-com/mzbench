@@ -16,20 +16,16 @@ start(_Type, _Args) ->
     {ok, Sup, #{}}.
 
 start_http_server() ->
-    Static = fun(Filetype) ->
-                 {lists:append(["/", Filetype, "/[...]"]), cowboy_static,
-                     {priv_dir, mzbench_api, [Filetype], [{mimetypes, cow_mimetypes, web}]}}
-             end,
-
     Dispatch = cowboy_router:compile([
         {'_', [
-            Static("css"),
-            Static("js"),
-            {"/",    cowboy_static, {priv_file, mzbench_api, "/index.html"}},
-            {"/dev", cowboy_static, {priv_file, mzbench_api, "/index.dev.html"}},
-            {"/favicon.ico", cowboy_static, {priv_file, mzbench_api, "/favicon.ico"}},
-            {"/ws", mzb_api_ws_handler, []},
-            {'_', mzb_api_endpoints, []}
+            {"/",                 cowboy_static, {priv_file, mzbench_api, "/http_root/index.html"}},
+            {"/dev",              cowboy_static, {priv_file, mzbench_api, "/http_root/index.dev.html"}},
+            {"/js/vendors/[...]", cowboy_static, {priv_dir, mzbench_api, ["/http_root/js/vendors"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/js/[...]",         cowboy_static, {priv_dir, mzbench_api, ["/http_root/js"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/css/[...]",        cowboy_static, {priv_dir, mzbench_api, ["/http_root/css"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/favicon.ico",      cowboy_static, {priv_file, mzbench_api, "/http_root/favicon.ico"}},
+            {"/ws",               mzb_api_ws_handler, []},
+            {'_',                 mzb_api_endpoints, []}
         ]}
     ]),
     {ok, CowboyInterfaceStr} = application:get_env(mzbench_api, network_interface),

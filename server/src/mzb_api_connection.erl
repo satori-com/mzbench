@@ -1,12 +1,15 @@
 -module(mzb_api_connection).
 
--export([start_link/5,
+-export([start_and_link_with/6,
          send_message/2,
-         wait_close/2]).
+         wait_close/2,
+         monitor/1,
+         demonitor/1]).
 
-start_link(Purpose, Host, Port, Dispatcher, State) ->
+start_and_link_with(PidToLinkWith, Purpose, Host, Port, Dispatcher, State) ->
     Self = self(),
-    Pid = spawn_link(fun () ->
+    Pid = spawn(fun () ->
+        link(PidToLinkWith),
         try gen_tcp:connect(Host, Port, [{active, false}, {packet, 4}, binary]) of
             {ok, Socket} ->
                 lager:info("Connection is started for ~p on ~s", [Purpose, Host]),
@@ -32,6 +35,12 @@ start_link(Purpose, Host, Port, Dispatcher, State) ->
 
 send_message({_, Socket, _, _}, Message) ->
     gen_tcp:send(Socket, erlang:term_to_binary(Message)).
+
+monitor({Pid, _, _, _}) ->
+    erlang:monitor(process, Pid).
+
+demonitor(MonRef) ->
+    erlang:demonitor(MonRef, [flush]).
 
 wait_close({Pid, _, Purpose, Host}, Timeout) ->
     Ref = erlang:monitor(process, Pid),
