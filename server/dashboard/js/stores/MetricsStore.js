@@ -48,9 +48,23 @@ function _applyUpdate(metric, update) {
     if(tokens.length >= 2) {
         const date = Number.parseInt(tokens[0]);
         const value = Number.parseFloat(tokens[1]);
+        
+        let min = value;
+        let max = value;
+        if(tokens.length >= 4) {
+            let tmp = Number.parseFloat(tokens[2]);
+            if(!Number.isNaN(tmp)) {
+                min = tmp;
+            }
+            
+            tmp = Number.parseFloat(tokens[3]);
+            if(!Number.isNaN(tmp)) {
+                max = tmp;
+            }
+        }
 
         if(!Number.isNaN(date) && !Number.isNaN(value)) {
-            _addObservation(metric, { date: date, value: value });
+            _addObservation(metric, { date: date, value: value, min: min, max: max });
         }
     }
 }
@@ -68,11 +82,11 @@ function _createMetric(metric, observation) {
         data.starting_date = observation.date;
     }
 
-    data.map.set(metric, new Array({"date": _convertDate(observation.date), "value": observation.value}));
+    data.map.set(metric, new Array({"date": _convertDate(observation.date), "value": observation.value, "min": observation.min, "max": observation.max}));
 }
 
 function _updateMetric(metric, observation) {
-    data.map.get(metric).push({"date": _convertDate(observation.date), "value": observation.value});
+    data.map.get(metric).push({"date": _convertDate(observation.date), "value": observation.value, "min": observation.min, "max": observation.max});
 }
 
 function _convertDate(rawDate) {

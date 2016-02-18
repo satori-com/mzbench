@@ -199,6 +199,8 @@ class Graph extends React.Component {
             
             graph_options.target = document.getElementById(this._graphDOMId());
             
+            graph_options.show_confidence_band = ['min', 'max'];
+            
             graph_options.xax_format = this._formatDate.bind(this);
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
