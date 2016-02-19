@@ -45,25 +45,13 @@ function _updateBatchCounter(metric) {
 function _applyUpdate(metric, update) {
     const tokens = update.split("\t");
 
-    if(tokens.length >= 2) {
+    if(tokens.length >= 4) {
         const date = Number.parseInt(tokens[0]);
         const value = Number.parseFloat(tokens[1]);
-        
-        let min = value;
-        let max = value;
-        if(tokens.length >= 4) {
-            let tmp = Number.parseFloat(tokens[2]);
-            if(!Number.isNaN(tmp)) {
-                min = tmp;
-            }
-            
-            tmp = Number.parseFloat(tokens[3]);
-            if(!Number.isNaN(tmp)) {
-                max = tmp;
-            }
-        }
+        const min = Number.parseFloat(tokens[2]);
+        const max = Number.parseFloat(tokens[3]);
 
-        if(!Number.isNaN(date) && !Number.isNaN(value)) {
+        if(!Number.isNaN(date) && !Number.isNaN(value) && !Number.isNaN(min) && !Number.isNaN(max)) {
             _addObservation(metric, { date: date, value: value, min: min, max: max });
         }
     }
