@@ -324,17 +324,17 @@ stream_metric(Id, Metric, SendFun) ->
 
 perform_streaming(Id, FileReader, SendFun, SubsamplingInterval, Timeout) ->
     FilteringSendFun = 
-        fun({LastSentValueTimestamp, CurrentMin, CurrentMax}, {data, Values}) ->
+        fun({SubsamplingInterval2, LastSentValueTimestamp, CurrentMin, CurrentMax}, {data, Values}) ->
                 {NewLastSentValueTimestamp, NewMin, NewMax, FilteredValues} 
-                    = filter_metric_values(SubsamplingInterval, LastSentValueTimestamp, CurrentMin, CurrentMax, Values),
+                    = filter_metric_values(SubsamplingInterval2, LastSentValueTimestamp, CurrentMin, CurrentMax, Values),
                 _ = SendFun({data, FilteredValues}),
-                {NewLastSentValueTimestamp, NewMin, NewMax};
+                {SubsamplingInterval2, NewLastSentValueTimestamp, NewMin, NewMax};
             (StoredFilteringData, batch_end) ->
                 _ = SendFun(batch_end),
                 StoredFilteringData
         end,
     % 1, because if we have no data right now we have to send first bench_end anyway
-    perform_streaming(Id, FileReader, FilteringSendFun, {undefined, undefined, undefined}, Timeout, [], 0, 1).
+    perform_streaming(Id, FileReader, FilteringSendFun, {SubsamplingInterval, undefined, undefined, undefined}, Timeout, [], 0, 1).
 perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->
@@ -356,7 +356,9 @@ perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout
                 true  -> ok;
                 false ->
                     timer:sleep(Timeout),
-                    perform_streaming(Id, FileReader, FilteringSendFun, NewStoredFilteringData2, Timeout, [], 0, 0)
+                    {_, LastSentValueTimestamp, CurrentMin, CurrentMax} = NewStoredFilteringData2,
+                    % Reset subsampling interval to 0 to send all the data unfiltered
+                    perform_streaming(Id, FileReader, FilteringSendFun, {0, LastSentValueTimestamp, CurrentMin, CurrentMax}, Timeout, [], 0, 0)
             end;
         {error, Reason} ->
             _ = case Buffer of
