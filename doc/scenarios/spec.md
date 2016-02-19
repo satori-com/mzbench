@@ -230,14 +230,6 @@ Start the jobs with a given rate:
 
 You can customize and combine rates:
 
-### think_time
-
-```erlang
-{think_time, <Time>, <Rate>}
-```
-
-Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`](#time_1) and repeat.
-
 ### ramp
 
 ```erlang
@@ -333,6 +325,14 @@ Run the loop for [`<Time>`](#time_1).
 ```
 
 Repeat the loop with the [`<Rate>`](#rate_1) rate.
+
+### think_time
+
+```erlang
+{think_time, <Time>, <Rate>}
+```
+
+Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`](#time_1) and repeat.
 
 ### parallel
 
