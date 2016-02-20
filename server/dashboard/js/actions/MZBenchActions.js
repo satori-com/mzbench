@@ -121,11 +121,13 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    sendSubscribe(benchId, metrics, guid) {
-        MZBenchWS.send({ cmd: "subscribe_metrics", bench: benchId, metrics: metrics, guid: guid });
+    startStream(benchId, metric) {
+        const streamId = Misc.gen_guid();
+        MZBenchWS.send({ cmd: "start_streaming_metric", stream_id: streamId, bench: benchId, metric: metric });
+        return streamId;
     },
-
-    subscribeMetrics(metrics) {
-        Dispatcher.dispatch({ type: Constants.SUBSCRIBE_METRICS, metrics: metrics });
+    
+    stopStream(streamId) {
+        MZBenchWS.send({ cmd: "stop_streaming_metric", stream_id: streamId });
     }
 }

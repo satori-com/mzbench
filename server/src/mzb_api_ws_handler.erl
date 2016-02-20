@@ -16,8 +16,7 @@
           ref = undefined :: undefined | reference(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
-          metrics_streamers = #{} :: #{},
-          guid = undefined :: term()
+          metric_streams = #{} :: #{}
        }).
 
 init(Req, _Opts) ->
@@ -67,14 +66,13 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
-dispatch_info({metric_batch_end, Guid, Metric}, State = #state{}) ->
-    {reply, #{type => "METRIC_BATCH_END", guid => Guid, metric => Metric}, State};
+dispatch_info({metric_batch_end, StreamId}, State = #state{}) ->
+    {reply, #{type => "METRIC_BATCH_END", stream_id => StreamId}, State};
 
-dispatch_info({metric_value, Guid, Metric, Values}, State) ->
+dispatch_info({metric_value, StreamId, Values}, State) ->
     Event = #{
               type => "METRIC_DATA",
-              guid => Guid,
-              metric => Metric,
+              stream_id => StreamId,
               data => erlang:list_to_binary(Values)
              },
     {reply, Event, State};
@@ -85,17 +83,17 @@ dispatch_info({notify, Severity, Msg}, State) ->
               message => Msg},
     {reply, Event, State};
 
-dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, State = #state{metrics_streamers = Streamers}) ->
-    case Reason of
-        aborted -> ok;
-        normal -> ok;
-        _ -> lager:error("Metrics reader crashed with reason: ~p", [Reason])
-    end,
-    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streamers)) of
-        {Metric, _} ->
-            {ok, State#state{metrics_streamers = maps:put(Metric, undefined, Streamers)}};
+dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, #state{metric_streams = Streams} = State) ->
+    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streams)) of
+        {StreamId, _} ->
+            case Reason of
+                normal -> ok;
+                aborted -> ok;
+                _ -> lager:error("Metric stream with stream_id = ~p crashed with reason: ~p", [StreamId, Reason])
+            end,
+            {ok, State#state{metric_streams = maps:remove(StreamId, Streams)}};
         false ->
-            lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
+            lager:error("Metric stream terminated with unknown stream_id", []),
             {ok, State}
     end;
 
@@ -132,44 +130,37 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {MinId, MaxId}}};
 
-dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{guid = Guid}) ->
-    #{<<"bench">> := BenchId, <<"metrics">>:= Metrics} = Cmd,
-    {ok, add_streamers(BenchId, Metrics, State)};
-dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{}) ->
-    #{<<"bench">> := BenchId, <<"metrics">> := Metrics} = Cmd,
-    State1 = kill_all_streamers(State#state{guid = Guid}),
-    {ok, add_streamers(BenchId, Metrics, State1)};
+dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
+    #{<<"stream_id">> := StreamId, <<"bench">> := BenchId, <<"metric">> := MetricName} = Cmd,
+    {ok, add_stream(StreamId, BenchId, MetricName, State)};
+
+dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd, State) ->
+    #{<<"stream_id">> := StreamId} = Cmd,
+    {ok, remove_stream(StreamId, State)};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
 
-add_streamers(BenchId, Metrics, #state{metrics_streamers = Streamers, guid = Guid} = State) ->
-    lager:info("Add streamers for #~p ~p", [BenchId, Metrics]),
+add_stream(StreamId, BenchId, MetricName, #state{metric_streams = Streams} = State) ->
+    lager:info("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p", [MetricName, BenchId, StreamId]),
     Self = self(),
+    
+    SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, StreamId, Values};
+                         (batch_end)      -> Self ! {metric_batch_end, StreamId}
+                     end,
+    Ref = erlang:spawn_monitor(fun() -> stream_metric(BenchId, MetricName, SendMetricsFun) end),
+    State#state{metric_streams = maps:put(StreamId, Ref, Streams)}.
 
-    NewStreamers =
-        lists:foldl(
-            fun (Metric, Acc) ->
-                case maps:find(Metric, Acc) of
-                    {ok, _} -> Acc;
-                    error ->
-                        SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, Guid, Metric, Values};
-                                             (batch_end)      -> Self ! {metric_batch_end, Guid, Metric}
-                                         end,
-                        R2 = erlang:spawn_monitor(fun() ->
-                            stream_metric(BenchId, Metric, SendMetricsFun)
-                        end),
-                        maps:put(Metric, R2, Acc)
-                end
-            end, Streamers, Metrics),
-
-    State#state{metrics_streamers = NewStreamers}.
-
-kill_all_streamers(#state{metrics_streamers = Streamers} = State) ->
-    lager:info("Kill all metric streamers"),
-    lists:foreach(fun ({_, R}) -> kill_streamer(R) end, maps:to_list(Streamers)),
-    State#state{metrics_streamers = #{}}.
+remove_stream(StreamId, #state{metric_streams = Streams} = State) ->
+    lager:info("Stoping metric stream with stream_id = ~p", [StreamId]),
+    case maps:find(StreamId, Streams) of
+        {ok, Ref} ->
+            kill_streamer(Ref),
+            State#state{metric_streams = maps:remove(StreamId, Streams)};
+        error ->
+            State
+    end.
 
 kill_streamer(undefined) -> ok;
 kill_streamer({Pid, Ref}) ->

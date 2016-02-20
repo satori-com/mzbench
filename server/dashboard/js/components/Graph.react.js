@@ -7,8 +7,11 @@ const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
 class Graph extends React.Component {
     constructor(props) {
         super(props);
+        
+        this.streams = [];
         this.previously_running = undefined;
         this.updatesCounter = 0;
+        
         this.state = this._resolveState();
         this._onChange = this._onChange.bind(this);
     }
@@ -16,12 +19,23 @@ class Graph extends React.Component {
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
         this.previously_running = this.props.is_running;
-        MetricsStore.addSubscription(this.props.targets);
+        
+        this.props.targets.forEach((metric, index) => {
+            setTimeout(() => {
+                const streamId = MetricsStore.subscribeToMetric(this.props.bench_id, metric);
+                this.streams[index] = streamId;
+            }, 1);
+        });
+        
         this._renderGraph();
     }
     
     componentWillUnmount() {
         MetricsStore.off(this._onChange);
+        
+        this.streams.forEach((streamId) => {
+            MetricsStore.unsubscribeFromMetric(streamId);
+        });
     }
     
     shouldComponentUpdate(nextProps, nextState) {
@@ -191,10 +205,10 @@ class Graph extends React.Component {
             this.rendered = true;
 
             let isEmpty = this.state.data.reduce((prev, dataset) => {
-                    if (dataset.length > 0) return false;
-                    else return prev;
-                }, true);
-            graph_options.data = isEmpty ? [[{date: 0, value: 0}]] : this.state.data;
+                if (dataset.length > 0) return false;
+                else return prev;
+            }, true);
+            graph_options.data = isEmpty ? [[{date: 0, value: 0, min: 0, max: 0}]] : this.state.data;
             graph_options.legend = this.props.targets;
             
             graph_options.target = document.getElementById(this._graphDOMId());
@@ -236,27 +250,42 @@ class Graph extends React.Component {
     }
 
     _resolveState() {
-        const max_date = this.props.targets.reduce((max_date, metric) => {
-            const metric_max_date = MetricsStore.getMetricMaxDate(metric);
-            if(metric_max_date > max_date) {
-                return metric_max_date;
+        const max_date = this.props.targets.reduce((max_date, metric, index) => {
+            const metric_max_date = MetricsStore.getMetricMaxDate(this.streams[index]);
+            
+            if(metric_max_date) {
+                if(metric_max_date > max_date) {
+                    return metric_max_date;
+                } else {
+                    return max_date;
+                }
             } else {
                 return max_date;
             }
         }, 0);
 
-        const metricData = this.props.targets.map((metric) => {
-                return MetricsStore.getMetricData(metric);
-            });
+        const metricData = this.props.targets.map((metric, index) => {
+            const data = MetricsStore.getMetricData(this.streams[index]);
+            if(data) {
+                return data;
+            } else {
+                return [];
+            }
+        });
 
-        const metricBatchs = this.props.targets.map((metric) => {
-                return MetricsStore.getBatchCounter(metric);
-            });
+        const metricBatchs = this.props.targets.map((metric, index) => {
+            const batch_counter = MetricsStore.getBatchCounter(this.streams[index]);
+            if(batch_counter) {
+                return batch_counter;
+            } else {
+                return 0;
+            }
+        });
 
         const isLoaded = metricBatchs.reduce((prev, v) => {
-                    if (v <= 0) return false;
-                    else return prev;
-                }, true);
+            if (v <= 0) return false;
+            else return prev;
+        }, true);
 
         return {
             max_date: max_date,
@@ -272,6 +301,7 @@ class Graph extends React.Component {
 };
 
 Graph.propTypes = {
+    bench_id: React.PropTypes.number.isRequired,
     targets: React.PropTypes.array.isRequired,
     is_running: React.PropTypes.bool,
     title: React.PropTypes.string,
