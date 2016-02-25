@@ -249,7 +249,7 @@ class Graph extends React.Component {
     }
 
     _computeSubsamplingInterval() {
-        if(this.props.bench_start_time && this.props.bench_finish_time) {
+        if(this.props.bench_start_time) {
             const lastActiveTime = this.props.is_running ? moment() : this.props.bench_finish_time;
             const benchDuration = lastActiveTime.diff(this.props.bench_start_time, 'seconds');
             
