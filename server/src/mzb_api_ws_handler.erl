@@ -410,15 +410,8 @@ filter_by_time(BeginTime, EndTime, Values) ->
     lists:reverse(lists:foldl(fun(ValueString, Acc) ->
             {ValueTimestamp, _} = parse_value(ValueString),
             
-            AfterBeginTime = case BeginTime of
-                undefined -> true;
-                _ -> BeginTime =< ValueTimestamp
-            end,
-            
-            BeforeEndTime = case EndTime of
-                undefined -> true;
-                _ -> ValueTimestamp =< EndTime
-            end,
+            AfterBeginTime = BeginTime =< ValueTimestamp,
+            BeforeEndTime = ValueTimestamp =< EndTime,
             
             case AfterBeginTime andalso BeforeEndTime of
                 true -> [ValueString | Acc];
