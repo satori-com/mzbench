@@ -52,6 +52,18 @@ function _convertDate(streamId, rawDate) {
     return rawDate - data.streams.get(streamId).starting_date;
 }
 
+function _garbadgeCollectOldData(streamId) {
+    const time_window = data.streams.get(streamId).time_window;
+    
+    if(time_window && data.streams.get(streamId).data.length > 0) {
+        const begin_date = data.streams.get(streamId).data[data.streams.get(streamId).data.length - 1].date - time_window;
+        
+        data.streams.get(streamId).data = data.streams.get(streamId).data.filter((value) => {
+            return value["date"] >= begin_date;
+        });
+    }
+}
+
 class MetricsStore extends EventEmitter {
     constructor() {
         super();
@@ -79,13 +91,26 @@ class MetricsStore extends EventEmitter {
     updateMetricBatchCounter(streamId) {
         if(data.streams.has(streamId)) {
             _updateBatchCounter(streamId);
+            _garbadgeCollectOldData(streamId);
         }
     }
 
-    subscribeToMetric(benchId, metric) {
-        const streamId = MZBenchActions.startStream(benchId, metric);
+    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continue_streaming_after_end) {
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, continue_streaming_after_end);
         data.streams.set(streamId, {
             starting_date: undefined,
+            time_window: undefined,
+            batch_counter: 0,
+            data: []
+        });
+        return streamId;
+    }
+
+    subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
+        const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, true);
+        data.streams.set(streamId, {
+            starting_date: undefined,
+            time_window: timeInterval,
             batch_counter: 0,
             data: []
         });
