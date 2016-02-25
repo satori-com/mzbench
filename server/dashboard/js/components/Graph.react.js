@@ -2,6 +2,7 @@ import moment from 'moment';
 import React from 'react';
 import MetricsStore from '../stores/MetricsStore';
 
+const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
 
 class Graph extends React.Component {
@@ -20,25 +21,23 @@ class Graph extends React.Component {
         MetricsStore.onChange(this._onChange);
         this.previously_running = this.props.is_running;
         
-        this.props.targets.forEach((metric, index) => {
-            setTimeout(() => {
-                const streamId = MetricsStore.subscribeToMetric(this.props.bench_id, metric);
-                this.streams[index] = streamId;
-            }, 1);
-        });
-        
+        this._createSubscriptions();
         this._renderGraph();
     }
     
     componentWillUnmount() {
         MetricsStore.off(this._onChange);
         
-        this.streams.forEach((streamId) => {
-            MetricsStore.unsubscribeFromMetric(streamId);
-        });
+        this._destroySubscriptions();
     }
     
     shouldComponentUpdate(nextProps, nextState) {
+        if(nextProps.is_running != this.props.is_running) {
+            this._destroySubscriptions();
+            this._createSubscriptions();
+            this._resetState();
+        }
+        
         if(nextProps.targets[0] != this.props.targets[0]) {
             // The change of the first target will change the DOM Ids
             // of the MetricsGraphics.js targets. Its the only case
@@ -249,6 +248,53 @@ class Graph extends React.Component {
         }
     }
 
+    _computeSubsamplingInterval() {
+        if(this.props.bench_start_time && this.props.bench_finish_time) {
+            const lastActiveTime = this.props.is_running ? moment() : this.props.bench_finish_time;
+            const benchDuration = lastActiveTime.diff(this.props.bench_start_time, 'seconds');
+            
+            return Math.floor(benchDuration/MAX_POINTS_PER_GRAPH);
+        } else {
+            return 0;
+        }
+    }
+
+    _createSubscriptions() {
+        this.props.targets.forEach((metric, index) => {
+            setTimeout(() => {
+                const streamId = this._subscribeToMetric(this.props.bench_id, metric);
+                this.streams[index] = streamId;
+            }, 1);
+        });
+    }
+    
+    _destroySubscriptions() {
+        this.streams.forEach((streamId) => {
+            MetricsStore.unsubscribeFromMetric(streamId);
+        });
+    }
+
+    _subscribeToMetric(benchId, metric) {
+        if(this.props.render_fullscreen) {
+            return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+        } else {
+            if(this.props.is_running) {
+                return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, RUNNING_GRAPH_SHOWED_DURATION*60);
+            } else {
+                return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+            }
+        }
+    }
+
+    _resetState() {
+        this.setState({
+            max_date: 0, 
+            data: this.props.targets.map((metric) => { return []; }), 
+            dataBatchs: this.props.targets.map((metric) => { return 0; }), 
+            isLoaded: false
+        });
+    }
+
     _resolveState() {
         const max_date = this.props.targets.reduce((max_date, metric, index) => {
             const metric_max_date = MetricsStore.getMetricMaxDate(this.streams[index]);
@@ -302,6 +348,9 @@ class Graph extends React.Component {
 
 Graph.propTypes = {
     bench_id: React.PropTypes.number.isRequired,
+    bench_start_time: React.PropTypes.object,
+    bench_finish_time: React.PropTypes.object,
+    
     targets: React.PropTypes.array.isRequired,
     is_running: React.PropTypes.bool,
     title: React.PropTypes.string,
@@ -312,6 +361,9 @@ Graph.propTypes = {
 };
 
 Graph.defaultProps = {
+    bench_start_time: undefined,
+    bench_finish_time: undefined,
+    
     is_running: false,
     title: "",
     units: "",

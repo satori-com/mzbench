@@ -121,9 +121,33 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    startStream(benchId, metric) {
+    startStream(benchId, metric, subsampling_interval, time_window, continue_streaming) {
         const streamId = Misc.gen_guid();
-        MZBenchWS.send({ cmd: "start_streaming_metric", stream_id: streamId, bench: benchId, metric: metric });
+        
+        let encoded_subsampling_interval = "undefined";
+        if(subsampling_interval) {
+            encoded_subsampling_interval = subsampling_interval;
+        }
+        
+        let encoded_time_window = "undefined";
+        if(time_window) {
+            encoded_time_window = Misc.sec_to_iso_8601(time_window);
+        }
+        
+        let encoded_continue_streaming = "false";
+        if(continue_streaming) {
+            encoded_continue_streaming = "true";
+        }
+        
+        MZBenchWS.send({ 
+            cmd: "start_streaming_metric", 
+            stream_id: streamId, 
+            bench: benchId, 
+            metric: metric, 
+            subsampling_interval: encoded_subsampling_interval,
+            time_window: encoded_time_window,
+            stream_after_eof: encoded_continue_streaming
+        });
         return streamId;
     },
     
