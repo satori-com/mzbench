@@ -1,7 +1,9 @@
+import moment from 'moment';
 import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
 import MZBenchActions from '../actions/MZBenchActions';
+import BenchStore from '../stores/BenchStore';
 
 const CHANGE_EVENT = 'metrics_change';
 
@@ -36,10 +38,6 @@ function _applyUpdate(streamId, update) {
 }
 
 function _addObservation(streamId, observation) {
-    if(!data.streams.get(streamId).starting_date) {
-        data.streams.get(streamId).starting_date = observation.date;
-    }
-    
     data.streams.get(streamId).data.push({
         "date": _convertDate(streamId, observation.date), 
         "value": observation.value, 
@@ -98,7 +96,7 @@ class MetricsStore extends EventEmitter {
     subscribeToEntireMetric(benchId, metric, subsamplingInterval, continue_streaming_after_end) {
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, continue_streaming_after_end);
         data.streams.set(streamId, {
-            starting_date: undefined,
+            starting_date: moment(BenchStore.findById(benchId).start_time).unix(),
             time_window: undefined,
             batch_counter: 0,
             data: []
@@ -109,7 +107,7 @@ class MetricsStore extends EventEmitter {
     subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
         const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, true);
         data.streams.set(streamId, {
-            starting_date: undefined,
+            starting_date: moment(BenchStore.findById(benchId).start_time).unix(),
             time_window: timeInterval,
             batch_counter: 0,
             data: []
