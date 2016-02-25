@@ -54,7 +54,7 @@ class Graph extends React.Component {
     
     componentDidUpdate() {
         this._onChange();
-        setTimeout(this._renderGraph.bind(this), 1);
+        setTimeout(this._renderGraph.bind(this), 1 + Math.round(3000*Math.random()));
     }
     
     render() {
