@@ -19,7 +19,7 @@ function _updateData(streamId, rawData) {
 }
 
 function _updateBatchCounter(streamId) {
-    data.streams.get(streamId).batch_counter = data.streams.get(streamId).batch_counter + 1;
+    data.streams.get(streamId).batchCounter = data.streams.get(streamId).batchCounter + 1;
 }
 
 function _applyUpdate(streamId, update) {
@@ -47,17 +47,17 @@ function _addObservation(streamId, observation) {
 }
 
 function _convertDate(streamId, rawDate) {
-    return rawDate - data.streams.get(streamId).starting_date;
+    return rawDate - data.streams.get(streamId).startingDate;
 }
 
 function _garbadgeCollectOldData(streamId) {
-    const time_window = data.streams.get(streamId).time_window;
+    const timeWindow = data.streams.get(streamId).timeWindow;
     
-    if(time_window && data.streams.get(streamId).data.length > 0) {
-        const begin_date = data.streams.get(streamId).data[data.streams.get(streamId).data.length - 1].date - time_window;
+    if(timeWindow && data.streams.get(streamId).data.length > 0) {
+        const beginDate = data.streams.get(streamId).data[data.streams.get(streamId).data.length - 1].date - timeWindow;
         
         data.streams.get(streamId).data = data.streams.get(streamId).data.filter((value) => {
-            return value["date"] >= begin_date;
+            return value["date"] >= beginDate;
         });
     }
 }
@@ -93,12 +93,12 @@ class MetricsStore extends EventEmitter {
         }
     }
 
-    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continue_streaming_after_end) {
-        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, continue_streaming_after_end);
+    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd) {
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, continueStreamingAfterEnd);
         data.streams.set(streamId, {
-            starting_date: moment(BenchStore.findById(benchId).start_time).unix(),
-            time_window: undefined,
-            batch_counter: 0,
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: undefined,
+            batchCounter: 0,
             data: []
         });
         return streamId;
@@ -107,9 +107,9 @@ class MetricsStore extends EventEmitter {
     subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
         const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, true);
         data.streams.set(streamId, {
-            starting_date: moment(BenchStore.findById(benchId).start_time).unix(),
-            time_window: timeInterval,
-            batch_counter: 0,
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: timeInterval,
+            batchCounter: 0,
             data: []
         });
         return streamId;
@@ -130,7 +130,7 @@ class MetricsStore extends EventEmitter {
 
     getBatchCounter(streamId) {
         if(data.streams.has(streamId)) {
-            return data.streams.get(streamId).batch_counter;
+            return data.streams.get(streamId).batchCounter;
         } else {
             return undefined;
         }

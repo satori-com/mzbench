@@ -121,22 +121,22 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    startStream(benchId, metric, subsampling_interval, time_window, continue_streaming) {
+    startStream(benchId, metric, subsamplingInterval, timeWindow, continueStreaming) {
         const streamId = Misc.gen_guid();
         
-        let encoded_subsampling_interval = "undefined";
-        if(subsampling_interval) {
-            encoded_subsampling_interval = subsampling_interval;
+        let encodedSubsamplingInterval = "undefined";
+        if(subsamplingInterval) {
+            encodedSubsamplingInterval = subsamplingInterval;
         }
         
-        let encoded_time_window = "undefined";
-        if(time_window) {
-            encoded_time_window = Misc.sec_to_iso_8601(time_window);
+        let encodedTimeWindow = "undefined";
+        if(timeWindow) {
+            encodedTimeWindow = timeWindow;
         }
         
-        let encoded_continue_streaming = "false";
-        if(continue_streaming) {
-            encoded_continue_streaming = "true";
+        let encodedContinueStreaming = "false";
+        if(continueStreaming) {
+            encodedContinueStreaming = "true";
         }
         
         MZBenchWS.send({ 
@@ -144,9 +144,9 @@ export default {
             stream_id: streamId, 
             bench: benchId, 
             metric: metric, 
-            subsampling_interval: encoded_subsampling_interval,
-            time_window: encoded_time_window,
-            stream_after_eof: encoded_continue_streaming
+            subsampling_interval: encodedSubsamplingInterval,
+            time_window: encodedTimeWindow,
+            stream_after_eof: encodedContinueStreaming
         });
         return streamId;
     },

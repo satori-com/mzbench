@@ -10,7 +10,7 @@ class Graph extends React.Component {
         super(props);
         
         this.streams = [];
-        this.previously_running = undefined;
+        this.previouslyRunning = undefined;
         this.updatesCounter = 0;
         
         this.state = this._resolveState();
@@ -19,7 +19,7 @@ class Graph extends React.Component {
     
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
-        this.previously_running = this.props.is_running;
+        this.previouslyRunning = this.props.isRunning;
         
         this._createSubscriptions();
         this._renderGraph();
@@ -32,7 +32,7 @@ class Graph extends React.Component {
     }
     
     shouldComponentUpdate(nextProps, nextState) {
-        if(nextProps.is_running != this.props.is_running) {
+        if(nextProps.isRunning != this.props.isRunning) {
             this._destroySubscriptions();
             this._createSubscriptions();
             this._resetState();
@@ -62,7 +62,7 @@ class Graph extends React.Component {
     }
     
     _graphDOMId() {
-        return this.props.dom_prefix + this.props.targets[0].replace(/\./g, "-") + "-graph";
+        return this.props.domPrefix + this.props.targets[0].replace(/\./g, "-") + "-graph";
     }
     
     _formatClockNumber(number) {
@@ -100,17 +100,17 @@ class Graph extends React.Component {
     }
     
     _formatRolloverTextFullscreen(data, i) {
-        let rollover_text_container = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
-        rollover_text_container.selectAll('*').remove();
+        let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
+        rolloverTextContainer.selectAll('*').remove();
         
         if(data.key) {
-            const date_string = this._formatDate(data.values[0].date);
-            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
+            const dateString = this._formatDate(data.values[0].date);
+            rolloverTextContainer.append('tspan').text(dateString).classed('mg-area1-color', true);
             
             let lineCount = 1;
             let lineHeight = 1.1;
             data.values.forEach((value) => {
-                let label = rollover_text_container.append('tspan')
+                let label = rolloverTextContainer.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
                             .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
                             .classed('mg-area' + value.line_id + '-color', true);
@@ -118,10 +118,10 @@ class Graph extends React.Component {
                 ++lineCount;
             });
         } else {
-            const date_string = this._formatDate(data.date);
-            rollover_text_container.append('tspan').text(date_string).classed(`mg-area${data.line_id}-color`, true);
+            const dateString = this._formatDate(data.date);
+            rolloverTextContainer.append('tspan').text(dateString).classed(`mg-area${data.line_id}-color`, true);
             
-            let label = rollover_text_container.append('tspan')
+            let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
                         .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
                         .classed(`mg-area${data.line_id}-color`, true);
@@ -129,17 +129,17 @@ class Graph extends React.Component {
     }
     
     _formatRolloverTextNormal(data, i) {
-        let rollover_text_container = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
-        rollover_text_container.selectAll('*').remove();
+        let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
+        rolloverTextContainer.selectAll('*').remove();
         
         if(data.key) {
-            const date_string = this._formatDate(data.values[0].date);
-            rollover_text_container.append('tspan').text(date_string).classed('mg-area1-color', true);
+            const dateString = this._formatDate(data.values[0].date);
+            rolloverTextContainer.append('tspan').text(dateString).classed('mg-area1-color', true);
             
             let lineCount = 1;
             let lineHeight = 1.1;
             data.values.forEach((value) => {
-                let label = rollover_text_container.append('tspan')
+                let label = rolloverTextContainer.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
                             .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
                             .classed('mg-area' + value.line_id + '-color', true);
@@ -147,10 +147,10 @@ class Graph extends React.Component {
                 ++lineCount;
             });
         } else {
-            const date_string = this._formatDate(data.date);
-            rollover_text_container.append('tspan').text(date_string).classed(`mg-area${data.line_id}-color`, true);
+            const dateString = this._formatDate(data.date);
+            rolloverTextContainer.append('tspan').text(dateString).classed(`mg-area${data.line_id}-color`, true);
             
-            let label = rollover_text_container.append('tspan')
+            let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
                         .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
                         .classed(`mg-area${data.line_id}-color`, true);
@@ -158,7 +158,7 @@ class Graph extends React.Component {
     }
     
     _formatRolloverText(data, i) {
-        if(this.props.render_fullscreen) {
+        if(this.props.renderFullscreen) {
             this._formatRolloverTextFullscreen(data, i);
         } else {
             this._formatRolloverTextNormal(data, i);
@@ -187,7 +187,7 @@ class Graph extends React.Component {
             transition_on_update: false
         };
         
-        if(this.props.render_fullscreen) {
+        if(this.props.renderFullscreen) {
             graph_options.width = window.innerWidth - 100;
             graph_options.height = window.innerHeight - 200;
             graph_options.full_width = false;
@@ -198,7 +198,7 @@ class Graph extends React.Component {
         }
 
         if(this.state.isLoaded) {
-            if (this.props.render_fullscreen && this.rendered) {
+            if (this.props.renderFullscreen && this.rendered) {
                 return;
             }
             this.rendered = true;
@@ -218,8 +218,8 @@ class Graph extends React.Component {
             graph_options.mouseover = this._formatRolloverText.bind(this);
             graph_options.x_sort = false;
             
-            graph_options.min_x = (this.props.is_running && !this.props.render_fullscreen)?this.state.max_date - RUNNING_GRAPH_SHOWED_DURATION*60:0;
-            graph_options.max_x = this.state.max_date;
+            graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
+            graph_options.max_x = this.state.maxDate;
             
             MG.data_graphic(graph_options);
         } else {
@@ -234,9 +234,9 @@ class Graph extends React.Component {
     _updateGraph() {
         if (!this.state.isLoaded) return;
 
-        if (this.previously_running != this.props.is_running) {
+        if (this.previouslyRunning != this.props.isRunning) {
             this._renderGraph();
-            this.previously_running = this.props.is_running;
+            this.previouslyRunning = this.props.isRunning;
         } else {
             const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b}, 0);
             let dataUpdated = newUpdatesCounter > this.updatesCounter;
@@ -249,9 +249,9 @@ class Graph extends React.Component {
     }
 
     _computeSubsamplingInterval() {
-        if(this.props.bench_start_time) {
-            const lastActiveTime = this.props.is_running ? moment() : this.props.bench_finish_time;
-            const benchDuration = lastActiveTime.diff(this.props.bench_start_time, 'seconds');
+        if(this.props.benchStartTime) {
+            const lastActiveTime = this.props.isRunning ? moment() : this.props.benchFinishTime;
+            const benchDuration = lastActiveTime.diff(this.props.benchStartTime, 'seconds');
             
             return Math.floor(benchDuration/MAX_POINTS_PER_GRAPH);
         } else {
@@ -261,10 +261,8 @@ class Graph extends React.Component {
 
     _createSubscriptions() {
         this.props.targets.forEach((metric, index) => {
-            setTimeout(() => {
-                const streamId = this._subscribeToMetric(this.props.bench_id, metric);
-                this.streams[index] = streamId;
-            }, 1);
+            const streamId = this._subscribeToMetric(this.props.benchId, metric);
+            this.streams[index] = streamId;
         });
     }
     
@@ -275,10 +273,10 @@ class Graph extends React.Component {
     }
 
     _subscribeToMetric(benchId, metric) {
-        if(this.props.render_fullscreen) {
+        if(this.props.renderFullscreen) {
             return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
         } else {
-            if(this.props.is_running) {
+            if(this.props.isRunning) {
                 return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, RUNNING_GRAPH_SHOWED_DURATION*60);
             } else {
                 return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
@@ -288,7 +286,7 @@ class Graph extends React.Component {
 
     _resetState() {
         this.setState({
-            max_date: 0, 
+            maxDate: 0, 
             data: this.props.targets.map((metric) => { return []; }), 
             dataBatchs: this.props.targets.map((metric) => { return 0; }), 
             isLoaded: false
@@ -296,17 +294,17 @@ class Graph extends React.Component {
     }
 
     _resolveState() {
-        const max_date = this.props.targets.reduce((max_date, metric, index) => {
-            const metric_max_date = MetricsStore.getMetricMaxDate(this.streams[index]);
+        const maxDate = this.props.targets.reduce((maxDate, metric, index) => {
+            const metricMaxDate = MetricsStore.getMetricMaxDate(this.streams[index]);
             
-            if(metric_max_date) {
-                if(metric_max_date > max_date) {
-                    return metric_max_date;
+            if(metricMaxDate) {
+                if(metricMaxDate > maxDate) {
+                    return metricMaxDate;
                 } else {
-                    return max_date;
+                    return maxDate;
                 }
             } else {
-                return max_date;
+                return maxDate;
             }
         }, 0);
 
@@ -320,9 +318,9 @@ class Graph extends React.Component {
         });
 
         const metricBatchs = this.props.targets.map((metric, index) => {
-            const batch_counter = MetricsStore.getBatchCounter(this.streams[index]);
-            if(batch_counter) {
-                return batch_counter;
+            const batchCounter = MetricsStore.getBatchCounter(this.streams[index]);
+            if(batchCounter) {
+                return batchCounter;
             } else {
                 return 0;
             }
@@ -334,7 +332,7 @@ class Graph extends React.Component {
         }, true);
 
         return {
-            max_date: max_date,
+            maxDate: maxDate,
             data: metricData,
             dataBatchs: metricBatchs,
             isLoaded: isLoaded
@@ -347,29 +345,29 @@ class Graph extends React.Component {
 };
 
 Graph.propTypes = {
-    bench_id: React.PropTypes.number.isRequired,
-    bench_start_time: React.PropTypes.object,
-    bench_finish_time: React.PropTypes.object,
+    benchId: React.PropTypes.number.isRequired,
+    benchStartTime: React.PropTypes.object,
+    benchFinishTime: React.PropTypes.object,
     
     targets: React.PropTypes.array.isRequired,
-    is_running: React.PropTypes.bool,
+    isRunning: React.PropTypes.bool,
     title: React.PropTypes.string,
     units: React.PropTypes.string,
 
-    dom_prefix: React.PropTypes.string,
-    render_fullscreen: React.PropTypes.bool
+    domPrefix: React.PropTypes.string,
+    renderFullscreen: React.PropTypes.bool
 };
 
 Graph.defaultProps = {
-    bench_start_time: undefined,
-    bench_finish_time: undefined,
+    benchStartTime: undefined,
+    benchFinishTime: undefined,
     
-    is_running: false,
+    isRunning: false,
     title: "",
     units: "",
 
-    dom_prefix: "",
-    render_fullscreen: false
+    domPrefix: "",
+    renderFullscreen: false
 };
 
 export default Graph;
