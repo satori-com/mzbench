@@ -97,7 +97,7 @@ dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, #state{metric_streams =
             end,
             {ok, State#state{metric_streams = maps:remove(StreamId, Streams)}};
         false ->
-            lager:error("Metric stream terminated with unknown stream_id", []),
+            lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
             {ok, State}
     end;
 
@@ -143,15 +143,14 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
         <<"time_window">> := RawTimeWindow,
         <<"stream_after_eof">> := RawStreamAfterEof} = Cmd,
     
-    SubsamplingInterval = case erlang:is_integer(RawSubsamplingInterval) of
-        true -> RawSubsamplingInterval;
-        false -> 0
+    SubsamplingInterval = case RawSubsamplingInterval of
+        <<"undefined">> -> 0;
+        _ when is_integer(RawSubsamplingInterval) -> RawSubsamplingInterval
     end,
     
-    TimeWindow = try
-        mzb_string:parse_iso_8601(erlang:binary_to_list(RawTimeWindow))
-    catch
-        _:_ -> undefined
+    TimeWindow = case RawTimeWindow of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawTimeWindow) -> RawTimeWindow
     end,
     
     StreamAfterEof = case RawStreamAfterEof of

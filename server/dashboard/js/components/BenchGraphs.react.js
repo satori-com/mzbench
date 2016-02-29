@@ -52,10 +52,10 @@ class BenchGraphs extends React.Component {
             });
 
             return (
-                <Graph is_running={this.props.bench.isRunning()} targets={targets}
-                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}
-                    bench_start_time={this.props.bench.start_time_client} bench_finish_time={this.props.bench.finish_time_client}
-                    dom_prefix="modal-" render_fullscreen={true}/>
+                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                    title={graph.title} units={graph.units} benchId={this.props.bench.id}
+                    benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
+                    domPrefix="modal-" renderFullscreen={true}/>
             );
         } else {
             return;
@@ -89,9 +89,9 @@ class BenchGraphs extends React.Component {
                     return (
                         <div key={idx} className="col-xs-12 col-md-6">
                             <a href={link} className="bs-link">
-                                <Graph is_running={this.props.bench.isRunning()} targets={targets}
-                                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}
-                                    bench_start_time={this.props.bench.start_time_client} bench_finish_time={this.props.bench.finish_time_client}
+                                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                                    title={graph.title} units={graph.units} benchId={this.props.bench.id}
+                                    benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
                                     />
                             </a>
                         </div>
