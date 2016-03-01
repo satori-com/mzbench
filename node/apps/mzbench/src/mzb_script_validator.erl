@@ -120,7 +120,7 @@ validate_pool(#operation{name = pool, args = [Opts, Script], meta = Meta} = Op) 
                 _ -> [mzb_string:format(
                           "size option: expected something integer-like but got ~p.", [Size])
                           || mzb_utility:to_integer_with_default(Size, fail) == fail] ++
-                      ["zero size is not allowed." || mzb_utility:to_integer_with_default(Size, fail) == 0]
+                    ["negative size is not allowed." || mzb_utility:to_integer_with_default(Size, fail) < 0]
               end,
               ScriptErr = case mzb_worker_script_validator:validate_worker_script(Script, {Provider, Worker}) of
                   ok -> [];
