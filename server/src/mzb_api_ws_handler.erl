@@ -340,29 +340,35 @@ stream_metric(Id, Metric, StreamParams, SendFun) ->
         FileReader(close)
     end.
 
-perform_streaming(Id, FileReader, SendFun, #stream_parameters{stream_after_eof = StreamAfterEof} = StreamParams, Timeout) ->
+perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = TimeWindow, stream_after_eof = StreamAfterEof} = StreamParams, Timeout) ->
+    StartDate = case TimeWindow of
+        undefined -> undefined;
+        _ -> mzb_api_bench:seconds() - TimeWindow
+    end,
+    
     FilteringSendFun = 
-        fun({LastSentValueTimestamp, CurrentMin, CurrentMax}, {data, Values}) ->
-                #stream_parameters{subsampling_interval = SubsamplingInterval, time_window = TimeWindow} = StreamParams,
+        fun({LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, CurrentMin, CurrentMax}, {data, Values}) ->
+                #stream_parameters{subsampling_interval = SubsamplingInterval} = StreamParams,
                 
-                TimeFilteredValues = case TimeWindow of
+                TimeFilteredValues = case StartDate of
                     undefined -> Values;
                     _ ->
                         CurDate = mzb_api_bench:seconds(),
-                        filter_by_time(CurDate - TimeWindow, CurDate, Values)
+                        filter_by_time(StartDate, CurDate, Values)
                 end,
                 
-                {NewLastSentValueTimestamp, NewMin, NewMax, FilteredValues} 
-                    = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentMin, CurrentMax, TimeFilteredValues),
+                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, FilteredValues} 
+                    = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, 
+                                          CurrentMin, CurrentMax, TimeFilteredValues),
                 _ = SendFun({data, FilteredValues}),
                 
-                {NewLastSentValueTimestamp, NewMin, NewMax};
+                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax};
             (StoredFilteringData, batch_end) ->
                 _ = SendFun(batch_end),
                 StoredFilteringData
         end,
     % 1, because if we have no data right now we have to send first bench_end anyway
-    perform_streaming(Id, FileReader, FilteringSendFun, {undefined, undefined, undefined}, Timeout, StreamAfterEof, [], 0, 1).
+    perform_streaming(Id, FileReader, FilteringSendFun, {undefined, 0, 0, undefined, undefined}, Timeout, StreamAfterEof, [], 0, 1).
 perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout, StreamAfterEof, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->
@@ -418,8 +424,8 @@ filter_by_time(BeginTime, EndTime, Values) ->
             end
         end, [], Values)).
 
-perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousMin, PreviousMax, Values) ->
-    {NewLastSentValueTimestamp, _, _, NewMin, NewMax, NewValuesReversed} = 
+perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForMean, PreviousNumValuesForMean, PreviousMin, PreviousMax, Values) ->
+    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, NewValuesReversed} = 
         lists:foldl(fun(ValueString, {LastRetainedTime, SumForMean, NumValuesForMean, MinValue, MaxValue, Acc}) ->
             {ValueTimestamp, Value} = parse_value(ValueString),
             
@@ -447,8 +453,8 @@ perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousMin, Pr
                                         [ValueTimestamp, (SumForMean + Value)/(NumValuesForMean + 1), NewMinValue, NewMaxValue]) | Acc]}
                     end
             end
-        end, {LastSentValueTimestamp, 0, 0, PreviousMin, PreviousMax, []}, Values),
-    {NewLastSentValueTimestamp, NewMin, NewMax, lists:reverse(NewValuesReversed)}.
+        end, {LastSentValueTimestamp, PreviousSumForMean, PreviousNumValuesForMean, PreviousMin, PreviousMax, []}, Values),
+    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, lists:reverse(NewValuesReversed)}.
 
 parse_value(Value) ->
     [TimeString | [ValueString | _]] = string:tokens(Value, "\t\n"),
