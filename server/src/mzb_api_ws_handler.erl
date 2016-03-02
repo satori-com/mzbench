@@ -20,6 +20,8 @@
 -record(stream_parameters, {
     subsampling_interval = 0 :: non_neg_integer(),
     time_window = undefined :: undefined | non_neg_integer(),
+    begin_time = undefined :: undefined | non_neg_integer(),
+    end_time = undefined :: undefined | non_neg_integer(),
     stream_after_eof = true :: boolean()
 }).
 
@@ -141,6 +143,8 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
         <<"metric">> := MetricName, 
         <<"subsampling_interval">> := RawSubsamplingInterval,
         <<"time_window">> := RawTimeWindow,
+        <<"begin_time">> := RawBeginTime,
+        <<"end_time">> := RawEndTime,
         <<"stream_after_eof">> := RawStreamAfterEof} = Cmd,
     
     SubsamplingInterval = case RawSubsamplingInterval of
@@ -153,6 +157,16 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
         _ when is_integer(RawTimeWindow) -> RawTimeWindow
     end,
     
+    BeginTime = case RawBeginTime of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawBeginTime) -> RawBeginTime
+    end,
+    
+    EndTime = case RawEndTime of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawEndTime) -> RawEndTime
+    end,
+    
     StreamAfterEof = case RawStreamAfterEof of
         <<"true">> -> true;
         <<"false">> -> false
@@ -162,6 +176,8 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
                     #stream_parameters{
                         subsampling_interval = SubsamplingInterval,
                         time_window = TimeWindow,
+                        begin_time = BeginTime,
+                        end_time = EndTime,
                         stream_after_eof = StreamAfterEof
                     }, State)};
 
@@ -174,9 +190,16 @@ dispatch_request(Cmd, State) ->
     {ok, State}.
 
 add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = Streams} = State) ->
-    #stream_parameters{subsampling_interval = SubsamplingInterval, time_window = TimeWindow, stream_after_eof = StreamAfterEof} = StreamParams,
-    lager:info("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, time_window = ~p, stream_after_eof = ~p", 
-                    [MetricName, BenchId, StreamId, SubsamplingInterval, TimeWindow, StreamAfterEof]),
+    #stream_parameters{
+        subsampling_interval = SubsamplingInterval, 
+        time_window = TimeWindow, 
+        begin_time = BeginTime, 
+        end_time = EndTime, 
+        stream_after_eof = StreamAfterEof
+    } = StreamParams,
+    lager:info("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, 
+                    begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p", 
+                    [MetricName, BenchId, StreamId, SubsamplingInterval, BeginTime, EndTime, TimeWindow, StreamAfterEof]),
     Self = self(),
     
     SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, StreamId, Values};
@@ -348,10 +371,14 @@ perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = Time
     
     FilteringSendFun = 
         fun({LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, CurrentMin, CurrentMax}, {data, Values}) ->
-                #stream_parameters{subsampling_interval = SubsamplingInterval} = StreamParams,
+                #stream_parameters{subsampling_interval = SubsamplingInterval, begin_time = BeginTime, end_time = EndTime} = StreamParams,
                 
                 TimeFilteredValues = case StartDate of
-                    undefined -> Values;
+                    undefined ->
+                        case BeginTime of
+                            undefined -> Values;
+                            _ -> filter_by_time(BeginTime, EndTime, Values)
+                        end;
                     _ ->
                         CurDate = mzb_api_bench:seconds(),
                         filter_by_time(StartDate, CurDate, Values)
@@ -369,6 +396,7 @@ perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = Time
         end,
     % 1, because if we have no data right now we have to send first bench_end anyway
     perform_streaming(Id, FileReader, FilteringSendFun, {undefined, 0, 0, undefined, undefined}, Timeout, StreamAfterEof, [], 0, 1).
+
 perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout, StreamAfterEof, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->

@@ -94,7 +94,20 @@ class MetricsStore extends EventEmitter {
     }
 
     subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd) {
-        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, continueStreamingAfterEnd);
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, undefined, undefined, continueStreamingAfterEnd);
+        data.streams.set(streamId, {
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: undefined,
+            batchCounter: 0,
+            data: []
+        });
+        return streamId;
+    }
+
+    subscribeToMetricSubset(benchId, metric, subsamplingInterval, beginTime, endTime) {
+        const startingDate = moment(BenchStore.findById(benchId).start_time).unix();
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, 
+                                                    startingDate + beginTime, startingDate + endTime, false);
         data.streams.set(streamId, {
             startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
             timeWindow: undefined,
@@ -105,7 +118,7 @@ class MetricsStore extends EventEmitter {
     }
 
     subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
-        const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, true);
+        const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, undefined, undefined, true);
         data.streams.set(streamId, {
             startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
             timeWindow: timeInterval,
