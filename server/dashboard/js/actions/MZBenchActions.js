@@ -121,7 +121,7 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    startStream(benchId, metric, subsamplingInterval, timeWindow, continueStreaming) {
+    startStream(benchId, metric, subsamplingInterval, timeWindow, beginTime, endTime, continueStreaming) {
         const streamId = Misc.gen_guid();
         
         let encodedSubsamplingInterval = "undefined";
@@ -132,6 +132,16 @@ export default {
         let encodedTimeWindow = "undefined";
         if(timeWindow) {
             encodedTimeWindow = timeWindow;
+        }
+        
+        let encodedBeginTime = "undefined";
+        if(beginTime) {
+            encodedBeginTime = beginTime;
+        }
+        
+        let encodedEndTime = "undefined";
+        if(endTime) {
+            encodedEndTime = endTime;
         }
         
         let encodedContinueStreaming = "false";
@@ -146,6 +156,8 @@ export default {
             metric: metric, 
             subsampling_interval: encodedSubsamplingInterval,
             time_window: encodedTimeWindow,
+            begin_time: encodedBeginTime,
+            end_time: encodedEndTime,
             stream_after_eof: encodedContinueStreaming
         });
         return streamId;

@@ -10,6 +10,7 @@ class Graph extends React.Component {
         super(props);
         
         this.streams = [];
+        this.currentZoom = undefined;
         this.previouslyRunning = undefined;
         this.updatesCounter = 0;
         
@@ -165,6 +166,13 @@ class Graph extends React.Component {
         }
     }
 
+    _performZoom(step) {
+        this.currentZoom = step;
+        this._destroySubscriptions();
+        this._createSubscriptions();
+        this._resetState();
+    }
+
     _renderGraph() {
         let graph_options = {
             title: this.props.title,
@@ -194,15 +202,12 @@ class Graph extends React.Component {
             
             graph_options.brushing = true;
             graph_options.brushing_history = true;
+            graph_options.after_brushing = this._performZoom.bind(this);
+            graph_options.brushing_manual_redraw = true;
             graph_options.aggregate_rollover = true;
         }
 
         if(this.state.isLoaded) {
-            if (this.props.renderFullscreen && this.rendered) {
-                return;
-            }
-            this.rendered = true;
-
             let isEmpty = this.state.data.reduce((prev, dataset) => {
                 if (dataset.length > 0) return false;
                 else return prev;
@@ -232,13 +237,15 @@ class Graph extends React.Component {
     }
 
     _updateGraph() {
-        if (!this.state.isLoaded) return;
+        if (!this.state.isLoaded) {
+            return;
+        }
 
         if (this.previouslyRunning != this.props.isRunning) {
             this._renderGraph();
             this.previouslyRunning = this.props.isRunning;
         } else {
-            const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b}, 0);
+            const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b }, 0);
             let dataUpdated = newUpdatesCounter > this.updatesCounter;
 
             if(dataUpdated) {
@@ -249,6 +256,11 @@ class Graph extends React.Component {
     }
 
     _computeSubsamplingInterval() {
+        if(this.currentZoom) {
+            const duration = this.currentZoom.max_x - this.currentZoom.min_x;
+            return Math.floor(duration/MAX_POINTS_PER_GRAPH);
+        }
+        
         if(this.props.benchStartTime) {
             const lastActiveTime = this.props.isRunning ? moment() : this.props.benchFinishTime;
             const benchDuration = lastActiveTime.diff(this.props.benchStartTime, 'seconds');
@@ -274,7 +286,12 @@ class Graph extends React.Component {
 
     _subscribeToMetric(benchId, metric) {
         if(this.props.renderFullscreen) {
-            return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+            if(this.currentZoom) {
+                return MetricsStore.subscribeToMetricSubset(benchId, metric, this._computeSubsamplingInterval(), 
+                                                            this.currentZoom.min_x, this.currentZoom.max_x);
+            } else {
+                return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+            }
         } else {
             if(this.props.isRunning) {
                 return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, RUNNING_GRAPH_SHOWED_DURATION*60);
@@ -285,6 +302,8 @@ class Graph extends React.Component {
     }
 
     _resetState() {
+        this.updatesCounter = 0;
+        
         this.setState({
             maxDate: 0, 
             data: this.props.targets.map((metric) => { return []; }), 
