@@ -204,7 +204,7 @@ class Graph extends React.Component {
             graph_options.brushing_history = true;
             graph_options.after_brushing = this._performZoom.bind(this);
             graph_options.brushing_manual_redraw = true;
-            graph_options.aggregate_rollover = true;
+            graph_options.aggregate_rollover = this.props.targets.length > 1;
         }
 
         if(this.state.isLoaded) {
