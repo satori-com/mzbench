@@ -2473,15 +2473,16 @@ MG.markers = markers;
 /////////////////////////////////////////////////////////////////////////////////////////
 
 
-function mg_remove_mouseover_container(svg) {
-  svg.selectAll('.mg-active-datapoint-container').remove();
+function mg_clear_mouseover_container (svg) {
+  svg.selectAll('.mg-active-datapoint-container').selectAll('*').remove();
 }
 
 function mg_setup_mouseover_container (svg, args) {
   svg.select('.mg-active-datapoint').remove();
   var text_anchor = args.mouseover_align === 'right' ? 'end' : (args.mouseover_align === 'left' ? 'start' : 'middle');
   var mouseover_x = args.mouseover_align === 'right' ? mg_get_plot_right(args) : (args.mouseover_align === 'left' ? mg_get_plot_left(args) : (args.width-args.left-args.right) / 2 + args.left);
-  var active_datapoint = mg_add_g(svg, 'mg-active-datapoint-container')
+
+  var active_datapoint = svg.select('.mg-active-datapoint-container')
     .append('text')
     .attr('class', 'mg-active-datapoint')
     .attr('xml:space', 'preserve')
@@ -2991,7 +2992,7 @@ MG.button_layout = function(target) {
         .x(args.scalefns.xf)
         .y0(function (d) {
           var l = args.show_confidence_band[0];
-          if(d[l]) {
+          if(d[l] != undefined) {
             return args.scales.Y(d[l]);
           } else {
             return args.scales.Y(d[args.y_accessor]);
@@ -2999,7 +3000,7 @@ MG.button_layout = function(target) {
         })
         .y1(function (d) {
           var u = args.show_confidence_band[1];
-          if(d[u]) {
+          if(d[u] != undefined) {
             return args.scales.Y(d[u]);
           } else {
             return args.scales.Y(d[args.y_accessor]);
@@ -3221,32 +3222,7 @@ MG.button_layout = function(target) {
     // remove the old rollover text and circle if they already exist
     mg_selectAll_and_remove(svg, '.mg-active-datapoint');
     mg_selectAll_and_remove(svg, '.mg-line-rollover-circle');
-    mg_selectAll_and_remove(svg, '.mg-active-datapoint-container');
-  }
-
-  function mg_add_line_active_datapoint_container(args, svg) {
-    var activeDatapointContainer = mg_add_g(svg, 'mg-active-datapoint-container')
-      .append('text')
-      .attr('class', 'mg-active-datapoint')
-      .attr('xml:space', 'preserve')
-      .attr('text-anchor', 'end');
-
-    // set the rollover text's position; if we have markers on two lines,
-    // nudge up the rollover text a bit
-    var activeDatapointYnudge = 0.75;
-    if (args.markers) {
-      var yPos;
-      svg.selectAll('.mg-marker-text')
-        .each(function () {
-          if (!yPos) {
-            yPos = d3.select(this).attr('y');
-          } else if (yPos !== d3.select(this).attr('y')) {
-            activeDatapointYnudge = 0.56;
-          }
-        });
-    }
-    activeDatapointContainer
-      .attr('transform', 'translate(' + (mg_get_plot_right(args)) + ',' + (mg_get_top(args) * activeDatapointYnudge) + ')');
+    //mg_selectAll_and_remove(svg, '.mg-active-datapoint-container');
   }
 
   function mg_add_rollover_circle (args, svg) {
@@ -3592,9 +3568,9 @@ MG.button_layout = function(target) {
 
   function mg_line_rollover_setup (args, graph) {
     var svg = mg_get_svg_child_of(args.target);
+    mg_add_g(svg, 'mg-active-datapoint-container');
 
     mg_remove_existing_line_rollover_elements(svg);
-    //mg_add_line_active_datapoint_container(args, svg);
     mg_add_rollover_circle(args, svg);
     mg_set_unique_line_id_for_each_series(args);
 
@@ -3841,7 +3817,7 @@ MG.button_layout = function(target) {
         }
 
         //mg_remove_active_text(svg);
-        if (args.data[0].length > 1) mg_remove_mouseover_container(svg);
+        if (args.data[0].length > 1) mg_clear_mouseover_container(svg);
         if (args.mouseout) {
           args.mouseout(d, i);
         }
@@ -3940,6 +3916,8 @@ MG.button_layout = function(target) {
       var svg = mg_get_svg_child_of(args.target);
       var $svg = $($(args.target).find('svg').get(0));
 
+      mg_add_g(svg, 'mg-active-datapoint-container');
+
       //remove the old rollovers if they already exist
       svg.selectAll('.mg-rollover-rect').remove();
       svg.selectAll('.mg-active-datapoint').remove();
@@ -4027,7 +4005,7 @@ MG.button_layout = function(target) {
             .classed('hist-symbol', true);
 
           row.text(mg_format_x_mouseover(args, d)); // x
-          row.text(mg_format_y_mouseover(args, d, args.time_series === false));            
+          row.text(mg_format_y_mouseover(args, d, args.time_series === false));
         }
 
         if (args.mouseover) {
@@ -4056,7 +4034,7 @@ MG.button_layout = function(target) {
           .classed('active', false);
 
         //reset active data point text
-        mg_remove_mouseover_container(svg);
+        mg_clear_mouseover_container(svg);
         // svg.select('.mg-active-datapoint')
         //   .text('');
 
@@ -4106,7 +4084,7 @@ function point_mouseover (args, svg, d) {
 
   mg_color_point_mouseover(args, row.text('\u25CF   ').elem(), d); // point shape.
   row.text(mg_format_x_mouseover(args, d)); // x
-  row.text(mg_format_y_mouseover(args, d, args.time_series === false));            
+  row.text(mg_format_y_mouseover(args, d, args.time_series === false));
 }
 
 function mg_color_point_mouseover(args, elem, d) {
@@ -4127,7 +4105,7 @@ function mg_color_point_mouseover(args, elem, d) {
     var x = args.x_accessor;
     var y = args.y_accessor;
     var new_data = data.filter(function(d){
-      return (args.min_x === null || d[x] >= args.min_x) && 
+      return (args.min_x === null || d[x] >= args.min_x) &&
              (args.max_x === null || d[x] <= args.max_x) &&
              (args.min_y === null || d[y] >= args.min_y) &&
              (args.max_y === null || d[y] <= args.max_y);
@@ -4201,6 +4179,7 @@ function mg_color_point_mouseover(args, elem, d) {
 
     this.rollover = function() {
       var svg = mg_get_svg_child_of(args.target);
+      mg_add_g(svg, 'mg-active-datapoint-container');
 
       //remove the old rollovers if they already exist
       svg.selectAll('.mg-voronoi').remove();
@@ -4308,7 +4287,7 @@ function mg_color_point_mouseover(args, elem, d) {
         }
 
         //reset active data point text
-        if (args.data[0].length > 1) mg_remove_mouseover_container(svg);
+        if (args.data[0].length > 1) mg_clear_mouseover_container(svg);
 
         if (args.mouseout) {
           args.mouseout(d, i);
@@ -4683,6 +4662,8 @@ function mg_targeted_legend (args) {
       var svg = mg_get_svg_child_of(args.target);
       var g;
 
+      mg_add_g(svg, 'mg-active-datapoint-container');
+
       //remove the old rollovers if they already exist
       svg.selectAll('.mg-rollover-rect').remove();
       svg.selectAll('.mg-active-datapoint').remove();
@@ -4799,7 +4780,7 @@ function mg_targeted_legend (args) {
       return function(d, i) {
         //reset active bar
         var bar = svg.selectAll('g.mg-barplot .mg-bar.active').classed('active', false);
-        
+
         if (args.scales.hasOwnProperty('color')) {
           bar.attr('fill', args.scalefns.color(d));
         } else {
@@ -4810,7 +4791,7 @@ function mg_targeted_legend (args) {
         svg.select('.mg-active-datapoint')
           .text('');
 
-        mg_remove_mouseover_container(svg);
+        mg_clear_mouseover_container(svg);
 
         if (args.mouseout) {
           args.mouseout(d, i);
