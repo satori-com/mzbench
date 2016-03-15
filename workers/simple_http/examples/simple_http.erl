@@ -9,4 +9,5 @@
         [{loop, [{time, {120, sec}}, % execution time 120 seconds
                  {rate, {ramp, linear, {1, rps}, {{numvar, "max_rps", 200}, rps}}}],
             [{get, {var, "target_url", "http://172.21.3.3/index.html"}}]}]}
+            % GET parameters are passed through url, for example {get, "http://172.21.3.3/?x=y"}
 ].
