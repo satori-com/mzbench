@@ -205,6 +205,19 @@
 <h2 id="multicloud">Multicloud<a class="headerlink" href="#multicloud" title="Permanent link">&para;</a></h2>
 <p><code>mzb_multicloud_plugin</code></p>
 <p>Combine multiple plugins to allocate hosts from multiple sources.</p>
+<p>Configration example:</p>
+<pre><code>{cloud_plugins, [
+        {some_cloud_provider1, ...},
+        {some_cloud_provider2, ...},
+        {cloud_multi, #{module =&gt; mzb_multicloud_plugin,
+                          clouds =&gt; [
+                              {some_cloud_provider1, 3},
+                              {some_cloud_provider2, 10}
+                      ]}}
+]}
+</code></pre>
+
+<p>Here, if the cluster is allocated using <code>cloud_multi</code>, it will contain 3 nodes from <code>some_cloud_provider1</code> for every 10 nodes from <code>some_cloud_provider2</code>.</p>
 <h1 id="how-to-write-a-cloud-plugin">How to Write a Cloud Plugin<a class="headerlink" href="#how-to-write-a-cloud-plugin" title="Permanent link">&para;</a></h1>
 <p>Cloud plugin is an Erlang module with at least three methods:</p>
 <pre><code class="erlang">-spec start(Name, Opts) -&gt; PluginRef when

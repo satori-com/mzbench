@@ -140,7 +140,7 @@
         
             <li><a href="#command-line-utilities">Command Line Utilities</a></li>
         
-            <li><a href="#general-worker-structure">General Worker Structure</a></li>
+            <li><a href="#worker-structure">Worker Structure</a></li>
         
             <li><a href="#how-to-define-statements">How to Define Statements</a></li>
         
@@ -151,9 +151,12 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<p>Today internet is a huge set of ever changing technologies. It would be impossible in practice for MZBench distribution to provide an extensive library of functions to access all the possible services and protocols. Instead, it uses a plugin system called <em>workers</em>.</p>
-<p><strong>Worker</strong> is an Erlang application providing <a href="../scenarios/">statements</a> to access a particular service (such as HTTP or SSH server) and collecting statistics about its usage. Some workers are bundled with the distribution, but you will likely need to write your own to access the service you want to benchmark. This document is here to guide you through this process.</p>
-<p>Because a worker is an Erlang application, you need basic knowledge of this programming language to understand this document. Refer to <a href="http://www.erlang.org/doc/getting_started/users_guide.html">Getting Started with Erlang User&rsquo;s Guide</a> or to the <a href="http://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> book for an introduction to the matter.</p>
+<p>To benchmark a particular protocol or service, MZBench uses a matching <em>worker</em>.</p>
+<p><strong>Worker</strong> is an Erlang application that provides <a href="../scenarios/">statements</a> to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you&rsquo;ll probably need to write a worker for it.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You need basic Erlang knowledge to understand this tutorial. Refer to <a href="http://www.erlang.org/doc/getting_started/users_guide.html">Getting Started with Erlang User&rsquo;s Guide</a> or to the <a href="http://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> book for an introduction to Erlang.</p>
+</div>
 <h1 id="how-to-write-a-worker">How to Write a Worker<a class="headerlink" href="#how-to-write-a-worker" title="Permanent link">&para;</a></h1>
 <h2 id="command-line-utilities">Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permanent link">&para;</a></h2>
 <p>MZBench distribution provides <a href="../cli/">command line utilities</a> to assist you during your development effort.</p>
@@ -164,12 +167,12 @@
 </code></pre>
 </div>
 <h3 id="generate">Generate<a class="headerlink" href="#generate" title="Permanent link">&para;</a></h3>
-<p>First of all, generate an empty worker application with <a href="../cli/#new_worker"><code>new_worker</code></a>:</p>
+<p>First, generate an empty worker application with <a href="../cli/#new_worker"><code>new_worker</code></a>:</p>
 <pre><code class="bash">$ ./bin/mzbench new_worker &lt;worker_name&gt;
 </code></pre>
 
 <p>It creates a new directory <code>&lt;worker_name&gt;</code> with a minimalistic but fully functional MZBench worker named <code>&lt;worker_name&gt;</code>. Particularly interesting files are <code>src/&lt;worker_name&gt;.erl</code>, which holds the worker source code, and <code>examples/&lt;worker_name&gt;.erl</code>, which contains a simple MZBench <a href="../scenarios/">scenario</a> using it.</p>
-<p>If the service you develop a worker for is based on a well-known protocol like TCP, the <code>new_worker</code> command can generate your a more elaborate worker already containing the usual boilerplate code for this type of service. List available protocol templates with <a href="../cli/#list_templates"><code>list_templates</code></a>:</p>
+<p>If the worker you develop works over a common protocol like TCP, the <code>new_worker</code> command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with <a href="../cli/#list_templates"><code>list_templates</code></a>:</p>
 <pre><code class="bash">$ ./bin/mzbench list_templates
 </code></pre>
 
@@ -178,7 +181,7 @@
 </code></pre>
 
 <h3 id="compile-and-debug">Compile and Debug<a class="headerlink" href="#compile-and-debug" title="Permanent link">&para;</a></h3>
-<p>During development, you&rsquo;ll need to do a lot of debugging. If you had to launch a complete benchmark every time you want to launch your test scenario, it would be cumbersome. MZBench provides a quicker way to build your worker and launch a local instance of your benchmarking scenario using it.</p>
+<p>MZBench lets you quickly build a worker and launch a local instance of a benchmarking scenario without running a server.</p>
 <p>In the worker directory, run <a href="../cli/#run_local"><code>run_local &lt;script&gt;</code></a>, where <code>&lt;script&gt;</code> is the path to the scenario to run:</p>
 <pre><code class="bash">$ ./bin/mzbench run_local &lt;script&gt;
 </code></pre>
@@ -189,9 +192,9 @@
 <p>All <a href="../scenarios/#make_install"><code>make_install</code></a> top-level statements are ignored in this execution mode.</p>
 </div>
 <h3 id="execute">Execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h3>
-<p>After you have done with the debugging, execute your worker in a cloud: Specify the worker git address in your benchmark scenario with <a href="../scenarios/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
-<p><a href="../../workers/simple_http/examples/simple_http.erl">Simple HTTP worker example →</a></p>
-<h2 id="general-worker-structure">General Worker Structure<a class="headerlink" href="#general-worker-structure" title="Permanent link">&para;</a></h2>
+<p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
+<p><a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">Simple HTTP worker example →</a></p>
+<h2 id="worker-structure">Worker Structure<a class="headerlink" href="#worker-structure" title="Permanent link">&para;</a></h2>
 <p>A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.</p>
 <p>To understand the general structure of a worker, let&rsquo;s see the source code of the <code>dummy_worker</code> provided with the MZBench distribution:</p>
 <pre><code class="erlang">-module(dummy_worker).
@@ -238,7 +241,7 @@ print(State, Meta, Text) -&gt;
 <dt><code>metrics/0</code></dt>
 <dd>Return a group of metrics generated by this worker. <a href="#how-to-define-metrics">How to define metrics</a>.</dd>
 </dl>
-<p>The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>dummy_worker</code>, for instance, provides the <code>print</code> statement to output a string to the standard output. <a href="#how-to-define-statements">How to define statements</a>.</p>
+<p>The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>dummy_worker</code>, for instance, provides the <code>print</code> statement to output a string to the standard output. </p>
 <h2 id="how-to-define-statements">How to Define Statements<a class="headerlink" href="#how-to-define-statements" title="Permanent link">&para;</a></h2>
 <p>To define a DSL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:</p>
 <pre><code class="erlang">&lt;statement_name&gt;(State, Meta, [&lt;Param1&gt;, [&lt;Param2&gt;, ...]]) -&gt;

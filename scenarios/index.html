@@ -221,6 +221,12 @@ $ make generate_tgz
 
 <p>If <code>branch</code> is not specified, the default git branch is used.</p>
 <p>If <code>dir</code> is not specified, <code>.</code> is used.</p>
+<h3 id="defaults">defaults<a class="headerlink" href="#defaults" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{defaults, [{&quot;&lt;VarName1&gt;&quot;, &lt;Value1&gt;}, {&quot;&lt;VarName2&gt;&quot;, &lt;Value2&gt;}, ...]}
+</code></pre>
+
+<p>Allows to define the default values for environment variables, i.e. the values used if no value was provided for this variable on the command line.</p>
+<p>See <a href="#environment-variables">Environment Variables</a> for additional information.</p>
 <h3 id="include_resource">include_resource<a class="headerlink" href="#include_resource" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{include_resource, &lt;ResourceName&gt;, &quot;&lt;FileName&gt;&quot;, &lt;Type&gt;}
 {include_resource, &lt;ResourceName&gt;, &quot;&lt;FileURL&gt;&quot;, &lt;Type&gt;}`
@@ -469,7 +475,6 @@ Target = all | director
 
 <h3 id="var">var<a class="headerlink" href="#var" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{var, &quot;&lt;VarName&gt;&quot;}
-{var, &quot;&lt;VarName&gt;&quot;, &lt;DefaultValue&gt;}
 </code></pre>
 
 <p>To get the value of a variable, refer to it by the name: <code>{var, "&lt;VarName&gt;"}</code>.</p>
@@ -477,13 +482,9 @@ Target = all | director
 {var, &quot;n&quot;} % returns &quot;42&quot;, a string
 </code></pre>
 
-<p>If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable: <code>{var, "&lt;VarName&gt;", &lt;DefaultValue&gt;}</code>:</p>
-<pre><code class="erlang">{var, &quot;anothervar&quot;, &quot;Foo&quot;} % returns &quot;Foo&quot; if anothervar is not set
-</code></pre>
-
+<p>If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable, see <a href="#defaults">defaults top-level directive</a>.</p>
 <h3 id="numvar">numvar<a class="headerlink" href="#numvar" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{numvar, &quot;&lt;VarName&gt;&quot;}
-{numvar, &quot;&lt;VarName&gt;&quot;, &lt;DefaultValue&gt;}
 </code></pre>
 
 <p>By default, variable values are considered strings. To get a numerical value (integer or float), use <code>{numvar, "VarName"}</code>:</p>
@@ -547,6 +548,7 @@ Target = all | director
 </code></pre>
 
 <p>Pick the next element of the list. When the last one is picked, start over from the first one.</p>
+<p><strong>BEWARE:</strong> The <code>round_robin</code> function complexity is <code>O(n)</code> when <code>n</code> is the length of the <code>&lt;List&gt;</code>, so it is extremely slow for big lists. You should consider to cache the value somehow if it is the case.</p>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <h3 id="dump">dump<a class="headerlink" href="#dump" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{dump, &quot;&lt;Text&gt;&quot;}

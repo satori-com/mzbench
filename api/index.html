@@ -255,7 +255,7 @@ curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?dealloc
 </code></pre>
 
 <h2 id="get-dataidnumber">GET /data?id=number<a class="headerlink" href="#get-dataidnumber" title="Permanent link">&para;</a></h2>
-<p>Request benchmark metrics data. The response will be tab-delimited CSV with timestamp followed by metric name and value:</p>
+<p>Request benchmark metrics data. The response will be a tab-delimited CSV with timestamp followed by metric name and value:</p>
 <pre><code class="bash">$ curl http://mzbench.myserver.com/data?id=1236
 1439245024  mzb.workers.failed.value    0
 1439245024  mzb.workers.failed.rps.value    0.0
