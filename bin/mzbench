@@ -487,7 +487,7 @@ def augment_args(args):
             print("invalid value for --workers_per_node: {0}".format(args['--workers_per_node']))
             sys.exit(4)
 
-    args['--env'] = dict(map(lambda x: x.split("=", 2), args['--env']))
+    args['--env'] = dict(map(lambda x: x.split("=", 1), args['--env']))
 
     if args['--deallocate_after_bench'] not in [None, 'true', 'false']:
         print("invalid value for --deallocate_after_bench: {0}".format(
