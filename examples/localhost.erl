@@ -2,7 +2,13 @@
 %% Send 10 requests per second for 1 minute from 5 nodes in parallel,
 %% which totals up to 50 requests per second altogether.
 
-[ {pool,
+[ {make_install, 
+    [
+        {git, "https://github.com/machinezone/mzbench.git"},
+        {dir, "workers/http"}
+    ]
+  },
+  {pool,
     [
         {size, 5},
         {worker_type, http_worker}
@@ -20,4 +26,5 @@
             ]
         }
     ]
-}].
+  }
+].
