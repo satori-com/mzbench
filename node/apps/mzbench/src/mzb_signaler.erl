@@ -35,7 +35,7 @@ check_signal(Name) ->
 check_signal(Name, Count) ->
     check_signal(Name, Count, infinity).
 
-check_signal(Name, Count, Timeout) ->
+check_signal(Name, Count, Timeout) when Count > 0, is_number(Count) ->
     case ets:lookup(?MODULE, Name) of
         [{_, Cn}] when Cn >= Count -> ok;
         _ ->
@@ -44,7 +44,9 @@ check_signal(Name, Count, Timeout) ->
             catch
                 exit:{timeout, _} -> erlang:error({timeout, {wait_signal, Name}})
             end
-    end.
+    end;
+check_signal(_, 0, _) -> ok;
+check_signal(Name, Count, _) -> erlang:error({badarg, {wait_signal, Name, Count}}).
 
 add_signal(Name) ->
     gen_server:cast(?MODULE, {add, Name}).
