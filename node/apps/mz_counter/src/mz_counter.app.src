@@ -1,0 +1,14 @@
+{application, mz_counter,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  lager
+                 ]},
+  {mod, { mz_counter_app, []}},
+  {env, [
+  ]}
+ ]}.

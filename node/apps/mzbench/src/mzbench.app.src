@@ -16,7 +16,8 @@
                   mz_histogram,
                   mzbench_language,
                   mzbench_utils,
-                  os_mon
+                  os_mon,
+                  mz_counter
                  ]},
   {mod, { mzb_app, []}},
   {env, [
