@@ -51,13 +51,15 @@ def check_output(*popenargs, **kwargs):
 
     dots = 0
     dirty = 0
-    while process.poll() is None:
-        time.sleep(0.3)
-        dots = dots + 1
-        if dots % 7 == 0:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            dirty = 1
+
+    if "flush" in dir(sys.stdout):
+        while process.poll() is None:
+            time.sleep(0.3)
+            dots = dots + 1
+            if dots % 7 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                dirty = 1
 
     if dirty:
         print
