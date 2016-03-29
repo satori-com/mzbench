@@ -1,6 +1,6 @@
 .PHONY: all compile generate_tgz clean
 
-REBAR := $(abspath $(shell which ../../bin/rebar3 || which rebar3))
+REBAR := $(abspath $(shell which ./rebar3 || which rebar3))
 
 PKG_NAME = tcp_worker
 
