@@ -19,6 +19,7 @@ init([]) ->
         ranch:child_spec(management_tcp_server, 10, ranch_tcp, [{port, ManagementPort}], mzb_management_tcp_protocol, []),
         ranch:child_spec(lager_tcp_server, 10, ranch_tcp, [{port, LogPort}], mzb_lager_tcp_protocol, []),
 
+        child_spec(worker, gauges, mzb_gauge, permanent, []),
         child_spec(supervisor, metrics_event_manager, gen_event, permanent, [{local, metrics_event_manager}]),
         child_spec(worker, system_load_monitor, mzb_system_load_monitor, permanent, []),
         child_spec(supervisor, bench_sup, mzb_bench_sup, permanent, []),
