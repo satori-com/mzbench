@@ -5,6 +5,7 @@ import traceback
 import shlex
 import subprocess
 import time
+from multiprocessing import Process
 
 def slurp(path):
     with open(path, 'r') as f:
@@ -64,10 +65,38 @@ def check_output(*popenargs, **kwargs):
 def sudo_cmd(command):
     return cmd('sudo {0}'.format(command))
 
+def draw_dots():
+    dots = 0
+    clean = 1
+
+    while True:
+        time.sleep(0.3)
+        dots = dots + 1
+        if dots % 7 == 0:
+            if clean:
+                print
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            clean = 0
+
+
 def cmd(command):
-    print 'Executing', command
     args = shlex.split(command)
-    return check_output(args)
+
+    if "flush" in dir(sys.stdout):
+        sys.stdout.write('Executing ' + str(command))
+        p = Process(target=draw_dots)
+        try:
+            p.start()
+            output = check_output(args)
+            print
+            return output
+        finally:
+            p.terminate()
+
+    else:
+        print 'Executing', command
+        return check_output(args)
 
 def remote_cmd(host, command, ssh_opts = ""):
     ssh_cmd = "ssh -A -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=false {0} {1} \"source /etc/profile; {2}\"".format(ssh_opts, host, command)
