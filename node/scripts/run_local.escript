@@ -42,11 +42,6 @@ run_script(Script, Env) ->
 
     setup_logger([{lager_console_backend, info}]),
 
-    % setup is exometer dependency.
-    ok = application:load(setup),
-    ok = application:set_env(setup, data_dir, "."),
-    ok = application:set_env(setup, log_dir, "."),
-    {ok, _} = application:ensure_all_started(setup),
     {ok, _} = application:ensure_all_started(mzbench),
 
     case mzb_bench_sup:run_bench(filename:absname(Script), Env) of
