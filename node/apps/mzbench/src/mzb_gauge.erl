@@ -27,10 +27,14 @@ create(Name) ->
     notify(Name, 0).
 
 notify(Name, Value) ->
-    ets:insert(?MODULE, {Name, Value}).
+    ets:insert(?MODULE, {Name, Value}),
+    ok.
 
 get_value(Name) ->
-    ets:lookup_element(?MODULE, Name, 2).
+    case ets:lookup(?MODULE, Name) of
+        [{_, R}] -> R;
+        [] -> erlang:error(not_found)
+    end.
 
 %%%===================================================================
 %%% gen_server callbacks

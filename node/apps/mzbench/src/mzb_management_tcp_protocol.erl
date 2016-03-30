@@ -91,7 +91,7 @@ init(Ref, Socket, Transport, _Opts = []) ->
     ok = ranch:accept_ack(Ref),
     ok = Transport:setopts(Socket, [{active, true}, {packet, 4}, binary]),
 
-    gen_event:add_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, [self()]),
+    gen_event:add_handler(metrics_event_manager, {mzb_metric_reporter, self()}, [self()]),
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport}, ?TIMEOUT).
 
 handle_info({tcp_closed, _Socket}, State) ->
@@ -116,8 +116,8 @@ handle_cast(Msg, State) ->
     system_log:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
-handle_call({report, [Probe, _DataPoint, Value]}, _From, State = #state{}) ->
-    Name = string:join(Probe, "."),
+handle_call({report, [Name, Value]}, _From, State = #state{}) ->
+    %Name = string:join(Probe, "."),
     Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
     send_message({metric_value, Name, Metric}, State),
     {reply, ok, State};
@@ -128,7 +128,7 @@ handle_call(Request, _From, State) ->
 
 terminate(_Reason, _State) ->
     lager:info("Management tcp connection terminated: ~p", [_Reason]),
-    gen_event:delete_handler(metrics_event_manager, {mzb_exometer_report_apiserver, self()}, []),
+    gen_event:delete_handler(metrics_event_manager, {mzb_metric_reporter, self()}, []),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

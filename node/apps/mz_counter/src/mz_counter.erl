@@ -40,7 +40,14 @@ create(Name) ->
 notify(Name, Value) ->
     case erlang:get({mz_counter_ref, Name}) of
         undefined ->
-            Ref = ets:lookup_element(?MODULE, Name, 2),
+            Ref =
+                try ets:lookup_element(?MODULE, Name, 2) of
+                    R -> R
+                catch
+                    _:_ ->
+                        ok = create(Name),
+                        ets:lookup_element(?MODULE, Name, 2)
+                end,
             erlang:put({mz_counter_ref, Name}, Ref),
             update_counter(Ref, Value);
         Ref ->
@@ -48,14 +55,18 @@ notify(Name, Value) ->
     end.
 
 get_value(Name) ->
-    case erlang:get({mz_counter_ref, Name}) of
-        undefined ->
-            Ref = ets:lookup_element(?MODULE, Name, 2),
-            erlang:put({mz_counter_ref, Name}, Ref),
-            get_counter_value(Ref);
-        Ref ->
-            get_counter_value(Ref)
-    end.
+    Ref =
+        case erlang:get({mz_counter_ref, Name}) of
+            undefined ->
+                case ets:lookup(?MODULE, Name) of
+                    [{_, R}] ->
+                        erlang:put({mz_counter_ref, Name}, R),
+                        R;
+                    [] -> erlang:error(not_found)
+                end;
+            R -> R
+    end,
+    get_counter_value(Ref).
 
 reset(Name) ->
     case erlang:get({mz_counter_ref, Name}) of

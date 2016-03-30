@@ -35,7 +35,6 @@
 
 -define(INTERVAL, 10000). % in ms
 -define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
--define(LOCALPREFIX, "local").
 -define(INTERVALNAME, report_interval).
 
 %%%===================================================================
@@ -46,24 +45,22 @@ start_link(Env, MetricGroups, Nodes) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
-    exometer:update_or_create([?LOCALPREFIX, Name], Value, counter, []);
+    mz_counter:notify(Name, Value);
 notify({Name, gauge}, Value) ->
-    exometer:update_or_create([?LOCALPREFIX, Name], Value, gauge, []);
+    mzb_gauge:notify(Name, Value);
 notify({Name, histogram}, Value) ->
     mz_histogram:notify(Name, Value);
 notify(Name, Value) ->
     notify({Name, counter}, Value).
 
 get_value(Metric) ->
-    case exometer:get_value([Metric], value) of
-        {ok, [{value, Value}]} -> Value;
-        {error, Reason} -> erlang:error({badarg, Metric, Reason})
+    try global_get(Metric)
+    catch
+        _:Error -> erlang:error({badarg, Metric, Error})
     end.
 
 final_trigger() ->
-    Reply = gen_server:call(?MODULE, final_trigger, infinity),
-    timer:sleep(3000),  % Let exometer the time to finish reporting
-    Reply.
+    gen_server:call(?MODULE, final_trigger, infinity).
 
 -spec get_failed_asserts() -> [term()].
 get_failed_asserts() ->
@@ -74,10 +71,9 @@ get_failed_asserts() ->
 %%%===================================================================
 
 init([Env, MetricGroups, Nodes]) ->
+    _ = ets:new(?MODULE, [set, protected, named_table]),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
-    ok = init_exometer(MetricGroups),
     erlang:send_after(?INTERVAL, self(), trigger),
-    _ = [ok = mz_histogram:create(Nodes, Name) || {Name, histogram, _} <- extract_metrics(MetricGroups)],
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     {ok, #s{
@@ -93,7 +89,7 @@ init([Env, MetricGroups, Nodes]) ->
 
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
-    exometer_report:trigger_interval(mzb_exometer_report_apiserver, ?INTERVALNAME),
+    ok = report_metrics(),
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
@@ -135,12 +131,13 @@ tick(#s{last_tick_time = LastTick} = State) ->
     case TimeSinceTick of
         0 ->
             system_log:info("[ metrics ] Tick dropped because its timestamp is equal to the previous one.", []),
-            State#s{last_tick_time = Now};
+            State;
         _ ->
             State1 = aggregate_metrics(State),
             State2 = evaluate_derived_metrics(State1),
             State3 = check_assertions(TimeSinceTick, State2),
             State4 = check_signals(State3),
+            ok = report_metrics(),
             State4#s{last_tick_time = Now}
     end.
 
@@ -163,22 +160,16 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
 
     Aggregated = merge_metrics_data(Values),
 
-    system_log:info("[ metrics ] Updating metric values in exometer..."),
+    system_log:info("[ metrics ] Updating metric values..."),
     lists:foreach(
-        fun ({N, V, counter}) ->
-                exometer:update_or_create([N], V, counter, []);
-            ({N, V, gauge}) ->
-                exometer:update_or_create([N], V, gauge, [])
+        fun ({N, V, counter}) -> global_inc(N, counter, V);
+            ({N, V, gauge})   -> global_set(N, gauge, V)
         end, Aggregated),
 
     FinishTime = os:timestamp(),
     MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
 
-    ok = exometer:update_or_create(
-        ["metric_merging_time"],
-        MergingTime,
-        gauge,
-        []),
+    global_set("metric_merging_time", gauge, MergingTime),
 
     State.
 
@@ -190,7 +181,7 @@ evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
     DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
         try Provider:apply(Resolver, [], Worker) of
-            Val -> exometer:update_or_create([Name], Val, gauge, [])
+            Val -> global_set(Name, gauge, Val)
         catch
             _:Reason -> system_log:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
         end
@@ -234,8 +225,7 @@ check_signals(#s{nodes = Nodes} = State) ->
 format_global_metrics() ->
     Metrics = global_metrics(),
     Lines = lists:map(
-        fun({[Name], _Type, _Status}) ->
-            {ok, [{value, Value}]} = exometer:get_value([Name], value),
+        fun({Name, _Type, Value}) ->
             io_lib:format("~s = ~p", [Name, Value])
         end,
         Metrics),
@@ -255,14 +245,14 @@ eval_rps(#s{previous_counter_values = PreviousData, last_rps_calculation_time = 
     case TimeInterval > 1000000 of
         false -> State;
         true ->
-            Counters = [N || {[N], counter, _} <- global_metrics()],
+            Counters = [N || {N, counter, _} <- global_metrics()],
             NewData = lists:foldl(
                 fun (Metric, Acc) ->
                     NewMetric = Metric ++ ".rps",
                     Old = proplists:get_value(NewMetric, Acc, 0),
-                    {ok, [{value, New}]} = exometer:get_value([Metric], value),
+                    New = global_get(Metric),
                     HitsPerSecond = ((New - Old) * 1000000) / TimeInterval,
-                    ok = exometer:update_or_create([NewMetric], HitsPerSecond, gauge, []),
+                    global_set(NewMetric, gauge, HitsPerSecond),
                     lists:keystore(NewMetric, 1, Acc, {NewMetric, New})
                 end, PreviousData, Counters),
             State#s{previous_counter_values = NewData, last_rps_calculation_time = Now}
@@ -292,21 +282,32 @@ groupby([{H, _}|_] = L, Res) ->
 
 get_local_values(Metrics) ->
     system_log:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
-    CountersAndGauges = lists:map(
-        fun ({Name, Type, _}) ->
-            case exometer:get_value([?LOCALPREFIX, Name], value) of
-                {ok, [{value, Value}]} when Type == counter ->
-                    notify({Name, counter}, -Value),
-                    {Name, Value, Type};
-                {ok, [{value, Value}]}  ->
-                    {Name, Value, Type};
-                {error, _} -> ok
-            end
+    MetricsData = lists:filtermap(
+        fun ({Name, counter, _}) ->
+                try
+                    V = mz_counter:get_value(Name),
+                    mz_counter:notify(Name, -V),
+                    {true, {Name, V, counter}}
+                catch
+                    _:not_found -> false
+                end;
+            ({Name, gauge, _}) ->
+                try
+                    {true, {Name, mzb_gauge:get_value(Name), gauge}}
+                catch
+                    _:not_found -> false
+                end;
+            ({Name, histogram, _}) ->
+                case mz_histogram:get_and_remove_raw_data([Name]) of
+                    [{_, Data}] -> {true, {Name, Data, histogram}};
+                    [] -> false
+                end;
+            ({_, _, _}) ->
+                false
         end,
-        [M || {_, T, _} = M <- Metrics, (T == gauge) or (T == counter)]),
-    Histograms = [{Name, Data, histogram} || {Name, Data} <- mz_histogram:get_and_remove_raw_data([N || {N, histogram, _} <- Metrics])],
-    system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(CountersAndGauges) + erlang:length(Histograms), node()]),
-    CountersAndGauges ++ Histograms.
+        Metrics),
+    system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(MetricsData), node()]),
+    MetricsData.
 
 extract_metrics(Groups) ->
     [{Name, Type, Opts} || {group, _GroupName, Graphs} <- Groups,
@@ -382,37 +383,30 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-init_exometer(Metrics) ->
-    ExometerMetrics = extract_exometer_metrics(Metrics),
-
-    _ = lists:map(
-        fun ({Metric, Type, _Opts}) ->
-            exometer:new([Metric], Type)
-        end, ExometerMetrics),
-
-    Interval = [{intervals, [{?INTERVALNAME, ?INTERVAL}]}],
-    init_exometer_reporter(mzb_exometer_report_apiserver, Interval, ExometerMetrics).
-
-init_exometer_reporter(Name, Opts, Metrics) ->
-    ok = case exometer_report:add_reporter(Name, Opts) of
-        ok -> ok;
-        {error, already_running} -> ok;
-        E -> E
-    end,
-    ok = subscribe_exometer(Name, Metrics),
+report_metrics() ->
+    [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- global_metrics()],
     ok.
 
 datapoints(histogram) -> [min, max, mean, 50, 75, 90, 95, 99, 999];
 datapoints(counter)   -> [value];
 datapoints(gauge)     -> [value].
 
-subscribe_exometer(Reporter, Metrics) ->
-    system_log:info("Subscribing reporter ~p to ~p.", [Reporter, Metrics]),
-    lists:foreach(fun ({Metric, Type, _}) ->
-        exometer_report:subscribe(Reporter, [Metric], datapoints(Type), ?INTERVALNAME, [])
-    end, Metrics),
-    ok.
-
 global_metrics() ->
-     [M || {[_], _, _} = M <- exometer:find_entries([])].
+    ets:tab2list(?MODULE).
+
+global_get(Name) ->
+    case ets:lookup(?MODULE, Name) of
+        [{Name, _, Value}] -> Value;
+        [] -> erlang:error(not_found)
+    end.
+
+global_inc(Name, Type, Value) ->
+    case ets:lookup(?MODULE, Name) of
+        [{Name, Type, OldValue}] -> global_set(Name, Type, OldValue + Value);
+        [] -> global_set(Name, Type, Value)
+    end.
+
+global_set(Name, Type, Value) ->
+    ets:insert(?MODULE, {Name, Type, Value}).
+
 

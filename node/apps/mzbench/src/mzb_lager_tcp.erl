@@ -28,6 +28,7 @@ init([Level, Sock, MessageQLenLimit, RateLimit]) ->
     Formatter = lager_default_formatter,
     FormatterConfig = ?TERSE_FORMAT,
     RateLimit > 0 andalso erlang:send_after(?INTERVAL, self(), trigger_rate_limiter),
+    mzb_metrics:notify("errors", 0),
     {ok, #state{level=lager_util:config_to_mask(Level),
             formatter=Formatter,
             format_config=FormatterConfig,
