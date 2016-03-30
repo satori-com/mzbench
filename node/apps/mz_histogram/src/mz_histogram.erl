@@ -51,8 +51,15 @@ get_and_remove_raw_data(Metrics) ->
 
 notify(Name, Value) when is_integer(Value), Value >= 0 ->
     case erlang:get({mz_hist_ref, Name}) of
-        undefined -> 
-            Ref = ets:lookup_element(mz_histograms, Name, 2),
+        undefined ->
+            Ref =
+                try ets:lookup_element(mz_histograms, Name, 2) of
+                    R -> R
+                catch
+                    _:_ ->
+                        ok = create(Name),
+                        ets:lookup_element(mz_histograms, Name, 2)
+                end,
             erlang:put({mz_hist_ref, Name}, Ref),
             hdr_histogram:record(Ref, Value);
         Ref ->
@@ -112,9 +119,14 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 init_hist(Name) ->
-    {ok, Ref1} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
-    {ok, Ref2} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
-    ets:insert(mz_histograms, {Name, Ref1, Ref2}),
+    case ets:lookup(mz_histograms, Name) of
+        [_] ->
+            ok;
+        [] ->
+            {ok, Ref1} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+            {ok, Ref2} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+            ets:insert(mz_histograms, {Name, Ref1, Ref2})
+    end,
     ok.
 
 import_hdr_data(To, BinHdrHistData) ->
