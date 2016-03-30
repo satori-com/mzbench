@@ -32,7 +32,11 @@ class BenchSummary extends React.Component {
                             <tbody>
                                 <tr>
                                     <th scope="row" className="col-xs-2">Scenario</th>
-                                    <td>#{bench.id} {bench.scenario}</td>
+                                    <td>#{bench.id} {bench.benchmark_name}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" className="col-xs-2">Cloud</th>
+                                    <td>{bench.cloud}, {bench.nodes} node(s)</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Duration</th>
