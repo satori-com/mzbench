@@ -1,7 +1,7 @@
 [ 
   {make_install, [
     {rsync, {var, "exec_worker_dir"}},
-    {exclude, "deps"}]},
+    {exclude, "_build"}]},
   {pool, [{size, 2}, {worker_type, exec_worker}],
     [{execute, "sleep 5"}]}
 ].

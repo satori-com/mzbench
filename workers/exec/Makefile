@@ -1,21 +1,19 @@
-.PHONY: all compile get-deps generate_tgz clean
+.PHONY: all compile generate_tgz clean
 
-REBAR := $(abspath $(shell which ./rebar || which rebar))
+REBAR := $(abspath $(shell which ./rebar3 || which rebar3))
 
 PKG_NAME = exec_worker
 
-all: get-deps compile
+all: compile
 
-compile: get-deps
+compile:
 	$(REBAR) compile
 
-get-deps:
-	$(REBAR) get-deps
-
-generate_tgz: get-deps compile
+generate_tgz: compile
 	mkdir -p pkgroot/${PKG_NAME}/ebin
-	cp ebin/* pkgroot/${PKG_NAME}/ebin/
-	if [ -d "deps" ]; then cp -Rf deps pkgroot/${PKG_NAME}; fi
+	if [ -d "_build/default/deps" ]; then cp -Rf _build/default/deps pkgroot/${PKG_NAME}; fi
+	mv pkgroot/${PKG_NAME}/deps/${PKG_NAME}/ebin/* pkgroot/${PKG_NAME}/ebin/
+	rm -rf pkgroot/${PKG_NAME}/deps/${PKG_NAME}
 	if [ -d "examples" ]; then cp -Rf examples pkgroot/${PKG_NAME}; fi
 	if [ -d "resources" ]; then cp -Rf resources pkgroot/${PKG_NAME}; fi
 	if [ -f "sys.config" ]; then cp sys.config pkgroot/${PKG_NAME}/; fi
@@ -24,12 +22,9 @@ generate_tgz: get-deps compile
 	rm -rf pkgroot
 
 clean:
-	rm -rf deps
 	rm -rf log*
 	rm -rf data.*
-	rm -f *.rpm
 	rm -f *.tgz
 	$(REBAR) clean
-	rm -rf ebin
 	rm -rf pkgroot
-
+	-rm -rf _build/default/deps/*/ebin

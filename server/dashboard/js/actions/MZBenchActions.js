@@ -121,11 +121,49 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
-    sendSubscribe(benchId, metrics, guid) {
-        MZBenchWS.send({ cmd: "subscribe_metrics", bench: benchId, metrics: metrics, guid: guid });
+    startStream(benchId, metric, subsamplingInterval, timeWindow, beginTime, endTime, continueStreaming) {
+        const streamId = Misc.gen_guid();
+        
+        let encodedSubsamplingInterval = "undefined";
+        if(subsamplingInterval) {
+            encodedSubsamplingInterval = subsamplingInterval;
+        }
+        
+        let encodedTimeWindow = "undefined";
+        if(timeWindow) {
+            encodedTimeWindow = timeWindow;
+        }
+        
+        let encodedBeginTime = "undefined";
+        if(beginTime) {
+            encodedBeginTime = beginTime;
+        }
+        
+        let encodedEndTime = "undefined";
+        if(endTime) {
+            encodedEndTime = endTime;
+        }
+        
+        let encodedContinueStreaming = "false";
+        if(continueStreaming) {
+            encodedContinueStreaming = "true";
+        }
+        
+        MZBenchWS.send({ 
+            cmd: "start_streaming_metric", 
+            stream_id: streamId, 
+            bench: benchId, 
+            metric: metric, 
+            subsampling_interval: encodedSubsamplingInterval,
+            time_window: encodedTimeWindow,
+            begin_time: encodedBeginTime,
+            end_time: encodedEndTime,
+            stream_after_eof: encodedContinueStreaming
+        });
+        return streamId;
     },
-
-    subscribeMetrics(metrics) {
-        Dispatcher.dispatch({ type: Constants.SUBSCRIBE_METRICS, metrics: metrics });
+    
+    stopStream(streamId) {
+        MZBenchWS.send({ cmd: "stop_streaming_metric", stream_id: streamId });
     }
 }

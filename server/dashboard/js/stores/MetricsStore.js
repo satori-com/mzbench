@@ -1,76 +1,65 @@
+import moment from 'moment';
 import { EventEmitter } from 'events';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
 import MZBenchActions from '../actions/MZBenchActions';
-import Misc from '../utils/Misc.js';
+import BenchStore from '../stores/BenchStore';
 
 const CHANGE_EVENT = 'metrics_change';
 
 let data = {
-    benchId: undefined,
-    guid: undefined,
-    starting_date: undefined,
-    map: new Map([]),
-    batch_counter: new Map([])
+    streams: new Map([])
 };
 
-function _clearData() {
-    data.starting_date = undefined;
-    data.map.clear();
-    data.batch_counter.clear();
-}
-
-function _updateData(metric, rawData) {
+function _updateData(streamId, rawData) {
     const updates = rawData.split("\n");
     updates.forEach((update) => {
-        _applyUpdate(metric, update);
+        _applyUpdate(streamId, update);
     });
 }
 
-function _updateBatchCounter(metric) {
-    let m = data.batch_counter;
-    if (m.has(metric)) {
-        m.set(metric, m.get(metric) + 1);
-    } else {
-        m.set(metric, 1);
-    }
+function _updateBatchCounter(streamId) {
+    data.streams.get(streamId).batchCounter = data.streams.get(streamId).batchCounter + 1;
 }
 
-function _applyUpdate(metric, update) {
+function _applyUpdate(streamId, update) {
     const tokens = update.split("\t");
 
-    if(tokens.length >= 2) {
+    if(tokens.length >= 4) {
         const date = Number.parseInt(tokens[0]);
         const value = Number.parseFloat(tokens[1]);
+        const min = Number.parseFloat(tokens[2]);
+        const max = Number.parseFloat(tokens[3]);
 
-        if(!Number.isNaN(date) && !Number.isNaN(value)) {
-            _addObservation(metric, { date: date, value: value });
+        if(!Number.isNaN(date) && !Number.isNaN(value) && !Number.isNaN(min) && !Number.isNaN(max)) {
+            _addObservation(streamId, { date: date, value: value, min: min, max: max });
         }
     }
 }
 
-function _addObservation(metric, observation) {
-    if(data.map.has(metric)) {
-        _updateMetric(metric, observation);
-    } else {
-        _createMetric(metric, observation);
+function _addObservation(streamId, observation) {
+    data.streams.get(streamId).data.push({
+        "date": _convertDate(streamId, observation.date), 
+        "value": observation.value, 
+        "min": observation.min, 
+        "max": observation.max
+    });
+}
+
+function _convertDate(streamId, rawDate) {
+    return rawDate - data.streams.get(streamId).startingDate;
+}
+
+function _garbadgeCollectOldData(streamId) {
+    const timeWindow = data.streams.get(streamId).timeWindow;
+    
+    if(timeWindow && data.streams.get(streamId).data.length > 0) {
+        const beginDate = data.streams.get(streamId).data[data.streams.get(streamId).data.length - 1].date - timeWindow;
+        
+        data.streams.get(streamId).data = data.streams.get(streamId).data.filter((value) => {
+            return value["date"] >= beginDate;
+        });
     }
-}
-
-function _createMetric(metric, observation) {
-    if(!data.starting_date) {
-        data.starting_date = observation.date;
-    }
-
-    data.map.set(metric, new Array({"date": _convertDate(observation.date), "value": observation.value}));
-}
-
-function _updateMetric(metric, observation) {
-    data.map.get(metric).push({"date": _convertDate(observation.date), "value": observation.value});
-}
-
-function _convertDate(rawDate) {
-    return rawDate - data.starting_date;
 }
 
 class MetricsStore extends EventEmitter {
@@ -91,64 +80,86 @@ class MetricsStore extends EventEmitter {
         this.removeListener(CHANGE_EVENT, callback);
     }
 
-    getCurrentBenchId() {
-        return data.benchId;
-    }
-
-    resetSubscriptions(newBenchId) {
-        _clearData();
-        data.benchId = newBenchId;
-        data.guid = Misc.gen_guid();
-    }
-
-    addSubscription(metrics) {
-        MZBenchActions.sendSubscribe(data.benchId, metrics, data.guid);
-    }
-
-    changeCurrentBench(benchId, GUID) {
-        data.benchId = benchId;
-        data.guid = GUID;
-        _clearData();
-    }
-
-    isDataLoaded() {
-        return true;
-    }
-
-    updateMetricData(metric, guid, rawData) {
-        if(data.guid == guid) {
-            _updateData(metric, rawData);
+    updateMetricData(streamId, rawData) {
+        if(data.streams.has(streamId)) {
+            _updateData(streamId, rawData);
         }
     }
 
-    updateMetricBatchCounter(metric, guid) {
-        if(data.guid == guid) {
-            _updateBatchCounter(metric);
+    updateMetricBatchCounter(streamId) {
+        if(data.streams.has(streamId)) {
+            _updateBatchCounter(streamId);
+            _garbadgeCollectOldData(streamId);
         }
     }
 
-    getMetricData(metric) {
-        if(data.map.has(metric)) {
-            return data.map.get(metric);
+    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd) {
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, undefined, undefined, continueStreamingAfterEnd);
+        data.streams.set(streamId, {
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: undefined,
+            batchCounter: 0,
+            data: []
+        });
+        return streamId;
+    }
+
+    subscribeToMetricSubset(benchId, metric, subsamplingInterval, beginTime, endTime) {
+        const startingDate = moment(BenchStore.findById(benchId).start_time).unix();
+        const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, 
+                                                    startingDate + beginTime, startingDate + endTime, false);
+        data.streams.set(streamId, {
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: undefined,
+            batchCounter: 0,
+            data: []
+        });
+        return streamId;
+    }
+
+    subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
+        const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, undefined, undefined, true);
+        data.streams.set(streamId, {
+            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
+            timeWindow: timeInterval,
+            batchCounter: 0,
+            data: []
+        });
+        return streamId;
+    }
+
+    unsubscribeFromMetric(streamId) {
+        MZBenchActions.stopStream(streamId);
+        data.streams.delete(streamId);
+    }
+
+    getMetricData(streamId) {
+        if(data.streams.has(streamId)) {
+            return data.streams.get(streamId).data;
         } else {
-            return [];
+            return undefined;
         }
     }
 
-    getBatchCounter(metric) {
-        if(data.batch_counter.has(metric)) {
-            return data.batch_counter.get(metric);
+    getBatchCounter(streamId) {
+        if(data.streams.has(streamId)) {
+            return data.streams.get(streamId).batchCounter;
         } else {
-            return 0;
+            return undefined;
         }
     }
 
-    getMetricMaxDate(metric) {
-        if(data.map.has(metric)) {
-            let m = data.map.get(metric);
-            return m[m.length - 1]["date"];
+    getMetricMaxDate(streamId) {
+        if(data.streams.has(streamId)) {
+            const m = data.streams.get(streamId).data;
+            
+            if(m.length > 0) {
+                return m[m.length - 1]["date"];
+            } else {
+                return 0;
+            }
         } else {
-            return 0;
+            return undefined;
         }
     }
 };
@@ -158,15 +169,12 @@ export default _MetricsStore;
 
 _MetricsStore.dispatchToken = Dispatcher.register((action) => {
     switch(action.type) {
-        case ActionTypes.SUBSCRIBE_METRICS:
-            _MetricsStore.addSubscription(action.metrics);
-            break;
         case ActionTypes.METRIC_DATA:
-            _MetricsStore.updateMetricData(action.metric, action.guid, action.data);
+            _MetricsStore.updateMetricData(action.stream_id, action.data);
             _MetricsStore.emitChange();
             break;
         case ActionTypes.METRIC_BATCH_END:
-            _MetricsStore.updateMetricBatchCounter(action.metric, action.guid);
+            _MetricsStore.updateMetricBatchCounter(action.stream_id);
             _MetricsStore.emitChange();
             break;
         default:

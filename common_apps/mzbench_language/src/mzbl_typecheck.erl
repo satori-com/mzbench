@@ -89,7 +89,7 @@ check_op(var, [Name, Default], T, Env) ->
 check_op(numvar, [Name], T, Env) ->
     all_([
         check(Name, string, Env),
-        is(number, T),
+        or_(is(integer, T), is(float, T)),
         check_env(Name, T, Env)]);
 check_op(numvar, [Name, Default], T, Env) ->
     all_([

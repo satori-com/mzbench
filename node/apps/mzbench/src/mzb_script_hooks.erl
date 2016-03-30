@@ -38,7 +38,7 @@ validate(Command) ->
 
 exec(Cmd) ->
     Logger = fun (S, F, A) -> lager:log(system_log_lager_event, S, self(), F, A) end,
-    mzb_subprocess:exec_format(Cmd, [], [], Logger),
+    mzb_subprocess:exec_format(Cmd, [], [stderr_to_stdout], Logger),
     ok.
 
 run_hook(#operation{name=exec, args=[Target, Cmd]}, Env) ->

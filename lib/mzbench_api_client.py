@@ -202,7 +202,7 @@ def stream_lines(host, endpoint, args):
             'http://' + host + endpoint + '?' + urlencode(args),
             stream=True)
 
-        for line in response.iter_lines(chunk_size=1):
+        for line in fast_iter_lines(response, chunk_size=1024):
             try:
                 yield line
             except ValueError:
@@ -215,6 +215,31 @@ def stream_lines(host, endpoint, args):
 
     except requests.exceptions.ConnectionError as e:
         raise MZBenchAPIException('Connect to "{0}" failed with message: {1}'.format(host, e))
+
+
+def fast_iter_lines(response, chunk_size=512):
+        pending = None
+
+        for chunk in response.iter_content(chunk_size=chunk_size):
+
+            lines = chunk.splitlines()
+
+            if pending is not None:
+                if lines:
+                    lines[0] = pending + lines[0]
+                else:
+                    lines.append(pending)
+
+            if lines and lines[-1] and chunk and lines[-1][-1] == chunk[-1]:
+                pending = lines.pop()
+            else:
+                pending = None
+
+            for line in lines:
+                yield line
+
+        if pending is not None:
+            yield pending
 
 
 def assert_successful_request(perform_request):

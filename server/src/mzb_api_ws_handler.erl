@@ -14,9 +14,16 @@
           ref = undefined :: undefined | reference(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
-          metrics_streamers = #{} :: #{},
-          guid = undefined :: term()
+          metric_streams = #{} :: #{}
        }).
+
+-record(stream_parameters, {
+    subsampling_interval = 0 :: non_neg_integer(),
+    time_window = undefined :: undefined | non_neg_integer(),
+    begin_time = undefined :: undefined | non_neg_integer(),
+    end_time = undefined :: undefined | non_neg_integer(),
+    stream_after_eof = true :: boolean()
+}).
 
 init(Req, _Opts) ->
     Ref = erlang:make_ref(),
@@ -65,14 +72,13 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_op
             {ok, State}
     end;
 
-dispatch_info({metric_batch_end, Guid, Metric}, State = #state{}) ->
-    {reply, #{type => "METRIC_BATCH_END", guid => Guid, metric => Metric}, State};
+dispatch_info({metric_batch_end, StreamId}, State = #state{}) ->
+    {reply, #{type => "METRIC_BATCH_END", stream_id => StreamId}, State};
 
-dispatch_info({metric_value, Guid, Metric, Values}, State) ->
+dispatch_info({metric_value, StreamId, Values}, State) ->
     Event = #{
               type => "METRIC_DATA",
-              guid => Guid,
-              metric => Metric,
+              stream_id => StreamId,
               data => erlang:list_to_binary(Values)
              },
     {reply, Event, State};
@@ -83,15 +89,15 @@ dispatch_info({notify, Severity, Msg}, State) ->
               message => Msg},
     {reply, Event, State};
 
-dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, State = #state{metrics_streamers = Streamers}) ->
-    case Reason of
-        aborted -> ok;
-        normal -> ok;
-        _ -> lager:error("Metrics reader crashed with reason: ~p", [Reason])
-    end,
-    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streamers)) of
-        {Metric, _} ->
-            {ok, State#state{metrics_streamers = maps:put(Metric, undefined, Streamers)}};
+dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, #state{metric_streams = Streams} = State) ->
+    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streams)) of
+        {StreamId, _} ->
+            case Reason of
+                normal -> ok;
+                aborted -> ok;
+                _ -> lager:error("Metric stream with stream_id = ~p crashed with reason: ~p", [StreamId, Reason])
+            end,
+            {ok, State#state{metric_streams = maps:remove(StreamId, Streams)}};
         false ->
             lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
             {ok, State}
@@ -130,44 +136,87 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {MinId, MaxId}}};
 
-dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{guid = Guid}) ->
-    #{<<"bench">> := BenchId, <<"metrics">>:= Metrics} = Cmd,
-    {ok, add_streamers(BenchId, Metrics, State)};
-dispatch_request(#{<<"cmd">> := <<"subscribe_metrics">>, <<"guid">> := Guid} = Cmd, State = #state{}) ->
-    #{<<"bench">> := BenchId, <<"metrics">> := Metrics} = Cmd,
-    State1 = kill_all_streamers(State#state{guid = Guid}),
-    {ok, add_streamers(BenchId, Metrics, State1)};
+dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
+    #{
+        <<"stream_id">> := StreamId, 
+        <<"bench">> := BenchId, 
+        <<"metric">> := MetricName, 
+        <<"subsampling_interval">> := RawSubsamplingInterval,
+        <<"time_window">> := RawTimeWindow,
+        <<"begin_time">> := RawBeginTime,
+        <<"end_time">> := RawEndTime,
+        <<"stream_after_eof">> := RawStreamAfterEof} = Cmd,
+    
+    SubsamplingInterval = case RawSubsamplingInterval of
+        <<"undefined">> -> 0;
+        _ when is_integer(RawSubsamplingInterval) -> RawSubsamplingInterval
+    end,
+    
+    TimeWindow = case RawTimeWindow of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawTimeWindow) -> RawTimeWindow
+    end,
+    
+    BeginTime = case RawBeginTime of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawBeginTime) -> RawBeginTime
+    end,
+    
+    EndTime = case RawEndTime of
+        <<"undefined">> -> undefined;
+        _ when is_integer(RawEndTime) -> RawEndTime
+    end,
+    
+    StreamAfterEof = case RawStreamAfterEof of
+        <<"true">> -> true;
+        <<"false">> -> false
+    end,
+    
+    {ok, add_stream(StreamId, BenchId, MetricName, 
+                    #stream_parameters{
+                        subsampling_interval = SubsamplingInterval,
+                        time_window = TimeWindow,
+                        begin_time = BeginTime,
+                        end_time = EndTime,
+                        stream_after_eof = StreamAfterEof
+                    }, State)};
+
+dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd, State) ->
+    #{<<"stream_id">> := StreamId} = Cmd,
+    {ok, remove_stream(StreamId, State)};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
 
-add_streamers(BenchId, Metrics, #state{metrics_streamers = Streamers, guid = Guid} = State) ->
-    lager:info("Add streamers for #~p ~p", [BenchId, Metrics]),
+add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = Streams} = State) ->
+    #stream_parameters{
+        subsampling_interval = SubsamplingInterval, 
+        time_window = TimeWindow, 
+        begin_time = BeginTime, 
+        end_time = EndTime, 
+        stream_after_eof = StreamAfterEof
+    } = StreamParams,
+    lager:info("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, 
+                    begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p", 
+                    [MetricName, BenchId, StreamId, SubsamplingInterval, BeginTime, EndTime, TimeWindow, StreamAfterEof]),
     Self = self(),
+    
+    SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, StreamId, Values};
+                         (batch_end)      -> Self ! {metric_batch_end, StreamId}
+                     end,
+    Ref = erlang:spawn_monitor(fun() -> stream_metric(BenchId, MetricName, StreamParams, SendMetricsFun) end),
+    State#state{metric_streams = maps:put(StreamId, Ref, Streams)}.
 
-    NewStreamers =
-        lists:foldl(
-            fun (Metric, Acc) ->
-                case maps:find(Metric, Acc) of
-                    {ok, _} -> Acc;
-                    error ->
-                        SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, Guid, Metric, Values};
-                                             (batch_end)      -> Self ! {metric_batch_end, Guid, Metric}
-                                         end,
-                        R2 = erlang:spawn_monitor(fun() ->
-                            stream_metric(BenchId, Metric, SendMetricsFun)
-                        end),
-                        maps:put(Metric, R2, Acc)
-                end
-            end, Streamers, Metrics),
-
-    State#state{metrics_streamers = NewStreamers}.
-
-kill_all_streamers(#state{metrics_streamers = Streamers} = State) ->
-    lager:info("Kill all metric streamers"),
-    lists:foreach(fun ({_, R}) -> kill_streamer(R) end, maps:to_list(Streamers)),
-    State#state{metrics_streamers = #{}}.
+remove_stream(StreamId, #state{metric_streams = Streams} = State) ->
+    lager:info("Stoping metric stream with stream_id = ~p", [StreamId]),
+    case maps:find(StreamId, Streams) of
+        {ok, Ref} ->
+            kill_streamer(Ref),
+            State#state{metric_streams = maps:remove(StreamId, Streams)};
+        error ->
+            State
+    end.
 
 kill_streamer(undefined) -> ok;
 kill_streamer({Pid, Ref}) ->
@@ -301,45 +350,83 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                  end, BenchInfos).
 
 %% Metrics reading process
-
-stream_metric(Id, Metric, SendFun) ->
+stream_metric(Id, Metric, StreamParams, SendFun) ->
     #{config:= Config} = mzb_api_server:status(Id),
     Filename = mzb_api_bench:metrics_file(Metric, Config),
     FileReader = get_file_reader(Filename),
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        perform_streaming(Id, FileReader, SendFun, PollTimeout),
+        
+        perform_streaming(Id, FileReader, SendFun, StreamParams, PollTimeout),
         lager:info("Streamer for #~b ~s has finished", [Id, Metric])
     after
         FileReader(close)
     end.
 
-perform_streaming(Id, FileReader, SendFun, Timeout) ->
-    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 1). % 1, because if we have no data right now we have to send first bench_end anyway
-perform_streaming(Id, FileReader, SendFun, Timeout, Buffer, LinesRead, LinesInBatch) ->
+perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = TimeWindow, stream_after_eof = StreamAfterEof} = StreamParams, Timeout) ->
+    StartDate = case TimeWindow of
+        undefined -> undefined;
+        _ -> mzb_api_bench:seconds() - TimeWindow
+    end,
+    
+    FilteringSendFun = 
+        fun({LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, CurrentMin, CurrentMax}, {data, Values}) ->
+                #stream_parameters{subsampling_interval = SubsamplingInterval, begin_time = BeginTime, end_time = EndTime} = StreamParams,
+                
+                TimeFilteredValues = case StartDate of
+                    undefined ->
+                        case BeginTime of
+                            undefined -> Values;
+                            _ -> filter_by_time(BeginTime, EndTime, Values)
+                        end;
+                    _ ->
+                        CurDate = mzb_api_bench:seconds(),
+                        filter_by_time(StartDate, CurDate, Values)
+                end,
+                
+                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, FilteredValues} 
+                    = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, 
+                                          CurrentMin, CurrentMax, TimeFilteredValues),
+                _ = SendFun({data, FilteredValues}),
+                
+                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax};
+            (StoredFilteringData, batch_end) ->
+                _ = SendFun(batch_end),
+                StoredFilteringData
+        end,
+    % 1, because if we have no data right now we have to send first bench_end anyway
+    perform_streaming(Id, FileReader, FilteringSendFun, {undefined, 0, 0, undefined, undefined}, Timeout, StreamAfterEof, [], 0, 1).
+
+perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout, StreamAfterEof, Buffer, LinesRead, LinesInBatch) ->
     case FileReader(read_line) of
         {ok, Data} when LinesRead > 2500 ->
             Buf = [Data|Buffer],
-            _ = SendFun({data, lists:reverse(Buf)}),
-            perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, LinesInBatch + 1);
+            NewStoredFilteringData = FilteringSendFun(StoredFilteringData, {data, lists:reverse(Buf)}),
+            perform_streaming(Id, FileReader, FilteringSendFun, NewStoredFilteringData, Timeout, StreamAfterEof, [], 0, LinesInBatch + 1);
         {ok, Data} ->
-            perform_streaming(Id, FileReader, SendFun, Timeout, [Data|Buffer], LinesRead + 1, LinesInBatch + 1);
+            perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout, StreamAfterEof, [Data|Buffer], LinesRead + 1, LinesInBatch + 1);
         eof ->
-            case Buffer of
-                [] -> ok;
-                _ -> SendFun({data, lists:reverse(Buffer)})
+            NewStoredFilteringData = case Buffer of
+                [] -> StoredFilteringData;
+                _ -> FilteringSendFun(StoredFilteringData, {data, lists:reverse(Buffer)})
             end,
-            LinesInBatch > 0 andalso SendFun(batch_end),
+            NewStoredFilteringData2 = if 
+                LinesInBatch > 0 -> FilteringSendFun(NewStoredFilteringData, batch_end);
+                true -> NewStoredFilteringData
+            end,
             case mzb_api_server:is_datastream_ended(Id) of
                 true  -> ok;
                 false ->
-                    timer:sleep(Timeout),
-                    perform_streaming(Id, FileReader, SendFun, Timeout, [], 0, 0)
+                    if StreamAfterEof ->
+                            timer:sleep(Timeout),
+                            perform_streaming(Id, FileReader, FilteringSendFun, NewStoredFilteringData2, Timeout, StreamAfterEof, [], 0, 0);
+                        true -> ok
+                    end
             end;
         {error, Reason} ->
-            case Buffer of
+            _ = case Buffer of
                 [] -> ok;
-                _ -> SendFun({data, lists:reverse(Buffer)})
+                _ -> FilteringSendFun(StoredFilteringData, {data, lists:reverse(Buffer)})
             end,
             erlang:error(Reason)
     end.
@@ -351,3 +438,52 @@ get_file_reader(Filename) ->
         (read_line) -> file:read_line(H)
     end.
 
+% Metrics filtering
+filter_by_time(BeginTime, EndTime, Values) ->
+    lists:reverse(lists:foldl(fun(ValueString, Acc) ->
+            {ValueTimestamp, _} = parse_value(ValueString),
+            
+            AfterBeginTime = BeginTime =< ValueTimestamp,
+            BeforeEndTime = ValueTimestamp =< EndTime,
+            
+            case AfterBeginTime andalso BeforeEndTime of
+                true -> [ValueString | Acc];
+                false -> Acc
+            end
+        end, [], Values)).
+
+perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForMean, PreviousNumValuesForMean, PreviousMin, PreviousMax, Values) ->
+    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, NewValuesReversed} = 
+        lists:foldl(fun(ValueString, {LastRetainedTime, SumForMean, NumValuesForMean, MinValue, MaxValue, Acc}) ->
+            {ValueTimestamp, Value} = parse_value(ValueString),
+            
+            NewMinValue = if
+                MinValue == undefined -> Value;
+                Value < MinValue -> Value;
+                true -> MinValue
+            end,
+            NewMaxValue = if
+                MaxValue == undefined -> Value;
+                Value > MaxValue -> Value;
+                true -> MaxValue
+            end,
+            
+            case LastRetainedTime of
+                undefined -> {ValueTimestamp, 0, 0, undefined, undefined, [ 
+                        io_lib:format("~p\t~p\t~p\t~p~n", 
+                            [ValueTimestamp, Value, NewMinValue, NewMaxValue]) | Acc]};
+                Timestamp ->
+                    Interval = ValueTimestamp - Timestamp,
+                    case Interval < SubsamplingInterval of
+                        true -> {LastRetainedTime, SumForMean + Value, NumValuesForMean + 1, NewMinValue, NewMaxValue, Acc};
+                        false -> {ValueTimestamp, 0, 0, undefined, undefined, 
+                                    [io_lib:format("~p\t~p\t~p\t~p~n", 
+                                        [ValueTimestamp, (SumForMean + Value)/(NumValuesForMean + 1), NewMinValue, NewMaxValue]) | Acc]}
+                    end
+            end
+        end, {LastSentValueTimestamp, PreviousSumForMean, PreviousNumValuesForMean, PreviousMin, PreviousMax, []}, Values),
+    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, lists:reverse(NewValuesReversed)}.
+
+parse_value(Value) ->
+    [TimeString | [ValueString | _]] = string:tokens(Value, "\t\n"),
+    {list_to_integer(TimeString), mzb_string:list_to_number(ValueString)}.

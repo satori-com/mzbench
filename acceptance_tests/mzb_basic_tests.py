@@ -166,6 +166,10 @@ def loop_without_rate_test():
     run_successful_bench(scripts_dir + 'superloop.erl')
 
 
+def wait_zero_signal_test():
+    run_successful_bench(scripts_dir + 'wait_zero_signal.erl')
+
+
 def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples/assertions.erl', env={})
 

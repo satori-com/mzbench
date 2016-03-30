@@ -61,7 +61,7 @@ You can define environment variables with the `--env` option.
 
 After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker's git address in your benchmark scenario with [`{make_install, [{git, <URL>}, {branch, <Branch>}, {dir, <Dir>}]}`](scenarios/spec.md#make_install).
 
-[Simple HTTP worker example →](../workers/simple_http/examples/simple_http.erl)
+[Simple HTTP worker example →](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl)
 
 
 ## Worker Structure

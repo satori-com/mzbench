@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 export default {
     gen_guid() {
         function s4() {
@@ -5,5 +7,9 @@ export default {
         }
         
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    },
+    
+    sec_to_iso_8601(seconds) {
+        return moment.unix(seconds).toISOString();
     }
 }

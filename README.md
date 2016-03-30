@@ -1,4 +1,5 @@
-# Welcome to MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench)
+# Welcome to MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 ***Expressive, scalable load testing tool***
 
@@ -14,7 +15,7 @@ MZBench is:
 
  - **Cloud-aware:** MZBench allocates nodes directly from Amazon EC2. 
  - **Scalable:** tested with 100 nodes and millions of connections.
- - **Extendable:** write your own [cloud plugins](cloud_plugins.md#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker). 
+ - **Extendable:** write your own [cloud plugins](doc/cloud_plugins.md#how-to-write-a-cloud-plugin) and [workers](doc/workers.md#how-to-write-a-worker). 
  - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
 
 [Read the docs →](https://machinezone.github.io/mzbench)
