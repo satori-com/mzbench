@@ -1,6 +1,5 @@
 import React from 'react';
 import MZBenchActions from '../actions/MZBenchActions';
-import MetricsStore from '../stores/MetricsStore';
 import Graph from './Graph.react';
 import GraphModal from './GraphModal.react';
 import LoadingSpinner from './LoadingSpinner.react';
@@ -10,20 +9,11 @@ class BenchGraphs extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = {
-            isLoaded: MetricsStore.isDataLoaded(),
-            toggles: new Set([0])
-        };
-
-        var benchId = this.props.bench.id;
-        MetricsStore.resetSubscriptions(benchId);
-
-        this._onChange = this._onChange.bind(this);
+        this.state = { toggles: new Set([0]) };
         this.isGraphOpen = false;
     }
 
     componentDidMount() {
-        MetricsStore.onChange(this._onChange);
         if (this.props.activeGraph && !this.isGraphOpen) {
             this.refs.fullScreenGraphModal.open();
             this.isGraphOpen = true
@@ -35,10 +25,6 @@ class BenchGraphs extends React.Component {
             this.refs.fullScreenGraphModal.open();
             this.isGraphOpen = true
         }
-    }
-
-    componentWillUnmount() {
-        MetricsStore.off(this._onChange);
     }
 
     renderWaitMetrics() {
@@ -66,9 +52,10 @@ class BenchGraphs extends React.Component {
             });
 
             return (
-                <Graph is_running={this.props.bench.isRunning()} targets={targets}
-                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}
-                    dom_prefix="modal-" render_fullscreen={true}/>
+                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                    title={graph.title} units={graph.units} benchId={this.props.bench.id}
+                    benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
+                    domPrefix="modal-" renderFullscreen={true}/>
             );
         } else {
             return;
@@ -102,8 +89,10 @@ class BenchGraphs extends React.Component {
                     return (
                         <div key={idx} className="col-xs-12 col-md-6">
                             <a href={link} className="bs-link">
-                                <Graph is_running={this.props.bench.isRunning()} targets={targets}
-                                    title={graph.title} units={graph.units} bench_id={this.props.bench.id}/>
+                                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                                    title={graph.title} units={graph.units} benchId={this.props.bench.id}
+                                    benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
+                                    />
                             </a>
                         </div>
                     );
@@ -147,7 +136,7 @@ class BenchGraphs extends React.Component {
         const bench = this.props.bench;
         const hasGroups = bench.metrics.groups;
 
-        if ((bench.isRunning() && !hasGroups) || !this.state.isLoaded) {
+        if ((bench.isRunning() && !hasGroups)) {
             return this.renderWaitMetrics();
         }
 
@@ -165,10 +154,6 @@ class BenchGraphs extends React.Component {
         MZBenchActions.deselectGraph();
         this.refs.fullScreenGraphModal.close();
         this.isGraphOpen = false;
-    }
-
-    _onChange() {
-        this.setState({isLoaded: MetricsStore.isDataLoaded()});
     }
 };
 

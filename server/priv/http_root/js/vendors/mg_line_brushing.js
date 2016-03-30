@@ -209,10 +209,10 @@ function brushing() {
 
             if (brushHistory[args.target].brushed) {
                 brushHistory[args.target].steps.push({
-                    max_x: args.brushed_max_x || args.max_x,
-                    min_x: args.brushed_min_x || args.min_x,
-                    max_y: args.brushed_max_y || args.max_y,
-                    min_y: args.brushed_min_y || args.min_y
+                    max_x: args.brushed_max_x || args.processed.max_x,
+                    min_x: args.brushed_min_x || args.processed.min_x,
+                    max_y: args.brushed_max_y || args.processed.max_y,
+                    min_y: args.brushed_min_y || args.processed.min_y
                 });
             }
 

@@ -33,8 +33,15 @@ initial_state() ->
 
 -spec metrics() -> list().
 metrics() ->
-    [ [{"http_ok", counter}, {"http_fail", counter}, {"other_fail", counter}]
-    , {"latency", histogram}
+    [
+        {group, "Summary", [
+            {graph, #{title => "HTTP Response",
+                      units => "N",
+                      metrics => [{"http_ok", counter}, {"http_fail", counter}, {"other_fail", counter}]}},
+            {graph, #{title => "Latency",
+                      units => "microseconds",
+                      metrics => [{"latency", histogram}]}}
+        ]}
     ].
 
 -spec set_host(state(), meta(), string()) -> {nil, state()}.
