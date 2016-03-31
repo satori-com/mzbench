@@ -258,8 +258,8 @@ def env_change_test():
     datapoints = [metric['datapoints'] for metric in json.loads(json_out) if metric['target'] == 'print.rps'][0]
     values = [d[0] for d in datapoints]
     print "Datapoints: {0}".format(values)
-    assert(0.8 < values[2] < 1.2)
-    assert(4.8 < values[5] < 5.2)
+    assert(0.8 < values[1] < 1.2)
+    assert(4.8 < values[4] < 5.2)
 
 def websocket_available_test():
     from websocket import create_connection
