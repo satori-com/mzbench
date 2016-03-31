@@ -76,6 +76,7 @@ init([Env, MetricGroups, Nodes]) ->
     erlang:send_after(?INTERVAL, self(), trigger),
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
+    ok = create_metrics(MetricGroups),
     {ok, #s{
         nodes = Nodes,
         last_tick_time = StartTime,
@@ -140,6 +141,15 @@ tick(#s{last_tick_time = LastTick} = State) ->
             ok = report_metrics(),
             State4#s{last_tick_time = Now}
     end.
+
+create_metrics(MetricGroups) ->
+    lists:foreach(
+        fun ({Name, counter, _}) -> mz_counter:create(Name);
+            ({Name, gauge, _}) -> mzb_gauge:create(Name);
+            ({Name, histogram, _}) -> mz_histogram:create(Name);
+            ({_, _, _}) -> ok
+        end, extract_metrics(MetricGroups)),
+    ok.
 
 aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     system_log:info("[ metrics ] METRIC AGGREGATION:"),
