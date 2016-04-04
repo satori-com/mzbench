@@ -26,6 +26,7 @@
     {node_management_port, 4802},
     {gc_sleep, 10},
     {log_queue_max_len, 1000},
-    {log_rate_limit, 200}
+    {log_rate_limit, 200},
+    {metric_update_interval_ms, 10000}
   ]}
  ]}.

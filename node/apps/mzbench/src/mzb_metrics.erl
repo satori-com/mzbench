@@ -30,11 +30,11 @@
     last_rps_calculation_time = undefined :: erlang:timestamp(),
     asserts = [] :: [map()],
     active = true :: true | false,
-    metrics = [] :: [{string(), metric_type(), term()}]
+    metrics = [] :: [{string(), metric_type(), term()}],
+    update_interval_ms :: undefined | integer(),
+    assert_accuracy_ms :: undefined | integer()
 }).
 
--define(INTERVAL, 10000). % in ms
--define(ASSERT_ACCURACY, round(?INTERVAL * 1.5)). % in ms
 -define(INTERVALNAME, report_interval).
 
 %%%===================================================================
@@ -71,9 +71,10 @@ get_failed_asserts() ->
 %%%===================================================================
 
 init([Env, MetricGroups, Nodes]) ->
+    {ok, UpdateIntervalMs} = application:get_env(mzbench, metric_update_interval_ms),
     _ = ets:new(?MODULE, [set, protected, named_table]),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
-    erlang:send_after(?INTERVAL, self(), trigger),
+    erlang:send_after(UpdateIntervalMs, self(), trigger),
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
     ok = create_metrics(MetricGroups),
@@ -85,7 +86,9 @@ init([Env, MetricGroups, Nodes]) ->
         last_rps_calculation_time = StartTime,
         asserts = Asserts,
         active = true,
-        metrics = extract_metrics(MetricGroups)
+        metrics = extract_metrics(MetricGroups),
+        update_interval_ms = UpdateIntervalMs,
+        assert_accuracy_ms = round(UpdateIntervalMs * 1.5)
         }}.
 
 handle_call(final_trigger, _From, State) ->
@@ -93,8 +96,8 @@ handle_call(final_trigger, _From, State) ->
     ok = report_metrics(),
     {reply, ok, NewState};
 
-handle_call(get_failed_asserts, _From, #s{asserts = Asserts} = State) ->
-    {reply, mzb_asserts:get_failed(_Finished = true, ?ASSERT_ACCURACY, Asserts), State};
+handle_call(get_failed_asserts, _From, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
+    {reply, mzb_asserts:get_failed(_Finished = true, AccuracyMs, Asserts), State};
 
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
@@ -104,12 +107,12 @@ handle_cast(Msg, State) ->
     system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
 
-handle_info(trigger, State = #s{active = false}) ->
-    erlang:send_after(?INTERVAL, self(), trigger),
+handle_info(trigger, State = #s{active = false, update_interval_ms = IntervalMs}) ->
+    erlang:send_after(IntervalMs, self(), trigger),
     {noreply, State};
-handle_info(trigger, State = #s{active = true}) ->
+handle_info(trigger, State = #s{active = true, update_interval_ms = IntervalMs}) ->
     NewState = tick(State),
-    erlang:send_after(?INTERVAL, self(), trigger),
+    erlang:send_after(IntervalMs, self(), trigger),
     {noreply, NewState};
 handle_info(Info, State) ->
     system_log:error("Unhandled info: ~p", [Info]),
@@ -199,12 +202,12 @@ evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
     system_log:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
-check_assertions(TimePeriod, #s{asserts = Asserts} = State) ->
+check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
     system_log:info("[ metrics ] CHECK ASSERTIONS:"),
     NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
     system_log:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
 
-    FailedAsserts = mzb_asserts:get_failed(_Finished = false, ?ASSERT_ACCURACY, NewAsserts),
+    FailedAsserts = mzb_asserts:get_failed(_Finished = false, AccuracyMs, NewAsserts),
     case FailedAsserts of
         [] -> ok;
         _  ->

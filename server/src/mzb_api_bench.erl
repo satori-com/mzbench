@@ -88,7 +88,8 @@ init([Id, Params]) ->
         vm_args => VMArgs,
         cloud => mzb_bc:maps_get(cloud, Params, undefined),
         node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
-        node_management_port => application:get_env(mzbench_api, node_management_port, undefined)
+        node_management_port => application:get_env(mzbench_api, node_management_port, undefined),
+        metric_update_interval_ms => extract_metric_update_interval(Params)
     },
     Data = #{
         includes => Includes
@@ -439,6 +440,12 @@ extract_node_install_spec(Params) ->
             mzbl_script:make_git_install_spec(GitRepo, GitBranch, "node", "");
         Remote ->
             mzbl_script:make_rsync_install_spec(Remote, "node", [])
+    end.
+
+extract_metric_update_interval(Params) ->
+    case maps:find(metric_update_interval_ms, Params) of
+        {ok, Value} when Value /= undefined -> Value;
+        _ -> application:get_env(mzbench_api, metric_update_interval_ms, undefined)
     end.
 
 send_email_report(Emails, #{id:= Id,

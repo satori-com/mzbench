@@ -3,7 +3,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0,
+-export([
+    start_link/1,
     metric_names/1
     ]).
 
@@ -19,15 +20,14 @@
 -record(state, {
     last_rx_bytes :: integer() | not_available,
     last_tx_bytes :: integer() | not_available,
-    last_trigger_timestamp :: erlang:timestamp() | not_available
+    last_trigger_timestamp :: erlang:timestamp() | not_available,
+    interval_ms :: undefined | integer()
     }).
-
-interval() -> 5000. % ten seconds
 
 %% API functions
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(IntervalMs) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [IntervalMs], []).
 
 metric_names(Nodes) ->
     [{group, "System Load", [
@@ -63,13 +63,15 @@ metric_names(Nodes) ->
 
 %% gen_server callbacks
 
-init([]) ->
+init([IntervalMs]) ->
     system_log:info("~p started on node ~p", [?MODULE, node()]),
-    _ = spawn_link(fun mailbox_len_reporter/0),
-    erlang:send_after(interval(), self(), trigger),
-    {ok, #state{last_rx_bytes = not_available,
-        last_tx_bytes = not_available,
-        last_trigger_timestamp = not_available}}.
+    _ = spawn_link(fun () -> mailbox_len_reporter(IntervalMs) end),
+    erlang:send_after(IntervalMs, self(), trigger),
+    {ok, #state{
+            last_rx_bytes = not_available,
+            last_tx_bytes = not_available,
+            last_trigger_timestamp = not_available,
+            interval_ms = IntervalMs}}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -81,12 +83,13 @@ handle_cast(_Msg, State) ->
 handle_info(trigger,
     #state{last_rx_bytes = LastRXBytes,
         last_tx_bytes = LastTXBytes,
-        last_trigger_timestamp = LastTriggerTimestamp} = State) ->
+        last_trigger_timestamp = LastTriggerTimestamp,
+        interval_ms = IntervalMs} = State) ->
 
     Now = os:timestamp(),
 
     LastIntervalDuration = case LastTriggerTimestamp of
-        not_available -> interval();
+        not_available -> IntervalMs;
         _ -> timer:now_diff(Now, LastTriggerTimestamp) / 1000
     end,
     ok = mzb_metrics:notify({metric_name("interval"), gauge}, LastIntervalDuration / 1000),
@@ -138,7 +141,7 @@ handle_info(trigger,
                 ok = mzb_metrics:notify({metric_name("nettx"), gauge}, TXRate)
         end,
 
-        #state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
+        State#state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
     catch
         C:E -> system_log:error("Exception while getting net stats: ~p~nStacktrace: ~p", [{C,E}, erlang:get_stacktrace()]),
         State
@@ -147,7 +150,7 @@ handle_info(trigger,
     ok = mzb_metrics:notify({metric_name("process_count"), gauge}, erlang:system_info(process_count)),
 
     %system_log:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
-    erlang:send_after(interval(), self(), trigger),
+    erlang:send_after(IntervalMs, self(), trigger),
     {noreply, NewState#state{last_trigger_timestamp = Now}};
 
 handle_info(_Info, State) ->
@@ -161,7 +164,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 
-mailbox_len_reporter() ->
+mailbox_len_reporter(IntervalMs) ->
     {MailboxSize, _} = lists:foldl(
         fun (P, {Acc, N}) ->
             QueueLen = try
@@ -174,8 +177,8 @@ mailbox_len_reporter() ->
         end, {0, 0}, erlang:processes()),
 
     ok = mzb_metrics:notify({metric_name("message_queue"), gauge}, MailboxSize),
-    timer:sleep(interval()),
-    mailbox_len_reporter().
+    timer:sleep(IntervalMs),
+    mailbox_len_reporter(IntervalMs).
 
 metric_name(GaugeName) ->
     metric_name(GaugeName, atom_to_list(node())).

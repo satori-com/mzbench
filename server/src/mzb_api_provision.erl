@@ -169,11 +169,13 @@ ensure_dir(User, Hosts, Dir, Logger) ->
 director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 
-vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port, vm_args:= ConfigArgs}) ->
+vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port, vm_args:= ConfigArgs} = Config) ->
+    UpdateIntervalMs = mzb_bc:maps_get(metric_update_interval_ms, Config, undefined),
     NewArgs =
         [mzb_string:format("-sname ~s", [NodeName]),
          mzb_string:format("-mzbench node_management_port ~b", [Port]),
-         mzb_string:format("-mzbench node_log_port ~b", [LogPort])],
+         mzb_string:format("-mzbench node_log_port ~b", [LogPort])] ++
+        [mzb_string:format("-mzbench metric_update_interval_ms ~b", [UpdateIntervalMs]) || UpdateIntervalMs /= undefined],
 
     io_lib:format(string:join([A ++ "~n" || A <- NewArgs ++ ConfigArgs], ""), []).
 
