@@ -279,7 +279,8 @@ parse_start_params(Req) ->
         {vm_args,                   list,           fun (List) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
-                                                    end,                                                        []}
+                                                    end,                                                        []},
+        {metric_update_interval_ms, single_value,   fun erlang:binary_to_integer/1,                             undefined}
     ],
 
     {Params, Env} = lists:mapfoldl(
