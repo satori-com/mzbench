@@ -181,7 +181,13 @@ metric_name(GaugeName, Node) ->
     "systemload." ++ GaugeName ++ "." ++ mzb_utility:hostname_str(Node).
 
 network_usage() ->
-    network_load_for_arch(os:type()).
+    try
+        network_load_for_arch(os:type())
+    catch
+        _:E ->
+            lager:error("Error parsing network info: ~p", [E]),
+            {0, 0}
+    end.
 
 network_load_for_arch({_, darwin}) ->
     parse_darwin_netstat_output(os:cmd("netstat -ibn"));
@@ -211,19 +217,24 @@ parse_darwin_netstat_output(Str) ->
     end.
 
 parse_linux_netstat_output(Str) ->
-    Bin = list_to_binary(Str),
-    [_Header, Data] = binary:split(Bin, <<"\n">>),
-    Sections = [binary_to_list(B) || B <- binary:split(Data, <<"\n\n">>, [global]), B /= <<>>],
-    Parsed = lists:filtermap(
-        fun (S) ->
-            try {true, parse_netstat_section(S)}
-            catch
-                _:_ -> false % Some interfaces don't have that info at all
-            end
-        end, Sections),
-    In  = lists:sum([I || {_, I, _} <- Parsed]),
-    Out = lists:sum([O || {_, _, O} <- Parsed]),
-    {In, Out}.
+    try
+        Bin = list_to_binary(Str),
+        [_Header, Data] = binary:split(Bin, <<"\n">>),
+        Sections = [binary_to_list(B) || B <- binary:split(Data, <<"\n\n">>, [global]), B /= <<>>],
+        Parsed = lists:filtermap(
+            fun (S) ->
+                try {true, parse_netstat_section(S)}
+                catch
+                    _:_ -> false % Some interfaces don't have that info at all
+                end
+            end, Sections),
+        (Parsed == []) andalso erlang:error(no_info),
+        In  = lists:sum([I || {_, I, _} <- Parsed]),
+        Out = lists:sum([O || {_, _, O} <- Parsed]),
+        {In, Out}
+    catch
+        _:E -> erlang:error({parse_netstat_output_error, E, Str})
+    end.
 
 parse_netstat_section(Str) ->
     try parse_netstat_sectionV1(Str)
