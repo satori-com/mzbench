@@ -37,17 +37,8 @@ $(SECOND_ARG):
 test-unit: compile
 	$(REBAR) eunit skip_deps=true
 
-.PHONY: test-network-usage-script
-test-network-usage-script: scripts/report_network_usage.py
-	# Just a sanity check that script exists and outputs a valid erlang term
-	erl -noshell -eval\
-		'X = os:cmd("./scripts/report_network_usage.py"), {ok, Tokens, _} = erl_scan:string(X), {ok, Term} = erl_parse:parse_term(Tokens), io:format("ok").'\
-		-run init stop > expected_ok
-	grep -qx ok expected_ok
-	rm expected_ok
-
 .PHONY: check
-check: test-unit test-network-usage-script dialyzer.log
+check: test-unit dialyzer.log
 
 .PHONY: install
 install: generate

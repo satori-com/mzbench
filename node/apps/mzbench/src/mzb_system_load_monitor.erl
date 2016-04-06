@@ -117,15 +117,7 @@ handle_info(trigger,
     end,
 
     NewState = try
-        {ok, NodeDeployPath} = application:get_env(mzbench, node_deployment_path),
-
-        NetStatsString = os:cmd(mzb_file:expand_filename(mzb_string:format(
-            "~s/mzbench/bin/report_network_usage.py", [mzb_file:expand_filename(NodeDeployPath)]))),
-        {ok, Tokens, _} = erl_scan:string(NetStatsString),
-        {ok, NetStats} = erl_parse:parse_term(Tokens),
-
-        CurrentTXBytes = lists:sum([maps:get(tx_bytes, Info) || Info <- NetStats]),
-        CurrentRXBytes = lists:sum([maps:get(rx_bytes, Info) || Info <- NetStats]),
+        {CurrentRXBytes, CurrentTXBytes} = network_usage(),
 
         case LastRXBytes of
             not_available -> ok;
@@ -187,4 +179,95 @@ metric_name(GaugeName, Node) when is_atom(Node) ->
     metric_name(GaugeName, atom_to_list(Node));
 metric_name(GaugeName, Node) ->
     "systemload." ++ GaugeName ++ "." ++ mzb_utility:hostname_str(Node).
+
+network_usage() ->
+    network_load_for_arch(os:type()).
+
+network_load_for_arch({_, darwin}) ->
+    parse_darwin_netstat_output(os:cmd("netstat -ibn"));
+network_load_for_arch({_, linux}) ->
+    parse_linux_netstat_output(os:cmd("netstat -ine")).
+
+parse_darwin_netstat_output(Str) ->
+    try
+        [Headers|Tokens] = [string:tokens(L, " ") || L <- string:tokens(Str, "\n")],
+        Data = lists:filtermap(
+            fun (Values) ->
+                try lists:zip(Headers, Values) of
+                    Proplist ->
+                        {true, [{H, V} || {H, V} <- Proplist,
+                                               N <- ["Name", "Ibytes", "Obytes"],
+                                          N == H]}
+                catch
+                    _:_ -> false
+                end
+            end, Tokens),
+        lists:foldl(
+            fun ([_, {"Ibytes", I}, {"Obytes", O}], {IAcc, OAcc}) ->
+                {erlang:list_to_integer(I) + IAcc, erlang:list_to_integer(O) + OAcc}
+            end, {0, 0}, lists:usort(Data))
+    catch
+        _:E -> erlang:error({parse_netstat_output_error, E, Str})
+    end.
+
+parse_linux_netstat_output(Str) ->
+    Bin = list_to_binary(Str),
+    [_Header, Data] = binary:split(Bin, <<"\n">>),
+    Sections = [binary_to_list(B) || B <- binary:split(Data, <<"\n\n">>, [global]), B /= <<>>],
+    Parsed = lists:filtermap(
+        fun (S) ->
+            try {true, parse_netstat_section(S)}
+            catch
+                _:_ -> false % Some interfaces don't have that info at all
+            end
+        end, Sections),
+    In  = lists:sum([I || {_, I, _} <- Parsed]),
+    Out = lists:sum([O || {_, _, O} <- Parsed]),
+    {In, Out}.
+
+parse_netstat_section(Str) ->
+    try parse_netstat_sectionV1(Str)
+    catch
+        _:_ -> parse_netstat_sectionV2(Str)
+    end.
+
+parse_netstat_sectionV1(Str) ->
+    Name =
+        case re:run(Str, "^(\\S+)\\s", [{capture, [1], list}]) of
+            {match, [NameStr]} -> NameStr;
+            nomatch -> error({wrong_format, Str})
+        end,
+
+    In =
+        case re:run(Str, "RX bytes:(\\d+)", [{capture, [1], list}]) of
+            {match, [InStr]} -> erlang:list_to_integer(InStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+
+    Out =
+        case re:run(Str, "TX bytes:(\\d+)", [{capture, [1], list}]) of
+            {match, [OutStr]} -> erlang:list_to_integer(OutStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+    {Name, In, Out}.
+
+parse_netstat_sectionV2(Str) ->
+    Name =
+        case re:run(Str, "^(.+):", [{capture, [1], list}]) of
+            {match, [NameStr]} -> NameStr;
+            nomatch -> error({wrong_format, Str})
+        end,
+
+    In =
+        case re:run(Str, "RX packets \\d+\\s+bytes (\\d+)", [{capture, [1], list}]) of
+            {match, [InStr]} -> erlang:list_to_integer(InStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+
+    Out =
+        case re:run(Str, "TX packets \\d+\\s+bytes (\\d+)", [{capture, [1], list}]) of
+            {match, [OutStr]} -> erlang:list_to_integer(OutStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+    {Name, In, Out}.
 
