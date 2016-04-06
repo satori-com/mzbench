@@ -17,6 +17,9 @@
 		 code_change/3
 		]).
 
+% for tests:
+-export([parse_darwin_netstat_output/1, parse_linux_netstat_output/1]).
+
 -record(state, {
     last_rx_bytes :: integer() | not_available,
     last_tx_bytes :: integer() | not_available,
