@@ -93,7 +93,6 @@ init([Env, MetricGroups, Nodes]) ->
 
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
-    ok = report_metrics(),
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->

@@ -16,7 +16,7 @@
          handle_info/2]).
 
 report(Metric, Value) ->
-    gen_event:notify(metrics_event_manager, {report, [Metric, Value]}).
+    gen_event:sync_notify(metrics_event_manager, {report, [Metric, Value]}).
 
 % gen_event
 
