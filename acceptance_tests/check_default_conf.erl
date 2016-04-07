@@ -25,6 +25,8 @@ check_configs({App, List}) ->
 
 main(_) ->
     add_libs(),
+    application:load(mzbench_api),
+    application:set_env(mzbench_api, server_configs, []),
     {ok, _} = application:ensure_all_started(mzbench_api),
     {ok, [Terms]} = file:consult("../server/server.config.example"),
     lists:map(fun check_configs/1, Terms),ok.
