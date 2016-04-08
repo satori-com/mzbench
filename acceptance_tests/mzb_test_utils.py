@@ -129,7 +129,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             print 'mzbench returned invalid json: \nCommand: {0}\nOutput: {1}\nStderr: {2}'.format(invocation, start_out, start_err)
             raise
 
-        if (post_start is not None) and wait_status(bench_id, 'running', 50):
+        if (post_start is not None) and wait_status(bench_id, 'running', 240):
             print "Calling post start for {0}".format(bench_id)
             post_start(bench_id)
 
@@ -217,6 +217,7 @@ def restart_bench(bench_id):
 
 def wait_status(bench_id, status, n):
     if n <= 0:
+        print 'ERROR: Wait for status "running" has timed out!'
         return False
 
     wait = subprocess.Popen(shlex.split(
