@@ -43,7 +43,6 @@
     {bench_data_dir, "~/.local/share/mzbench_api/data"},
     {tgz_packages_dir, "~/.local/cache/mzbench_api/packages"},
     {max_bench_num, 1000},
-    {vm_args, []},
-    {graphite_prefixes_num, 3}
+    {vm_args, []}
   ]}
 ].
