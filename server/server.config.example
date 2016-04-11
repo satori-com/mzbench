@@ -42,6 +42,7 @@
     {plugins_dir, "~/.local/share/mzbench_api/plugins"},
     {bench_data_dir, "~/.local/share/mzbench_api/data"},
     {tgz_packages_dir, "~/.local/cache/mzbench_api/packages"},
+    {metric_update_interval_ms, 10000},
     {max_bench_num, 1000},
     {vm_args, []}
   ]}
