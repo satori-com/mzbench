@@ -27,6 +27,7 @@ Usage:
   mzbench [--host=<host>] status [--wait] <bench_id>
   mzbench [--host=<host>] stop <bench_id>
   mzbench [--host=<host>] log <bench_id>
+  mzbench [--host=<host>] log_user <bench_id>
   mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
   mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>"""
 
@@ -322,6 +323,14 @@ def log(host, bench_id):
             print(line)
     print('End of log for bench {0}'.format(bench_id))
 
+def log_user(host, bench_id):
+    print('Start of user log for bench {0}'.format(bench_id))
+    for line in api.user_logs(host, bench_id):
+        if '[error]' in line:
+            color_terminal.print_red(line)
+        else:
+            print(line)
+    print('End of user log for bench {0}'.format(bench_id))
 
 def change_env(host, bench_id, env):
     response = api.change_env(host, bench_id, env)

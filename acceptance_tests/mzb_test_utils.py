@@ -34,7 +34,7 @@ def start_mzbench_server(custom_data_location=None):
         custom_data_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_management_port, 0}}]}}].'
+        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_log_user_port, 0}}, {{node_management_port, 0}}]}}].'
                      .format(node_location_param, custom_data_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:
@@ -61,28 +61,30 @@ def start_mzbench_server(custom_data_location=None):
 
 def run_successful_bench(name, nodes=None, workers_per_node=None, env={}, 
         email=None, exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None, post_start=None):
+        check_log_function=None, check_user_log_function=None, post_start=None):
     return run_bench(name, should_fail=False,
         nodes=nodes, workers_per_node=workers_per_node, env=env, email=email,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex,
-        check_log_function=check_log_function, post_start=post_start)
+        check_log_function=check_log_function,
+        check_user_log_function=check_user_log_function, post_start=post_start)
 
 
 def run_failing_bench(name, nodes=None, workers_per_node=None, env={}, 
         email=None, exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None, post_start=None):
+        check_log_function=None, check_user_log_function=None, post_start=None):
     return run_bench(name, should_fail=True,
         nodes=nodes, workers_per_node=workers_per_node, env=env,
         exclusive_node_usage=exclusive_node_usage,
         expected_log_message_regex=expected_log_message_regex,
-        check_log_function=check_log_function, post_start=post_start)
+        check_log_function=check_log_function,
+        check_user_log_function=check_user_log_function, post_start=post_start)
 
 
 def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None, 
         workers_per_node=None, env={}, email=None, should_fail=False, max_retries=2,
         exclusive_node_usage=False, expected_log_message_regex=None,
-        check_log_function=None, post_start=None):
+        check_log_function=None, check_user_log_function=None, post_start=None):
 
     email_option = ('--email=' + email) if email else ''
 
@@ -154,7 +156,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
             bench_id, success = (None, False)
 
         if xor(success, should_fail):
-            if not expected_log_message_regex and not check_log_function:
+            if not expected_log_message_regex and not check_log_function and not check_user_log_function:
                 # no need to check the log
                 return bench_id
 
@@ -175,6 +177,18 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
 
             if check_log_function:
                 maybe_error = check_log_function(log)
+                
+                if maybe_error:
+                    print
+                    print "Log doesn't pass custom check:\n{0}\n\n".format(maybe_error)
+                    print log
+                    raise RuntimeError
+
+            if check_user_log_function:
+                log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log_user {0}'.format(bench_id)
+                log = cmd(log_cmd)
+
+                maybe_error = check_user_log_function(log)
                 
                 if maybe_error:
                     print

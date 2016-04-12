@@ -14,6 +14,7 @@
           ref = undefined :: undefined | reference(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
+          log_streams = #{} :: #{},
           metric_streams = #{} :: #{}
        }).
 
@@ -83,24 +84,64 @@ dispatch_info({metric_value, StreamId, Values}, State) ->
              },
     {reply, Event, State};
 
+dispatch_info({log_chunk, StreamId, Chunk}, State) ->
+    Event = #{
+              type => "LOG_DATA",
+              stream_id => StreamId,
+              data => Chunk
+             },
+    {reply, Event, State};
+
+dispatch_info({log_user_chunk, StreamId, Chunk}, State) ->
+    Event = #{
+              type => "LOG_USER_DATA",
+              stream_id => StreamId,
+              data => Chunk
+             },
+    {reply, Event, State};
+
+dispatch_info({log_overflow, StreamId}, State) ->
+    Event = #{
+              type => "LOG_OVERFLOW",
+              stream_id => StreamId
+             },
+    {reply, Event, State};
+
+dispatch_info({log_user_overflow, StreamId}, State) ->
+    Event = #{
+              type => "LOG_USER_OVERFLOW",
+              stream_id => StreamId
+             },
+    {reply, Event, State};
+
 dispatch_info({notify, Severity, Msg}, State) ->
     Event = #{type => "NOTIFY",
               severity => atom_to_list(Severity),
               message => Msg},
     {reply, Event, State};
 
-dispatch_info({'DOWN', MonRef, process, MonPid, Reason}, #state{metric_streams = Streams} = State) ->
-    case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Streams)) of
-        {StreamId, _} ->
-            case Reason of
-                normal -> ok;
-                aborted -> ok;
-                _ -> lager:error("Metric stream with stream_id = ~p crashed with reason: ~p", [StreamId, Reason])
-            end,
-            {ok, State#state{metric_streams = maps:remove(StreamId, Streams)}};
-        false ->
-            lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
-            {ok, State}
+dispatch_info({'DOWN', MonRef, process, MonPid, Reason},
+        #state{metric_streams = Streams, log_streams = LStreams} = State) ->
+    CheckStream = fun(Map, Kind) ->
+        case lists:keyfind({MonPid, MonRef}, 2, maps:to_list(Map)) of
+            {StreamId, _} ->
+                case Reason of
+                    normal -> ok;
+                    aborted -> ok;
+                    _ -> lager:error("~p stream with stream_id = ~p crashed with reason: ~p", [Kind, StreamId, Reason])
+                end,
+                StreamId;
+            false -> false
+        end
+    end,
+    case CheckStream(Streams, "Metric") of
+        false -> case CheckStream(LStreams, "Log") of
+                    false ->
+                        lager:error("Can't find streamer by {~p,~p}", [MonPid, MonRef]),
+                        {ok, State};
+                    StreamId -> {ok, State#state{log_streams = maps:remove(StreamId, LStreams)}}
+                 end;
+        StreamId -> {ok, State#state{metric_streams = maps:remove(StreamId, Streams)}}
     end;
 
 dispatch_info({'DOWN', _, process, _, _}, State) ->
@@ -181,9 +222,20 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
                         stream_after_eof = StreamAfterEof
                     }, State)};
 
-dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd, State) ->
+dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd,
+                    #state{metric_streams = Streams} = State) ->
     #{<<"stream_id">> := StreamId} = Cmd,
-    {ok, remove_stream(StreamId, State)};
+    {ok, State#state{metric_streams = remove_stream(StreamId, Streams)}};
+
+dispatch_request(#{<<"cmd">> := <<"start_streaming_logs">>} = Cmd, State) ->
+    #{<<"bench">> := BenchId,
+      <<"stream_id">> := StreamId} = Cmd,
+    {ok, add_log_stream(BenchId, StreamId, State)};
+
+dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
+                    #state{log_streams = Streams} = State) ->
+    #{<<"stream_id">> := StreamId} = Cmd,
+    {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
@@ -208,14 +260,20 @@ add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = 
     Ref = erlang:spawn_monitor(fun() -> stream_metric(BenchId, MetricName, StreamParams, SendMetricsFun) end),
     State#state{metric_streams = maps:put(StreamId, Ref, Streams)}.
 
-remove_stream(StreamId, #state{metric_streams = Streams} = State) ->
-    lager:info("Stoping metric stream with stream_id = ~p", [StreamId]),
+add_log_stream(BenchId, StreamId, #state{log_streams = Streams} = State) ->
+    lager:info("Starting streaming logs of the benchmark #~p, stream #~p", [BenchId, StreamId]),
+    Pid = self(),
+    Ref = erlang:spawn_monitor(fun() -> stream_log(BenchId, StreamId, Pid) end),
+    State#state{log_streams = maps:put(StreamId, Ref, Streams)}.
+
+remove_stream(StreamId, Streams) ->
+    lager:info("Stoping stream with stream_id = ~p", [StreamId]),
     case maps:find(StreamId, Streams) of
         {ok, Ref} ->
             kill_streamer(Ref),
-            State#state{metric_streams = maps:remove(StreamId, Streams)};
+            maps:remove(StreamId, Streams);
         error ->
-            State
+            Streams
     end.
 
 kill_streamer(undefined) -> ok;
@@ -348,6 +406,70 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
                      IsAboveMin = undefined == MinId orelse Comparator(MinId, Id),
                      IsBelowMax andalso IsAboveMin
                  end, BenchInfos).
+
+log_file_reader(Filename, ChunkSize, none) ->
+    {ok, Fd} = file:open(Filename, [read, raw, binary, read_ahead]),
+    fun (close) -> file:close(Fd);
+        (read) -> case file:read(Fd, ChunkSize) of
+                    {ok, Data} -> Data;
+                    {error, E} -> lager:error("Error while reading log file: ~p", [E]), <<>>;
+                    eof -> <<>>
+                  end
+    end;
+log_file_reader(Filename, ChunkSize, deflate) ->
+    {ok, Fd} = file:open(Filename, [read, raw, binary, read_ahead]),
+    Z = zlib:open(),
+    zlib:inflateInit(Z),
+    fun (close) -> zlib:inflateEnd(Z),zlib:close(Z),file:close(Fd);
+        (read) -> case file:read(Fd, ChunkSize) of
+                    {ok, Data} -> zlib:inflate(Z, Data);
+                    {error, E} -> lager:error("Error while reading log file: ~p", [E]), <<>>;
+                    eof -> <<>>
+                  end
+    end.
+
+log_file_streamer(Filename, ChunkSize, Compression, Pid, StreamId,
+                  DataMessage, MaxSize, OverflowMessage) ->
+    Reader = log_file_reader(Filename, ChunkSize, Compression),
+    fun (finish) -> Reader(close);
+        ({stream, _, overflow}) -> ok;
+        ({stream, StreamedBytes, no_overflow}) when StreamedBytes > MaxSize ->
+                Pid ! {OverflowMessage, StreamId}, {0, StreamedBytes, overflow};
+        ({stream, StreamedBytes, no_overflow}) ->
+            case Reader(read) of
+                <<>> -> {0, StreamedBytes, no_overflow};
+                  [] -> {0, StreamedBytes, no_overflow};
+                Data -> Pid ! {DataMessage, StreamId, Data},
+                    {1, StreamedBytes + iolist_size(Data), no_overflow}
+            end
+    end.
+
+stream_log(BenchId, StreamId, Pid) ->
+    #{config:= Config} = mzb_api_server:status(BenchId),
+    #{log_compression:= Compression} = Config,
+    ReadChunk = application:get_env(mzbench_api, bench_log_read_chunk, undefined),
+    PollInterval = application:get_env(mzbench_api, bench_poll_timeout, undefined),
+    MaxSize = application:get_env(mzbench_api, bench_log_max_dashboard, undefined),
+    SysStreamer = log_file_streamer(mzb_api_bench:log_file(Config), ReadChunk, Compression,
+                                Pid, StreamId, log_chunk, MaxSize, log_overflow),
+    UserStreamer = log_file_streamer(mzb_api_bench:log_user_file(Config), ReadChunk, Compression,
+                                Pid, StreamId, log_user_chunk, MaxSize, log_user_overflow),
+    perform_log_streaming(BenchId, [{SysStreamer,0, no_overflow}, {UserStreamer, 0, no_overflow}],
+        PollInterval).
+
+perform_log_streaming(BenchId, Streamers, PollInterval) ->
+    StreamResults = lists:map(fun({Streamer, Size, Status}) ->
+        Streamer({stream, Size, Status}) end, Streamers),
+    Success = lists:foldl(fun({X, _, _}, A) -> X + A end, 0, StreamResults),
+    NewStreamers = lists:map(fun({{A, _, _}, {_, B, C}}) -> {A, B, C} end,
+        lists:zip(Streamers, StreamResults)),
+    if Success == 0 -> case mzb_api_server:is_datastream_ended(BenchId) of
+                true  -> _ = lists:map(fun({Streamer, _, _}) -> Streamer(finish) end, Streamers), ok;
+                false -> timer:sleep(PollInterval),
+                         perform_log_streaming(BenchId, NewStreamers, PollInterval)
+             end;
+        true -> perform_log_streaming(BenchId, NewStreamers, PollInterval)
+    end.
 
 %% Metrics reading process
 stream_metric(Id, Metric, StreamParams, SendFun) ->

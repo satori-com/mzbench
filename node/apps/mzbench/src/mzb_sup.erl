@@ -14,11 +14,13 @@ stop_bench() ->
 
 init([]) ->
     {ok, LogPort} = application:get_env(mzbench, node_log_port),
+    {ok, LogUserPort} = application:get_env(mzbench, node_log_user_port),
     {ok, ManagementPort} = application:get_env(mzbench, node_management_port),
     {ok, MetricUpdateIntervalMs} = application:get_env(mzbench, metric_update_interval_ms),
     {ok, {{one_for_one, 5, 60}, [
         ranch:child_spec(management_tcp_server, 10, ranch_tcp, [{port, ManagementPort}], mzb_management_tcp_protocol, []),
-        ranch:child_spec(lager_tcp_server, 10, ranch_tcp, [{port, LogPort}], mzb_lager_tcp_protocol, []),
+        ranch:child_spec(lager_tcp_server, 10, ranch_tcp, [{port, LogPort}], mzb_lager_tcp_protocol, [system]),
+        ranch:child_spec(lager_tcp_server_user, 10, ranch_tcp, [{port, LogUserPort}], mzb_lager_tcp_protocol, [user]),
 
         child_spec(worker, gauges, mzb_gauge, permanent, []),
         child_spec(worker, metrics_event_manager, gen_event, permanent, [{local, metrics_event_manager}]),

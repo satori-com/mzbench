@@ -90,6 +90,14 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
         {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
+handle(<<"GET">>, <<"/logs_user">>, Req) ->
+    with_bench_id(Req, fun(Id) ->
+        #{config:= Config} = mzb_api_server:status(Id),
+        #{log_compression:= Compression} = Config,
+        Filename = mzb_api_bench:log_user_file(Config),
+        {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
+    end);
+
 handle(<<"GET">>, <<"/data">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config, metrics:= Metrics} =

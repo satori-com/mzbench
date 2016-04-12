@@ -135,6 +135,20 @@ def logs(host, bench_id):
         yield x
 
 
+def user_logs(host, bench_id):
+    """Outputs user logs for a bench
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type host: int
+    :returns: logs
+    :rtype: generator of str
+    """
+    for x in stream_lines(host, '/logs_user', {'id': bench_id}):
+        yield x
+
+
 def change_env(host, bench_id, env):
     """Changes environment variables for existing benchmark on the fly
 

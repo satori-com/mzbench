@@ -19,5 +19,12 @@ export default keyMirror({
     CLONE_BENCH: null,
     METRIC_DATA: null,
     METRIC_BATCH_END: null,
+    LOG_DATA: null,
+    LOG_USER_DATA: null,
+    LOG_OVERFLOW: null,
+    LOG_USER_OVERFLOW: null,
+    UPDATE_LOG_QUERY_DATA: null,
+    UPDATE_LOG_QUERY_KIND: null,
+    UPDATE_LOG_QUERY_ERRORS: null,
     SUBSCRIBE_METRICS: null
 });

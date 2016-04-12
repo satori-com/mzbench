@@ -1,5 +1,6 @@
 import BenchStore from '../stores/BenchStore';
 import MetricsStore from '../stores/MetricsStore';
+import LogsStore from '../stores/LogsStore';
 import Constants from '../constants/ActionTypes';
 import Dispatcher from '../dispatcher/AppDispatcher';
 import MZBenchWS from '../utils/MZBenchWS';
@@ -63,6 +64,18 @@ export default {
 
     hideTimelineLoadingMask() {
         Dispatcher.dispatch({ type: Constants.HIDE_TIMELINE_LOADING_MASK });
+    },
+
+    updateLogQuery(data, benchId) {
+        Dispatcher.dispatch({ type: Constants.UPDATE_LOG_QUERY_DATA, bench_id: benchId, data: data });
+    },
+
+    updateLogQueryKind(data, benchId) {
+        Dispatcher.dispatch({ type: Constants.UPDATE_LOG_QUERY_KIND, bench_id: benchId, data: data });
+    },
+
+    updateLogQueryErrors(data, benchId) {
+        Dispatcher.dispatch({ type: Constants.UPDATE_LOG_QUERY_ERRORS, bench_id: benchId, data: data });
     },
 
     showTimelineLoadingMask() {
@@ -165,5 +178,16 @@ export default {
     
     stopStream(streamId) {
         MZBenchWS.send({ cmd: "stop_streaming_metric", stream_id: streamId });
+    },
+
+    startStreamLogs(benchId) {
+        const streamId = Misc.gen_guid();        
+        MZBenchWS.send({ cmd: "start_streaming_logs", bench: benchId, stream_id: streamId });
+        return streamId;
+    },
+    
+    stopStreamLogs(streamId) {
+        MZBenchWS.send({ cmd: "stop_streaming_logs", stream_id: streamId });
     }
+
 }

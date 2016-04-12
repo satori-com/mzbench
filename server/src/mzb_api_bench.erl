@@ -11,6 +11,7 @@
     send_email_report/2,
     request_report/2,
     log_file/1,
+    log_user_file/1,
     metrics_file/2,
     remote_path/2
 ]).
@@ -82,14 +83,16 @@ init([Id, Params]) ->
         worker_hosts => [],
         emulate_bench_crash => maps:get(emulate_bench_crash, Params),
         log_file => get_env(bench_log_file),
+        log_user_file => get_env(bench_log_user_file),
         metrics_file => get_env(bench_metrics_file),
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
         vm_args => VMArgs,
         cloud => mzb_bc:maps_get(cloud, Params, undefined),
         node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
-        node_management_port => application:get_env(mzbench_api, node_management_port, undefined),
-        metric_update_interval_ms => extract_metric_update_interval(Params)
+        node_log_user_port => application:get_env(mzbench_api, node_log_user_port, undefined),
+        metric_update_interval_ms => extract_metric_update_interval(Params),
+        node_management_port => application:get_env(mzbench_api, node_management_port, undefined)
     },
     Data = #{
         includes => Includes
@@ -103,6 +106,9 @@ init([Id, Params]) ->
     LogFile = log_file(Config),
     LogHandler = get_file_writer(LogFile, maps:get(log_compression, Config)),
 
+    LogUserFile = log_user_file(Config),
+    LogUserHandler = get_file_writer(LogUserFile, maps:get(log_compression, Config)),
+
     State = #{
         id => Id,
         start_time => StartTime,
@@ -111,6 +117,7 @@ init([Id, Params]) ->
         config => Config,
         data => Data,
         log_file_handler => LogHandler,
+        log_user_file_handler => LogUserHandler,
         collectors => [],
         cluster_connection => undefined,
         deallocator => undefined,
@@ -205,15 +212,17 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
         end, Includes);
 
 handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes, self:= Self} = State) ->
-    LogFileHandler = maps:get(log_file_handler, State),
-    LogsCollectors = mzb_lists:pmap(fun ({Node, Host}) ->
-        {ok, Port} = director_call(Connection, {get_log_port, Node}, 30000),
+    StartFun = fun (Call, Handler) ->
+        mzb_lists:pmap(fun ({Node, Host}) ->
+        {ok, Port} = director_call(Connection, {Call, Node}, 30000),
         info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
         mzb_api_connection:start_and_link_with(Self, logs, Host, Port,
-            fun ({message, Msg}, S) -> {LogFileHandler({write, Msg}), S};
+            fun ({message, Msg}, S) -> {Handler({write, Msg}), S};
                 (_, S) -> {ok, S}
             end, [])
-    end, Nodes),
+        end, Nodes) end,
+    LogsCollectors = StartFun(get_log_port, maps:get(log_file_handler, State)) ++
+            StartFun(get_log_user_port, maps:get(log_user_file_handler, State)),
     fun (S) -> S#{collectors => LogsCollectors} end;
 
 handle_stage(pipeline, gathering_metric_names, #{cluster_connection:= Connection, config:= Config} = State) ->
@@ -344,12 +353,14 @@ handle_info(_Info, State) ->
 
 
 terminate(normal, State) ->
-    catch (maps:get(log_file_handler, State))(close);
+    catch (maps:get(log_file_handler, State))(close),
+    catch (maps:get(log_user_file_handler, State))(close);
 % something is going wrong there. use special status for bench and run finalize stages again
 terminate(Reason, #{id:= Id} = State) ->
     error("Receive terminate while finalize is not completed: ~p", [Reason], State),
     mzb_api_server:bench_finished(Id, status(State)),
     catch (maps:get(log_file_handler, State))(close),
+    catch (maps:get(log_user_file_handler, State))(close),
     spawn(
       fun() ->
           {ok, Timer} = timer:kill_after(5 * 60 * 1000),
@@ -567,6 +578,9 @@ seconds({N1, N2, _N3}) ->
     N1*1000000 + N2.
 
 log_file(Config = #{log_file:= File}) ->
+    local_path(File, Config).
+
+log_user_file(Config = #{log_user_file:= File}) ->
     local_path(File, Config).
 
 metrics_file(Name, Config = #{metrics_file:= File}) ->
