@@ -339,7 +339,12 @@ def change_env(host, bench_id, env):
 def data(host, bench_id, target, format):
     def data_generator():
         for line in api.data(host, bench_id):
-            worker_timestamp, name, value = line.split("\t")
+            L = line.split("\t")
+            if len(L) == 3:
+                worker_timestamp, name, value = L
+            else:
+                print ("ERROR: " + line)
+                return
 
             try:
                 value = int(value)
