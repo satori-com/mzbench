@@ -31,11 +31,14 @@
     % 80 is default http port
     {listen_port, 4800},
     {bench_log_file, "log.txt"},
+    {bench_log_user_file, "log_user.txt"},
     {bench_log_compression, deflate},
     {bench_metrics_file, "metrics_~s.txt"},
     {bench_metrics_compression, none},
     {bench_read_at_once, 1024},
     {bench_poll_timeout, 1000},
+    {bench_log_read_chunk, 32000},
+    {bench_log_max_dashboard, 2048000}, % Bytes
     {node_git, "https://github.com/machinezone/mzbench.git"},
     {node_deployment_path, "~/.local/share"},
     {worker_deployment_path, "~/.local/share/mzbench_workers"},

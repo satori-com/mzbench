@@ -84,7 +84,7 @@ def vars_defaults_test():
 
     run_successful_bench(scripts_dir + 'vars_defaults.erl',
         env={'var2': 'var2_new_value'},
-        check_log_function=check_log)
+        check_user_log_function=check_log)
 
 
 def poisson_worker_start_test():
