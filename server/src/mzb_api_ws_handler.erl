@@ -23,7 +23,8 @@
     time_window = undefined :: undefined | non_neg_integer(),
     begin_time = undefined :: undefined | non_neg_integer(),
     end_time = undefined :: undefined | non_neg_integer(),
-    stream_after_eof = true :: boolean()
+    stream_after_eof = true :: boolean(),
+    metric_report_interval_sec = undefined :: undefined | non_neg_integer()
 }).
 
 init(Req, _Opts) ->
@@ -195,39 +196,40 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
         <<"begin_time">> := RawBeginTime,
         <<"end_time">> := RawEndTime,
         <<"stream_after_eof">> := RawStreamAfterEof} = Cmd,
-    
+
     SubsamplingInterval = case RawSubsamplingInterval of
         <<"undefined">> -> 0;
         _ when is_integer(RawSubsamplingInterval) -> RawSubsamplingInterval
     end,
-    
+
     TimeWindow = case RawTimeWindow of
         <<"undefined">> -> undefined;
         _ when is_integer(RawTimeWindow) -> RawTimeWindow
     end,
-    
+
     BeginTime = case RawBeginTime of
         <<"undefined">> -> undefined;
         _ when is_integer(RawBeginTime) -> RawBeginTime
     end,
-    
+
     EndTime = case RawEndTime of
         <<"undefined">> -> undefined;
         _ when is_integer(RawEndTime) -> RawEndTime
     end,
-    
+
     StreamAfterEof = case RawStreamAfterEof of
         <<"true">> -> true;
         <<"false">> -> false
     end,
-    
+
     {ok, add_stream(StreamId, BenchId, MetricName, 
                     #stream_parameters{
                         subsampling_interval = SubsamplingInterval,
                         time_window = TimeWindow,
                         begin_time = BeginTime,
                         end_time = EndTime,
-                        stream_after_eof = StreamAfterEof
+                        stream_after_eof = StreamAfterEof,
+                        metric_report_interval_sec = undefined
                     }, State)};
 
 dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd,
@@ -481,12 +483,16 @@ perform_log_streaming(BenchId, Streamers, PollInterval) ->
 %% Metrics reading process
 stream_metric(Id, Metric, StreamParams, SendFun) ->
     #{config:= Config} = mzb_api_server:status(Id),
+    ReportIntervalMs =
+        case maps:find(metric_update_interval_ms, Config) of
+            {ok, Val} -> Val;
+            error -> application:get_env(mzbench_api, metric_update_interval_ms, undefined)
+        end,
     Filename = mzb_api_bench:metrics_file(Metric, Config),
     FileReader = get_file_reader(Filename),
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-
-        perform_streaming(Id, FileReader, SendFun, StreamParams, PollTimeout),
+        perform_streaming(Id, FileReader, SendFun, StreamParams#stream_parameters{metric_report_interval_sec = ReportIntervalMs div 1000}, PollTimeout),
         lager:info("Streamer for #~b ~s has finished", [Id, Metric])
     after
         FileReader(close)
@@ -500,24 +506,28 @@ perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = Time
 
     FilteringSendFun =
         fun({LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, CurrentMin, CurrentMax}, {data, Values}) ->
-                #stream_parameters{subsampling_interval = SubsamplingInterval, begin_time = BeginTime, end_time = EndTime} = StreamParams,
-                
+                #stream_parameters{
+                    subsampling_interval = SubsamplingInterval,
+                    begin_time = BeginTime,
+                    end_time = EndTime,
+                    metric_report_interval_sec = ReportInterval} = StreamParams,
+
                 TimeFilteredValues = case StartDate of
                     undefined ->
                         case BeginTime of
                             undefined -> Values;
-                            _ -> filter_by_time(BeginTime, EndTime, Values)
+                            _ -> filter_by_time(BeginTime - ReportInterval, EndTime + ReportInterval, Values)
                         end;
                     _ ->
                         CurDate = mzb_api_bench:seconds(),
-                        filter_by_time(StartDate, CurDate, Values)
+                        filter_by_time(StartDate - ReportInterval, CurDate + ReportInterval, Values)
                 end,
-                
+
                 {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, FilteredValues} 
                     = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, 
                                           CurrentMin, CurrentMax, TimeFilteredValues),
                 _ = SendFun({data, FilteredValues}),
-                
+
                 {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax};
             (StoredFilteringData, batch_end) ->
                 _ = SendFun(batch_end),
