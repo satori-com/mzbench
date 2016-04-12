@@ -25,7 +25,7 @@ $ curl http://mzbench.myserver.com/logs?id=100500
 
 ## POST /start
 
-Ask the server to start a benchmark from the given [scenario file](scenarios.md). The file is submitted as form data. A successful response is a JSON object with "id" and "status" fields:
+Ask the server to start a benchmark from the given [scenario file](scenarios/spec.md). The file is submitted as form data. A successful response is a JSON object with "id" and "status" fields:
 
 ```bash
 # Start a benchmark from scenario.erl:

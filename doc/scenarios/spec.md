@@ -1,8 +1,4 @@
-**Scenarios** describe the behavior you want MZBench to emulate during the benchmark. If you're testing an online store, your scenario will probably include opening a product page and adding the product to cart. For a search service, the scenario may be searching for a random word. You get the idea.
-
-In MZBench, scenarios are .erl files written in a simple DSL. It looks a lot like Erlang but is much simpler.
-
-Read on to learn how to write test scenarios for MZBench.
+In MZBench, scenarios are .erl files written in a special DSL. Think of it as a simplified, declarative version of Erlang.
 
 *[DSL]: Domain-Specific Language
 
@@ -31,9 +27,11 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 # Directives
 
-**Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
+**Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](../workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
 ## Top-Level Directives
+
+All top-level directives are optional.
 
 ### make_install
 
@@ -143,7 +141,7 @@ Check if the condition `<Condition>` is satisfied throughout the entire benchmar
 
 `<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metrics* values.
 
-[Metrics](workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
+[Metrics](../workers.nd#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
 
 ```erlang
 {gt, "http_ok", 20}
@@ -154,7 +152,7 @@ The `http_ok` metric is provided by the [simple_http](https://github.com/machine
 
 # Pools
 
-**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](workers.md) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
+**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](../workers.nd) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
 
 Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
@@ -231,14 +229,6 @@ Start the jobs with a given rate:
     *Scale × Time<sup>Exponent</sup>*
 
 You can customize and combine rates:
-
-### think_time
-
-```erlang
-{think_time, <Time>, <Rate>}
-```
-
-Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`](#time_1) and repeat.
 
 ### ramp
 
@@ -335,6 +325,14 @@ Run the loop for [`<Time>`](#time_1).
 ```
 
 Repeat the loop with the [`<Rate>`](#rate_1) rate.
+
+### think_time
+
+```erlang
+{think_time, <Time>, <Rate>}
+```
+
+Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`](#time_1) and repeat.
 
 ### parallel
 
