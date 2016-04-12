@@ -168,7 +168,7 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
                     system_log:info("[ metrics ] Received metrics from ~p", [N]),
                     Res
             end
-        end, lists:usort(Nodes) ++ [erlang:node()]),
+        end, lists:usort([erlang:node()] ++ Nodes)),
 
     Aggregated = merge_metrics_data(Values),
 
