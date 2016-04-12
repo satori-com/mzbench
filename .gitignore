@@ -22,3 +22,4 @@ server/plugins
 acceptance_tests/test_server.config
 _build
 rebar.lock
+site

@@ -74,7 +74,7 @@ Start the benchmark from the given scenario file.
 Positional param:
 
 `<scenario_file>`
-:   The path to the [scenario](scenarios.md) file for the benchmark.
+:   The path to the [scenario](scenarios/spec.md) file for the benchmark.
  
 Optional params:
 
@@ -88,7 +88,7 @@ Optional params:
 :   Path to a file with node hostnames separated by newlines.
 
 `--env <name=value> ...`
-:   [Environment variable](scenarios.md#environment-variables) definitions.
+:   [Environment variable](scenarios/spec.md#environment-variables) definitions.
 
 `--cloud <cloud_provider_name>`
 :   Name of the cloud provider from the [server config](deployment.md#configuration). If not specified, the first one on the list is used.
@@ -124,7 +124,7 @@ Same as [start](#start-scenario_file), but blocks until the benchmark is complet
 Positional param:
 
 `<scenario_file>`
-:   The path to the [scenario](scenarios.md) file for the benchmark.
+:   The path to the [scenario](scenarios/spec.md) file for the benchmark.
 
 
 ### run_local
@@ -140,12 +140,12 @@ Run the benchmark without a server. The logs are printed to stdout.
 Positional param:
 
 `<scenario_file>`
-:   The path to the [scenario](scenarios.md) file for the benchmark.
+:   The path to the [scenario](scenarios/spec.md) file for the benchmark.
 
 Optional param:
 
 `--env <name=value> ...`
-:   [Environment variable](scenarios.md#environment-variables) definitions.
+:   [Environment variable](scenarios/spec.md#environment-variables) definitions.
 
 
 ### validate
@@ -160,7 +160,7 @@ Validate the scenario file without executing it.
 Positional param:
 
 `<scenario_file>`
-:   The path to the [scenario](scenarios.md) file for the benchmark.
+:   The path to the [scenario](scenarios/spec.md) file for the benchmark.
 
 
 ### status
@@ -253,7 +253,7 @@ Positional param:
 Optional param:
 
 `--env <name=value> ...`
-:   [Environment variable](scenarios.md#environment-variables) definitions.
+:   [Environment variable](scenarios/spec.md#environment-variables) definitions.
 
 
 ## Misc

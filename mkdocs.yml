@@ -14,10 +14,12 @@ markdown_extensions:
 docs_dir: doc
 
 pages:
-- Overview: index.md
-- Scenarios: scenarios.md
-- CLI: cli.md
-- API: api.md
-- Deployment: deployment.md
-- Cloud Plugins: cloud_plugins.md
-- Workers: workers.md
+- Overview: 'index.md'
+- Scenarios:
+    - How to Write a Scenario: 'scenarios/tutorial.md'
+    - Scenario DSL Specification: 'scenarios/spec.md'
+- CLI: 'cli.md'
+- API: 'api.md'
+- Deployment: 'deployment.md'
+- Cloud Plugins: 'cloud_plugins.md'
+- Workers: 'workers.md'

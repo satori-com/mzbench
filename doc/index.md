@@ -54,7 +54,7 @@ Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzb
 When the server is running, launch an example benchmark:
 
 ```bash
-$ ./bin/mzbench run examples/ramp.erl
+$ ./bin/mzbench run workers/http/examples/localhost.erl
 {
     "status": "pending", 
     "id": 6
@@ -73,7 +73,7 @@ MZBench runs your test scenarios on many *nodes*, simultaneously. This allows it
 
 **Node** is a machine, virtual or physical, that runs your scenarios. In real-life testing, MZBench is used with a cloud service like Amazon EC2 that provides nodes on demand. Alternatively, you can manually list the available node hosts. Anyway, you have to provide MZBench the machines to run on. If there's not enough nodes to run all the jobs at the same time, MZBench evenly distributes the jobs between the available nodes.
 
-There's one node that doesn't run scenarios—the **director node**. It collects the metrics from the other nodes and runs [post and pre hooks](scenarios.md#pre_hook-and-post_hook). So, if you want to run jobs on 10 nodes, reserve 11.
+There's one node that doesn't run scenarios—the **director node**. It collects the metrics from the other nodes and runs [post and pre hooks](scenarios/spec.md#pre_hook-and-post_hook). So, if you want to run jobs on 10 nodes, reserve 11.
 
 ![MZBench Architecture Provisioning](images/scheme_1.png)
 
@@ -90,7 +90,7 @@ MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tre
 
 ## Read Next
 
- - [How to write scenarios →](scenarios.md)
+ - [How to write scenarios →](scenarios/tutorial.md)
  - [How to control MZBench from command line →](cli.md)
  - [How to deploy MZBench →](deployment.md)
  - [How to write your own worker →](workers.md#how-to-write-a-worker)
