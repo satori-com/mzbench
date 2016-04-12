@@ -305,7 +305,7 @@ get_local_values(Metrics) ->
                 end;
             ({Name, gauge, _}) ->
                 try
-                    {true, {Name, mzb_gauge:get_value(Name), gauge}}
+                    {true, {Name, mzb_gauge:take_value(Name), gauge}}
                 catch
                     _:not_found -> false
                 end;
