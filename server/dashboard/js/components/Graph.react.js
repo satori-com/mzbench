@@ -16,6 +16,7 @@ class Graph extends React.Component {
         
         this.state = this._resolveState();
         this._onChange = this._onChange.bind(this);
+        this._updateGraph = this._updateGraph.bind(this);
     }
     
     componentDidMount() {
@@ -33,12 +34,6 @@ class Graph extends React.Component {
     }
     
     shouldComponentUpdate(nextProps, nextState) {
-        if(nextProps.isRunning != this.props.isRunning) {
-            this._destroySubscriptions();
-            this._createSubscriptions();
-            this._resetState();
-        }
-        
         if(nextProps.targets[0] != this.props.targets[0]) {
             // The change of the first target will change the DOM Ids
             // of the MetricsGraphics.js targets. Its the only case
@@ -48,7 +43,7 @@ class Graph extends React.Component {
             return true;
         } else {
             // Graph should probably be updated, but not the DOM.
-            setTimeout(this._updateGraph.bind(this), 1);
+            setTimeout(this._updateGraph, 1);
             return false;
         }
     }
@@ -242,8 +237,8 @@ class Graph extends React.Component {
         }
 
         if (this.previouslyRunning != this.props.isRunning) {
-            this._renderGraph();
             this.previouslyRunning = this.props.isRunning;
+            this._resetGraphs();
         } else {
             const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b }, 0);
             let dataUpdated = newUpdatesCounter > this.updatesCounter;
@@ -253,6 +248,12 @@ class Graph extends React.Component {
                 this.updatesCounter = newUpdatesCounter;
             }
         }
+    }
+
+    _resetGraphs() {
+        this._destroySubscriptions();
+        this._resetState();
+        this._createSubscriptions();
     }
 
     _computeSubsamplingInterval() {
