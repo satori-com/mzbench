@@ -2,7 +2,7 @@ To benchmark a particular protocol or service, MZBench uses a matching _worker_.
 
 **Worker** is a library of [statements](scenarios/spec.md) to access a particular service and collect statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you'll probably need to write a worker for it.
 
-A **worker** can be implemented in either [Erlang](how-to-write-an-erlang-worker) or [Python](how-to-write-a-Python-worker) programming languages. Please note that the support for Erlang programming language is a little bit more complete.
+A **worker** can be implemented in either [Erlang](#how-to-write-an-erlang-worker) or [Python](#how-to-write-a-python-worker) programming languages. Please note that the support for Erlang programming language is a little bit more complete.
 
 
 # How to Write a Worker
