@@ -203,7 +203,7 @@ def workers_per_node_test():
 
 def log_compression_test():
     bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')
-    log_cmd = 'curl --head -X GET http://localhost:4800/logs?id={0}'.format(bench_id)
+    log_cmd = 'curl --head -X GET http://localhost:4800/log?id={0}'.format(bench_id)
     assert("content-encoding: deflate" in cmd(log_cmd))
 
 def env_change_test():
