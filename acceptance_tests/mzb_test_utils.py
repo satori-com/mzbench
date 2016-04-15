@@ -185,7 +185,7 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
                     raise RuntimeError
 
             if check_user_log_function:
-                log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 log_user {0}'.format(bench_id)
+                log_cmd = mzbench_dir + 'bin/mzbench --host=localhost:4800 userlog {0}'.format(bench_id)
                 log = cmd(log_cmd)
 
                 maybe_error = check_user_log_function(log)
