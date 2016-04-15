@@ -13,10 +13,13 @@ main([BenchDir]) ->
     end.
 
 migrate(Status = #{config:= Config}) ->
-    case maps:find(cloud, Config) of
-        {ok, _} -> Status;
-        error ->
-            Status#{config => Config#{cloud => undefined}}
+    if Config == undefined -> Status;
+        true ->
+            case maps:find(cloud, Config) of
+                {ok, _} -> Status;
+                error ->
+                    Status#{config => Config#{cloud => undefined}}
+            end
     end;
 migrate(Status = #{}) ->
     Status.

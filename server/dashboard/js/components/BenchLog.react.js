@@ -30,12 +30,20 @@ class BenchLog extends React.Component {
     }
 
     render() {
-        const url = '/logs' + (this.state.form.kind == 0 ? '_user' : '') + '?id=' + this.props.bench.id;
+        const url = '/' + (this.state.form.kind == 0 ? 'userlog' : 'log') + '?id=' + this.props.bench.id;
         let classUser = "btn btn-" + (this.state.form.kind == 0 ? "primary":"default");
         let classSystem = "btn btn-" + (this.state.form.kind == 1 ? "primary":"default");
         let classError = "btn btn-" + (this.state.form.errors == 1 ? "danger":"default");
         let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
+        let query = this.state.form.query;
+        let logAfterQuery = null;
         let overflow = this.state.form.kind == 1 ? this.state.logs.systemOverflow : this.state.logs.userOverflow;
+
+        if (!query) logAfterQuery = currentLog;
+        else logAfterQuery = currentLog.filter((line) => {
+            let fullText = line.time + " " + line.severity + " " + line.text;
+            return fullText.indexOf(query)!= -1;
+        });
 
         return (
             <div>
@@ -50,29 +58,26 @@ class BenchLog extends React.Component {
                   </div>
                   <button type="button" className={classError} onClick={this._onErrors}>Errors only</button>
                 </form>
-                <div className="zero-raw"><span className="btn-raw"><a href={url} target="_blank">Open raw</a></span></div>
+                <div className="zero-raw"><span className="btn-raw"><a href={url} target="_blank">Raw log</a></span></div>
                 <div className="log-window">
                     <table className="table table-striped">
                         <tbody>
                         {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
-                        {currentLog.map((line) => { 
-                            let cssClass = line.severity == "[error]" ? "danger" : "";
-                            let query = this.state.form.query;
-
+                        {!currentLog.length ? <tr className="warning"><td>Warning: this log is empty</td></tr> : 
+                            (!logAfterQuery.length ? <tr className="warning"><td>Query not found</td></tr> : null)}
+                        {logAfterQuery.map((line) => { 
+                            let cssClass = line.severity == "[error]" ? "danger" : (line.severity == "[warning]" ? "warning": "");
                             if (this.state.form.errors && line.severity!="[error]") return null;
 
                             if (!query) {
-                                return <tr key={line.id} className={cssClass}><td>{line.time} {line.severity} {line.text}</td></tr>
+                                return <tr key={line.id} className={cssClass}><td><pre>{line.time} {line.severity} {line.text}</pre></td></tr>
                             } else {
                                 let fullText = line.time + " " + line.severity + " " + line.text;
-                                if (fullText.indexOf(query)!= -1) {
-                                    let pieces = fullText.split(query);
-                                    let idPieces = [];
-                                    for(var i=1; i < pieces.length; i++)
-                                        idPieces.push({id: i, v: pieces[i]});
-                                    return <tr key={line.id} className={cssClass}><td>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</td></tr>
-                                } else
-                                    return null;
+                                let pieces = fullText.split(query);
+                                let idPieces = [];
+                                for(var i=1; i < pieces.length; i++)
+                                    idPieces.push({id: i, v: pieces[i]});
+                                return <tr key={line.id} className={cssClass}><td><pre>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</pre></td></tr>
                             }})
                         }
                         </tbody>

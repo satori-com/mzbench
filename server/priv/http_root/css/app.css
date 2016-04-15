@@ -268,6 +268,14 @@ div.log-window mark {
     background-color: #f0ad4e;
 }
 
+div.log-window pre{
+    font-family: monospace;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    border: none;
+}
+
 .zero-raw {
     position: relative;
 }
