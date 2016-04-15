@@ -13,11 +13,14 @@ main([BenchDir]) ->
     end.
 
 migrate(Status = #{config:= Config}) ->
-    case maps:find(benchmark_name, Config) of
-        {ok, _} -> Status;
-        error ->
-            #{script:= #{name:= ScriptName}} = Config,
-            Status#{config => Config#{benchmark_name => ScriptName}}
+    if Config == undefined -> Status;
+        true ->
+            case maps:find(benchmark_name, Config) of
+                {ok, _} -> Status;
+                error ->
+                    #{script:= #{name:= ScriptName}} = Config,
+                    Status#{config => Config#{benchmark_name => ScriptName}}
+            end
     end;
 migrate(Status = #{}) ->
     Status.

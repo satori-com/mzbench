@@ -9,7 +9,7 @@ const CHANGE_EVENT = 'logs_change';
 
 let data = {
     queries: new Map([]),
-    streams: new Map([])
+    stream: {id:-1}
 };
 
 function _performUpdate(arrayRef, rawData) {
@@ -24,12 +24,12 @@ function _performUpdate(arrayRef, rawData) {
         arrayRef.push({id: arrayRef.length, time: parts[i], severity: parts[i+1], text: parts[i+2]});
 }
 
-function _updateData(streamId, rawData) {
-    _performUpdate(data.streams.get(streamId).system, rawData);
+function _updateData(rawData) {
+    _performUpdate(data.stream.system, rawData);
 }
 
-function _updateUserData(streamId, rawData) {
-    _performUpdate(data.streams.get(streamId).user, rawData);
+function _updateUserData(rawData) {
+    _performUpdate(data.stream.user, rawData);
 }
 
 function _updateQuery(benchId, newData) {
@@ -55,39 +55,42 @@ class LogsStore extends EventEmitter {
     }
 
     updateLogData(streamId, rawData) {
-        if(data.streams.has(streamId)) {
-            _updateData(streamId, rawData);
+        if(data.stream.id == streamId) {
+            _updateData(rawData);
         }
     }
 
     updateLogUserData(streamId, rawData) {
-        if(data.streams.has(streamId)) {
-            _updateUserData(streamId, rawData);
+        if(data.stream.id == streamId) {
+            _updateUserData(rawData);
         }
     }
 
     updateLogOverflow(streamId) {
-        data.streams.get(streamId).systemOverflow = 1;
+        if (data.stream.id == streamId)
+            data.stream.systemOverflow = 1;
     }
 
     updateLogUserOverflow(streamId) {
-        data.streams.get(streamId).userOverflow = 1;
+        if (data.stream.id == streamId)
+            data.stream.userOverflow = 1;
     }
 
     subscribeToLogs(benchId) {
         const streamId = MZBenchActions.startStreamLogs(benchId);
-        data.streams.set(streamId, {
+        data.stream = {
+            id: streamId,
             user: [],
             userOverflow : 0,
             system: [],
             systemOverflow: 0
-        });
+        }
         return streamId;
     }
 
     unsubscribeFromLogs(streamId) {
         MZBenchActions.stopStreamLogs(streamId);
-        data.streams.delete(streamId);
+        data.stream.id = 0;
     }
 
     getQueryData(benchId) {
@@ -117,8 +120,8 @@ class LogsStore extends EventEmitter {
     }
 
     getLogData(streamId) {
-        if(data.streams.has(streamId)) {
-            return data.streams.get(streamId);
+        if (data.stream.id == streamId) {
+            return data.stream;
         } else {
             return {user:[], userOverflow: 0, system: [], systemOverflow: 0};
         }

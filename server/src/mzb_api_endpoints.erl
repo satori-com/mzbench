@@ -82,7 +82,7 @@ handle(<<"GET">>, <<"/status">>, Req) ->
         {ok, reply_json(200, format_status(mzb_api_server:status(Id)), Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/logs">>, Req) ->
+handle(<<"GET">>, <<"/log">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
@@ -90,7 +90,7 @@ handle(<<"GET">>, <<"/logs">>, Req) ->
         {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/logs_user">>, Req) ->
+handle(<<"GET">>, <<"/userlog">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
