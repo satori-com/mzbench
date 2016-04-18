@@ -3,6 +3,8 @@ import LogsStore from '../stores/LogsStore';
 import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
 
+const LOGS_PER_PAGE = 500;
+
 class BenchLog extends React.Component {
     constructor(props) {
         super(props);
@@ -12,21 +14,26 @@ class BenchLog extends React.Component {
         this.state.tempQ = this.state.form.query;
         this.state.tempK = this.state.form.kind;
         this.state.tempE = this.state.form.errors;
+        this.state.page = 0;
+        this.endReached = false;
         this._onChange = this._onChange.bind(this);
         this._onChangeSearch = this._onChangeSearch.bind(this);
         this._onUser = this._onUser.bind(this);
         this._onSystem = this._onSystem.bind(this);
         this._onErrors = this._onErrors.bind(this);
+        this._onScroll = this._onScroll.bind(this);
     }
 
     componentDidMount() {
         LogsStore.onChange(this._onChange);
         this.streamId = LogsStore.subscribeToLogs(this.props.bench.id);
+        window.addEventListener("scroll", this._onScroll);
     }
-    
+
     componentWillUnmount() {
         LogsStore.off(this._onChange);
         LogsStore.unsubscribeFromLogs(this.streamId);
+        window.removeEventListener("scroll", this._onScroll);
     }
 
     render() {
@@ -35,15 +42,12 @@ class BenchLog extends React.Component {
         let classSystem = "btn btn-" + (this.state.form.kind == 1 ? "primary":"default");
         let classError = "btn btn-" + (this.state.form.errors == 1 ? "danger":"default");
         let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
-        let query = this.state.form.query;
         let logAfterQuery = null;
         let overflow = this.state.form.kind == 1 ? this.state.logs.systemOverflow : this.state.logs.userOverflow;
 
-        if (!query) logAfterQuery = currentLog;
-        else logAfterQuery = currentLog.filter((line) => {
-            let fullText = line.time + " " + line.severity + " " + line.text;
-            return fullText.indexOf(query)!= -1;
-        });
+        logAfterQuery = this.filterLogs();
+
+        this.endReached = (logAfterQuery.length <= (this.state.page + 1)*LOGS_PER_PAGE)
 
         return (
             <div>
@@ -65,26 +69,63 @@ class BenchLog extends React.Component {
                         {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
                         {!currentLog.length ? <tr className="warning"><td>Warning: this log is empty</td></tr> : 
                             (!logAfterQuery.length ? <tr className="warning"><td>Query not found</td></tr> : null)}
-                        {logAfterQuery.map((line) => { 
-                            let cssClass = line.severity == "[error]" ? "danger" : (line.severity == "[warning]" ? "warning": "");
-                            if (this.state.form.errors && line.severity!="[error]") return null;
-
-                            if (!query) {
-                                return <tr key={line.id} className={cssClass}><td><pre>{line.time} {line.severity} {line.text}</pre></td></tr>
-                            } else {
-                                let fullText = line.time + " " + line.severity + " " + line.text;
-                                let pieces = fullText.split(query);
-                                let idPieces = [];
-                                for(var i=1; i < pieces.length; i++)
-                                    idPieces.push({id: i, v: pieces[i]});
-                                return <tr key={line.id} className={cssClass}><td><pre>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</pre></td></tr>
-                            }})
-                        }
+                        {this.formatLogs(logAfterQuery)}
                         </tbody>
                     </table>
                 </div>
             </div>
         );
+    }
+
+    filterLogs() {
+        let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
+        let query = this.state.form.query;
+        let errors = this.state.form.errors;
+        if (!query && !errors) return currentLog;
+
+        var logAfterQuery = currentLog.filter((line) => {
+            if (query) {
+                let fullText = line.time + " " + line.severity + " " + line.text;
+                if (fullText.indexOf(query) == -1) return false;
+            }
+            if (errors && line.severity!="[error]") return false;
+            return true;
+        });
+        return logAfterQuery;
+    }
+
+    formatLogs(log) {
+        let query = this.state.form.query;
+        var res = [];
+        for (var i = 0; i < (this.state.page + 1) * LOGS_PER_PAGE; i++) {
+            let line = log[i];
+
+            if (!line) break;
+
+            let cssClass = line.severity == "[error]" ? "danger" : (line.severity == "[warning]" ? "warning": "");
+
+            if (!query) {
+                res.push(<tr key={line.id} className={cssClass}><td><pre>{line.time} {line.severity} {line.text}</pre></td></tr>);
+            } else {
+                let fullText = line.time + " " + line.severity + " " + line.text;
+                let pieces = fullText.split(query);
+                let idPieces = [];
+                for(var j=1; j < pieces.length; j++)
+                    idPieces.push({id: j, v: pieces[j]});
+                res.push(<tr key={line.id} className={cssClass}><td><pre>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</pre></td></tr>);
+            }
+        }
+        return res;
+    }
+
+    _onScroll(scrollEvent) {
+        let node = document.body;
+        var shouldIncrementPage = (node.scrollTop + window.innerHeight + 2000 > node.scrollHeight);
+        if (shouldIncrementPage && !this.endReached) {
+            let state = this.state;
+            state.page = state.page + 1;
+            this.setState(state);
+        }
     }
 
     _resolveState() {
@@ -99,6 +140,8 @@ class BenchLog extends React.Component {
     }
 
     _runSearch() {
+        this.state.page = 0;
+        this.endReached = false;
         if (this.autoSearchHandler) {
             clearTimeout(this.autoSearchHandler);
         }
