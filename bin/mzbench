@@ -343,8 +343,7 @@ def data(host, bench_id, target, format):
             if len(L) == 3:
                 worker_timestamp, name, value = L
             else:
-                print ("ERROR: " + line)
-                return
+                raise api.MZBenchAPIException("ERROR: " + line)
 
             try:
                 value = int(value)
