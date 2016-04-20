@@ -303,3 +303,7 @@ div.log-window pre{
     margin-left:20px;
     margin-right:20px;
 }
+
+.table-logs {
+    margin-bottom: 0px;
+}
