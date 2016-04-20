@@ -277,12 +277,12 @@ div.log-window pre{
 }
 
 .zero-raw {
-    position: relative;
+    position: fixed;
 }
 
 .btn-raw {
     position: absolute;
-    top: 0;
+    top: 100;
     right: 0;
     z-index: 10;
     display: block;

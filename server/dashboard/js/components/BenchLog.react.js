@@ -14,14 +14,19 @@ class BenchLog extends React.Component {
         this.state.tempQ = this.state.form.query;
         this.state.tempK = this.state.form.kind;
         this.state.tempE = this.state.form.errors;
-        this.state.page = 0;
-        this.endReached = false;
+        this.state.logShown = LOGS_PER_PAGE;
+        this.isFollow = false;
+        this.followFlag = false;
         this._onChange = this._onChange.bind(this);
         this._onChangeSearch = this._onChangeSearch.bind(this);
         this._onUser = this._onUser.bind(this);
         this._onSystem = this._onSystem.bind(this);
         this._onErrors = this._onErrors.bind(this);
         this._onScroll = this._onScroll.bind(this);
+        this._onFollow = this._onFollow.bind(this);
+        this._onTop = this._onTop.bind(this);
+        this.filtered = 0;
+        this.lastLogShown = 0;
     }
 
     componentDidMount() {
@@ -36,18 +41,29 @@ class BenchLog extends React.Component {
         window.removeEventListener("scroll", this._onScroll);
     }
 
+    componentDidUpdate() {
+        if (this.isFollow) {
+            this.goBottom();
+        }
+    }
+
+    shouldComponentUpdate(nextProps, nextState) {
+        let isNewLogs = (this.lastLogShown != nextState.logShown);
+        let isBenchComplete = (this.props.isBenchActive != nextProps.isBenchActive);
+        return isNewLogs || isBenchComplete;
+    }
+
     render() {
         const url = '/' + (this.state.form.kind == 0 ? 'userlog' : 'log') + '?id=' + this.props.bench.id;
         let classUser = "btn btn-" + (this.state.form.kind == 0 ? "primary":"default");
         let classSystem = "btn btn-" + (this.state.form.kind == 1 ? "primary":"default");
         let classError = "btn btn-" + (this.state.form.errors == 1 ? "danger":"default");
         let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
-        let logAfterQuery = null;
         let overflow = this.state.form.kind == 1 ? this.state.logs.systemOverflow : this.state.logs.userOverflow;
 
-        logAfterQuery = this.filterLogs();
+        let logAfterQuery = this.state.logAfterQuery;
 
-        this.endReached = (logAfterQuery.length <= (this.state.page + 1)*LOGS_PER_PAGE)
+        this.lastLogShown = (logAfterQuery.length < this.state.logShown) ? logAfterQuery.length : this.state.logShown;
 
         return (
             <div>
@@ -62,7 +78,13 @@ class BenchLog extends React.Component {
                   </div>
                   <button type="button" className={classError} onClick={this._onErrors}>Errors only</button>
                 </form>
-                <div className="zero-raw"><span className="btn-raw"><a href={url} target="_blank">Raw log</a></span></div>
+                <div className="zero-raw">
+                    <span className="btn-raw">
+                        <a href={url} target="_blank">Raw log</a>
+                        <a href="#" onClick={this._onFollow}>{this.props.isBenchActive ? "Follow" : "Bottom"}</a>
+                        <a href="#" onClick={this._onTop}>Top</a>
+                    </span>
+                </div>
                 <div className="log-window">
                     <table className="table table-striped">
                         <tbody>
@@ -77,27 +99,36 @@ class BenchLog extends React.Component {
         );
     }
 
-    filterLogs() {
-        let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
-        let query = this.state.form.query;
-        let errors = this.state.form.errors;
-        if (!query && !errors) return currentLog;
+    filterLogs(form, logs, needRefilter) {
+        let filtered = needRefilter ? 0 : this.filtered;
+        var logAfterQuery = (needRefilter || !this.state) ? [] : this.state.logAfterQuery;
+        let currentLog = form.kind == 1 ? logs.system : logs.user;
+        let query = form.query;
+        let errors = form.errors;
+        if (needRefilter) this.lastLogShown = 0;
+        if (!query && !errors) {
+            this.filtered = currentLog.length;
+            return currentLog;
+        }
 
-        var logAfterQuery = currentLog.filter((line) => {
+        for (; filtered < currentLog.length; filtered++) {
+            let line = currentLog[filtered];
+            if (!line) break;
             if (query) {
                 let fullText = line.time + " " + line.severity + " " + line.text;
-                if (fullText.indexOf(query) == -1) return false;
+                if (fullText.indexOf(query) == -1) continue;
             }
-            if (errors && line.severity!="[error]") return false;
-            return true;
-        });
+            if (errors && line.severity!="[error]") continue;
+            logAfterQuery.push(line);
+        };
+        this.filtered = filtered;
         return logAfterQuery;
     }
 
     formatLogs(log) {
         let query = this.state.form.query;
         var res = [];
-        for (var i = 0; i < (this.state.page + 1) * LOGS_PER_PAGE; i++) {
+        for (var i = 0; i < this.state.logShown; i++) {
             let line = log[i];
 
             if (!line) break;
@@ -119,29 +150,37 @@ class BenchLog extends React.Component {
     }
 
     _onScroll(scrollEvent) {
-        let node = document.body;
-        var shouldIncrementPage = (node.scrollTop + window.innerHeight + 2000 > node.scrollHeight);
-        if (shouldIncrementPage && !this.endReached) {
-            let state = this.state;
-            state.page = state.page + 1;
-            this.setState(state);
+        if (this.updatePage()) return;
+
+        if (this.followFlag) {
+            this.followFlag = false;
+        } else if(this.isFollow) {
+            this.isFollow = false;
         }
     }
 
     _resolveState() {
-        let currentState = this.state ? this.state : {};
-        currentState.form = LogsStore.getQueryData(this.props.bench.id);
+        let currentState = this.state ? this.state : {form: {query: "", kind: 0, errors: 0}, logAfterQuery: []};
+        let newForm = LogsStore.getQueryData(this.props.bench.id);
+        let needRefilter = (!currentState.form ||
+                            currentState.form.query  != newForm.query ||
+                            currentState.form.kind   != newForm.kind  ||
+                            currentState.form.errors != newForm.errors);
+        currentState.form.kind = newForm.kind;
+        currentState.form.query = newForm.query;
+        currentState.form.errors = newForm.errors;
         currentState.logs = LogsStore.getLogData(this.streamId);
+        currentState.logAfterQuery = this.filterLogs(newForm, currentState.logs, needRefilter);
         return currentState;
     }
 
     _onChange() {
         this.setState(this._resolveState());
+        if (this.isFollow) this.updatePage();
     }
 
     _runSearch() {
-        this.state.page = 0;
-        this.endReached = false;
+        this.state.logShown = LOGS_PER_PAGE;
         if (this.autoSearchHandler) {
             clearTimeout(this.autoSearchHandler);
         }
@@ -177,9 +216,48 @@ class BenchLog extends React.Component {
         this._runSearch();
     }
 
+    _onFollow(event) {
+        event.preventDefault();
+        this.isFollow = !this.isFollow;
+        let logLen = this.state.logAfterQuery.length;
+        if (this.state.logShown < logLen) {
+            this.setState({logShown: logLen});
+        }
+        if (this.isFollow) this.goBottom();
+    }
+
+    _onTop(event) {
+        event.preventDefault();
+        this.isFollow = false;
+        this.goTop();
+    }
+
     _onErrors() {
         this.state.tempE = !this.state.tempE;
         this._runSearch();
+    }
+
+    goBottom() {
+        var newValue = document.body.scrollHeight - window.innerHeight;
+        if (document.body.scrollTop < newValue) {
+            document.body.scrollTop = newValue;
+            this.followFlag = true;
+        }
+    }
+
+    goTop() {
+        document.body.scrollTop = 0;
+    }
+
+    updatePage () {
+        let node = document.body;
+        var shouldIncrementPage = (node.scrollTop + window.innerHeight + 2000 > node.scrollHeight);
+        let endReached = (this.state.logAfterQuery.length <= this.state.logShown);
+        if (shouldIncrementPage && !endReached) {
+            this.setState({logShown: this.state.logShown + LOGS_PER_PAGE});
+            return true;
+        }
+        return false;
     }
 };
 
