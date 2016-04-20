@@ -2,6 +2,7 @@ import React from 'react';
 import LogsStore from '../stores/LogsStore';
 import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
+import BenchLogEntry from './BenchLogEntry.react';
 
 const LOGS_PER_PAGE = 500;
 
@@ -47,12 +48,6 @@ class BenchLog extends React.Component {
         }
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
-        let isNewLogs = (this.lastLogShown != nextState.logShown);
-        let isBenchComplete = (this.props.isBenchActive != nextProps.isBenchActive);
-        return isNewLogs || isBenchComplete;
-    }
-
     render() {
         const url = '/' + (this.state.form.kind == 0 ? 'userlog' : 'log') + '?id=' + this.props.bench.id;
         let classUser = "btn btn-" + (this.state.form.kind == 0 ? "primary":"default");
@@ -63,7 +58,8 @@ class BenchLog extends React.Component {
 
         let logAfterQuery = this.state.logAfterQuery;
 
-        this.lastLogShown = (logAfterQuery.length < this.state.logShown) ? logAfterQuery.length : this.state.logShown;
+        let logsToShow = (logAfterQuery.length < this.state.logShown) ? logAfterQuery.length : this.state.logShown;
+        this.lastLogShown = logsToShow;
 
         return (
             <div>
@@ -86,17 +82,33 @@ class BenchLog extends React.Component {
                     </span>
                 </div>
                 <div className="log-window">
-                    <table className="table table-striped">
+                    <table className="table table-striped table-logs">
                         <tbody>
                         {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
                         {!currentLog.length ? <tr className="warning"><td>Warning: this log is empty</td></tr> : 
                             (!logAfterQuery.length ? <tr className="warning"><td>Query not found</td></tr> : null)}
-                        {this.formatLogs(logAfterQuery)}
                         </tbody>
                     </table>
+                    {this.formatLogs(logsToShow, logAfterQuery)}
                 </div>
             </div>
         );
+    }
+
+    formatLogs(logsToShow, log) {
+        let nPages = Math.round(logsToShow / LOGS_PER_PAGE) + 1;
+        let form = this.state.form;
+        let prefix = form.kind + "-" + form.errors + "-" + form.query + "-";
+        let res = [];
+        for (var page = 0; page < nPages; page++) {
+            res.push(<BenchLogEntry
+                        key={prefix + page}
+                        log={log}
+                        from={page*LOGS_PER_PAGE}
+                        to={(page + 1)*LOGS_PER_PAGE}
+                        query={this.state.form.query}/>);
+        }
+        return res;
     }
 
     filterLogs(form, logs, needRefilter) {
@@ -123,30 +135,6 @@ class BenchLog extends React.Component {
         };
         this.filtered = filtered;
         return logAfterQuery;
-    }
-
-    formatLogs(log) {
-        let query = this.state.form.query;
-        var res = [];
-        for (var i = 0; i < this.state.logShown; i++) {
-            let line = log[i];
-
-            if (!line) break;
-
-            let cssClass = line.severity == "[error]" ? "danger" : (line.severity == "[warning]" ? "warning": "");
-
-            if (!query) {
-                res.push(<tr key={line.id} className={cssClass}><td><pre>{line.time} {line.severity} {line.text}</pre></td></tr>);
-            } else {
-                let fullText = line.time + " " + line.severity + " " + line.text;
-                let pieces = fullText.split(query);
-                let idPieces = [];
-                for(var j=1; j < pieces.length; j++)
-                    idPieces.push({id: j, v: pieces[j]});
-                res.push(<tr key={line.id} className={cssClass}><td><pre>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</pre></td></tr>);
-            }
-        }
-        return res;
     }
 
     _onScroll(scrollEvent) {
