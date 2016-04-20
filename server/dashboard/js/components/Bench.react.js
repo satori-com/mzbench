@@ -39,7 +39,7 @@ class Bench extends React.Component {
                 component = <BenchScenario bench = {this.state.bench} />;
                 break;
             case "logs":
-                component = <BenchLog bench = {this.state.bench} />;
+                component = <BenchLog bench = {this.state.bench} isBenchActive = {this.state.bench.isRunning()}/>;
                 break;
             default:
                 component = <BenchOverview bench = {this.state.bench} activeGraph = {this.state.activeGraph}/>;
