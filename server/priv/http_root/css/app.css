@@ -277,14 +277,15 @@ div.log-window pre{
     border: none;
 }
 
-.zero-raw {
+.top-raw-fixed {
     position: fixed;
+}
+.bottom-raw-fixed {
+    position: fixed;
+    bottom: 0;
 }
 
 .btn-raw {
-    position: absolute;
-    top: 100;
-    right: 0;
     z-index: 10;
     display: block;
     padding: 5px 8px;
@@ -294,8 +295,16 @@ div.log-window pre{
     background-color: #fff;
     border: 1px solid #e1e1e8;
     border-right-width: 0;
+}
+
+.btn-bottom {
     border-radius: 0 0 0 4px;
 }
+
+.btn-top {
+    border-radius: 4px 0 0 0;
+}
+
 .log-lookup-form {
     padding-bottom:20px;
 }
