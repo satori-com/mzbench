@@ -34,6 +34,7 @@ class BenchLog extends React.Component {
         LogsStore.onChange(this._onChange);
         this.streamId = LogsStore.subscribeToLogs(this.props.bench.id);
         window.addEventListener("scroll", this._onScroll);
+        React.findDOMNode(this.refs.loglookup).focus();
     }
 
     componentWillUnmount() {
@@ -66,7 +67,7 @@ class BenchLog extends React.Component {
                 <form className="form-inline log-lookup-form">
                     <div className="input-group col-xs-4">
                       <div className="input-group-addon"><span className="glyphicon glyphicon-search" aria-hidden="true"></span></div>
-                      <input type="text" className="form-control" onKeyDown={this._onKeyDown.bind(this)} onChange={this._onChangeSearch} value={this.state.tempQ} placeholder="Lookup Logs" />
+                      <input ref="loglookup" type="text" className="form-control" onKeyDown={this._onKeyDown.bind(this)} onChange={this._onChangeSearch} value={this.state.tempQ} placeholder="Lookup Logs" />
                     </div>
                   <div className="btn-group" role="group">
                     <button type="button" className={classUser} onClick={this._onUser}>User</button>
@@ -196,11 +197,13 @@ class BenchLog extends React.Component {
 
     _onUser() {
         this.state.tempK = 0;
+        React.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 
     _onSystem() {
         this.state.tempK = 1;
+        React.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 
@@ -217,11 +220,13 @@ class BenchLog extends React.Component {
     _onTop(event) {
         event.preventDefault();
         this.isFollow = false;
+        React.findDOMNode(this.refs.loglookup).focus();
         this.goTop();
     }
 
     _onErrors() {
         this.state.tempE = !this.state.tempE;
+        React.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 
