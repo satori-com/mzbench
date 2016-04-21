@@ -24,6 +24,7 @@ class BenchLog extends React.Component {
         this._onSystem = this._onSystem.bind(this);
         this._onErrors = this._onErrors.bind(this);
         this._onScroll = this._onScroll.bind(this);
+        this._onResize = this._onResize.bind(this);
         this._onFollow = this._onFollow.bind(this);
         this._onTop = this._onTop.bind(this);
         this.filtered = 0;
@@ -34,12 +35,16 @@ class BenchLog extends React.Component {
         LogsStore.onChange(this._onChange);
         this.streamId = LogsStore.subscribeToLogs(this.props.bench.id);
         window.addEventListener("scroll", this._onScroll);
+        window.addEventListener("resize", this._onResize);
         React.findDOMNode(this.refs.loglookup).focus();
+        this._updateFollowPos();
+        this._updateTopPos();
     }
 
     componentWillUnmount() {
         LogsStore.off(this._onChange);
         LogsStore.unsubscribeFromLogs(this.streamId);
+        window.removeEventListener("resize", this._onResize);
         window.removeEventListener("scroll", this._onScroll);
     }
 
@@ -75,14 +80,20 @@ class BenchLog extends React.Component {
                   </div>
                   <button type="button" className={classError} onClick={this._onErrors}>Errors only</button>
                 </form>
-                <div className="zero-raw">
+                <div className="top-raw-fixed" ref="followbtn">
                     <span className="btn-raw">
                         <a href={url} target="_blank">Raw log</a>
+                    </span>
+                    <span className="btn-raw btn-bottom">
                         <a href="#" onClick={this._onFollow}>{this.props.isBenchActive ? "Follow" : "Bottom"}</a>
+                    </span>
+                </div>
+                <div className="bottom-raw-fixed" ref="topbtn">
+                    <span className="btn-raw btn-top">
                         <a href="#" onClick={this._onTop}>Top</a>
                     </span>
                 </div>
-                <div className="log-window">
+                <div className="log-window" ref="logwindow">
                     <table className="table table-striped table-logs">
                         <tbody>
                         {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
@@ -139,6 +150,8 @@ class BenchLog extends React.Component {
     }
 
     _onScroll(scrollEvent) {
+        this._updateFollowPos();
+        this._updateTopPos();
         if (this.updatePage()) return;
 
         if (this.followFlag) {
@@ -146,6 +159,25 @@ class BenchLog extends React.Component {
         } else if(this.isFollow) {
             this.isFollow = false;
         }
+    }
+
+    _onResize(resizeEvent) {
+        this._updateFollowPos();
+        this._updateTopPos();
+    }
+
+    _updateFollowPos() {
+        var rect = React.findDOMNode(this.refs.logwindow).getBoundingClientRect();
+        let top = (rect.top > 0) ? rect.top : 0;
+        let right = (window.innerWidth - rect.right);
+        React.findDOMNode(this.refs.followbtn).style.top = top + 'px';
+        React.findDOMNode(this.refs.followbtn).style.right = right + 'px';
+    }
+
+    _updateTopPos() {
+        var rect = React.findDOMNode(this.refs.logwindow).getBoundingClientRect();
+        let right = (window.innerWidth - rect.right);
+        React.findDOMNode(this.refs.topbtn).style.right = right + 'px';
     }
 
     _resolveState() {
