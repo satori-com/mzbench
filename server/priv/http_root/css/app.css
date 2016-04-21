@@ -260,6 +260,7 @@ path.mg-confidence-band {
 div.log-window {
 /*    overflow:scroll;*/
     width:100%;
+    overflow-x:scroll;
 /*    height:700px;*/
 }
 
@@ -306,4 +307,5 @@ div.log-window pre{
 
 .table-logs {
     margin-bottom: 0px;
+    overflow-x: block;
 }
