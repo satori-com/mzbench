@@ -24,15 +24,29 @@ class BenchLogEntry extends React.Component {
 
             let cssClass = line.severity == "[error]" ? "danger" : (line.severity == "[warning]" ? "warning": "");
 
+            let fullText = line.time + " " + line.severity + line.text;
+
             if (!query) {
-                res.push(<tr key={line.id} className={cssClass}><td><pre>{line.time} {line.severity} {line.text}</pre></td></tr>);
+                res.push(
+                    <tr key={line.id} className={cssClass}>
+                        <td>
+                            <pre>{fullText}</pre>
+                        </td>
+                    </tr>);
             } else {
-                let fullText = line.time + " " + line.severity + " " + line.text;
                 let pieces = fullText.split(query);
-                let idPieces = [];
-                for(var j=1; j < pieces.length; j++)
-                    idPieces.push({id: j, v: pieces[j]});
-                res.push(<tr key={line.id} className={cssClass}><td><pre>{pieces[0]}{idPieces.map((f) => {return <span key={f.id}><mark>{query}</mark>{f.v}</span>})}</pre></td></tr>);
+
+                let logLine = [pieces[0]];
+                for (var k = 1; k < pieces.length; k++) {
+                    logLine.push(<mark key={k}>{query}</mark>);
+                    logLine.push(pieces[k])
+                }
+                res.push(
+                    <tr key={line.id} className={cssClass}>
+                        <td>
+                            <pre>{logLine}</pre>
+                        </td>
+                    </tr>);
             }
         }
         this.nShown = i;
