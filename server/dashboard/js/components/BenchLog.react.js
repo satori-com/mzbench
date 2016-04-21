@@ -4,7 +4,7 @@ import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import BenchLogEntry from './BenchLogEntry.react';
 
-const LOGS_PER_PAGE = 500;
+const LOGS_PER_PAGE = 100;
 
 class BenchLog extends React.Component {
     constructor(props) {
