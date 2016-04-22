@@ -17,7 +17,6 @@ class BenchLog extends React.Component {
         this.state.tempK = this.state.form.kind;
         this.state.tempE = this.state.form.errors;
         this.state.logShown = LOGS_PER_PAGE;
-        this.isFollow = false;
         this.followFlag = false;
         this._onChange = this._onChange.bind(this);
         this._onChangeSearch = this._onChangeSearch.bind(this);
@@ -49,7 +48,7 @@ class BenchLog extends React.Component {
     }
 
     componentDidUpdate() {
-        if (this.isFollow) {
+        if (this.state.isFollow) {
             this.goBottom();
         }
     }
@@ -84,7 +83,7 @@ class BenchLog extends React.Component {
                     <span className="btn-raw">
                         <a href={url} target="_blank">Raw log</a>
                     </span>
-                    <span className="btn-raw btn-bottom">
+                    <span className="btn-raw btn-bottom" style={{fontWeight: this.state.isFollow && this.props.isBenchActive ? 'bold' : 'normal'}}>
                         <a href="#" onClick={this._onFollow}>{this.props.isBenchActive ? "Follow" : "Bottom"}</a>
                     </span>
                 </div>
@@ -156,8 +155,8 @@ class BenchLog extends React.Component {
 
         if (this.followFlag) {
             this.followFlag = false;
-        } else if(this.isFollow) {
-            this.isFollow = false;
+        } else if(this.state.isFollow) {
+            this.setState({isFollow: false});
         }
     }
 
@@ -181,7 +180,7 @@ class BenchLog extends React.Component {
     }
 
     _resolveState() {
-        let currentState = this.state ? this.state : {form: {query: "", kind: 0, errors: 0}, logAfterQuery: []};
+        let currentState = this.state ? this.state : {form: {query: "", kind: 0, errors: 0}, logAfterQuery: [], isFollow: false};
         let newForm = LogsStore.getQueryData(this.props.bench.id);
         let needRefilter = (!currentState.form ||
                             currentState.form.query  != newForm.query ||
@@ -197,7 +196,7 @@ class BenchLog extends React.Component {
 
     _onChange() {
         this.setState(this._resolveState());
-        if (this.isFollow) this.updatePage();
+        if (this.state.isFollow) this.updatePage();
     }
 
     _runSearch() {
@@ -241,17 +240,17 @@ class BenchLog extends React.Component {
 
     _onFollow(event) {
         event.preventDefault();
-        this.isFollow = !this.isFollow;
+        this.setState({isFollow: !this.state.isFollow});
         let logLen = this.state.logAfterQuery.length;
         if (this.state.logShown < logLen) {
             this.setState({logShown: logLen});
         }
-        if (this.isFollow) this.goBottom();
+        if (this.state.isFollow) this.goBottom();
     }
 
     _onTop(event) {
         event.preventDefault();
-        this.isFollow = false;
+        this.setState({isFollow: false});
         React.findDOMNode(this.refs.loglookup).focus();
         this.goTop();
     }
