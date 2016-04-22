@@ -16,7 +16,7 @@ class BenchLogEntry extends React.Component {
         let from = this.props.from;
         let to = this.props.to;
         let log = this.props.log;
-        var res = [];
+        let res = [];
         for (var i = from; i < to; i++) {
             let line = log[i];
 
