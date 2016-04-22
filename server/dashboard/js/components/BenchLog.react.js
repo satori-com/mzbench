@@ -11,6 +11,7 @@ class BenchLog extends React.Component {
         super(props);
         this.streamId = 0;
         this.autoSearchHandler = null;
+        this.filtered = 0;
         this.state = this._resolveState();
         this.state.tempQ = this.state.form.query;
         this.state.tempK = this.state.form.kind;
@@ -27,7 +28,6 @@ class BenchLog extends React.Component {
         this._onResize = this._onResize.bind(this);
         this._onFollow = this._onFollow.bind(this);
         this._onTop = this._onTop.bind(this);
-        this.filtered = 0;
         this.lastLogShown = 0;
     }
 
@@ -124,7 +124,7 @@ class BenchLog extends React.Component {
     }
 
     filterLogs(form, logs, needRefilter) {
-        let filtered = needRefilter ? 0 : this.filtered;
+        let filtered = (needRefilter || !this.state) ? 0 : this.filtered;
         var logAfterQuery = (needRefilter || !this.state) ? [] : this.state.logAfterQuery;
         let currentLog = form.kind == 1 ? logs.system : logs.user;
         let query = form.query;
