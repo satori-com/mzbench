@@ -61,7 +61,7 @@ handle_event({log, Message},
 
     case (MaxQ /= undefined) andalso (N rem 10 == 0) andalso erlang:process_info(self(), message_queue_len) of
         {_, Len} when Len > MaxQ ->
-            system_log:warning("Dropped ~b log messages (mailbox overflow) on ~p", [Len div 2, node()]),
+            send_direct_warning("Dropped ~b log messages (mailbox overflow) on ~p", [Len div 2, node()], State),
             mzb_metrics:notify({"logs.dropped.mailbox_overflow", counter}, Len div 2),
             {ok, State#state{skip_messages = Len div 2, n = N + 1}};
         _ ->
@@ -83,8 +83,13 @@ handle_event(_Event, State) ->
     {ok, State}.
 
 handle_info(activate, State = #state{n = N, dropped = Dropped}) ->
-    Dropped > 0 andalso mzb_metrics:notify({"logs.dropped.rate_limiter", counter}, Dropped),
-    Dropped > 0 andalso system_log:warning("Dropped ~b log messages (rate limiter) on ~p", [Dropped, node()]),
+    case Dropped > 0 of
+        true ->
+            mzb_metrics:notify({"logs.dropped.rate_limiter", counter}, Dropped),
+            send_direct_warning("Dropped ~b log messages (rate limiter) on ~p", [Dropped, node()], State);
+        false ->
+            ok
+    end,
     erlang:send_after(?INTERVAL, self(), trigger_rate_limiter),
     {ok, State#state{is_active = true, last_n = N, last_timestamp = os:timestamp(), dropped = 0}};
 
@@ -111,3 +116,8 @@ terminate(Reason, #state{socket = S} = _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+send_direct_warning(F, A, #state{socket = Socket, formatter = Formatter, format_config = FormatConfig, colors = Colors}) ->
+    Str = io_lib:format(F, A),
+    NewMsg = lager_msg:new(Str, warning, [{pid, self()}], []),
+    _ = gen_tcp:send(Socket, Formatter:format(NewMsg, FormatConfig, Colors)),
+    ok.
