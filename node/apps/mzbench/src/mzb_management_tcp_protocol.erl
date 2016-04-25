@@ -133,7 +133,7 @@ handle_call(Request, _From, State) ->
     {reply, ignore, State}.
 
 terminate(_Reason, _State) ->
-    lager:info("Management tcp connection terminated: ~p", [_Reason]),
+    system_log:info("Management tcp connection terminated: ~p", [_Reason]),
     gen_event:delete_handler(metrics_event_manager, {mzb_metric_reporter, self()}, []),
     ok.
 
