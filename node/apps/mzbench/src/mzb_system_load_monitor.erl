@@ -188,7 +188,7 @@ network_usage() ->
         network_load_for_arch(os:type())
     catch
         _:E ->
-            lager:error("Error parsing network info: ~p", [E]),
+            system_log:error("Error parsing network info: ~p", [E]),
             {0, 0}
     end.
 
