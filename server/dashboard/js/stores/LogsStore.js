@@ -57,13 +57,33 @@ class LogsStore extends EventEmitter {
     updateLogData(streamId, rawData) {
         if(data.stream.id == streamId) {
             _updateData(rawData);
+            return true;
         }
+        return false;
     }
 
     updateLogUserData(streamId, rawData) {
         if(data.stream.id == streamId) {
             _updateUserData(rawData);
+            return true;
         }
+        return false;
+    }
+
+    updateLogBatchEnd(streamId) {
+        if(data.stream.id == streamId) {
+            data.stream.isSystemLoaded = true;
+            return true;
+        }
+        return false;
+    }
+
+    updateLogUserBatchEnd(streamId) {
+        if(data.stream.id == streamId) {
+            data.stream.isUserLoaded = true;
+            return true;
+        }
+        return false;
     }
 
     updateLogOverflow(streamId) {
@@ -82,8 +102,10 @@ class LogsStore extends EventEmitter {
             id: streamId,
             user: [],
             userOverflow : 0,
+            isUserLoaded: false,
             system: [],
-            systemOverflow: 0
+            systemOverflow: 0,
+            isSystemLoaded: false
         }
         return streamId;
     }
@@ -126,6 +148,14 @@ class LogsStore extends EventEmitter {
             return {user:[], userOverflow: 0, system: [], systemOverflow: 0};
         }
     }
+
+    isUserLoaded(streamId) {
+        return data.stream.isUserLoaded;
+    }
+
+    isSystemLoaded(streamId) {
+        return data.stream.isSystemLoaded;
+    }
 };
 
 var _LogsStore = new LogsStore();
@@ -134,12 +164,20 @@ export default _LogsStore;
 _LogsStore.dispatchToken = Dispatcher.register((action) => {
     switch(action.type) {
         case ActionTypes.LOG_DATA:
-            _LogsStore.updateLogData(action.stream_id, action.data);
-            _LogsStore.emitChange();
+            if (_LogsStore.updateLogData(action.stream_id, action.data))
+                _LogsStore.emitChange();
             break;
         case ActionTypes.LOG_USER_DATA:
-            _LogsStore.updateLogUserData(action.stream_id, action.data);
-            _LogsStore.emitChange();
+            if (_LogsStore.updateLogUserData(action.stream_id, action.data))
+                _LogsStore.emitChange();
+            break;
+        case ActionTypes.LOG_BATCH_END:
+            if (_LogsStore.updateLogBatchEnd(action.stream_id))
+                _LogsStore.emitChange();
+            break;
+        case ActionTypes.LOG_USER_BATCH_END:
+            if (_LogsStore.updateLogUserBatchEnd(action.stream_id))
+                _LogsStore.emitChange();
             break;
         case ActionTypes.LOG_OVERFLOW:
             _LogsStore.updateLogOverflow(action.stream_id);

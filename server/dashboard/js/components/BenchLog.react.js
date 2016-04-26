@@ -3,6 +3,7 @@ import LogsStore from '../stores/LogsStore';
 import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import BenchLogEntry from './BenchLogEntry.react';
+import LoadingSpinner from './LoadingSpinner.react';
 
 const LOGS_PER_PAGE = 100;
 
@@ -51,6 +52,8 @@ class BenchLog extends React.Component {
         if (this.state.isFollow) {
             this.goBottom();
         }
+        this._updateFollowPos();
+        this._updateTopPos();
     }
 
     render() {
@@ -60,6 +63,7 @@ class BenchLog extends React.Component {
         let classError = "btn btn-" + (this.state.form.errors == 1 ? "danger":"default");
         let currentLog = this.state.form.kind == 1 ? this.state.logs.system : this.state.logs.user;
         let overflow = this.state.form.kind == 1 ? this.state.logs.systemOverflow : this.state.logs.userOverflow;
+        let loaded = this.state.form.kind == 1 ? this.state.logs.isSystemLoaded : this.state.logs.isUserLoaded;
 
         let logAfterQuery = this.state.logAfterQuery;
 
@@ -79,29 +83,34 @@ class BenchLog extends React.Component {
                   </div>
                   <button type="button" className={classError} onClick={this._onErrors}>Errors only</button>
                 </form>
-                <div className="top-raw-fixed" ref="followbtn">
-                    <span className="btn-raw">
-                        <a href={url} target="_blank">Raw log</a>
-                    </span>
-                    <span className="btn-raw btn-bottom" style={{fontWeight: this.state.isFollow && this.props.isBenchActive ? 'bold' : 'normal'}}>
-                        <a href="#" onClick={this._onFollow}>{this.props.isBenchActive ? "Follow" : "Bottom"}</a>
-                    </span>
-                </div>
-                <div className="bottom-raw-fixed" ref="topbtn">
-                    <span className="btn-raw btn-top">
-                        <a href="#" onClick={this._onTop}>Top</a>
-                    </span>
-                </div>
-                <div className="log-window" ref="logwindow">
-                    <table className="table table-striped table-logs">
-                        <tbody>
-                        {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
-                        {!currentLog.length ? <tr className="warning"><td>Warning: this log is empty</td></tr> : 
-                            (!logAfterQuery.length ? <tr className="warning"><td>Query not found</td></tr> : null)}
-                        </tbody>
-                    </table>
-                    {this.formatLogs(logsToShow, logAfterQuery)}
-                </div>
+                {
+                    !loaded ? (<LoadingSpinner>Loading...</LoadingSpinner>) :
+                    <div>
+                        <div className="top-raw-fixed" ref="followdiv">
+                            <span className="btn-raw">
+                                <a href={url} target="_blank">Raw log</a>
+                            </span>
+                            <span className="btn-raw btn-bottom" style={{fontWeight: this.state.isFollow && this.props.isBenchActive ? 'bold' : 'normal'}} ref="followbtn">
+                                <a href="#" onClick={this._onFollow}>{this.props.isBenchActive ? "Follow log" : "Scroll to end"}</a>
+                            </span>
+                        </div>
+                        <div className="bottom-raw-fixed" ref="topbtn">
+                            <span className="btn-raw btn-top">
+                                <a href="#" onClick={this._onTop}>Top</a>
+                            </span>
+                        </div>
+                        <div className="log-window" ref="logwindow">
+                            <table className="table table-striped table-logs">
+                                <tbody>
+                                {overflow ? <tr className="warning"><td>Warning: due to big size, this log is trimmed</td></tr> : null}
+                                {!currentLog.length ? <tr className="warning"><td>Warning: this log is empty</td></tr> :
+                                        (!logAfterQuery.length ? <tr className="warning"><td>Query not found</td></tr> : null)}
+                                </tbody>
+                            </table>
+                            {this.formatLogs(logsToShow, logAfterQuery)}
+                        </div>
+                    </div>
+                }
             </div>
         );
     }
@@ -166,17 +175,27 @@ class BenchLog extends React.Component {
     }
 
     _updateFollowPos() {
-        var rect = React.findDOMNode(this.refs.logwindow).getBoundingClientRect();
+        let logElement = React.findDOMNode(this.refs.logwindow);
+        if (!logElement) return;
+        var rect = logElement.getBoundingClientRect();
         let top = (rect.top > 0) ? rect.top : 0;
         let right = (window.innerWidth - rect.right);
-        React.findDOMNode(this.refs.followbtn).style.top = top + 'px';
-        React.findDOMNode(this.refs.followbtn).style.right = right + 'px';
+        let followDiv = React.findDOMNode(this.refs.followdiv);
+        followDiv.style.top = top + 'px';
+        followDiv.style.right = right + 'px';
+        let followBtn = React.findDOMNode(this.refs.followbtn);
+        let visible = document.body.scrollHeight > window.innerHeight;
+        followBtn.style.visibility = visible ? "visible" : "hidden";
     }
 
     _updateTopPos() {
-        var rect = React.findDOMNode(this.refs.logwindow).getBoundingClientRect();
+        let logElement = React.findDOMNode(this.refs.logwindow);
+        if (!logElement) return;
+        var rect = logElement.getBoundingClientRect();
         let right = (window.innerWidth - rect.right);
-        React.findDOMNode(this.refs.topbtn).style.right = right + 'px';
+        let topBtn = React.findDOMNode(this.refs.topbtn);
+        topBtn.style.visibility = (document.body.scrollTop > 0 ? 'visible' : 'hidden');
+        topBtn.style.right = right + 'px';
     }
 
     _resolveState() {
