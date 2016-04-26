@@ -21,6 +21,8 @@ export default keyMirror({
     METRIC_BATCH_END: null,
     LOG_DATA: null,
     LOG_USER_DATA: null,
+    LOG_BATCH_END: null,
+    LOG_USER_BATCH_END: null,
     LOG_OVERFLOW: null,
     LOG_USER_OVERFLOW: null,
     UPDATE_LOG_QUERY_DATA: null,

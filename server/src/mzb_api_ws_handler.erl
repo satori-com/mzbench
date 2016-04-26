@@ -84,7 +84,7 @@ dispatch_info({metric_value, StreamId, Values}, State) ->
              },
     {reply, Event, State};
 
-dispatch_info({log_chunk, StreamId, Chunk}, State) ->
+dispatch_info({system_log, data, StreamId, Chunk}, State) ->
     Event = #{
               type => "LOG_DATA",
               stream_id => StreamId,
@@ -92,7 +92,7 @@ dispatch_info({log_chunk, StreamId, Chunk}, State) ->
              },
     {reply, Event, State};
 
-dispatch_info({log_user_chunk, StreamId, Chunk}, State) ->
+dispatch_info({user_log, data, StreamId, Chunk}, State) ->
     Event = #{
               type => "LOG_USER_DATA",
               stream_id => StreamId,
@@ -100,17 +100,25 @@ dispatch_info({log_user_chunk, StreamId, Chunk}, State) ->
              },
     {reply, Event, State};
 
-dispatch_info({log_overflow, StreamId}, State) ->
+dispatch_info({system_log, batch_end, StreamId}, State) ->
+    {reply, #{type => "LOG_BATCH_END",stream_id => StreamId}, State};
+
+dispatch_info({user_log, batch_end, StreamId}, State) ->
+    {reply, #{type => "LOG_USER_BATCH_END", stream_id => StreamId}, State};
+
+dispatch_info({system_log, overflow, StreamId, MaxSize}, State) ->
     Event = #{
               type => "LOG_OVERFLOW",
-              stream_id => StreamId
+              stream_id => StreamId,
+              max_size => MaxSize
              },
     {reply, Event, State};
 
-dispatch_info({log_user_overflow, StreamId}, State) ->
+dispatch_info({user_log, overflow, StreamId, MaxSize}, State) ->
     Event = #{
               type => "LOG_USER_OVERFLOW",
-              stream_id => StreamId
+              stream_id => StreamId,
+              max_size => MaxSize
              },
     {reply, Event, State};
 
@@ -253,7 +261,7 @@ add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = 
                     begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p", 
                     [MetricName, BenchId, StreamId, SubsamplingInterval, BeginTime, EndTime, TimeWindow, StreamAfterEof]),
     Self = self(),
-    
+
     SendMetricsFun = fun ({data, Values}) -> Self ! {metric_value, StreamId, Values};
                          (batch_end)      -> Self ! {metric_batch_end, StreamId}
                      end,
@@ -410,37 +418,40 @@ apply_boundaries({MinId, MaxId}, BenchInfos, Comparator) ->
 log_file_reader(Filename, ChunkSize, none) ->
     {ok, Fd} = file:open(Filename, [read, raw, binary, read_ahead]),
     fun (close) -> file:close(Fd);
-        (read) -> case file:read(Fd, ChunkSize) of
-                    {ok, Data} -> Data;
-                    {error, E} -> lager:error("Error while reading log file: ~p", [E]), <<>>;
-                    eof -> <<>>
-                  end
+        (read) -> file:read(Fd, ChunkSize)
     end;
 log_file_reader(Filename, ChunkSize, deflate) ->
     {ok, Fd} = file:open(Filename, [read, raw, binary, read_ahead]),
     Z = zlib:open(),
     zlib:inflateInit(Z),
-    fun (close) -> zlib:inflateEnd(Z),zlib:close(Z),file:close(Fd);
+    fun (close) -> zlib:inflateEnd(Z), zlib:close(Z), file:close(Fd);
         (read) -> case file:read(Fd, ChunkSize) of
-                    {ok, Data} -> zlib:inflate(Z, Data);
-                    {error, E} -> lager:error("Error while reading log file: ~p", [E]), <<>>;
-                    eof -> <<>>
+                    {ok, Data} -> {ok, zlib:inflate(Z, Data)};
+                    {error, E} -> {error, E};
+                    eof -> eof
                   end
     end.
 
 log_file_streamer(Filename, ChunkSize, Compression, Pid, StreamId,
-                  DataMessage, MaxSize, OverflowMessage) ->
+                  MessageType, MaxSize) ->
     Reader = log_file_reader(Filename, ChunkSize, Compression),
     fun (finish) -> Reader(close);
         ({stream, _, overflow}) -> ok;
         ({stream, StreamedBytes, no_overflow}) when StreamedBytes > MaxSize ->
-                Pid ! {OverflowMessage, StreamId}, {0, StreamedBytes, overflow};
+                Pid ! {MessageType, overflow, StreamId, MaxSize},
+                Pid ! {MessageType, batch_end, StreamId},
+                {0, StreamedBytes, overflow};
         ({stream, StreamedBytes, no_overflow}) ->
             case Reader(read) of
-                <<>> -> {0, StreamedBytes, no_overflow};
-                  [] -> {0, StreamedBytes, no_overflow};
-                Data -> Pid ! {DataMessage, StreamId, Data},
-                    {1, StreamedBytes + iolist_size(Data), no_overflow}
+                {ok, Data} ->
+                    Pid ! {MessageType, data, StreamId, Data},
+                    {1, StreamedBytes + iolist_size(Data), no_overflow};
+                eof ->
+                    Pid ! {MessageType, batch_end, StreamId},
+                    {0, StreamedBytes, no_overflow};
+                {error, E} ->
+                    lager:error("Error while reading log file: ~p", [E]),
+                    {0, StreamedBytes, no_overflow}
             end
     end.
 
@@ -451,9 +462,9 @@ stream_log(BenchId, StreamId, Pid) ->
     PollInterval = application:get_env(mzbench_api, bench_poll_timeout, undefined),
     MaxSize = application:get_env(mzbench_api, bench_log_max_dashboard, undefined),
     SysStreamer = log_file_streamer(mzb_api_bench:log_file(Config), ReadChunk, Compression,
-                                Pid, StreamId, log_chunk, MaxSize, log_overflow),
+                                Pid, StreamId, system_log, MaxSize),
     UserStreamer = log_file_streamer(mzb_api_bench:log_user_file(Config), ReadChunk, Compression,
-                                Pid, StreamId, log_user_chunk, MaxSize, log_user_overflow),
+                                Pid, StreamId, user_log, MaxSize),
     perform_log_streaming(BenchId, [{SysStreamer,0, no_overflow}, {UserStreamer, 0, no_overflow}],
         PollInterval).
 
@@ -478,7 +489,7 @@ stream_metric(Id, Metric, StreamParams, SendFun) ->
     FileReader = get_file_reader(Filename),
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
-        
+
         perform_streaming(Id, FileReader, SendFun, StreamParams, PollTimeout),
         lager:info("Streamer for #~b ~s has finished", [Id, Metric])
     after
@@ -490,8 +501,8 @@ perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = Time
         undefined -> undefined;
         _ -> mzb_api_bench:seconds() - TimeWindow
     end,
-    
-    FilteringSendFun = 
+
+    FilteringSendFun =
         fun({LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, CurrentMin, CurrentMax}, {data, Values}) ->
                 #stream_parameters{subsampling_interval = SubsamplingInterval, begin_time = BeginTime, end_time = EndTime} = StreamParams,
                 
