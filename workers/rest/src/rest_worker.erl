@@ -2,10 +2,17 @@
 
 -export([initial_state/0, metrics/0]).
 
--export([set_host/3, set_port/3, set_options/3,
-    get/3, post/3, request/6]).
+-export([set_host/3,
+         set_port/3,
+         set_options/3,
+         get/3,
+         post/3,
+         request/6
+        ]).
 
--export([generate/1, set_body/3]).
+-export([generate/1,
+         set_body/3
+        ]).
 
 -type meta() :: [{Key :: atom(), Value :: any()}].
 -type http_host() :: string().
