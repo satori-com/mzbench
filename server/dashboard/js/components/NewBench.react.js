@@ -131,8 +131,11 @@ class NewBench extends React.Component {
                 MZBenchRouter.navigate("#/bench/" + data.id + "/overview", {});
                 setTimeout(() => notify.close(), 5000);
             },
-            error: () => {
-                notify.update({message: `Failed to start benchmark`, type: 'danger'});
+            error: (data) => {
+                let msg = "Failed to start benchmark\n";
+                if (data.responseJSON && data.responseJSON.reason)
+                    msg += `<br>${data.responseJSON.reason.split('\n')[0]}`;
+                notify.update({message: msg, type: 'danger'});
                 setTimeout(() => notify.close(), 5000);
             }});
     }

@@ -286,6 +286,13 @@ check_string_multi_param(List) when is_list(List) -> {true, [binary_to_list(E)||
 check_string_multi_param(Bin) when is_binary(Bin) -> {true, [binary_to_list(Bin)]};
 check_string_multi_param(_) -> false.
 
+parse_update_interval(Bin) ->
+    N = erlang:binary_to_integer(Bin),
+    case N >= 1000 of
+        true -> N;
+        false -> erlang:error(invalid_update_interval)
+    end.
+
 check_nodes([Nodes]) ->
     List = binary_to_list(Nodes),
     try
@@ -329,7 +336,7 @@ parse_start_params(Req) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
                                                     end,                                                        []},
-        {metric_update_interval_ms, single_value,   fun erlang:binary_to_integer/1,                             undefined}
+        {metric_update_interval_ms, single_value,   fun parse_update_interval/1,                                undefined}
     ],
 
     {Params, Env} = lists:mapfoldl(
@@ -343,18 +350,30 @@ parse_start_params(Req) ->
 
     Params2 = lists:map(
         fun({ParamName, ValuesList}) ->
-            {ParamName, 
+            {ParamName,
                 case lists:keyfind(ParamName, 1, ParamsDefs) of
                     {_, single_value, BinaryToValueFun, DefaultValue} ->
                         case ValuesList of
-                            [Value|_] -> BinaryToValueFun(Value);
+                            [Value|_] ->
+                                try
+                                    BinaryToValueFun(Value)
+                                catch
+                                    _:_ ->
+                                        erlang:error({badarg, io_lib:format("Invalid value \"~s\" for ~s", [Value, ParamName])})
+                                end;
                             [] -> DefaultValue
                         end;
 
                     {_, list, ListOfBinariesToValueFun, DefaultValue} ->
                         case  ValuesList of
                             [] -> DefaultValue;
-                            L -> ListOfBinariesToValueFun(L)
+                            L ->
+                                try
+                                    ListOfBinariesToValueFun(L)
+                                catch
+                                    _:_ ->
+                                        erlang:error({badarg, io_lib:format("Invalid value \"~p\" for ~s", [L, ParamName])})
+                                end
                         end
                 end
             }
