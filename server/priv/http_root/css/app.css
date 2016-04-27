@@ -318,3 +318,8 @@ div.log-window pre{
     margin-bottom: 0px;
     overflow-x: block;
 }
+
+.no-overflow {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}

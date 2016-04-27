@@ -17,7 +17,7 @@ class TimelineElement extends React.Component {
         return (
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
-                    <h6>
+                    <h6 className="no-overflow">
                         #{bench.id} {bench.benchmark_name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                     </h6>
