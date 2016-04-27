@@ -39,7 +39,7 @@ class Timeline extends React.Component {
         return (
             <a href={`#/new`} className="bs-link">
                 <div className={cssClass}>
-                    <h6>
+                    <h6 className="no-overflow">
                         {bench.benchmark_name}
                         <span className="label">new</span>
                     </h6>
