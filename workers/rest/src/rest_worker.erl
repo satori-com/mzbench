@@ -7,6 +7,7 @@
          set_options/3,
          get/3,
          post/3,
+         put/3,
          request/7
         ]).
 
@@ -81,6 +82,11 @@ get(#state{host = Host, port = Port, headers = Headers, body = Body, options = O
 -spec post(state(), meta(), string()) -> {nil, state()}.
 post(#state{host = Host, port = Port, headers = Headers, body = Body, options = Options} = State, _Meta, Endpoint) ->
     request(post, Host, Port, Endpoint, Headers, Body, Options),
+    {nil, State}.
+
+-spec put(state(), meta(), string()) -> {nil, state()}.
+put(#state{host = Host, port = Port, headers = Headers, body = Body, options = Options} = State, _Meta, Endpoint) ->
+    request(put, Host, Port, Endpoint, Headers, Body, Options),
     {nil, State}.
 
 request(Method, Host, Port, Endpoint, Headers, Body, Options) ->
