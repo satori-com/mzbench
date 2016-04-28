@@ -7,11 +7,10 @@
          set_options/3,
          get/3,
          post/3,
-         request/6
+         request/7
         ]).
 
--export([generate/1,
-         set_body/3
+-export([set_body/4
         ]).
 
 -type meta() :: [{Key :: atom(), Value :: any()}].
@@ -24,6 +23,7 @@
     , port :: http_port()
     , options = [] :: http_options()
     , body :: binary()
+    , headers :: dict:dict()
     }).
 
 -type state() :: #state{}.
@@ -54,26 +54,6 @@ metrics() ->
         ]}
     ].
 
-random(integer, Min, Max) ->
-    (erlang:phash2(process_info(self(), reductions)) rem Max) + Min;
-random(string, Min, Max) ->
-    Bytes = random(integer, Min, Max),
-    base64:encode(crypto:strong_rand_bytes(Bytes)).
-
-generate({integer, Value}) when is_integer(Value) ->
-    Value;
-generate({string, Binary}) when is_binary(Binary) ->
-    Binary;
-generate({integer, Min, Max}) when Min < Max ->
-    random(integer, Min, Max);
-generate({string, Min, Max}) when Min < Max ->
-    random(string, Min, Max);
-generate({json, Fields}) when is_list(Fields) ->
-    EncodedFields = [generate(Field) || Field <- Fields],
-    jsx:encode(EncodedFields);
-generate({Key, Value}) when is_binary(Key) ->
-    {Key, generate(Value)}.
-
 -spec set_host(state(), meta(), string()) -> {nil, state()}.
 set_host(State, _Meta, NewHost) ->
     {nil, State#state{host = NewHost}}.
@@ -86,26 +66,27 @@ set_port(State, _Meta, NewPort) ->
 set_options(State, _Meta, NewOptions) ->
     {nil, State#state{options = NewOptions}}.
 
--spec set_body(state(), meta(), term()) -> {nil, state()}.
-set_body(State, _Meta, Value) when is_binary(Value) ->
+-spec set_body(state(), meta(), undefined | binary(), term()) -> {nil, state()}.
+set_body(State, _Meta, undefined, Value) when is_binary(Value) ->
     {nil, State#state{body=Value}};
-set_body(State, _Meta, Generator) ->
-    {nil, State#state{body=generate(Generator)}}.
+set_body(State=#state{headers=Headers}, _Meta, ContentType, Value) when is_binary(ContentType), is_binary(Value) ->
+    NewHeaders = dict:store(<<"Content-Type">>, ContentType, Headers),
+    {nil, State#state{headers=NewHeaders, body=Value}}.
 
 -spec get(state(), meta(), string()) -> {nil, state()}.
-get(#state{host = Host, port = Port, body = Body, options = Options} = State, _Meta, Endpoint) ->
-    request(get, Host, Port, Endpoint, Body, Options),
+get(#state{host = Host, port = Port, headers = Headers, body = Body, options = Options} = State, _Meta, Endpoint) ->
+    request(get, Host, Port, Endpoint, Headers, Body, Options),
     {nil, State}.
 
 -spec post(state(), meta(), string()) -> {nil, state()}.
-post(#state{host = Host, port = Port, body = Body, options = Options} = State, _Meta, Endpoint) ->
-    request(post, Host, Port, Endpoint, Body, Options),
+post(#state{host = Host, port = Port, headers = Headers, body = Body, options = Options} = State, _Meta, Endpoint) ->
+    request(post, Host, Port, Endpoint, Headers, Body, Options),
     {nil, State}.
 
-request(Method, Host, Port, Endpoint, Body, Options) ->
+request(Method, Host, Port, Endpoint, Headers, Body, Options) ->
     URL = lists:flatten(io_lib:format("http://~s:~p~s", [Host, Port, Endpoint])),
     Response = ?TIMED("latency", hackney:request(
-        Method, list_to_binary(URL), [], Body, [{follow_redirect, true}] ++ Options)),
+        Method, list_to_binary(URL), dict:to_list(Headers), Body, [{follow_redirect, true}] ++ Options)),
     record_response(Response).
 
 record_response(Response) ->
