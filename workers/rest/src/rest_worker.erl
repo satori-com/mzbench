@@ -23,7 +23,7 @@
     , port :: http_port()
     , options = [] :: http_options()
     , body :: binary()
-    , headers :: dict:dict()
+    , headers = dict:new() :: dict:dict()
     }).
 
 -type state() :: #state{}.
