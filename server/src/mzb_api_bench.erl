@@ -548,15 +548,15 @@ script_path(Script) ->
             [mzb_api_paths:node_deployment_path(), "mzbench_workers", Pkg, "default.erl"])
     end.
 
-run_periodically(StartTime, MaxTime, RetryTimeout, Fn) ->
+run_periodically(StartTime, MaxTime, RetryTimeoutSec, Fn) ->
     case Fn() of 
         ok -> ok;
         retry ->
             TimeSinceStart = seconds() -  StartTime,
             case TimeSinceStart =< MaxTime of
                 true ->
-                    timer:sleep(RetryTimeout),
-                    run_periodically(StartTime, MaxTime, RetryTimeout, Fn);
+                    timer:sleep(RetryTimeoutSec * 1000),
+                    run_periodically(StartTime, MaxTime, RetryTimeoutSec, Fn);
                 _ ->
                     erlang:error(max_time_reached)
             end
