@@ -20,8 +20,10 @@ start(Name, Opts) ->
     Spec = {Name,
             _MFA = {gen_server, start_link, [?MODULE, [Opts], []]},
             permanent, 5000, worker, [?MODULE]},
-    {ok, Child} = supervisor:start_child(mzb_api_sup, Spec),
-    Child.
+    case supervisor:start_child(mzb_api_sup, Spec) of
+        {ok, Child} -> Child;
+        {error, {already_started, Child}} -> Child
+    end.
 
 create_cluster(Pid, N, _Config) ->
     case lock_hosts(Pid, N) of

@@ -162,6 +162,47 @@ handle(<<"GET">>, <<"/report.json">>, Req) ->
              end, SortedBenchInfo),
     {ok, reply_json(200, #{data => Body}, Req), #{}};
 
+handle(<<"GET">>, <<"/clusters_info">>, Req) ->
+    List = mzb_api_cloud:clusters_info(),
+    Keys = [id, state, n, bench_id, timestamp, provider, hosts, reason],
+    F = fun (D) ->
+            lists:map(
+            fun ({state, S}) -> {state, erlang:atom_to_binary(S, latin1)};
+                ({provider, P}) -> {provider, erlang:atom_to_binary(P, latin1)};
+                ({hosts, Hosts}) -> {hosts, [erlang:list_to_binary(H) || H <- Hosts]};
+                ({reason, Reason}) -> {reason, erlang:iolist_to_binary(io_lib:format("~p", [Reason]))};
+                ({K, V}) -> {K, V}
+            end, D)
+        end,
+    Info = [maps:from_list(F([{K,V} || {K,V} <- P, lists:member(K, Keys)])) || P <- List],
+    Sorted = lists:usort(
+        fun (#{timestamp:= T, id:= Id1}, #{timestamp:= T, id:=Id2}) -> Id1 =< Id2;
+            (#{timestamp:= T1}, #{timestamp:= T2}) -> T1 =< T2
+        end, Info),
+    {ok, reply_json(200, Sorted, Req), #{}};
+
+handle(<<"GET">>, <<"/deallocate_cluster">>, Req) ->
+    ClusterId =
+        try
+            #{id:= Id} = cowboy_req:match_qs([{id, int}], Req),
+            Id
+        catch
+            error:bad_key ->
+                erlang:error({badarg, "Missing id argument"});
+            error:{case_clause, _} ->
+                % case_clause exception is cowboy's way of saying that
+                % provided id is not an int
+                erlang:error({badarg, "Provided id is not an int"})
+        end,
+
+    try
+        mzb_api_cloud:destroy_cluster(ClusterId),
+        {ok, reply_json(200, #{}, Req), #{}}
+    catch
+        _:not_found -> erlang:error({not_found, "Cluster not found"});
+        _:no_cluster -> erlang:error({not_found, "Cluster is not allocated"})
+    end;
+
 handle(Method, Path, Req) ->
     lager:error("Unknown request: ~p ~p~n~p", [Method, Path, Req]),
     erlang:error({not_found, io_lib:format("Wrong endpoint: ~p ~p", [Method, Path])}).
