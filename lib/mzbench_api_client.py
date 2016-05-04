@@ -114,7 +114,7 @@ def restart(host, bench_id):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id to copy
-    :type host: int
+    :type bench_id: int
     :returns: operation status
     :rtype: dict
     """
@@ -127,7 +127,7 @@ def log(host, bench_id):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :returns: log
     :rtype: generator of str
     """
@@ -141,7 +141,7 @@ def userlog(host, bench_id):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :returns: log
     :rtype: generator of str
     """
@@ -155,7 +155,7 @@ def change_env(host, bench_id, env):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :param env: Dictionary of environment variables to substitute
     :type env: Dictionary
     """
@@ -169,7 +169,7 @@ def data(host, bench_id):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :returns: CSV data
     :rtype: generator of str
     """
@@ -183,7 +183,7 @@ def status(host, bench_id, wait=False):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :returns: benchmark status
     :rtype: dict
     """
@@ -200,7 +200,7 @@ def stop(host, bench_id):
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
-    :type host: int
+    :type bench_id: int
     :returns: operation status
     :rtype: dict
     """
