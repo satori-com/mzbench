@@ -41,6 +41,8 @@ if server_functions:
   mzbench validate <script> [--env=<name=value>...]
   mzbench list_templates
   mzbench new_worker [--template=<template>] <name>
+  mzbench clusters_info
+  mzbench deallocate_cluster <cluster_id>
   mzbench selfcheck"""
 
 doc_acc += """
@@ -376,6 +378,14 @@ def data_default(gen):
         result[name].append([value, timestamp])
 
     pretty_print(map(lambda (k,v): {'target':k, 'datapoints':v}, result.iteritems()))
+
+def clusters_info(host):
+    response = api.clusters_info(host)
+    pretty_print(response)
+
+def deallocate_cluster(host, cluster_id):
+    response = api.deallocate_cluster(host, cluster_id)
+    pretty_print(response)
 
 #=================================================================================================
 # Local bench script execution

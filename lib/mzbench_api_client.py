@@ -209,6 +209,24 @@ def stop(host, bench_id):
         '/stop',
         {'id': bench_id})
 
+def clusters_info(host):
+    """Get info about currenlty allocated clusters
+
+    :param host: MZBench API server host with port
+    :type host: str
+    """
+    return assert_successful_get(host, '/clusters_info', {})
+
+def deallocate_cluster(host, cluster_id):
+    """Deallocate cluster
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param cluster_id: id of target cluster
+    :type cluster_id: int
+    """
+
+    return assert_successful_get(host, '/deallocate_cluster', {'id': cluster_id})
 
 def stream_lines(host, endpoint, args):
     try:
