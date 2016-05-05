@@ -8,7 +8,7 @@ add_libs() ->
     CodePaths = filelib:wildcard(filename:join(BinDir, "../lib/mzbench_utils-*/ebin/")),
     code:add_pathsz(CodePaths).
 
-main([TimeoutStr | NodesStr]) ->
+main([Hostname, TimeoutStr | NodesStr]) ->
     io:format("~p starting~n", [os:timestamp()]),
 
     add_libs(),
@@ -28,7 +28,7 @@ main([TimeoutStr | NodesStr]) ->
 
     timer:apply_after(Timeout, ?MODULE, stop, [self(), timeout]),
 
-    init_net_kernel(),
+    init_net_kernel(Hostname),
 
     true = ensure_hostnames_are_resolvable(Hostnames),
     io:format("~p hostnames are resolvable~n", [os:timestamp()]),
@@ -91,14 +91,14 @@ usage() ->
     io:format("Usage: ~s Timeout Host1 [ Host2 [ Host3 ...]]~n", [escript:script_name()]),
     halt(1).
 
-nodename_gen() ->
+nodename_gen(Hostname) ->
     {N1,N2,N3} = erlang:now(),
-    Str = lists:flatten(io_lib:format("~p-~p~p", [N1,N2,N3])),
+    Str = lists:flatten(io_lib:format("~p-~p~p@~s", [N1,N2,N3,Hostname])),
     erlang:list_to_atom(Str).
 
-init_net_kernel() ->
+init_net_kernel(Hostname) ->
     ok = application:start(inets),
-    {ok, _} = net_kernel:start([nodename_gen(), shortnames]),
+    {ok, _} = net_kernel:start([nodename_gen(Hostname), longnames]),
     ok.
 
 spawn_is_ready(Node) ->

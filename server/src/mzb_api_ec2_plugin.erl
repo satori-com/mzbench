@@ -27,13 +27,9 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, Config) when is_int
         wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
         {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
         lager:info("~p", [NewData]),
-        {Kind, Hosts} = get_hosts(Ids, NewData),
-        wait_nodes_ssh(Hosts, ?MAX_POLL_COUNT),
-        case Kind of
-            dns_name -> ok; % when dns names are used for hosts there is no need to set them
-            _ -> update_hostfiles(UserName, Hosts, Opts)
-        end,
-        {ok, {Opts, Ids}, UserName, Hosts}
+        IPs = get_IPs(Ids, NewData),
+        wait_nodes_ssh(IPs, ?MAX_POLL_COUNT),
+        {ok, {Opts, Ids}, UserName, IPs}
     catch
         C:E ->
             ST = erlang:get_stacktrace(),
@@ -49,19 +45,19 @@ get_description(Ids, Opts, C) ->
              get_description(Ids, Opts, C - 1)
     end.
 
-% try to extract dns names or ip addresses for allocated hosts
--spec get_hosts([string()], [any(), ...]) -> {dns_name | ip_address | private_ip_address, [string(), ...]}.
-get_hosts(Ids, Data) ->
-    get_hosts(Ids, Data, [dns_name, ip_address, private_ip_address]).
+% try to get ip addresses for allocated hosts
+-spec get_IPs([string()], [any(), ...]) -> [string(), ...].
+get_IPs(Ids, Data) ->
+    get_IPs(Ids, Data, [ip_address, private_ip_address]).
 
--spec get_hosts([string()], [any()], [atom()]) -> {atom(), [string()]}.
-get_hosts(_, _, []) -> erlang:error({ec2_error, couldnt_obtain_hosts});
-get_hosts(Ids, Data, [H | T]) ->
+-spec get_IPs([string()], [any(), ...], [atom()]) -> [string()].
+get_IPs(_, _, []) -> erlang:error({ec2_error, couldnt_obtain_hosts});
+get_IPs(Ids, Data, [H | T]) ->
     Instances = proplists:get_value(instances_set, Data),
-    Hosts = [proplists:get_value(H, X) || X <- Instances],
-    case Hosts of
-        [R | _] when R =/= undefined, R =/= "" -> {H, Hosts};
-        _ -> get_hosts(Ids, Data, T)
+    IPs = [proplists:get_value(H, X) || X <- Instances],
+    case IPs of
+        [R | _] when R =/= undefined, R =/= "" -> IPs;
+        _ -> get_IPs(Ids, Data, T)
     end.
 
 -spec destroy_cluster({#{}, [term()]}) -> ok.
@@ -71,31 +67,15 @@ destroy_cluster({Opts, Ids}) ->
     {ok, _} = R,
     ok.
 
-update_hostfiles(UserName, Hosts, #{host_prefix:= HPrefix}) ->
-    Logger = mzb_api_app:default_logger(),
-    _ = lists:map(
-        fun ({N, H}) ->
-            HostName = mzb_string:format("~s~b", [HPrefix, N]),
-            Cmd1 = io_lib:format("sudo hostname ~s", [HostName]),
-            _ = mzb_subprocess:remote_cmd(UserName, [H], Cmd1, [], Logger),
-            Cmd2 = mzb_string:format("sudo sh -c 'echo \"~s     ~s\" >> /etc/hosts'", [H, HostName]),
-            mzb_subprocess:remote_cmd(UserName, Hosts, Cmd2, [], Logger)
-        end, mzb_lists:enumerate(Hosts)),
-    ok;
-update_hostfiles(UserName, Hosts, _) ->
-    Logger = mzb_api_app:default_logger(),
-    _ = lists:map(fun (H) -> mzb_subprocess:remote_cmd(UserName, Hosts,
-        mzb_string:format("sudo sh -c 'echo \"~s     ip-~s\" >> /etc/hosts'", [H, string:join(string:tokens(H, "."), "-")]), [], Logger) end, Hosts),
-    ok.
-
 wait_nodes_ssh(_, C) when C < 0 -> erlang:error({ec2_error, cluster_ssh_start_timed_out});
 wait_nodes_ssh([], _) -> ok;
 wait_nodes_ssh([H | T], C) ->
-  R = gen_tcp:connect(H, 22, [], ?POLL_INTERVAL),
-  case R of
+    lager:info("Checking port 22 on ~p", [H]),
+    R = gen_tcp:connect(H, 22, [], ?POLL_INTERVAL),
+    case R of
         {ok, Socket} -> gen_tcp:close(Socket), wait_nodes_ssh(T, C);
         _ -> timer:sleep(?POLL_INTERVAL), wait_nodes_ssh([H | T], C - 1)
-  end.
+    end.
 
 wait_nodes_start(_, _, C) when C < 0 -> erlang:error({ec2_error, cluster_start_timed_out});
 wait_nodes_start([], _, _) -> ok;

@@ -43,7 +43,7 @@ provision_nodes(Config, Logger) ->
         _ -> ok
     end,
     NodeHosts = [{director_sname(Config),DirectorHost} | [{worker_sname(Config), H} || H <- WorkerHosts]],
-    Nodes = mzb_lists:pmap(fun ({N, H}) -> nodename(N, get_hostname(UserName, H, Logger)) end, NodeHosts),
+    Nodes = mzb_lists:pmap(fun ({N, H}) -> nodename(N, H) end, NodeHosts),
 
     ensure_vm_args([DirectorHost|WorkerHosts], Nodes, Config, Logger),
     _ = mzb_subprocess:remote_cmd(
@@ -57,7 +57,7 @@ provision_nodes(Config, Logger) ->
         UserName,
         [DirectorHost],
         io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
-        ["30000" | Nodes],
+        [DirectorHost, "30000" | Nodes],
         Logger),
     {lists:zip(Nodes, [DirectorHost|WorkerHosts]), get_management_port(Config, Logger)}.
 
@@ -66,7 +66,7 @@ get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserNam
                 UserName,
                 [DirectorHost],
                 io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
-                ["-sname", director_sname(Config), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
+                ["-name", nodename(director_sname(Config), DirectorHost), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
                 Logger, []),
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
@@ -107,16 +107,9 @@ ntp_check(UserName, Hosts, Logger) ->
 nodename(Name, Host) ->
     erlang:list_to_atom(Name ++ "@" ++ Host).
 
-get_hostname(UserName, Host, Logger) ->
-    [Hostname] = mzb_subprocess:remote_cmd(UserName, [Host], "hostname", [], Logger, []),
-    Logger(debug, "fqdn for ~p: ~p", [Host, Hostname]),
-    Res = hd(string:tokens(Hostname, ".")),
-    Logger(info, "Shortname for ~p are ~p", [Host, Res]),
-    Res.
-
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
     CookieFile = "~/.erlang.cookie",
-    NotLocalhosts = [H || H <- Hosts, H =/= "localhost"],
+    NotLocalhosts = [H || H <- Hosts, H =/= "localhost", H =/= "127.0.0.1"],
     ensure_file_content(NotLocalhosts, Cookie, CookieFile, Config, Logger),
     _ = mzb_subprocess:remote_cmd(UserName, NotLocalhosts, "chmod", ["go-rwx", CookieFile], Logger),
     ok.
@@ -143,7 +136,7 @@ ensure_file_content(Hosts, Content, Filepath,
 
 ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
     _ = mzb_lists:pmap(
-        fun ("localhost") ->
+        fun (Local) when Local == "localhost"; Local == "127.0.0.1" ->
                 Logger(info, "[ COPY ] ~s -> ~s", [LocalPath, RemotePath]),
                 {ok, _} = file:copy(LocalPath, RemotePath);
             (Host) ->
@@ -157,7 +150,7 @@ ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
     ok.
 
 -spec ensure_dir(undefined | string(), [string()], string(), fun((atom(), string(), [term()]) -> ok)) -> ok.
-ensure_dir(_User, ["localhost"], Dir, Logger) ->
+ensure_dir(_User, [Local], Dir, Logger) when Local == "localhost"; Local == "127.0.0.1" ->
     Logger(info, "[ MKDIR ] ~s", [Dir]),
     % The trailing slash is needed, otherwise it will only
     % create Dir's parent, but not Dir itself
@@ -173,7 +166,7 @@ vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port
     vm_args:= ConfigArgs, node_log_user_port:= LogUserPort} = Config) ->
     UpdateIntervalMs = mzb_bc:maps_get(metric_update_interval_ms, Config, undefined),
     NewArgs =
-        [mzb_string:format("-sname ~s", [NodeName]),
+        [mzb_string:format("-name ~s", [NodeName]),
          mzb_string:format("-mzbench node_management_port ~b", [Port]),
          mzb_string:format("-mzbench node_log_port ~b", [LogPort]),
          mzb_string:format("-mzbench node_log_user_port ~b", [LogUserPort])] ++ 
@@ -196,7 +189,7 @@ get_host_system_id(UserName, Host, Logger) ->
 
 download_file(User, Host, FromFile, ToFile, Logger) ->
     _ = case Host of
-        "localhost" ->
+        Local when Local == "localhost"; Local == "127.0.0.1" ->
             Logger(info, "[ COPY ] ~s <- ~s", [ToFile, FromFile]),
             {ok, _} = file:copy(FromFile, ToFile);
         _ ->
@@ -238,7 +231,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     OSsWithMissingTarballs = case [OS || {OS, _} <- MissingTarballs] of
         ["noarch"] -> Logger(info, "Building package ~s on api server", [PackageName]),
                       [TarballPath] = [T || {_, T} <- MissingTarballs],
-                      build_package_on_host("localhost", User, TarballPath, InstallSpec, Logger),
+                      build_package_on_host("127.0.0.1", User, TarballPath, InstallSpec, Logger),
                       [];
                  L -> L
         end,

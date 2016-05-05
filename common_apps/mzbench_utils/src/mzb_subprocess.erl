@@ -16,7 +16,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
             (A) -> A
         end, Args),
     mzb_lists:pmap(
-        fun ("localhost") ->
+        fun (Local) when Local == "localhost"; Local == "127.0.0.1" ->
                 OrigPath = os:getenv("ORIG_PATH"),
                 exec_format("bash -c -l \"export PATH='~s'; ~s ~s\"",
                     [OrigPath, Executable, string:join(Args2, " ")], Opts, Logger);
