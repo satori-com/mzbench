@@ -96,8 +96,8 @@ class NewBench extends React.Component {
             event.target.value.split(/[\n,;]+/).reduce((acc, x) => {
                 var d = x.split("=");
                 if (d.length >= 2) {
-                    var key = d[0].trim();
-                    var value = d[1].trim();
+                    var key = d.shift().trim();
+                    var value = d.join("=").trim();
                     acc.env[key] = value;
                 }
                 return acc;
