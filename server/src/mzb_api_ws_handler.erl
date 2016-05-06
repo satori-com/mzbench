@@ -436,7 +436,7 @@ log_file_streamer(Filename, ChunkSize, Compression, Pid, StreamId,
                   MessageType, MaxSize) ->
     Reader = log_file_reader(Filename, ChunkSize, Compression),
     fun (finish) -> Reader(close);
-        ({stream, _, overflow}) -> ok;
+        ({stream, StreamedBytes, overflow}) -> {0, StreamedBytes, overflow};
         ({stream, StreamedBytes, no_overflow}) when StreamedBytes > MaxSize ->
                 Pid ! {MessageType, overflow, StreamId, MaxSize},
                 Pid ! {MessageType, batch_end, StreamId},

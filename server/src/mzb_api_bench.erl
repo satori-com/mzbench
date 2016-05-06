@@ -362,24 +362,32 @@ terminate(Reason, #{id:= Id} = State) ->
     catch (maps:get(log_file_handler, State))(close),
     catch (maps:get(log_user_file_handler, State))(close),
     spawn(
-      fun() ->
-          {ok, Timer} = timer:kill_after(5 * 60 * 1000),
+        fun() ->
+            try
+                lager:info("Starting finalizing process for #~p", [Id]),
+                {ok, Timer} = timer:kill_after(5 * 60 * 1000),
+                Stages = proplists:get_value(finalize, workflow_config(State), []),
+                NewState = handle_pipeline_status({final, failed}, State),
 
-          Stages = proplists:get_value(finalize, workflow_config(State), []),
-          NewState = handle_pipeline_status({final, failed}, State),
+                lists:foreach(fun (Stage) ->
+                                try
+                                    Res = handle_stage(finalize, Stage, NewState),
+                                    Res
+                                catch
+                                    _C:E ->
+                                        ST = erlang:get_stacktrace(),
+                                        error("Stage 'finalize - ~s': failed~n~s", [Stage, format_error(Stage, {E, ST})], NewState)
+                                end
+                            end, Stages),
 
-          lists:foreach(fun (Stage) ->
-                            try
-                                handle_stage(finalize, Stage, NewState)
-                            catch
-                                _C:E ->
-                                    ST = erlang:get_stacktrace(),
-                                    error("Stage 'finalize - ~s': failed~n~s", [Stage, format_error(Stage, {E, ST})], NewState)
-                            end
-                        end, Stages),
-
-          timer:cancel(Timer)
-      end),
+                timer:cancel(Timer)
+            catch
+                Class:Error ->
+                    Stacktrace= erlang:get_stacktrace(),
+                    lager:error("Finalizing process for #~p has crashed with reason: ~p~n~p", [Id, Error, Stacktrace]),
+                    erlang:raise(Class, Error, Stacktrace)
+            end
+        end),
     ok.
 
 handle_pipeline_status(Info, State) ->
@@ -674,8 +682,8 @@ generate_script_filename(#{name := _Name, body := Body} = Script) ->
 get_file_writer(Filename, none) ->
     {ok, H} = file:open(Filename, [write]),
     fun (close) -> file:close(H);
-        ({write, Data}) -> 
-            ok = file:write(H, Data),
+        ({write, Data}) ->
+            _ = file:write(H, Data),
             ok
     end;
 get_file_writer(Filename, deflate) ->
