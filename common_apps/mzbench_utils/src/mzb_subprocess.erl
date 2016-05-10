@@ -18,7 +18,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
     mzb_lists:pmap(
         fun ("localhost") ->
                 OrigPath = os:getenv("ORIG_PATH"),
-                exec_format("bash -c \"export PATH='~s'; source /etc/profile;~s ~s\"",
+                exec_format("bash -c -l \"export PATH='~s'; ~s ~s\"",
                     [OrigPath, Executable, string:join(Args2, " ")], Opts, Logger);
             (Host) ->
                 UserNameParam =
