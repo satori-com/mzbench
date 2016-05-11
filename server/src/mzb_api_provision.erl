@@ -53,12 +53,6 @@ provision_nodes(Config, Logger) ->
         [],
         Logger),
 
-    _ = mzb_subprocess:remote_cmd(
-        UserName,
-        [DirectorHost],
-        io_lib:format("~s/mzbench/bin/wait_cluster_start.escript", [NodeDeployPath]),
-        [DirectorHost, "30000" | Nodes],
-        Logger),
     {lists:zip(Nodes, [DirectorHost|WorkerHosts]), get_management_port(Config, Logger)}.
 
 get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->

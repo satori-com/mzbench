@@ -25,6 +25,7 @@
     {node_log_port, 4801},
     {node_log_user_port, 4802},
     {node_management_port, 4803},
+    {node_interconnect_port, 4804},
     {gc_sleep, 10},
     {log_queue_max_len, 1000},
     {log_rate_limit, 200},
