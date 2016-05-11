@@ -60,6 +60,25 @@ handle_message(get_results, ReplyFun) ->
     _ = erlang:spawn(fun () -> ReplyFun(mzb_bench_sup:get_results()) end),
     noreply;
 
+handle_message({connect_nodes, Hosts}, ReplyFun) ->
+    {ok, Port} = application:get_env(mzbench, node_interconnect_port),
+    try
+        [mzb_interconnect:connect(Host, Port) || Host <- Hosts],
+        fun Wait (0) -> ReplyFun({error, timeout});
+            Wait (N) ->
+                case (length(mzb_interconnect:nodes()) == length(Hosts)) of
+                    true  -> ReplyFun(ok);
+                    false ->
+                        timer:sleep(_Timeout = 2000),
+                        Wait(N - 1)
+                end
+        end (_Retries = 10)
+    catch
+        _:E ->
+            system_log:error("Connecting nodes error: ~p~n~p", [E, erlang:get_stacktrace()]),
+            ReplyFun({error, E})
+    end;
+
 handle_message({metric_names, ScriptPath, Env}, _) ->
     try
         case mzb_script_validator:read_and_validate(ScriptPath, mzbl_script:normalize_env(Env)) of

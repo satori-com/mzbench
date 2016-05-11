@@ -135,6 +135,7 @@ workflow_config(_State) ->
                   checking_script,
                   allocating_hosts,
                   provisioning,
+                  connect_nodes,
                   starting_collectors,
                   uploading_script,
                   uploading_includes,
@@ -191,6 +192,13 @@ handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
                     fun (Msg, S) -> handle_management_msg(Msg, Self, S) end,
                     #{config => Config, handlers => #{}}),
     fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
+
+handle_stage(pipeline, connect_nodes, #{cluster_connection:= Connection, config:= Config}) ->
+    #{worker_hosts:= WorkerHosts} = Config,
+    case director_call(Connection, {connect_nodes, WorkerHosts}) of
+        ok -> ok;
+        {error, Error} -> erlang:error({connect_cluster_error, Error})
+    end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
     #{script:= Script,
