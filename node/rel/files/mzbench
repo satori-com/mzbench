@@ -163,6 +163,39 @@ case "$1" in
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
         $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR "exec $RUNNER_BASE_DIR/bin/$SCRIPT $START_OPTION $RUN_PARAM" 2>&1
+
+        attempts=5
+        while true; do
+            RES=`ping_node`
+            if [ "$RES" != "pong" ]; then
+                if [ $attempts -lt 1 ]; then
+                    echo "Node start failed"
+                    exit 1;
+                fi
+                attempts=$[$attempts-1]
+                sleep 5
+            else
+                break
+            fi
+        done
+
+        attempts=5
+        while true; do
+            RES=`$NODETOOL rpcterms mzb_sup ensure_started ''`
+            EC=$?
+            if [ "$EC" -eq 0 ]; then
+                echo "ok"
+                break
+            else
+                if [ $attempts -lt 1 ]; then
+                    echo "Node start failed"
+                    exit 1;
+                fi
+                attempts=$[$attempts-1]
+                sleep 5
+            fi
+        done
+
         ;;
 
     stop)
