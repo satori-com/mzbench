@@ -1,12 +1,16 @@
 -module(mzb_sup).
 
--export([start_link/0, stop_bench/0]).
+-export([start_link/0, stop_bench/0, ensure_started/0]).
 
 -behaviour(supervisor).
 -export([init/1]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+ensure_started() ->
+    [_|_] = supervisor:which_children(?MODULE),
+    ok.
 
 stop_bench() ->
     ok = supervisor:terminate_child(?MODULE, bench_sup),
