@@ -60,8 +60,23 @@
                 
                 
                 
-                    <li >
-                        <a href="../scenarios/">Scenarios</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scenarios <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../scenarios/tutorial/">How to Write a Scenario</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../scenarios/spec/">Scenario DSL Specification</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -161,15 +176,28 @@
 <p><code>mzb_api_ec2_plugin</code></p>
 <p>The module allocates nodes in an Amazon EC2 cloud.</p>
 <p>The AWS node images must have Erlang R17, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put <code>Defaults !requiretty</code> in <code>/etc/sudoers</code>. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.</p>
-<p>There&rsquo;s a ready-to-use Amazon Linux image with all necessary dependencies: <strong>ami-3b90a80b</strong>. To use this image, specify it in the cloud plugin config as <code>image_id</code>:</p>
-<pre><code class="erlang">{image_id, &quot;ami-3b90a80b&quot;
+<p>There&rsquo;s a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:</p>
+<pre><code>us-west-2       ami-ee8d718e
+us-east-1       ami-61f11f0c
+us-west-1       ami-fc28509c
+eu-west-1       ami-4554c136
+eu-central-1    ami-8d48a5e2
+ap-northeast-1  ami-78a24419
+ap-northeast-2  ami-ef579f81
+ap-southeast-1  ami-66fd2b05
+ap-southeast-2  ami-21634c42
+sa-east-1       ami-7798101b
+</code></pre>
+
+<p>To use one of these images, specify it in the cloud plugin config as <code>image_id</code>:</p>
+<pre><code class="erlang">{image_id, &quot;ami-ee8d718e&quot;
 </code></pre>
 
 <p>You can, of course, build your own image based on the requirements listed above. <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#creating-an-ami">Learn more</a> in the official Amazon docs.</p>
 <p>Configuration example:</p>
 <pre><code class="erlang">{cloud_plugins, [{ec2, #{module =&gt; mzb_api_ec2_plugin,
                          instance_spec =&gt; [
-                          {image_id, &quot;ami-3b90a80b&quot;},
+                          {image_id, &quot;ami-ee8d718e&quot;},
                           {group_set, &quot;&quot;},
                           {key_name, &quot;-&quot;},
                           {subnet_id, &quot;-&quot;},

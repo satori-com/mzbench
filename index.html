@@ -60,8 +60,23 @@
                 
                 
                 
-                    <li >
-                        <a href="scenarios/">Scenarios</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scenarios <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="scenarios/tutorial/">How to Write a Scenario</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="scenarios/spec/">Scenario DSL Specification</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -111,7 +126,7 @@
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="scenarios/">
+                        <a rel="prev" href="scenarios/tutorial/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -191,7 +206,7 @@ Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzb
 <p>The first server start takes a few minutes. The shell will not respond, which is OK; please be patient. Further starts will be much faster.</p>
 </div>
 <p>When the server is running, launch an example benchmark:</p>
-<pre><code class="bash">$ ./bin/mzbench run examples/ramp.erl
+<pre><code class="bash">$ ./bin/mzbench run workers/http/examples/localhost.erl
 {
     &quot;status&quot;: &quot;pending&quot;, 
     &quot;id&quot;: 6
@@ -204,7 +219,7 @@ status: running                       00:09
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
 <p>MZBench runs your test scenarios on many <em>nodes</em>, simultaneously. This allows it to put extraordinarily high load on the target system—we&rsquo;re talking about <em>millions</em> of simultaneous connections here.</p>
 <p><strong>Node</strong> is a machine, virtual or physical, that runs your scenarios. In real-life testing, MZBench is used with a cloud service like Amazon EC2 that provides nodes on demand. Alternatively, you can manually list the available node hosts. Anyway, you have to provide MZBench the machines to run on. If there&rsquo;s not enough nodes to run all the jobs at the same time, MZBench evenly distributes the jobs between the available nodes.</p>
-<p>There&rsquo;s one node that doesn&rsquo;t run scenarios—the <strong>director node</strong>. It collects the metrics from the other nodes and runs <a href="scenarios/#pre_hook-and-post_hook">post and pre hooks</a>. So, if you want to run jobs on 10 nodes, reserve 11.</p>
+<p>There&rsquo;s one node that doesn&rsquo;t run scenarios—the <strong>director node</strong>. It collects the metrics from the other nodes and runs <a href="scenarios/spec/#pre_hook-and-post_hook">post and pre hooks</a>. So, if you want to run jobs on 10 nodes, reserve 11.</p>
 <p><img alt="MZBench Architecture Provisioning" src="./images/scheme_1.png" /></p>
 <p>When the MZBench server runs your scenarios, it allocates the nodes, prepares them, and distributes the jobs. During the test run, the nodes send the collected data to the director node which then submits them to the server. The server uses the data to render graphs and show stats:</p>
 <p><img alt="MZBench Architecture Running" src="./images/scheme_2.png" /></p>
@@ -213,7 +228,7 @@ status: running                       00:09
 <p>MZBench ships with workers for <a href="https://github.com/machinezone/mzbench/tree/master/workers/http">HTTP</a> and <a href="https://github.com/machinezone/mzbench/tree/master/workers/xmpp">XMPP</a> protocols and a worker that <a href="https://github.com/machinezone/mzbench/tree/master/workers/exec">executes shell commands</a>. This should be enough for most common test cases, but you can use your own workers in necessary.</p>
 <h2 id="read-next">Read Next<a class="headerlink" href="#read-next" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="scenarios/">How to write scenarios →</a></li>
+<li><a href="scenarios/tutorial/">How to write scenarios →</a></li>
 <li><a href="cli/">How to control MZBench from command line →</a></li>
 <li><a href="deployment/">How to deploy MZBench →</a></li>
 <li><a href="workers/#how-to-write-a-worker">How to write your own worker →</a></li>
@@ -264,5 +279,5 @@ status: running                       00:09
 
 <!--
 MkDocs version : 0.14.0
-Build Date UTC : 2016-03-25 13:09:00.343058
+Build Date UTC : 2016-05-13 11:31:29.545094
 -->

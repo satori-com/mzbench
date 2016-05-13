@@ -60,8 +60,23 @@
                 
                 
                 
-                    <li >
-                        <a href="../scenarios/">Scenarios</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scenarios <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../scenarios/tutorial/">How to Write a Scenario</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../scenarios/spec/">Scenario DSL Specification</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -180,7 +195,7 @@ $ curl http://mzbench.myserver.com/logs?id=100500
 </div>
 <h1 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h1>
 <h2 id="post-start">POST /start<a class="headerlink" href="#post-start" title="Permanent link">&para;</a></h2>
-<p>Ask the server to start a benchmark from the given <a href="../scenarios/">scenario file</a>. The file is submitted as form data. A successful response is a JSON object with &ldquo;id&rdquo; and &ldquo;status&rdquo; fields:</p>
+<p>Ask the server to start a benchmark from the given <a href="../scenarios/spec/">scenario file</a>. The file is submitted as form data. A successful response is a JSON object with &ldquo;id&rdquo; and &ldquo;status&rdquo; fields:</p>
 <pre><code class="bash"># Start a benchmark from scenario.erl:
 $ curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start
 {

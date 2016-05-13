@@ -4,23 +4,31 @@
     
     <url>
      <loc>None/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
 
     
+        
     <url>
-     <loc>None/scenarios/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <loc>None/scenarios/tutorial/</loc>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
+        
+    <url>
+     <loc>None/scenarios/spec/</loc>
+     <lastmod>2016-05-13</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
     
 
     
     <url>
      <loc>None/cli/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -28,7 +36,7 @@
     
     <url>
      <loc>None/api/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -36,7 +44,7 @@
     
     <url>
      <loc>None/deployment/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -44,7 +52,7 @@
     
     <url>
      <loc>None/cloud_plugins/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -52,7 +60,7 @@
     
     <url>
      <loc>None/workers/</loc>
-     <lastmod>2016-03-25</lastmod>
+     <lastmod>2016-05-13</lastmod>
      <changefreq>daily</changefreq>
     </url>
     

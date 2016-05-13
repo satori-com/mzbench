@@ -7,15 +7,15 @@
         
         
         
-        <link rel="shortcut icon" href="../img/favicon.ico">
+        <link rel="shortcut icon" href="../../img/favicon.ico">
 
-	<title>Scenarios - MZBench Docs</title>
+	<title>Scenario DSL Specification - MZBench Docs</title>
 
-        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
-        <link href="../css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="../css/highlight.css">
-        <link href="../css/custom.css" rel="stylesheet">
+        <link href="../../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../../css/highlight.css">
+        <link href="../../css/custom.css" rel="stylesheet">
 
         <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!--[if lt IE 9]>
@@ -44,7 +44,7 @@
             
 
             <!-- Main title -->
-            <a class="navbar-brand" href="..">MZBench Docs</a>
+            <a class="navbar-brand" href="../..">MZBench Docs</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -55,43 +55,58 @@
                 
                 
                     <li >
-                        <a href="..">Overview</a>
+                        <a href="../..">Overview</a>
                     </li>
                 
                 
                 
-                    <li class="active">
-                        <a href="./">Scenarios</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../cli/">CLI</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../api/">API</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../deployment/">Deployment</a>
-                    </li>
-                
-                
-                
-                    <li >
-                        <a href="../cloud_plugins/">Cloud Plugins</a>
+                    <li class="dropdown active">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scenarios <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../tutorial/">How to Write a Scenario</a>
+</li>
+
+                        
+                            
+<li class="active">
+    <a href="./">Scenario DSL Specification</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
                 
                     <li >
-                        <a href="../workers/">Workers</a>
+                        <a href="../../cli/">CLI</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../../api/">API</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../../deployment/">Deployment</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../../cloud_plugins/">Cloud Plugins</a>
+                    </li>
+                
+                
+                
+                    <li >
+                        <a href="../../workers/">Workers</a>
                     </li>
                 
                 
@@ -106,12 +121,12 @@
                 </li>
                 
                     <li >
-                        <a rel="next" href="..">
+                        <a rel="next" href="../tutorial/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
                     <li >
-                        <a rel="prev" href="../cli/">
+                        <a rel="prev" href="../../cli/">
                             Next <i class="fa fa-arrow-right"></i>
                         </a>
                     </li>
@@ -182,9 +197,7 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<p><strong>Scenarios</strong> describe the behavior you want MZBench to emulate during the benchmark. If you&rsquo;re testing an online store, your scenario will probably include opening a product page and adding the product to cart. For a search service, the scenario may be searching for a random word. You get the idea.</p>
-<p>In MZBench, scenarios are .erl files written in a simple <abbr title="Domain-Specific Language">DSL</abbr>. It looks a lot like Erlang but is much simpler.</p>
-<p>Read on to learn how to write test scenarios for MZBench.</p>
+<p>In MZBench, scenarios are .erl files written in a special <abbr title="Domain-Specific Language">DSL</abbr>. Think of it as a simplified, declarative version of Erlang.</p>
 <p>MZBench test scenarios consist of <em>lists</em>, <em>tuples</em>, and <em>atoms</em>:</p>
 <ul>
 <li>A <strong>list</strong> is a comma-separated sequence enclosed in square brackets: <code>[A, B, C]</code></li>
@@ -203,8 +216,9 @@
 <p>Some statements only appear at the top level of a scenario. They&rsquo;re called <em>top-level statements</em>. There&rsquo;re two kinds of top-level statements: <a href="#directives">directives</a> and <a href="#pools">pools</a>.</p>
 <p><a href="https://github.com/machinezone/mzbench/tree/master/examples">See live examples of MZBench scenarios on GitHub →</a></p>
 <h1 id="directives">Directives<a class="headerlink" href="#directives" title="Permanent link">&para;</a></h1>
-<p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
+<p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
 <h2 id="top-level-directives">Top-Level Directives<a class="headerlink" href="#top-level-directives" title="Permanent link">&para;</a></h2>
+<p>All top-level directives are optional.</p>
 <h3 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{make_install, [{git, &quot;&lt;URL&gt;&quot;}, {branch, &quot;&lt;Branch&gt;&quot;}, {dir, &quot;&lt;Dir&gt;&quot;}]}
 </code></pre>
@@ -280,13 +294,13 @@ Target = all | director
 <dd>Greater than or equal to.</dd>
 </dl>
 <p><code>&lt;Operand1&gt;</code> and <code>&lt;Operand2&gt;</code> are the values to compare. They can be integers, floats, or <em>metrics</em> values.</p>
-<p><a href="../workers/#metrics">Metrics</a> are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:</p>
+<p><a href="../../workers.nd#metrics">Metrics</a> are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:</p>
 <pre><code class="erlang">{gt, &quot;http_ok&quot;, 20}
 </code></pre>
 
 <p>The <code>http_ok</code> metric is provided by the <a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">simple_http</a> worker. This condition passes if the number of successful HTTP responses is greater than 20.    </p>
 <h1 id="pools">Pools<a class="headerlink" href="#pools" title="Permanent link">&para;</a></h1>
-<p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../workers/">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
+<p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../../workers.nd">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
 <p>Here&rsquo;s a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:</p>
 <pre><code class="erlang">    [ {pool,
         [ {size, 10}, {worker_type, simple_http_worker} ],
@@ -343,11 +357,6 @@ Target = all | director
 </dd>
 </dl>
 <p>You can customize and combine rates:</p>
-<h3 id="think_time">think_time<a class="headerlink" href="#think_time" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{think_time, &lt;Time&gt;, &lt;Rate&gt;}
-</code></pre>
-
-<p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate&gt;</code></a> for a second, then sleep for <a href="#time_1"><code>&lt;Time&gt;</code></a> and repeat.</p>
 <h3 id="ramp">ramp<a class="headerlink" href="#ramp" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{ramp, linear, &lt;StartRate&gt;, &lt;EndRate&gt;}
 </code></pre>
@@ -419,6 +428,11 @@ Target = all | director
 </code></pre>
 
 <p>Repeat the loop with the <a href="#rate_1"><code>&lt;Rate&gt;</code></a> rate.</p>
+<h3 id="think_time">think_time<a class="headerlink" href="#think_time" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{think_time, &lt;Time&gt;, &lt;Rate&gt;}
+</code></pre>
+
+<p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate&gt;</code></a> for a second, then sleep for <a href="#time_1"><code>&lt;Time&gt;</code></a> and repeat.</p>
 <h3 id="parallel">parallel<a class="headerlink" href="#parallel" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{parallel, &lt;N&gt;}
 </code></pre>
@@ -600,12 +614,12 @@ Target = all | director
             <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
 
-        <script src="../js/jquery-1.10.2.min.js"></script>
-        <script src="../js/bootstrap-3.0.3.min.js"></script>
-        <script src="../js/highlight.pack.js"></script>
-        <script>var base_url = '..';</script>
-        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
-        <script src="../js/base.js"></script>
+        <script src="../../js/jquery-1.10.2.min.js"></script>
+        <script src="../../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../../js/highlight.pack.js"></script>
+        <script>var base_url = '../..';</script>
+        <script data-main="../../mkdocs/js/search.js" src="../../mkdocs/js/require.js"></script>
+        <script src="../../js/base.js"></script>
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
             <div class="modal-dialog">

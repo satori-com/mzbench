@@ -60,8 +60,23 @@
                 
                 
                 
-                    <li >
-                        <a href="../scenarios/">Scenarios</a>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scenarios <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                        
+                            
+<li >
+    <a href="../scenarios/tutorial/">How to Write a Scenario</a>
+</li>
+
+                        
+                            
+<li >
+    <a href="../scenarios/spec/">Scenario DSL Specification</a>
+</li>
+
+                        
+                        </ul>
                     </li>
                 
                 
@@ -152,7 +167,7 @@
                 <div class="col-md-9" role="main">
 
 <p>To benchmark a particular protocol or service, MZBench uses a matching <em>worker</em>.</p>
-<p><strong>Worker</strong> is an Erlang application that provides <a href="../scenarios/">statements</a> to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you&rsquo;ll probably need to write a worker for it.</p>
+<p><strong>Worker</strong> is an Erlang application that provides <a href="../scenarios/spec/">statements</a> to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you&rsquo;ll probably need to write a worker for it.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You need basic Erlang knowledge to understand this tutorial. Refer to <a href="http://www.erlang.org/doc/getting_started/users_guide.html">Getting Started with Erlang User&rsquo;s Guide</a> or to the <a href="http://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> book for an introduction to Erlang.</p>
@@ -171,7 +186,7 @@
 <pre><code class="bash">$ ./bin/mzbench new_worker &lt;worker_name&gt;
 </code></pre>
 
-<p>It creates a new directory <code>&lt;worker_name&gt;</code> with a minimalistic but fully functional MZBench worker named <code>&lt;worker_name&gt;</code>. Particularly interesting files are <code>src/&lt;worker_name&gt;.erl</code>, which holds the worker source code, and <code>examples/&lt;worker_name&gt;.erl</code>, which contains a simple MZBench <a href="../scenarios/">scenario</a> using it.</p>
+<p>It creates a new directory <code>&lt;worker_name&gt;</code> with a minimalistic but fully functional MZBench worker named <code>&lt;worker_name&gt;</code>. Particularly interesting files are <code>src/&lt;worker_name&gt;.erl</code>, which holds the worker source code, and <code>examples/&lt;worker_name&gt;.erl</code>, which contains a simple MZBench <a href="../scenarios/spec/">scenario</a> using it.</p>
 <p>If the worker you develop works over a common protocol like TCP, the <code>new_worker</code> command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with <a href="../cli/#list_templates"><code>list_templates</code></a>:</p>
 <pre><code class="bash">$ ./bin/mzbench list_templates
 </code></pre>
@@ -189,10 +204,10 @@
 <p>You can define environment variables with the <code>--env</code> option.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>All <a href="../scenarios/#make_install"><code>make_install</code></a> top-level statements are ignored in this execution mode.</p>
+<p>All <a href="../scenarios/spec/#make_install"><code>make_install</code></a> top-level statements are ignored in this execution mode.</p>
 </div>
 <h3 id="execute">Execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h3>
-<p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
+<p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/spec/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
 <p><a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">Simple HTTP worker example →</a></p>
 <h2 id="worker-structure">Worker Structure<a class="headerlink" href="#worker-structure" title="Permanent link">&para;</a></h2>
 <p>A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.</p>
@@ -261,7 +276,7 @@ print(State, Meta, Text) -&gt;
 <li>the next worker state</li>
 </ul>
 <p>Statements are processed sequentially; each statement receives the state from the previous one and passes it further.</p>
-<p>Two exceptions are the statements within the <a href="../scenarios/#parallel_1"><code>{parallel}</code></a> section and iterations within a <code>{loop}</code> with <a href="../scenarios/#parallel">parallel &gt; 1</a>. In these cases the statements within the same thread share the same sequence of statements, which parallel threads don&rsquo;t. The final state of the whole <code>{parallel}</code> or <code>{loop}</code> statement is the one from the first &ldquo;thread&rdquo;; other threads&rsquo; states don&rsquo;t affect the final state.</p>
+<p>Two exceptions are the statements within the <a href="../scenarios/spec/#parallel_1"><code>{parallel}</code></a> section and iterations within a <code>{loop}</code> with <a href="../scenarios/spec/#parallel">parallel &gt; 1</a>. In these cases the statements within the same thread share the same sequence of statements, which parallel threads don&rsquo;t. The final state of the whole <code>{parallel}</code> or <code>{loop}</code> statement is the one from the first &ldquo;thread&rdquo;; other threads&rsquo; states don&rsquo;t affect the final state.</p>
 <h2 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h2>
 <p>Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.</p>
 <h3 id="metric-types">Metric Types<a class="headerlink" href="#metric-types" title="Permanent link">&para;</a></h3>
@@ -322,7 +337,7 @@ pending_requests() -&gt;
 </code></pre>
 
 <h3 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h3>
-<p><a href="../scenarios/#pre_hook-and-post_hook">Pre and post hooks</a> let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.</p>
+<p><a href="../scenarios/spec/#pre_hook-and-post_hook">Pre and post hooks</a> let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.</p>
 <p>Scenario:</p>
 <pre><code class="erlang">{pre_hook, [
     {exec, all, &quot;yum install zlib&quot;},
