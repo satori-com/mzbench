@@ -3,7 +3,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1, start_client/2]).
+-export([start_link/1, start_client/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -15,8 +15,8 @@
 start_link(Port) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, [main, Port]).
 
-start_client(Host, Port) ->
-    supervisor:start_child(mzb_interconnect_clients, [Host, Port]).
+start_client(Host, Port, Role) ->
+    supervisor:start_child(mzb_interconnect_clients, [Host, Port, Role]).
 
 %%%===================================================================
 %%% Supervisor callbacks

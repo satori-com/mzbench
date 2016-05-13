@@ -48,12 +48,8 @@ dispatch({init, NodeName}, #state{socket = Socket, transport = Transport, init_t
             {stop, normal, State}
     end;
 
-dispatch({msg, To, From, Msg}, State) when To == node() ->
-    mzb_interconnect:handle_message(From, Msg),
-    {noreply, State};
-
-dispatch(Unhandled, State) ->
-    system_log:error("Unhandled tcp message: ~p", [Unhandled]),
+dispatch(Msg, State) ->
+    mzb_interconnect:handle(Msg),
     {noreply, State}.
 
 handle_info(init_timer_expired, #state{socket = Socket, transport = Transport} = State) ->

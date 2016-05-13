@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2]).
+-export([start_link/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -22,36 +22,40 @@
 %%% API
 %%%===================================================================
 
-start_link(Host, Port) ->
-    gen_server:start_link(?MODULE, [Host, Port], []).
+start_link(Host, Port, Role) ->
+    gen_server:start_link(?MODULE, [Host, Port, Role], []).
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Host, Port]) ->
-    gen_server:cast(self(), {connect, Host, Port}),
+init([Host, Port, Role]) ->
+    gen_server:cast(self(), {connect, Host, Port, Role}),
     {ok, #s{}}.
 
-dispatch({init, NodeName}, #s{socket = Socket, init_timer = Timer} = State) ->
-    case mzb_interconnect:accept_connection(NodeName, self(), fun (Term) -> send(Socket, Term) end) of
+dispatch({init, NodeName, Role}, #s{socket = Socket, init_timer = Timer} = State) ->
+    case mzb_interconnect:accept_connection(NodeName, Role, self(), fun (Term) -> send(Socket, Term) end) of
         true ->
             erlang:cancel_timer(Timer),
             {noreply, State#s{init_timer = undefined}};
         false ->
             gen_tcp:close(Socket),
             {stop, normal, State}
-    end.
+    end;
+
+dispatch(Msg, State) ->
+    mzb_interconnect:handle(Msg),
+    {noreply, State}.
 
 handle_call(_Request, _From, State) ->
    {noreply, State}.
 
-handle_cast({connect, Host, Port}, State) ->
+handle_cast({connect, Host, Port, Role}, State) ->
     system_log:info("Connecting to node at ~p:~p", [Host, Port]),
     case gen_tcp:connect(Host, Port, [{packet, 4}, {active, once}, binary], ?CONNECT_TIMEOUT_MSEC) of
         {ok, Socket} ->
             system_log:info("Connected to node at ~p:~p", [Host, Port]),
-            send(Socket, {init, node()}),
+            send(Socket, {init, node(), Role}),
             {noreply, State#s{socket = Socket, init_timer = erlang:send_after(?INIT_WAIT_MSEC, self(), init_timer_expired)}};
         {error, Reason} ->
             system_log:error("Could not connect to node at ~p:~p with reason: ~p", [Host, Port, Reason]),
