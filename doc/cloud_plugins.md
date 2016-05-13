@@ -8,10 +8,25 @@ The module allocates nodes in an Amazon EC2 cloud.
 
 The AWS node images must have Erlang R17, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put `Defaults !requiretty` in `/etc/sudoers`. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.
 
-There's a ready-to-use Amazon Linux image with all necessary dependencies: **ami-3b90a80b**. To use this image, specify it in the cloud plugin config as `image_id`:
+There's a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:
+
+```
+us-west-2       ami-ee8d718e
+us-east-1       ami-61f11f0c
+us-west-1       ami-fc28509c
+eu-west-1       ami-4554c136
+eu-central-1    ami-8d48a5e2
+ap-northeast-1  ami-78a24419
+ap-northeast-2  ami-ef579f81
+ap-southeast-1  ami-66fd2b05
+ap-southeast-2  ami-21634c42
+sa-east-1       ami-7798101b
+```
+
+To use one of these images, specify it in the cloud plugin config as `image_id`:
 
 ```erlang
-{image_id, "ami-3b90a80b"
+{image_id, "ami-ee8d718e"
 ```
 
 You can, of course, build your own image based on the requirements listed above. [Learn more](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#creating-an-ami) in the official Amazon docs.
@@ -21,7 +36,7 @@ Configuration example:
 ```erlang
 {cloud_plugins, [{ec2, #{module => mzb_api_ec2_plugin,
                          instance_spec => [
-                          {image_id, "ami-3b90a80b"},
+                          {image_id, "ami-ee8d718e"},
                           {group_set, ""},
                           {key_name, "-"},
                           {subnet_id, "-"},
