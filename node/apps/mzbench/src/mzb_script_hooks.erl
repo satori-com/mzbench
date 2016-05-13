@@ -46,11 +46,11 @@ run_hook(#operation{name=exec, args=[Target, Cmd]}, Env) ->
 
     Nodes = case Target of
         director -> [node()];
-        all -> [node() | nodes()]
+        all -> [node() | mzb_interconnect:nodes()]
     end,
 
     mzb_lists:pmap(fun (Node) ->
-        case rpc:call(Node, mzb_script_hooks, exec, [Cmd]) of
+        case mzb_interconnect:call(Node, {mzb_script_hooks, exec, [Cmd]}) of
             ok -> ok;
             Error ->
                 system_log:error("Unable to run exec hook ~p on node ~p~nError: ~p", [Cmd, Node, Error]),

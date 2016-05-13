@@ -31,7 +31,7 @@ script_metrics(Pools, _WorkerNodes) ->
                                     metrics => [{"metric_merging_time", gauge}]}}
                         ]}],
 
-    SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | nodes()]),
+    SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | mzb_interconnect:nodes()]),
 
     normalize(PoolMetrics ++ SystemLoadMetrics ++ MZBenchInternal).
 
@@ -54,7 +54,7 @@ pool_name(Pool) ->
 
 metrics(Path, EnvFromClient) ->
     Script = mzbl_script:read(Path),
-    Nodes = erlang:nodes(),
+    Nodes = mzb_interconnect:nodes(),
     {Pools, _} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
 
     ScriptMetrics = script_metrics(Pools, Nodes),

@@ -160,7 +160,7 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
     Values = mzb_lists:pmap(
         fun (N) ->
             system_log:info("[ metrics ] Waiting for metrics from ~p...", [N]),
-            case rpc:call(N, mzb_metrics, get_local_values, [Metrics]) of
+            case mzb_interconnect:call(N, {mzb_metrics, get_local_values, [Metrics]}) of
                 {badrpc, Reason} ->
                     system_log:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
                     erlang:error({request_metrics_failed, N, Reason});
@@ -220,7 +220,7 @@ check_signals(#s{nodes = Nodes} = State) ->
     RawSignals = mzb_lists:pmap(
         fun (N) ->
             system_log:info("[ metrics ] Reading signals from ~p...", [N]),
-            case rpc:call(N, mzb_signaler, get_all_signals, []) of
+            case mzb_interconnect:call(N, {mzb_signaler, get_all_signals, []}) of
                 {badrpc, Reason} ->
                     system_log:error("[ metrics ] Failed to request signals from node ~p (~p)", [N, Reason]),
                     [];
