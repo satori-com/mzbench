@@ -56,7 +56,7 @@ add_signal(Name, Count) when Count > 0, is_number(Count) ->
 
 set_nodes(Nodes) ->
     Expected = {[{N, {ok}} || N <- Nodes], []},
-    Expected = gen_server:multi_call(Nodes, ?MODULE, {set_nodes, Nodes}).
+    Expected = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}).
 
 get_all_signals() ->
     ets:foldl(fun(Signal, Acc) -> [Signal | Acc] end, [], ?MODULE).
@@ -88,10 +88,10 @@ handle_call(Req, _From, State) ->
     {stop, {unhandled_call, Req}, State}.
 
 handle_cast({add, Name}, #s{nodes = Nodes} = State) ->
-    _ = gen_server:abcast(Nodes, ?MODULE, {add_local, Name, 1}),
+    _ = mzb_interconnect:abcast(Nodes, {add_signal, Name, 1}),
     {noreply, State};
 handle_cast({add, Name, Count}, #s{nodes = Nodes} = State) ->
-    _ = gen_server:abcast(Nodes, ?MODULE, {add_local, Name, Count}),
+    _ = mzb_interconnect:abcast(Nodes, {add_signal, Name, Count}),
     {noreply, State};
 handle_cast({add_local, Name, Count}, #s{queue = Q} = State) ->
     NewC = case ets:lookup(?MODULE, Name) of

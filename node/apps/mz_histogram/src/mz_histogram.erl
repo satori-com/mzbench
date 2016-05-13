@@ -32,7 +32,7 @@ create(Name) ->
     gen_server:call(?MODULE, {create, Name}).
 
 create(Nodes, Name) ->
-    {Results, []} = gen_server:multi_call(Nodes, ?MODULE, {create, Name}),
+    {Results, []} = mzb_interconnect:multi_call(Nodes, {create_histogram, Name}),
     case lists:usort([R || {_, R} <- Results]) of
         [ok] -> ok;
         _ -> {error, Results}

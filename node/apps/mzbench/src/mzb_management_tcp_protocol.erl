@@ -95,13 +95,13 @@ handle_message({change_env, Env}, _) ->
     {reply, mzb_director:change_env(Env)};
 
 handle_message({get_log_port, Node}, _) ->
-    case rpc:call(Node, ranch, get_port, [lager_tcp_server]) of
+    case mzb_interconnect:call(Node, {ranch, get_port, [lager_tcp_server]}) of
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
         Port -> {reply, {ok, Port}}
     end;
 
 handle_message({get_log_user_port, Node}, _) ->
-    case rpc:call(Node, ranch, get_port, [lager_tcp_server_user]) of
+    case mzb_interconnect:call(Node, {ranch, get_port, [lager_tcp_server_user]}) of
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
         Port -> {reply, {ok, Port}}
     end;

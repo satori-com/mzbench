@@ -1,5 +1,5 @@
 -module(mzb_bench_sup).
--export([start_link/0, is_ready/0, connect_nodes/1, run_bench/2, get_results/0, start_pool/1]).
+-export([start_link/0, is_ready/0, run_bench/2, get_results/0, start_pool/1]).
 
 -behaviour(supervisor).
 -export([init/1]).
@@ -53,11 +53,11 @@ is_ready() ->
             false
     end.
 
-connect_nodes(Nodes) ->
-    lists:filter(
-        fun (N) ->
-            pong == net_adm:ping(N)
-        end, Nodes).
+%connect_nodes(Nodes) ->
+%    lists:filter(
+%        fun (N) ->
+%            pong == net_adm:ping(N)
+%        end, Nodes).
 
 get_results() ->
     try
@@ -96,7 +96,7 @@ start_director(Body, Nodes, Env, Continuation) ->
                                        transient)).
 
 retrieve_worker_nodes() ->
-    Nodes = erlang:nodes(),
+    Nodes = mzb_interconnect:nodes(),
     case erlang:length(Nodes) of
         0   ->  [erlang:node()];    % If no worker node is available, use the director node
         _ -> Nodes

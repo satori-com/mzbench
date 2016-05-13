@@ -69,7 +69,7 @@ init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     _ = mzb_signaler:set_nodes(Nodes),
     gen_server:cast(self(), start_pools),
     _ = mzb_lists:pmap(fun(Node) ->
-        ok = rpc:call(Node, mzb_watchdog, activate, [])
+        ok = mzb_interconnect:call(Node, {mzb_watchdog, activate, []})
     end, lists:usort(Nodes)),
     {ok, #state{
         script = Pools,
@@ -177,8 +177,8 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
     Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
     Results = mzb_lists:pmap(fun({Num, Node}) ->
-            rpc:call(Node, mzb_bench_sup, start_pool,
-                [[Pool, Env, length(Nodes), Num]])
+            mzb_interconnect:call(Node,
+                {mzb_bench_sup, start_pool, [[Pool, Env, length(Nodes), Num]]})
         end, NumberedNodes),
     system_log:info("Start pool results: ~p", [Results]),
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
@@ -251,7 +251,7 @@ load_modules(Binaries, Nodes) ->
     mzb_lists:pmap(fun(Node) ->
         lists:foreach(fun ({Mod, Bin}) ->
             system_log:info("Loading ~p module on ~p...", [Mod, Node]),
-            {module, _} = rpc:call(Node, code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin])
+            {module, _} = mzb_interconnect:call(Node, {code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin]})
         end, Binaries)
     end, lists:usort(Nodes)),
     ok.
