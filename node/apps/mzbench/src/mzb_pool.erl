@@ -192,6 +192,11 @@ maybe_report_error(Pid, {error, Reason}) ->
 maybe_report_error(Pid, {exception, Node, {_C, E, ST}}) ->
     system_log:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p", [Pid, Node, E, ST]).
 
+sleep_off(StartTime, ShouldBe) ->
+    Current = msnow() - StartTime,
+    Sleep = max(0, ShouldBe - Current),
+    timer:sleep(Sleep).
+
 worker_start_delay(undefined, _, _, _) -> ok;
 worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, units = rps}]}, Factor, _, _) ->
     % The time between each pair of consecutive events has an exponential
@@ -201,15 +206,12 @@ worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, 
     SleepTime = -(1000*Factor*math:log(random:uniform()))/Lambda,
     timer:sleep(erlang:round(SleepTime));
 worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor, N, StartTime) ->
-    ShouldBe = (N * Factor * 1000) div RPS,
-    Current = msnow() - StartTime,
-    Sleep = max(0, ShouldBe - Current),
-    timer:sleep(Sleep);
-worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N, _) ->
-    timer:sleep(erlang:round(T*F*(math:pow((N+1)/W, 1/Y) - math:pow(N/W, 1/Y))));
+    sleep_off(StartTime, (N * Factor * 1000) div RPS);
+worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N, StartTime) ->
+    sleep_off(StartTime, erlang:round(T*F*(math:pow(N/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0, _) -> ok;
-worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N, _) ->
-    timer:sleep(erlang:round(T*F*(math:log((N+1)*(math:exp(1)-1)/X + 1) - math:log(N*(math:exp(1)-1)/X + 1)))).
+worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N, StartTime) ->
+    sleep_off(StartTime, erlang:round(T*F*(math:log((N+1)/X) + 1))).
 
 msnow() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
