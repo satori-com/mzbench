@@ -10,5 +10,6 @@
             [{print, {var, "foo", "default"}}]}]},
 
     {post_hook, [
-        {exec, all, "echo post_hook_1"}]}
+        {exec, all, "echo post_hook_1"}
+    ]}
 ].

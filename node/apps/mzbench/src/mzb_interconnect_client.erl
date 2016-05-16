@@ -34,11 +34,12 @@ init([Host, Port, Role]) ->
     {ok, #s{}}.
 
 dispatch({init, NodeName, Role}, #s{socket = Socket, init_timer = Timer} = State) ->
+    system_log:info("Received init from ~p ~p", [Role, NodeName]),
     case mzb_interconnect:accept_connection(NodeName, Role, self(), fun (Term) -> send(Socket, Term) end) of
-        true ->
+        {ok, _} ->
             erlang:cancel_timer(Timer),
             {noreply, State#s{init_timer = undefined}};
-        false ->
+        {error, _} ->
             gen_tcp:close(Socket),
             {stop, normal, State}
     end;

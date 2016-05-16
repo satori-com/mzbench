@@ -1,5 +1,5 @@
 -module(mzb_bench_sup).
--export([start_link/0, is_ready/0, run_bench/2, get_results/0, start_pool/1]).
+-export([start_link/0, is_ready/0, run_bench/2, get_results/0, start_pool/4]).
 
 -behaviour(supervisor).
 -export([init/1]).
@@ -69,8 +69,8 @@ get_results() ->
             {error, {unexpected_error, E, ST}, Str}
     end.
 
-start_pool(Args) ->
-    supervisor:start_child(?MODULE, child_spec(make_ref(), mzb_pool, Args, transient)).
+start_pool(Pool, Env, NumNodes, Offset) ->
+    supervisor:start_child(?MODULE, child_spec(make_ref(), mzb_pool, [Pool, Env, NumNodes, Offset], transient)).
 
 %%%===================================================================
 %%% Supervisor callbacks

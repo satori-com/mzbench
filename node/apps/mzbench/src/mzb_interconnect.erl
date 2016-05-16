@@ -4,7 +4,7 @@
 
 %% API
 -export([
-    start_link/0,
+    start_link/1,
     accept_connection/4,
     nodes/0,
     set_director/1,
@@ -34,14 +34,18 @@
 %%% API
 %%%===================================================================
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(Handler) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Handler], []).
 
 accept_connection(Host, Role, Owner, Sender) ->
     gen_server:call(?MODULE, {accept, Host, Role, Owner, Sender}).
 
 nodes() ->
-    gen_server:call(?MODULE, nodes, infinity).
+    try
+        gen_server:call(?MODULE, nodes, infinity)
+    catch
+        exit:{noproc, _} -> []
+    end.
 
 set_director(Hosts) ->
     gen_server:call(?MODULE, {set_director, Hosts}).
@@ -76,23 +80,24 @@ abcast(Nodes, Msg) ->
     [cast(N, Msg) || N <- Nodes].
 
 handle(Msg) ->
+    system_log:info("Message at ~p: ~p", [node(), Msg]),
     gen_server:cast(?MODULE, {from_remote, Msg}).
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
-init([]) ->
-    {ok, #s{nodes = #{}, monitors = #{}}}.
+init([Handler]) ->
+    {ok, #s{nodes = #{}, monitors = #{}, handler = Handler}}.
 
-handle_call({accept, Node, Role, Owner, Sender}, _From, #s{nodes = Nodes, monitors = Mons} = State) ->
+handle_call({accept, Node, Role, Owner, Sender}, _From, #s{nodes = Nodes, monitors = Mons, role = MyRole} = State) ->
     system_log:info("Connection to ~p established", [Node]),
     Ref = erlang:monitor(process, Owner),
     Director = case Role of
             director -> Node;
             worker -> State#s.director
         end,
-    {reply, true, State#s{nodes    = maps:put(Node, Sender, Nodes),
+    {reply, {ok, MyRole}, State#s{nodes = maps:put(Node, Sender, Nodes),
                           monitors = maps:put(Ref,  Node,   Mons),
                           director = Director}};
 
@@ -105,6 +110,15 @@ handle_call({set_handler, Handler}, _From, State) ->
 
 handle_call(nodes, _From, #s{nodes = Nodes} = State) ->
     {reply, maps:keys(Nodes), State};
+
+handle_call({call, Node, Req}, _From, State) when Node == node() ->
+    try handle_message(Req, State) of
+        ignore -> {noreply, State};
+        {res, Res} -> {reply, {ok, Res}, State}
+    catch
+        C:E ->
+            {reply, {exception, {C,E,erlang:get_stacktrace()}}, State}
+    end;
 
 handle_call({call, Node, Req}, From, State) ->
     send_to(Node, {call, {node(), From}, Req}, State),

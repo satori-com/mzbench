@@ -263,6 +263,15 @@ handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
             erlang:error({benchmark_failed, Reason})
     end;
 
+handle_stage(pipeline, post_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
+    #{script:= Script, env:= Env} = Config,
+    ScriptFilePath = script_path(Script),
+    DirFun = fun (Msg) -> director_call(Connection, Msg, ?HOOKS_TIMEOUT) end,
+    {Body, _} = DirFun({read_and_validate, remote_path(ScriptFilePath, Config), Env}),
+    NewEnv = mzb_script_hooks:post_hooks(DirFun, Body, Env, Config, get_logger(State)),
+    NewConfig = maps:put(env, NewEnv, Config),
+    fun (S) -> S#{config => NewConfig} end;
+
 handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
     mzb_api_server:bench_finished(Id, status(State));
 
@@ -631,7 +640,7 @@ generate_mail_body(Id, Status, Config) ->
         "Benchmark logs:~n  ~s~n~n"
         "Metrics data:~n  ~s~n~n",
         [Status,
-         indent(string:join([io_lib:format("~s = ~s", [K,V]) || {K,V} <- Env], "\n"), 2, "(no env variables)"),
+         indent(string:join([io_lib:format("~p = ~p", [K,V]) || {K,V} <- Env], "\n"), 2, "(no env variables)"),
          indent(ScriptBody, 2),
          bench_log_link(Id, Config),
          bench_data_link(Id, Config)
