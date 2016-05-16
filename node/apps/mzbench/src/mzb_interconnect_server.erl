@@ -36,14 +36,15 @@ init(Ref, Socket, Transport, _Opts) ->
     Timer = erlang:send_after(?INIT_WAIT_MSEC, self(), init_timer_expired),
     gen_server:enter_loop(?MODULE, [], #state{socket=Socket, transport=Transport, init_timer = Timer}).
 
-dispatch({init, NodeName}, #state{socket = Socket, transport = Transport, init_timer = Timer} = State) ->
+dispatch({init, NodeName, Role}, #state{socket = Socket, transport = Transport, init_timer = Timer} = State) ->
+    system_log:info("Received init from ~p ~p", [Role, NodeName]),
     Sender = fun (Msg) -> send(Transport, Socket, Msg) end,
-    case mzb_interconnect:accept_connection(NodeName, self(), Sender) of
-        true ->
+    case mzb_interconnect:accept_connection(NodeName, Role, self(), Sender) of
+        {ok, MyRole} ->
             erlang:cancel_timer(Timer),
-            send(Transport, Socket, {init, node()}),
+            send(Transport, Socket, {init, node(), MyRole}),
             {noreply, State#state{init_timer = undefined}};
-        false ->
+        {error, _} ->
             Transport:close(Socket),
             {stop, normal, State}
     end;

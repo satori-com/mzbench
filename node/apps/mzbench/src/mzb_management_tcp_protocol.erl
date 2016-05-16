@@ -73,11 +73,12 @@ handle_message({connect_nodes, Hosts}, ReplyFun) ->
                         timer:sleep(_Timeout = 2000),
                         Wait(N - 1)
                 end
-        end (_Retries = 10)
+        end (_Retries = 10),
+        noreply
     catch
         _:E ->
             system_log:error("Connecting nodes error: ~p~n~p", [E, erlang:get_stacktrace()]),
-            ReplyFun({error, E})
+            {reply, {error, E}}
     end;
 
 handle_message({metric_names, ScriptPath, Env}, _) ->
@@ -96,13 +97,13 @@ handle_message({change_env, Env}, _) ->
     {reply, mzb_director:change_env(Env)};
 
 handle_message({get_log_port, Node}, _) ->
-    case mzb_interconnect:call(Node, {ranch, get_port, [lager_tcp_server]}) of
+    case mzb_interconnect:call(Node, get_system_log_port) of
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
         Port -> {reply, {ok, Port}}
     end;
 
 handle_message({get_log_user_port, Node}, _) ->
-    case mzb_interconnect:call(Node, {ranch, get_port, [lager_tcp_server_user]}) of
+    case mzb_interconnect:call(Node, get_user_log_port) of
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
         Port -> {reply, {ok, Port}}
     end;

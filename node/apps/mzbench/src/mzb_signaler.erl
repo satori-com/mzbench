@@ -7,7 +7,8 @@
          check_signal/2,
          check_signal/3,
          set_nodes/1,
-         get_all_signals/0]).
+         get_all_signals/0,
+         add_local_signal/2]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -54,9 +55,11 @@ add_signal(Name) ->
 add_signal(Name, Count) when Count > 0, is_number(Count) ->
     gen_server:cast(?MODULE, {add, Name, Count}).
 
+add_local_signal(Name, Count) ->
+    gen_server:cast(?MODULE, {add_local, Name, Count}).
+
 set_nodes(Nodes) ->
-    Expected = {[{N, {ok}} || N <- Nodes], []},
-    Expected = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}).
+    gen_server:call(?MODULE, {set_nodes, Nodes}).
 
 get_all_signals() ->
     ets:foldl(fun(Signal, Acc) -> [Signal | Acc] end, [], ?MODULE).

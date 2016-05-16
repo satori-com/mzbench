@@ -5,6 +5,7 @@
          change_env/1,
          attach/0,
          notify/1,
+         compile_and_load/2,
          is_alive/0
          ]).
 
@@ -66,10 +67,10 @@ init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
     {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
     system_log:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
-    _ = mzb_signaler:set_nodes(Nodes),
+    {_, []} = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}),
     gen_server:cast(self(), start_pools),
     _ = mzb_lists:pmap(fun(Node) ->
-        ok = mzb_interconnect:call(Node, {mzb_watchdog, activate, []})
+        ok = mzb_interconnect:call(Node, {mzb_watchdog, activate})
     end, lists:usort(Nodes)),
     {ok, #state{
         script = Pools,
@@ -87,8 +88,7 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
             lists:keystore(K, 1, Acc, {K, V})
         end, Env, mzbl_script:normalize_env(NewEnv)),
     try
-        {_, ModulesToLoad} = mzb_compiler:compile(Script, MergedEnv),
-        ok = load_modules(ModulesToLoad, [node()|Nodes]),
+        {[{_, {ok, _}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, MergedEnv}),
         {reply, ok, State#state{env = MergedEnv}}
     catch
         _:E ->
@@ -113,8 +113,7 @@ handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super
         {mzb_metrics,
          {mzb_metrics, start_link, [Env, Metrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
-    {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
-    ok = load_modules(ModulesToLoad, [node()|Nodes]),
+    {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
     StartedPools = start_pools(NewScript, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});
 
@@ -178,7 +177,7 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
     Results = mzb_lists:pmap(fun({Num, Node}) ->
             mzb_interconnect:call(Node,
-                {mzb_bench_sup, start_pool, [[Pool, Env, length(Nodes), Num]]})
+                {start_pool, Pool, Env, length(Nodes), Num})
         end, NumberedNodes),
     system_log:info("Start pool results: ~p", [Results]),
     NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
@@ -247,12 +246,7 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str}.
 
-load_modules(Binaries, Nodes) ->
-    mzb_lists:pmap(fun(Node) ->
-        lists:foreach(fun ({Mod, Bin}) ->
-            system_log:info("Loading ~p module on ~p...", [Mod, Node]),
-            {module, _} = mzb_interconnect:call(Node, {code, load_binary, [Mod, mzb_string:format("~s.erl", [Mod]), Bin]})
-        end, Binaries)
-    end, lists:usort(Nodes)),
-    ok.
-
+compile_and_load(Script, Env) ->
+    {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
+    [{module, _} = code:load_binary(Mod, mzb_string:format("~s.erl", [Mod]), Bin) || {Mod, Bin} <- ModulesToLoad],
+    {ok, NewScript}.
