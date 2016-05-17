@@ -1,5 +1,5 @@
 -module(mzb_bench_sup).
--export([start_link/0, is_ready/0, run_bench/2, get_results/0, start_pool/4]).
+-export([start_link/0, is_ready/0, run_bench/2, get_results/0, start_pool/4, read_and_validate/2]).
 
 -behaviour(supervisor).
 -export([init/1]).
@@ -14,16 +14,11 @@ start_link() ->
 
 run_bench(ScriptPath, DefaultEnv) ->
     try
-        {Body0, Env0} = read_and_validate(ScriptPath, mzbl_script:normalize_env(DefaultEnv)),
-        Env1 = mzb_script_hooks:pre_hooks(Body0, Env0),
-        {Body2, Env2} = read_and_validate(ScriptPath, Env1),
-        PostHookFun = fun () ->
-                mzb_script_hooks:post_hooks(Body2, Env2)
-            end,
+        {Body, Env} = read_and_validate(ScriptPath, mzbl_script:normalize_env(DefaultEnv)),
 
         Nodes = retrieve_worker_nodes(),
 
-        case start_director(Body2, Nodes, Env2, PostHookFun) of
+        case start_director(Body, Nodes, Env, fun () -> ok end) of
             {ok, _, _} -> ok;
             {ok, _} -> ok;
             {error, Error} -> erlang:error({error, [mzb_string:format("Unable to start director supervisor: ~p", [Error])]})

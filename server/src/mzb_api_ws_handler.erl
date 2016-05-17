@@ -298,9 +298,6 @@ normalize(BenchInfos) ->
                         end, BenchInfos),
     lists:map(fun normalize_bench/1, Sorted).
 
-ensure_binary_tuple({A, B}) when is_binary(A) and is_atom(B) -> {A, atom_to_binary(B, utf8)};
-ensure_binary_tuple({A, B}) when is_binary(A) and is_binary(B) -> {A, B}.
-
 normalize_bench({Id, Status = #{config:= Config}}) ->
     StatusFields =  mzb_bc:maps_with([status, metrics], Status),
 
@@ -319,8 +316,8 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
       vm_args:=        VMArgs,
       env:=            Env} = Config,
     DefaultVMArgs = application:get_env(mzbench_api, vm_args, undefined),
-    BinaryEnv = lists:map(fun ensure_binary_tuple/1, Env),
-    EnvMap = maps:remove(<<"mzb_script_name">>, maps:from_list(BinaryEnv)),
+    %BinaryEnv = lists:map(fun ensure_binary_tuple/1, Env),
+    EnvMap = maps:remove(<<"mzb_script_name">>, maps:from_list(Env)),
     EnvMap2 = if VMArgs =/= DefaultVMArgs -> maps:put(vm_args, VMArgs, EnvMap);
                   true -> EnvMap end,
     ScriptFields = #{script_body => ScriptBody,

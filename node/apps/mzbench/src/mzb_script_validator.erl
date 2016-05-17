@@ -61,9 +61,9 @@ validate(Script) ->
                 mzb_asserts:validate(Op) ++ Acc;
             (#operation{name = make_install}, Acc) -> Acc;
             (#operation{name = pre_hook} = Op, Acc) ->
-                mzb_script_hooks:validate(Op) ++ Acc;
+                mzb_hooks_validator:validate(Op) ++ Acc;
             (#operation{name = post_hook} = Op, Acc) ->
-                mzb_script_hooks:validate(Op) ++ Acc;
+                mzb_hooks_validator:validate(Op) ++ Acc;
             (#operation{name = defaults, args = [DefaultsList]}, Acc) ->
               validate_defaults_list(DefaultsList) ++ Acc;
             (#operation{name = pool} = Pool, Acc) -> validate_pool(Pool) ++ Acc;
