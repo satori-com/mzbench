@@ -181,7 +181,12 @@ metric_name(GaugeName) ->
 metric_name(GaugeName, Node) when is_atom(Node) ->
     metric_name(GaugeName, atom_to_list(Node));
 metric_name(GaugeName, Node) ->
-    "systemload." ++ GaugeName ++ "." ++ mzb_utility:hostname_str(Node).
+    "systemload." ++ GaugeName ++ "." ++ nodename_str(Node).
+
+nodename_str(Node) when is_atom(Node) ->
+    nodename_str(atom_to_list(Node));
+nodename_str(NodeStr) ->
+    hd(string:tokens(NodeStr, "@")).
 
 network_usage() ->
     try
