@@ -22,6 +22,8 @@
 -endif.
 
 -define(DEFLATE_FLUSH_INTERVAL, 10000).
+-define(DIRECTOR_CALL_TIMEOUT, 30000).
+-define(HOOKS_TIMEOUT, 60000).
 
 %% mzb_pipeline callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -140,8 +142,10 @@ workflow_config(_State) ->
                   uploading_script,
                   uploading_includes,
                   gathering_metric_names,
+                  pre_hooks,
                   starting,
-                  running
+                  running,
+                  post_hooks
                 ]},
      {finalize, [ saving_bench_results,
                   sending_email_report,
@@ -222,7 +226,7 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
 handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, nodes:= Nodes, self:= Self} = State) ->
     StartFun = fun (Call, Handler) ->
         mzb_lists:pmap(fun ({Node, Host}) ->
-        {ok, Port} = director_call(Connection, {Call, Node}, 30000),
+        {ok, Port} = director_call(Connection, {Call, Node}),
         info("Log collector server: ~p -> ~p:~p", [Node, Host, Port], State),
         mzb_api_connection:start_and_link_with(Self, logs, Host, Port,
             fun ({message, Msg}, S) -> {Handler({write, Msg}), S};
@@ -249,14 +253,23 @@ handle_stage(pipeline, gathering_metric_names, #{cluster_connection:= Connection
             erlang:error({get_metrics_error, Error})
     end;
 
+handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
+    #{script:= Script, env:= DefaultEnv} = Config,
+    ScriptFilePath = script_path(Script),
+    DirFun = fun (Msg) -> director_call(Connection, Msg, ?HOOKS_TIMEOUT) end,
+    {Body, Env} = DirFun({read_and_validate, remote_path(ScriptFilePath, Config), mzbl_script:normalize_env(DefaultEnv)}),
+    NewEnv = mzb_script_hooks:pre_hooks(DirFun, Body, Env, Config, get_logger(State)),
+    NewConfig = maps:put(env, mzbl_script:normalize_env(NewEnv), Config),
+    fun (S) -> S#{config => NewConfig} end;
+
 handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Config}) ->
     #{script:= Script, env:= Env} = Config,
     ScriptFilePath = script_path(Script),
-    ok = director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}, 30000),
+    ok = director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}),
     ok;
 
 handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
-    case director_call(Connection, get_results) of
+    case director_call(Connection, get_results, infinity) of
         {ok, Str} -> info("Benchmark result: ~s", [Str], State);
         {error, Reason, ReasonStr} ->
             error("Benchmark result: ~s", [ReasonStr], State),
@@ -772,7 +785,7 @@ director_async_call(Connection, Msg, Continuation) ->
     mzb_api_connection:send_message(Connection, {request, Continuation, Msg}).
 
 director_call(Connection, Msg) ->
-    director_call(Connection, Msg, infinity).
+    director_call(Connection, Msg, ?DIRECTOR_CALL_TIMEOUT).
 
 director_call(Connection, Msg, Timeout) ->
     Ref = erlang:make_ref(),

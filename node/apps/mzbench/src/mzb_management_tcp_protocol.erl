@@ -60,6 +60,9 @@ handle_message(get_results, ReplyFun) ->
     _ = erlang:spawn(fun () -> ReplyFun(mzb_bench_sup:get_results()) end),
     noreply;
 
+handle_message({read_and_validate, Path, Env}, _) ->
+    {reply, mzb_bench_sup:read_and_validate(Path, Env)};
+
 handle_message({connect_nodes, Hosts}, ReplyFun) ->
     {ok, Port} = application:get_env(mzbench, node_interconnect_port),
     try
@@ -107,6 +110,11 @@ handle_message({get_log_user_port, Node}, _) ->
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};
         Port -> {reply, {ok, Port}}
     end;
+
+handle_message({call_worker, WorkerType, Method, Env}, _) ->
+    {Provider, Worker} = mzbl_script:resolve_worker_provider(WorkerType),
+    ok = Provider:load(Worker),
+    {reply, Provider:apply(Method, [Env], Worker)};
 
 handle_message(Msg, _) ->
     erlang:error({unhandled, Msg}).

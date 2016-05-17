@@ -20,7 +20,6 @@ mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
-
 def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
 
