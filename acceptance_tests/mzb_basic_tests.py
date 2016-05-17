@@ -269,6 +269,20 @@ def websocket_available_test():
     assert("SERVER_INFO" in ws.recv())
     ws.close()
 
+def hooks_test():
+    def check_log(log):
+        regex = re.compile(r"Run exec hook \"echo pre_hook_1\"(.*)Run exec hook \"echo pre_hook_2\"(.*)Run exec hook \"echo post_hook_1\"", re.DOTALL)
+        assert regex.search(log)
+
+    def check_user_log(log):
+        regex = re.compile(r"Dummy print: \"bar\"", re.DOTALL)
+        assert regex.search(log)
+
+    run_successful_bench(scripts_dir + 'hooks.erl',
+        check_log_function=check_log,
+        check_user_log_function=check_user_log)
+
+
 def main():
     from nose.plugins.multiprocess import MultiProcess
     with start_mzbench_server():
