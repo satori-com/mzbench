@@ -119,7 +119,7 @@ handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
     NewState = handle_pool_report(Info, State),
-    catch erlang:demonitor(proplists:get_value(PoolPid, Pools), [flush]),
+    catch mzb_interconnect:demonitor(proplists:get_value(PoolPid, Pools), [flush]),
     NewPools = proplists:delete(PoolPid, Pools),
     maybe_stop(NewState#state{pools = NewPools});
 
@@ -180,12 +180,12 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
                 {start_pool, Pool, Env, length(Nodes), Num})
         end, NumberedNodes),
     system_log:info("Start pool results: ~p", [Results]),
-    NewRef = lists:map(fun({ok, Pid}) -> {Pid, erlang:monitor(process, Pid)} end, Results),
+    NewRef = lists:map(fun({ok, Pid}) -> {Pid, mzb_interconnect:monitor(process, Pid)} end, Results),
     start_pools(Pools, Env, shift(Nodes, Size), NewRef ++ Acc).
 
 stop_pools(Pools) ->
-    _ = [catch erlang:demonitor(Mon, [flush]) || {_, Mon} <- Pools],
-    _ = mzb_lists:pmap(fun ({Pid, _}) -> catch mzb_pool:stop(Pid) end, Pools),
+    _ = [catch mzb_interconnect:demonitor(Mon, [flush]) || {_, Mon} <- Pools],
+    [catch mzb_interconnect:call(node(P), {stop_pool, P}) || P <- Pools],
     ok.
 
 shift(Nodes, undefined) -> Nodes;
