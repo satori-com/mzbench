@@ -44,6 +44,8 @@ run_script(Script, Env) ->
 
     {ok, _} = application:ensure_all_started(mzbench),
 
+    mzb_interconnect:set_director([]),
+
     case mzb_bench_sup:run_bench(filename:absname(Script), Env) of
         ok ->
             Res =
