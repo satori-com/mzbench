@@ -39,22 +39,22 @@
 %%%===================================================================
 
 start_link(SuperPid, BenchName, Script, Nodes, Env, Continuation) ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env, Continuation], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [SuperPid, BenchName, Script, Nodes, Env, Continuation], []).
 
 pool_report(PoolPid, Info, IsFinal) ->
-    gen_server:cast({global, ?MODULE}, {pool_report, PoolPid, Info, IsFinal}).
+    gen_server:cast(?MODULE, {pool_report, PoolPid, Info, IsFinal}).
 
 change_env(Env) ->
-    gen_server:call({global, ?MODULE}, {change_env, Env}, infinity).
+    gen_server:call(?MODULE, {change_env, Env}, infinity).
 
 attach() ->
-    gen_server:call({global, ?MODULE}, attach, infinity).
+    gen_server:call(?MODULE, attach, infinity).
 
 notify(Message) ->
-    gen_server:cast({global, ?MODULE}, {notification, Message}).
+    gen_server:cast(?MODULE, {notification, Message}).
 
 is_alive() ->
-    case global:whereis_name(?MODULE) of
+    case whereis(?MODULE) of
         undefined -> false;
         Pid when is_pid(Pid) -> true
     end.

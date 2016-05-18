@@ -12,6 +12,9 @@
     call/2,
     call/3,
     cast/2,
+    call_director/1,
+    call_director/2,
+    cast_director/1,
     multi_call/2,
     multi_call/3,
     abcast/2,
@@ -52,6 +55,16 @@ set_director(Hosts) ->
 
 set_handler(Handler) ->
     gen_server:call(?MODULE, {set_handler, Handler}).
+
+cast_director(Msg) ->
+    gen_server:cast(?MODULE, {cast_director, Msg}).
+
+call_director(Req) -> call_director(Req, infinity).
+call_director(Req, Timeout) ->
+    case gen_server:call(?MODULE, {call_director, Req}, Timeout) of
+        {ok, Res} -> Res;
+        {exception, {C, E, ST}} -> erlang:raise(C, E, ST)
+    end.
 
 call(Node, Req) -> call(Node, Req, infinity).
 
@@ -124,6 +137,19 @@ handle_call({call, Node, Req}, From, State) ->
     send_to(Node, {call, {node(), From}, Req}, State),
     {noreply, State};
 
+handle_call({call_director, Req}, _From, #s{role = director} = State) ->
+    try handle_message(Req, State) of
+        ignore -> {noreply, State};
+        {res, Res} -> {reply, {ok, Res}, State}
+    catch
+        C:E ->
+            {reply, {exception, {C,E,erlang:get_stacktrace()}}, State}
+    end;
+
+handle_call({call_director, Req}, From, #s{role = worker, director = Director} = State) ->
+    send_to(Director, {call, {node(), From}, Req}, State),
+    {noreply, State};
+
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
@@ -133,6 +159,14 @@ handle_cast({cast, Node, Msg}, State) when Node == node() ->
 
 handle_cast({cast, Node, Msg}, State) ->
     send_to(Node, {cast, Msg}, State),
+    {noreply, State};
+
+handle_cast({cast_director, Msg}, #s{role = director} = State) ->
+    _ = (catch handle_message(Msg, State)),
+    {noreply, State};
+
+handle_cast({cast_director, Msg}, #s{role = worker, director = DirNode} = State) ->
+    send_to(DirNode, {cast, Msg}, State),
     {noreply, State};
 
 handle_cast({from_remote, {cast, Msg}}, State) ->

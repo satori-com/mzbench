@@ -178,7 +178,7 @@ maybe_stop(#s{workers = Workers, name = Name, worker_starter = undefined} = Stat
             system_log:info("[ ~p ] All workers have finished", [Name]),
             Info = [{succeed_workers, State#s.succeed},
                     {failed_workers,  State#s.failed}],
-            mzb_director:pool_report(self(), Info, true),
+            mzb_interconnect:cast_director({pool_report, self(), Info, true}),
             {stop, normal, State};
         false ->
             {noreply, State}
