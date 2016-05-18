@@ -18,6 +18,9 @@
     multi_call/2,
     multi_call/3,
     abcast/2,
+    monitor/2,
+    demonitor/1,
+    demonitor/2,
     handle/1
 ]).
 
@@ -28,7 +31,9 @@
 -record(s, {
     role = worker,
     nodes = #{},
-    monitors = #{},
+    remote_monitors = #{},
+    local_monitors = #{},
+    connection_monitors = #{},
     director = undefined,
     handler = undefined
 }).
@@ -92,6 +97,25 @@ multi_call(Nodes, Req, Timeout) ->
 abcast(Nodes, Msg) ->
     [cast(N, Msg) || N <- Nodes].
 
+monitor(process, Pid) when node(Pid) == node() ->
+    erlang:monitor(process, Pid);
+monitor(process, Pid) ->
+    gen_server:call(?MODULE, {monitor, self(), Pid}).
+
+demonitor({interconnect_monitor, Pid, Ref}) ->
+    gen_server:call(?MODULE, {demonitor, Pid, Ref});
+demonitor(Ref) ->
+    erlang:demonitor(Ref).
+
+demonitor({interconnect_monitor, Pid, Ref}, [flush]) ->
+    ?MODULE:demonitor({interconnect_monitor, Pid, Ref}),
+    receive
+        {'DOWN', Ref, _, _, _} -> ok
+    after 0 -> ok
+    end;
+demonitor(Ref, [flush]) ->
+    erlang:demonitor(Ref, [flush]).
+
 handle(Msg) ->
     system_log:info("Message at ~p: ~p", [node(), Msg]),
     gen_server:cast(?MODULE, {from_remote, Msg}).
@@ -101,9 +125,9 @@ handle(Msg) ->
 %%%===================================================================
 
 init([Handler]) ->
-    {ok, #s{nodes = #{}, monitors = #{}, handler = Handler}}.
+    {ok, #s{nodes = #{}, connection_monitors = #{}, handler = Handler}}.
 
-handle_call({accept, Node, Role, Owner, Sender}, _From, #s{nodes = Nodes, monitors = Mons, role = MyRole} = State) ->
+handle_call({accept, Node, Role, Owner, Sender}, _From, #s{nodes = Nodes, connection_monitors = Mons, role = MyRole} = State) ->
     system_log:info("Connection to ~p established", [Node]),
     Ref = erlang:monitor(process, Owner),
     Director = case Role of
@@ -111,8 +135,8 @@ handle_call({accept, Node, Role, Owner, Sender}, _From, #s{nodes = Nodes, monito
             worker -> State#s.director
         end,
     {reply, {ok, MyRole}, State#s{nodes = maps:put(Node, Sender, Nodes),
-                          monitors = maps:put(Ref,  Node,   Mons),
-                          director = Director}};
+                                  connection_monitors = maps:put(Ref, Node, Mons),
+                                  director = Director}};
 
 handle_call({set_director, Hosts}, _From, State) ->
     _ = [mzb_interconnect_sup:start_client(Host, Port, director) || {Host, Port} <- Hosts],
@@ -149,6 +173,16 @@ handle_call({call_director, Req}, _From, #s{role = director} = State) ->
 handle_call({call_director, Req}, From, #s{role = worker, director = Director} = State) ->
     send_to(Director, {call, {node(), From}, Req}, State),
     {noreply, State};
+
+handle_call({monitor, Owner, Pid}, From, State) ->
+    send_to(node(Pid), {monitor, {node(), From}, Owner, Pid}, State),
+    {noreply, State};
+
+handle_call({demonitor, Pid, Ref}, _From, #s{remote_monitors = RMons} = State) ->
+    Node = node(Pid),
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    send_to(node(Pid), {demonitor, Pid, Ref}, State),
+    {noreply, State#s{remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
@@ -195,6 +229,25 @@ handle_cast({from_remote, {reply, From, Res}}, State) ->
     gen_server:reply(From, Res),
     {noreply, State};
 
+handle_cast({from_remote, {monitor, {FromNode, From}, Owner, Pid}}, #s{local_monitors = LMons} = State) ->
+    Ref = erlang:monitor(process, Pid),
+    send_to(FromNode, {monitor_res, From, {node(), Owner, Pid, Ref}}, State),
+    {noreply, State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons)}};
+
+handle_cast({from_remote, {monitor_res, From, {Node, Owner, Pid, Ref}}}, #s{remote_monitors = RMons} = State) ->
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    gen_server:reply(From, {interconnect_monitor, Pid, Ref}),
+    {noreply, State#s{remote_monitors = maps:put(Node, maps:put(Ref, {Owner, Pid}, NodeMons), RMons)}};
+
+handle_cast({from_remote, {demonitor, _Pid, Ref}}, #s{local_monitors = LMons} = State) ->
+    erlang:demonitor(Ref, [flush]),
+    {noreply, State#s{local_monitors = maps:remove(Ref, LMons)}};
+
+handle_cast({from_remote, {down, Node, Owner, Ref, Pid, Reason}}, #s{remote_monitors = RMons} = State) ->
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    Owner ! {'DOWN', {interconnect_monitor, Pid, Ref}, process, Pid, Reason},
+    {noreply, State#s{remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -204,12 +257,30 @@ handle_message(Msg, #s{handler = undefined}) ->
 handle_message(Msg, #s{handler  = Handler}) ->
     {res, Handler(Msg)}.
 
-handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes, monitors = Mons} = State) ->
+handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
+                                            connection_monitors = Mons,
+                                            remote_monitors = RMons,
+                                            local_monitors = LMons} = State) ->
     case maps:find(Ref, Mons) of
         {ok, Node} ->
             system_log:warning("Node ~p disconnected: ~p", [Node, Reason]),
-            {noreply, State#s{nodes = maps:remove(Node, Nodes), monitors = maps:remove(Ref, Mons)}};
-        error -> {noreply, State}
+
+            lists:foreach(
+                fun ({R, {Owner, Pid}}) ->
+                    Owner ! {'DOWN', {interconnect_monitor, Pid, R}, process, Pid, noconnection}
+                end, maps:to_list(mzb_bc:maps_get(Node, RMons, #{}))),
+
+            {noreply, State#s{nodes = maps:remove(Node, Nodes),
+                              connection_monitors = maps:remove(Ref, Mons),
+                              remote_monitors = maps:put(Node, #{}, RMons)}};
+        error ->
+            case maps:find(Ref, LMons) of
+                {ok, {Owner, Pid}} ->
+                    send_to(node(Owner), {down, node(), Owner, Ref, Pid, Reason}, State),
+                    {noreply, State#s{local_monitors = maps:remove(Ref, LMons)}};
+                error ->
+                    {noreply, State}
+            end
     end;
 
 handle_info(_Info, State) ->
