@@ -42,9 +42,9 @@ provision_nodes(Config, Logger) ->
             ensure_cookie(UserName, UniqHosts, Config, Logger);
         _ -> ok
     end,
-    NodeHosts = [{director_sname(Config),DirectorHost} | [{worker_sname(Config), H} || H <- WorkerHosts]],
-    Nodes = mzb_lists:pmap(fun ({N, H}) -> nodename(N, H) end, NodeHosts),
-
+    DirectorNode = nodename(director_sname(Config), 0),
+    WorkerNodes = [nodename(worker_sname(Config), N) || N <- lists:seq(1, length(WorkerHosts))],
+    Nodes = [DirectorNode | WorkerNodes],
     ensure_vm_args([DirectorHost|WorkerHosts], Nodes, Config, Logger),
     _ = mzb_subprocess:remote_cmd(
         UserName,
@@ -60,7 +60,7 @@ get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserNam
                 UserName,
                 [DirectorHost],
                 io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
-                ["-name", nodename(director_sname(Config), DirectorHost), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
+                ["-name", nodename(director_sname(Config), 0), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
                 Logger, []),
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
@@ -98,8 +98,8 @@ ntp_check(UserName, Hosts, Logger) ->
         _ -> erlang:error({ntp_check_failed, TimeDiff})
     end.
 
-nodename(Name, Host) ->
-    erlang:list_to_atom(Name ++ "@" ++ Host).
+nodename(Name, N) ->
+    erlang:list_to_atom(mzb_string:format("~s_~b@127.0.0.1", [Name, N])).
 
 ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
     CookieFile = "~/.erlang.cookie",
