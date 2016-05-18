@@ -20,6 +20,12 @@ handle({mzb_watchdog, activate}) ->
 handle({start_pool, Pool, Env, NumNodes, Offset}) ->
     mzb_bench_sup:start_pool(Pool, Env, NumNodes, Offset);
 
+handle({stop_pool, Pool}) ->
+    mzb_pool:stop(Pool);
+
+handle({pool_report, PoolPid, Info, IsFinal}) ->
+    mzb_director:pool_report(PoolPid, Info, IsFinal);
+
 handle({compile_env, Script, Env}) ->
     mzb_director:compile_and_load(Script, Env);
 
@@ -31,6 +37,9 @@ handle(get_all_signals) ->
 
 handle({add_signal, Name, Count}) ->
     mzb_signaler:add_local_signal(Name, Count);
+
+handle(is_director_alive) ->
+    mzb_director:is_alive();
 
 handle(Unhandled) ->
     system_log:error("Unhandled node message: ~p", [Unhandled]),

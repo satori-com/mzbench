@@ -63,7 +63,7 @@ start_check_timer() ->
     ok.
 
 check(State) ->
-    case mzb_director:is_alive() of
+    case mzb_interconnect:call_director(is_director_alive, 30000) of
         true  ->
             start_check_timer(),
             State;
