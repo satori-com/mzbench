@@ -168,30 +168,21 @@ handle_call({call_director, Req}, From, #s{role = worker, director = Director} =
     send_to(Director, {call, {node(), From}, Req}, State),
     {noreply, State};
 
-handle_call({monitor, Owner, Pid}, _From, #s{local_monitors = LMons, remote_monitors = RMons} = State) when node(Pid) == node() ->
+handle_call({monitor, Owner, Pid}, _From, State) when node(Pid) == node() ->
     Ref = erlang:monitor(process, Pid),
-    Node = node(Pid),
-    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
-    {reply,
-        {interconnect_monitor, Pid, Ref},
-        State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons),
-                remote_monitors = maps:put(Node, maps:put(Ref, {Owner, Pid}, NodeMons), RMons)}};
+    {reply, {interconnect_monitor, Pid, Ref},
+            add_lmon(Ref, Owner, Pid, add_rmon(Ref, Owner, Pid, State))};
 handle_call({monitor, Owner, Pid}, From, State) ->
     send_to(node(Pid), {monitor, {node(), From}, Owner, Pid}, State),
     {noreply, State};
 
-handle_call({demonitor, Pid, Ref}, _From, #s{remote_monitors = RMons, local_monitors = LMons} = State) when node(Pid) == node() ->
-    Node = node(Pid),
-    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
-    {noreply, State#s{local_monitors = maps:remove(Ref, LMons),
-                      remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+handle_call({demonitor, Pid, Ref}, _From, State) when node(Pid) == node() ->
+    catch erlang:demonitor(Ref, [flush]),
+    {reply, ok, rm_lmon(Ref, rm_rmon(Pid, Ref, State))};
 
-handle_call({demonitor, Pid, Ref}, _From, #s{remote_monitors = RMons} = State) ->
-    erlang:demonitor(Ref, [flush]),
-    Node = node(Pid),
-    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
-    send_to(node(Pid), {demonitor, Pid, Ref}, State),
-    {noreply, State#s{remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+handle_call({demonitor, Pid, Ref}, _From, #s{} = State) ->
+    send_to(node(Pid), {demonitor, {}, Pid, Ref}, State),
+    {reply, ok, rm_rmon(Pid, Ref, State)};
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
@@ -230,7 +221,7 @@ handle_cast({from_remote, {transit, To, Msg}}, #s{role = director} = State) ->
     send_to(To, Msg, State),
     {noreply, State};
 
-handle_cast({from_remote, {transit, To, Msg}}, #{} = State) ->
+handle_cast({from_remote, {transit, To, Msg}}, State) ->
     system_log:error("Transit message for ~p on non director node: ~p~nMessage: ~p", [To, node(), Msg]),
     {noreply, State};
 
@@ -238,24 +229,22 @@ handle_cast({from_remote, {reply, From, Res}}, State) ->
     gen_server:reply(From, Res),
     {noreply, State};
 
-handle_cast({from_remote, {monitor, {FromNode, From}, Owner, Pid}}, #s{local_monitors = LMons} = State) ->
+handle_cast({from_remote, {monitor, {FromNode, From}, Owner, Pid}}, State) ->
     Ref = erlang:monitor(process, Pid),
     send_to(FromNode, {monitor_res, From, {node(), Owner, Pid, Ref}}, State),
-    {noreply, State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons)}};
+    {noreply, add_lmon(Ref, Owner, Pid, State)};
 
-handle_cast({from_remote, {monitor_res, From, {Node, Owner, Pid, Ref}}}, #s{remote_monitors = RMons} = State) ->
-    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+handle_cast({from_remote, {monitor_res, From, {_Node, Owner, Pid, Ref}}}, State) ->
     gen_server:reply(From, {interconnect_monitor, Pid, Ref}),
-    {noreply, State#s{remote_monitors = maps:put(Node, maps:put(Ref, {Owner, Pid}, NodeMons), RMons)}};
+    {noreply, add_rmon(Ref, Owner, Pid, State)};
 
-handle_cast({from_remote, {demonitor, _Pid, Ref}}, #s{local_monitors = LMons} = State) ->
+handle_cast({from_remote, {demonitor, _Pid, Ref}}, State) ->
     erlang:demonitor(Ref, [flush]),
-    {noreply, State#s{local_monitors = maps:remove(Ref, LMons)}};
+    {noreply, rm_lmon(Ref, State)};
 
-handle_cast({from_remote, {down, Node, Owner, Ref, Pid, Reason}}, #s{remote_monitors = RMons} = State) ->
-    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+handle_cast({from_remote, {down, _Node, Owner, Ref, Pid, Reason}}, State) ->
     Owner ! {'DOWN', {interconnect_monitor, Pid, Ref}, process, Pid, Reason},
-    {noreply, State#s{remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+    {noreply, rm_rmon(Pid, Ref, State)};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -274,25 +263,22 @@ handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
         {ok, Node} ->
             system_log:warning("Node ~p disconnected: ~p", [Node, Reason]),
 
-            lists:foreach(
-                fun ({R, {Owner, Pid}}) ->
-                    Owner ! {'DOWN', {interconnect_monitor, Pid, R}, process, Pid, noconnection}
-                end, maps:to_list(mzb_bc:maps_get(Node, RMons, #{}))),
+            NewState = lists:foldl(
+                fun ({R, {Owner, Pid}}, Acc) ->
+                    Owner ! {'DOWN', {interconnect_monitor, Pid, R}, process, Pid, noconnection},
+                    rm_rmon(Pid, R, Acc)
+                end, State, maps:to_list(mzb_bc:maps_get(Node, RMons, #{}))),
 
-            {noreply, State#s{nodes = maps:remove(Node, Nodes),
-                              connection_monitors = maps:remove(Ref, Mons),
-                              remote_monitors = maps:put(Node, #{}, RMons)}};
+            {noreply, NewState#s{nodes = maps:remove(Node, Nodes),
+                                 connection_monitors = maps:remove(Ref, Mons)}};
         error ->
             case maps:find(Ref, LMons) of
                 {ok, {Owner, Pid}} when node(Owner) == node() ->
                     Owner ! {'DOWN', {interconnect_monitor, Pid, Ref}, process, Pid, Reason},
-                    Node = node(Pid),
-                    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
-                    {noreply, State#s{local_monitors = maps:remove(Ref, LMons),
-                                      remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+                    {noreply, rm_lmon(Ref, rm_rmon(Pid, Ref, State))};
                 {ok, {Owner, Pid}} ->
                     send_to(node(Owner), {down, node(), Owner, Ref, Pid, Reason}, State),
-                    {noreply, State#s{local_monitors = maps:remove(Ref, LMons)}};
+                    {noreply, rm_lmon(Ref, State)};
                 error ->
                     {noreply, State}
             end
@@ -322,3 +308,17 @@ send_to(To, Msg, #s{role = Role, nodes = Nodes, director = Director}) ->
             ok
     end.
 
+
+add_lmon(Ref, Owner, Pid, #s{local_monitors = LMons} = State) ->
+    State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons)}.
+rm_lmon(Ref, #s{local_monitors = LMons} = State) ->
+    State#s{local_monitors = maps:remove(Ref, LMons)}.
+
+add_rmon(Ref, Owner, Pid, #s{remote_monitors = RMons} = State) ->
+    Node = node(Pid),
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    State#s{remote_monitors = maps:put(Node, maps:put(Ref, {Owner, Pid}, NodeMons), RMons)}.
+rm_rmon(Pid, Ref, #s{remote_monitors = RMons} = State) ->
+    Node = node(Pid),
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    State#s{remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}.
