@@ -75,7 +75,7 @@ init([Id, Params]) ->
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
         node_install_spec => NodeInstallSpec,
-        env => generate_bench_env(Params),
+        env => mzbl_script:normalize_env(generate_bench_env(Params)),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
         exclusive_node_usage => maps:get(exclusive_node_usage, Params),
@@ -539,7 +539,7 @@ generate_bench_env(Params) ->
                             _ -> E
                         end
                        end, Env,
-                [{<<"mzb_script_name">>, list_to_binary(ScriptName)}]).
+                [{"mzb_script_name", list_to_binary(ScriptName)}]).
 
 script_path(Script) ->
     case Script of
