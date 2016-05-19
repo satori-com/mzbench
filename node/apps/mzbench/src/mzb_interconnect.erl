@@ -97,24 +97,18 @@ multi_call(Nodes, Req, Timeout) ->
 abcast(Nodes, Msg) ->
     [cast(N, Msg) || N <- Nodes].
 
-monitor(process, Pid) when node(Pid) == node() ->
-    erlang:monitor(process, Pid);
 monitor(process, Pid) ->
     gen_server:call(?MODULE, {monitor, self(), Pid}).
 
 demonitor({interconnect_monitor, Pid, Ref}) ->
-    gen_server:call(?MODULE, {demonitor, Pid, Ref});
-demonitor(Ref) ->
-    erlang:demonitor(Ref).
+    gen_server:call(?MODULE, {demonitor, Pid, Ref}).
 
-demonitor({interconnect_monitor, Pid, Ref}, [flush]) ->
-    ?MODULE:demonitor({interconnect_monitor, Pid, Ref}),
+demonitor({interconnect_monitor, _, _} = Ref, [flush]) ->
+    ?MODULE:demonitor(Ref),
     receive
         {'DOWN', Ref, _, _, _} -> ok
     after 0 -> ok
-    end;
-demonitor(Ref, [flush]) ->
-    erlang:demonitor(Ref, [flush]).
+    end.
 
 handle(Msg) ->
     system_log:info("Message at ~p: ~p", [node(), Msg]),
@@ -174,11 +168,26 @@ handle_call({call_director, Req}, From, #s{role = worker, director = Director} =
     send_to(Director, {call, {node(), From}, Req}, State),
     {noreply, State};
 
+handle_call({monitor, Owner, Pid}, _From, #s{local_monitors = LMons, remote_monitors = RMons} = State) when node(Pid) == node() ->
+    Ref = erlang:monitor(process, Pid),
+    Node = node(Pid),
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    {reply,
+        {interconnect_monitor, Pid, Ref},
+        State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons),
+                remote_monitors = maps:put(Node, maps:put(Ref, {Owner, Pid}, NodeMons), RMons)}};
 handle_call({monitor, Owner, Pid}, From, State) ->
     send_to(node(Pid), {monitor, {node(), From}, Owner, Pid}, State),
     {noreply, State};
 
+handle_call({demonitor, Pid, Ref}, _From, #s{remote_monitors = RMons, local_monitors = LMons} = State) when node(Pid) == node() ->
+    Node = node(Pid),
+    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+    {noreply, State#s{local_monitors = maps:remove(Ref, LMons),
+                      remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
+
 handle_call({demonitor, Pid, Ref}, _From, #s{remote_monitors = RMons} = State) ->
+    erlang:demonitor(Ref, [flush]),
     Node = node(Pid),
     NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
     send_to(node(Pid), {demonitor, Pid, Ref}, State),
@@ -275,6 +284,12 @@ handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
                               remote_monitors = maps:put(Node, #{}, RMons)}};
         error ->
             case maps:find(Ref, LMons) of
+                {ok, {Owner, Pid}} when node(Owner) == node() ->
+                    Owner ! {'DOWN', {interconnect_monitor, Pid, Ref}, process, Pid, Reason},
+                    Node = node(Pid),
+                    NodeMons = mzb_bc:maps_get(Node, RMons, #{}),
+                    {noreply, State#s{local_monitors = maps:remove(Ref, LMons),
+                                      remote_monitors = maps:put(Node, maps:remove(Ref, NodeMons), RMons)}};
                 {ok, {Owner, Pid}} ->
                     send_to(node(Owner), {down, node(), Owner, Ref, Pid, Reason}, State),
                     {noreply, State#s{local_monitors = maps:remove(Ref, LMons)}};
