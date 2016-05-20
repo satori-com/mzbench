@@ -112,7 +112,6 @@ demonitor({interconnect_monitor, _, _} = Ref, [flush]) ->
     end.
 
 handle(Msg) ->
-    system_log:info("Message at ~p: ~p", [node(), Msg]),
     gen_server:cast(?MODULE, {from_remote, Msg}).
 
 %%%===================================================================
