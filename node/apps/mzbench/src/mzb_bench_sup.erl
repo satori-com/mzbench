@@ -48,12 +48,6 @@ is_ready() ->
             false
     end.
 
-%connect_nodes(Nodes) ->
-%    lists:filter(
-%        fun (N) ->
-%            pong == net_adm:ping(N)
-%        end, Nodes).
-
 get_results() ->
     try
         mzb_director:attach()
