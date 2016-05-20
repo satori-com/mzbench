@@ -55,6 +55,7 @@ nodes() ->
         exit:{noproc, _} -> []
     end.
 
+% Mark current node as a director and set the list of hosts to connect to
 set_director(Hosts) ->
     gen_server:call(?MODULE, {set_director, Hosts}).
 

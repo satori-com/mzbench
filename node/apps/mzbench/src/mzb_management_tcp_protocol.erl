@@ -66,7 +66,6 @@ handle_message({read_and_validate, Path, Env}, _) ->
 handle_message({connect_nodes, Hosts}, ReplyFun) ->
     {ok, Port} = application:get_env(mzbench, node_interconnect_port),
     try
-        %[mzb_interconnect:connect(Host, Port) || Host <- Hosts],
         mzb_interconnect:set_director([{Host, Port} || Host <- Hosts]),
         fun Wait (0) -> ReplyFun({error, timeout});
             Wait (N) ->
