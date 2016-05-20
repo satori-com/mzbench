@@ -23,7 +23,7 @@ create_cluster(Opts = #{instance_user:= UserName}, NumNodes, Config) when is_int
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
     lager:info("AWS ids: ~p", [Ids]),
     try
-        erlcloud_ec2:create_tags(Ids, [{"Name", maps:get(purpose, Config, "")}], get_config(Opts)),
+        {ok, _} = erlcloud_ec2:create_tags(Ids, [{"Name", maps:get(purpose, Config, "")}], get_config(Opts)),
         wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
         {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
         lager:info("~p", [NewData]),
