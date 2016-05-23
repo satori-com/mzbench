@@ -68,6 +68,11 @@ init([Id, Params]) ->
             {ok, BN} -> BN;
             error -> ScriptName
         end,
+    Cloud = case mzb_bc:maps_get(cloud, Params, undefined) of
+                undefined -> [DefaultCloud | _] = mzb_api_cloud:list_clouds(),
+                             DefaultCloud;
+                Cl -> Cl
+            end,
     Config = #{
         id => Id,
         benchmark_name => BenchName,
@@ -90,7 +95,7 @@ init([Id, Params]) ->
         log_compression => application:get_env(mzbench_api, bench_log_compression, undefined),
         metrics_compression => application:get_env(mzbench_api, bench_metrics_compression, undefined),
         vm_args => VMArgs,
-        cloud => mzb_bc:maps_get(cloud, Params, undefined),
+        cloud => Cloud,
         node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
         node_log_user_port => application:get_env(mzbench_api, node_log_user_port, undefined),
         metric_update_interval_ms => extract_metric_update_interval(Params),
