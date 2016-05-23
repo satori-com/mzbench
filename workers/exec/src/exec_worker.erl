@@ -10,9 +10,14 @@ initial_state() -> "".
 
 metrics() ->
     [
-     {"success", counter},
-     {"fail", counter},
-     {"latency_us", histogram}
+        {group, "Summary", [
+            {graph, #{title => "Results",
+                      units => "N",
+                      metrics => [{"success", counter}, {"fail", counter}]}},
+            {graph, #{title => "Latency",
+                      units => "microseconds",
+                      metrics => [{"latency", histogram}]}}
+        ]}
     ].
 
 execute(State, Meta, Command) ->
@@ -26,7 +31,7 @@ execute(State, Meta, Command) ->
             lager:error("Execution on ~p failed. Exit Code: ~p", [WorkerId, ExitCode])
     end,
     TimeFinish = os:timestamp(),
-    mzb_metrics:notify({"latency_us", histogram}, timer:now_diff(TimeFinish, TimeStart)),
+    mzb_metrics:notify({"latency", histogram}, timer:now_diff(TimeFinish, TimeStart)),
     {nil, State}.
 
 run(Command, Opts, WorkerId) ->
