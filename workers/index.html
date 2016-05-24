@@ -155,11 +155,9 @@
         
             <li><a href="#command-line-utilities">Command Line Utilities</a></li>
         
-            <li><a href="#worker-structure">Worker Structure</a></li>
+            <li><a href="#how-to-write-an-erlang-worker">How to write an Erlang worker</a></li>
         
-            <li><a href="#how-to-define-statements">How to Define Statements</a></li>
-        
-            <li><a href="#metrics">Metrics</a></li>
+            <li><a href="#how-to-write-a-python-worker">How to write a Python worker</a></li>
         
     
     </ul>
@@ -167,11 +165,8 @@
                 <div class="col-md-9" role="main">
 
 <p>To benchmark a particular protocol or service, MZBench uses a matching <em>worker</em>.</p>
-<p><strong>Worker</strong> is an Erlang application that provides <a href="../scenarios/spec/">statements</a> to access a particular service and collects statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you&rsquo;ll probably need to write a worker for it.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You need basic Erlang knowledge to understand this tutorial. Refer to <a href="http://www.erlang.org/doc/getting_started/users_guide.html">Getting Started with Erlang User&rsquo;s Guide</a> or to the <a href="http://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> book for an introduction to Erlang.</p>
-</div>
+<p><strong>Worker</strong> is a library of <a href="../scenarios/spec/">statements</a> to access a particular service and collect statistics about its usage. MZBench ships with workers for HTTP and XMPP protocols and a worker that executes console commands, and in many cases they are enough. But if you need to test a specific service, you&rsquo;ll probably need to write a worker for it.</p>
+<p>A <strong>worker</strong> can be implemented in either <a href="#how-to-write-an-erlang-worker">Erlang</a> or <a href="#how-to-write-a-python-worker">Python</a> programming languages. Please note that the support for Erlang programming language is a little bit more complete.</p>
 <h1 id="how-to-write-a-worker">How to Write a Worker<a class="headerlink" href="#how-to-write-a-worker" title="Permanent link">&para;</a></h1>
 <h2 id="command-line-utilities">Command Line Utilities<a class="headerlink" href="#command-line-utilities" title="Permanent link">&para;</a></h2>
 <p>MZBench distribution provides <a href="../cli/">command line utilities</a> to assist you during your development effort.</p>
@@ -182,19 +177,24 @@
 </code></pre>
 </div>
 <h3 id="generate">Generate<a class="headerlink" href="#generate" title="Permanent link">&para;</a></h3>
-<p>First, generate an empty worker application with <a href="../cli/#new_worker"><code>new_worker</code></a>:</p>
+<p>First, generate an <em>Erlang</em> empty worker application with <a href="../cli/#new_worker"><code>new_worker</code></a>:</p>
 <pre><code class="bash">$ ./bin/mzbench new_worker &lt;worker_name&gt;
 </code></pre>
 
 <p>It creates a new directory <code>&lt;worker_name&gt;</code> with a minimalistic but fully functional MZBench worker named <code>&lt;worker_name&gt;</code>. Particularly interesting files are <code>src/&lt;worker_name&gt;.erl</code>, which holds the worker source code, and <code>examples/&lt;worker_name&gt;.erl</code>, which contains a simple MZBench <a href="../scenarios/spec/">scenario</a> using it.</p>
-<p>If the worker you develop works over a common protocol like TCP, the <code>new_worker</code> command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with <a href="../cli/#list_templates"><code>list_templates</code></a>:</p>
+<p>If the worker you develop works over a common protocol like TCP or you wish to develop it using a different programming language, the <code>new_worker</code> command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with <a href="../cli/#list_templates"><code>list_templates</code></a>:</p>
 <pre><code class="bash">$ ./bin/mzbench list_templates
 </code></pre>
 
 <p>Then generate your worker with the additional <code>--template</code> parameter:</p>
-<pre><code class="bash">./bin/mzbench new_worker --template &lt;protocol&gt; &lt;worker_name&gt;
+<pre><code class="bash">$ ./bin/mzbench new_worker --template &lt;protocol&gt; &lt;worker_name&gt;
 </code></pre>
 
+<p>For instance, you can generate a <em>Python</em> based worker using the following command:</p>
+<pre><code class="bash">$ ./bin/mzbench new_worker --template python_empty &lt;worker_name&gt;
+</code></pre>
+
+<p>The worker entry point is contained in the file <code>src/&lt;worker_name&gt;.py</code> in this case.</p>
 <h3 id="compile-and-debug">Compile and Debug<a class="headerlink" href="#compile-and-debug" title="Permanent link">&para;</a></h3>
 <p>MZBench lets you quickly build a worker and launch a local instance of a benchmarking scenario without running a server.</p>
 <p>In the worker directory, run <a href="../cli/#run_local"><code>run_local &lt;script&gt;</code></a>, where <code>&lt;script&gt;</code> is the path to the scenario to run:</p>
@@ -209,7 +209,12 @@
 <h3 id="execute">Execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h3>
 <p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/spec/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
 <p><a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">Simple HTTP worker example →</a></p>
-<h2 id="worker-structure">Worker Structure<a class="headerlink" href="#worker-structure" title="Permanent link">&para;</a></h2>
+<h2 id="how-to-write-an-erlang-worker">How to write an Erlang worker<a class="headerlink" href="#how-to-write-an-erlang-worker" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You need basic Erlang knowledge to understand this tutorial. Refer to <a href="http://www.erlang.org/doc/getting_started/users_guide.html">Getting Started with Erlang User&rsquo;s Guide</a> or to the <a href="http://learnyousomeerlang.com">Learn You Some Erlang for great good!</a> book for an introduction to Erlang.</p>
+</div>
+<h3 id="the-erlang-worker-structure">The Erlang Worker Structure<a class="headerlink" href="#the-erlang-worker-structure" title="Permanent link">&para;</a></h3>
 <p>A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.</p>
 <p>To understand the general structure of a worker, let&rsquo;s see the source code of the <code>dummy_worker</code> provided with the MZBench distribution:</p>
 <pre><code class="erlang">-module(dummy_worker).
@@ -254,10 +259,10 @@ print(State, Meta, Text) -&gt;
 <dt><code>initial_state/0</code></dt>
 <dd>Set the worker&rsquo;s initial state. Each parallel job has its own state, so this function will be called once per job start.</dd>
 <dt><code>metrics/0</code></dt>
-<dd>Return a group of metrics generated by this worker. <a href="#how-to-define-metrics">How to define metrics</a>.</dd>
+<dd>Return a group of metrics generated by this worker. <a href="#declaring-metrics">Declaring Metrics</a>.</dd>
 </dl>
 <p>The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>dummy_worker</code>, for instance, provides the <code>print</code> statement to output a string to the standard output. </p>
-<h2 id="how-to-define-statements">How to Define Statements<a class="headerlink" href="#how-to-define-statements" title="Permanent link">&para;</a></h2>
+<h3 id="how-to-define-statements">How to Define Statements<a class="headerlink" href="#how-to-define-statements" title="Permanent link">&para;</a></h3>
 <p>To define a DSL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:</p>
 <pre><code class="erlang">&lt;statement_name&gt;(State, Meta, [&lt;Param1&gt;, [&lt;Param2&gt;, ...]]) -&gt;
     {ReturnValue, NewState}.
@@ -277,9 +282,9 @@ print(State, Meta, Text) -&gt;
 </ul>
 <p>Statements are processed sequentially; each statement receives the state from the previous one and passes it further.</p>
 <p>Two exceptions are the statements within the <a href="../scenarios/spec/#parallel_1"><code>{parallel}</code></a> section and iterations within a <code>{loop}</code> with <a href="../scenarios/spec/#parallel">parallel &gt; 1</a>. In these cases the statements within the same thread share the same sequence of statements, which parallel threads don&rsquo;t. The final state of the whole <code>{parallel}</code> or <code>{loop}</code> statement is the one from the first &ldquo;thread&rdquo;; other threads&rsquo; states don&rsquo;t affect the final state.</p>
-<h2 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h2>
+<h3 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h3>
 <p>Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.</p>
-<h3 id="metric-types">Metric Types<a class="headerlink" href="#metric-types" title="Permanent link">&para;</a></h3>
+<h4 id="metric-types">Metric Types<a class="headerlink" href="#metric-types" title="Permanent link">&para;</a></h4>
 <p>MZBench currently support four types of metrics:</p>
 <dl>
 <dt><code>counter</code></dt>
@@ -292,7 +297,7 @@ print(State, Meta, Text) -&gt;
 <dd>Evaluated periodically using user-defined function based on another metric values. <a href="#derived-metrics">Learn more</a>.</dd>
 </dl>
 <p>For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use <code>counter</code>. If you are interested in its distribution–mean size, 50 percentile, and so on–you need a <code>histogram</code>.</p>
-<h3 id="declaring-metrics">Declaring Metrics<a class="headerlink" href="#declaring-metrics" title="Permanent link">&para;</a></h3>
+<h4 id="declaring-metrics">Declaring Metrics<a class="headerlink" href="#declaring-metrics" title="Permanent link">&para;</a></h4>
 <p>Declare the groups of metrics collected by your worker in the list returned by <code>metrics/0</code>. Each group corresponds to a structure with following spec:</p>
 <pre><code>graph_group() :: {group, Name :: string(), [graph()]}
                | graph().
@@ -322,7 +327,7 @@ metric_type() :: counter | gauge | histogram.
 
 <p>In this example, a group of graphs with the name &ldquo;HTTP Requests&rdquo; is created. It consists of several graphs representing the number of successful and failed requests and the request latencies.</p>
 <p>A graph can produce several charts. In the example above, the graph for successful and failed request produces two charts: absolute counters and their rps.</p>
-<h3 id="derived-metrics">Derived Metrics<a class="headerlink" href="#derived-metrics" title="Permanent link">&para;</a></h3>
+<h4 id="derived-metrics">Derived Metrics<a class="headerlink" href="#derived-metrics" title="Permanent link">&para;</a></h4>
 <p>Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric, specify the <code>resolver</code> function in the metric opts dictionary. This function is used to evaluate the metric value.</p>
 <p>Typical example of a derived metric is the current number of pending requests. We specify a function (<code>pending_requests</code>) to calculate the metric value in the metric options and then define the function as simple difference between the number of sent requests and received responses:</p>
 <pre><code class="erlang">metrics() -&gt; [{group, &quot;Requests&quot;, [
@@ -336,7 +341,7 @@ pending_requests() -&gt;
     mzb_metrics:get_value(&quot;requests_sent&quot;) - mzb_metrics:get_value(&quot;responses_received&quot;).
 </code></pre>
 
-<h3 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h3>
+<h4 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h4>
 <p><a href="../scenarios/spec/#pre_hook-and-post_hook">Pre and post hooks</a> let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.</p>
 <p>Scenario:</p>
 <pre><code class="erlang">{pre_hook, [
@@ -360,7 +365,102 @@ pending_requests() -&gt;
 <pre><code class="erlang">mzb_metrics:notify({&quot;&lt;metric_name&gt;&quot;, &lt;metric_type&gt;}, &lt;value&gt;)
 </code></pre>
 
-<p>The tuple <code>{"&lt;metric_name&gt;", &lt;metric_type&gt;}</code> is the same that was used during the metric declaration and identifies the metric to update. <code>&lt;value&gt;</code> is the value to add to the metric.</p></div>
+<p>The tuple <code>{"&lt;metric_name&gt;", &lt;metric_type&gt;}</code> is the same that was used during the metric declaration and identifies the metric to update. <code>&lt;value&gt;</code> is the value to add to the metric.</p>
+<h2 id="how-to-write-a-python-worker">How to write a Python worker<a class="headerlink" href="#how-to-write-a-python-worker" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You need a basic knowledge about the Python programming language to understand this tutorial. Refer to <a href="https://docs.python.org/2.7/tutorial/index.html">The Python Tutorial</a> for an introduction to Python.</p>
+</div>
+<h3 id="the-python-worker-structure">The Python Worker Structure<a class="headerlink" href="#the-python-worker-structure" title="Permanent link">&para;</a></h3>
+<p>A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.</p>
+<p>To understand the general structure of a worker, let&rsquo;s see the source code of the <code>python_empty</code> worker template provided with the MZBench distribution:</p>
+<pre><code class="python">import random
+import mzbench
+
+def initial_state():
+    pass
+
+
+def metrics():
+    return [
+        [
+            ('print', 'counter'),
+            ('print_2', 'counter')
+        ],
+        ('dummy', 'histogram')
+    ]
+
+
+def my_print(msg):
+    mzbench.notify(('print', 'counter'), 1)
+    mzbench.notify(('print_2', 'counter'), 2)
+
+    print &quot;{0}&quot;.format(msg)
+
+    mzbench.notify(('dummy', 'histogram'), random.uniform(0, 1000000000)/7)
+</code></pre>
+
+<p>It contains three functions: <code>initial_state()</code>, <code>metrics()</code>, and <code>my_print()</code>. The first two are mandatory for any worker. </p>
+<dl>
+<dt><code>initial_state()</code></dt>
+<dd>Useful to initialize the worker&rsquo;s initial state. Each parallel job has its own separate Python interpreter process, so this function will be called once per job start.</dd>
+<dt><code>metrics()</code></dt>
+<dd>Return a group of metrics generated by this worker. <a href="#declaring-metrics-in-python">Declaring Metrics in Python</a>.</dd>
+</dl>
+<p>The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>python_empty</code> worker, for instance, provides the <code>my_print</code> statement to output a string to the standard output.</p>
+<h3 id="how-to-define-statements_1">How to Define Statements<a class="headerlink" href="#how-to-define-statements_1" title="Permanent link">&para;</a></h3>
+<p>To define a DSL statement provided by your worker, write a Python function that will be called when this statement is encountered:</p>
+<pre><code class="python">def &lt;statement_name&gt;([&lt;Param1&gt;, [&lt;Param2&gt;, ...]]):
+    [return &lt;ReturnValue&gt;]
+</code></pre>
+
+<p>The function has the same name as the statement it defines. It can accept any number of parameters, they correspond to the parameters of the statement.</p>
+<p>For example, this function:</p>
+<pre><code class="python">def foo(X, Y):
+    pass
+</code></pre>
+
+<p>is called as <code>{foo, X, Y}</code> from a benchmarking scenario.</p>
+<p>The statement function may return a value corresponding to the return value of the statement or nothing if the statement has no return value.</p>
+<p>Statements are processed sequentially in the same interpreter, so the values of the global variables are conserved between calls.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please beware that the <a href="../scenarios/spec/#parallel_1"><code>{parallel}</code></a> section and <a href="../scenarios/spec/#parallel">parallel &gt; 1</a> option of the <code>{loop}</code> 
+can&rsquo;t and shouldn&rsquo;t be used with the Python based workers.</p>
+</div>
+<h3 id="metrics_1">Metrics<a class="headerlink" href="#metrics_1" title="Permanent link">&para;</a></h3>
+<p>Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.</p>
+<h4 id="metric-types_1">Metric Types<a class="headerlink" href="#metric-types_1" title="Permanent link">&para;</a></h4>
+<p>MZBench currently support three types of metrics with the Python based workers:</p>
+<dl>
+<dt><code>counter</code></dt>
+<dd>A single additive value. New values are simply added to the current one.</dd>
+<dt><code>gauge</code></dt>
+<dd>A single non-additive value. New value replaces the previous one.</dd>
+<dt><code>histogram</code></dt>
+<dd>A set of numerical values that quantify a distribution of values. New values are added to the distribution.</dd>
+</dl>
+<p>For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use <code>counter</code>. If you are interested in its distribution–mean size, 50 percentile, and so on–you need a <code>histogram</code>.</p>
+<h4 id="declaring-metrics-in-python">Declaring Metrics in Python<a class="headerlink" href="#declaring-metrics-in-python" title="Permanent link">&para;</a></h4>
+<p>Declare the metrics and the groups of metrics collected by your worker in the list returned by the <code>metrics()</code> function. Each metric is a tuple <code>(&lt;Name&gt;, &lt;Type&gt;)</code> where <code>&lt;Name&gt;</code> is the name of the metric and <code>&lt;Type&gt;</code> is the metric type. Each group is a list of metrics tuples. A group corresponds to metrics that will be plotted on the same chart.</p>
+<p>Let&rsquo;s see the following metrics declaration:</p>
+<pre><code class="python">def metrics():
+    return [
+        [
+            ('print', 'counter'),
+            ('print_2', 'counter')
+        ],
+        ('dummy', 'histogram')
+    ]
+</code></pre>
+
+<p>In this example, three metrics are declared. <code>print</code> and <code>print_2</code> are <em>counters</em> and <code>dummy</code> is a <em>histogram</em>. Moreover, the metrics <code>print</code> and <code>print_2</code> will be plotted on the same graph.</p>
+<h3 id="updating-metrics_1">Updating Metrics<a class="headerlink" href="#updating-metrics_1" title="Permanent link">&para;</a></h3>
+<p>You can update a metric from anywhere inside your worker. Simply call the following function:</p>
+<pre><code class="python">mzbench.notify(('&lt;metric_name&gt;', '&lt;metric_type&gt;'), &lt;value&gt;)
+</code></pre>
+
+<p>The tuple <code>('&lt;metric_name&gt;', '&lt;metric_type&gt;')</code> is the same that was used during the metric declaration and identifies the metric to update. <code>&lt;value&gt;</code> is the value to add to the metric.</p></div>
             
         </div>
 
