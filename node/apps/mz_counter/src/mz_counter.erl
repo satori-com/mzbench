@@ -4,6 +4,9 @@
          create/1,
          notify/2,
          get_value/1,
+         create_raw/0,
+         notify_raw/2,
+         get_value_raw/1,
          reset/1]).
 
 -behaviour(gen_server).
@@ -77,6 +80,15 @@ reset(Name) ->
         Ref ->
             reset_counter(Ref)
     end.
+
+create_raw() ->
+    create_counter().
+
+notify_raw(Ref, Value) ->
+    update_counter(Ref, Value).
+
+get_value_raw(Ref) ->
+    get_counter_value(Ref).
 
 %%%===================================================================
 %%% gen_server callbacks
