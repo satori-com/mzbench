@@ -96,13 +96,13 @@ multi_call(Nodes, Req, Timeout) ->
     {[V || {ok, V} <- L], [V || {bad, V} <- L]}.
 
 abcast(Nodes, Msg) ->
-    [cast(N, Msg) || N <- Nodes].
+    gen_server:cast(?MODULE, {abcast, Nodes, Msg}).
 
 monitor(process, Pid) ->
-    gen_server:call(?MODULE, {monitor, self(), Pid}).
+    gen_server:call(?MODULE, {monitor, self(), Pid}, infinity).
 
 demonitor({interconnect_monitor, Pid, Ref}) ->
-    gen_server:call(?MODULE, {demonitor, Pid, Ref}).
+    gen_server:call(?MODULE, {demonitor, Pid, Ref}, infinity).
 
 demonitor({interconnect_monitor, _, _} = Ref, [flush]) ->
     ?MODULE:demonitor(Ref),
@@ -195,6 +195,10 @@ handle_cast({cast, Node, Msg}, State) ->
     send_to(Node, {cast, Msg}, State),
     {noreply, State};
 
+handle_cast({abcast, Nodes, Msg}, State) ->
+    handle_abcast(Nodes, Msg, State),
+    {noreply, State};
+
 handle_cast({cast_director, Msg}, #s{role = director} = State) ->
     _ = (catch handle_message(Msg, State)),
     {noreply, State};
@@ -205,6 +209,10 @@ handle_cast({cast_director, Msg}, #s{role = worker, director = DirNode} = State)
 
 handle_cast({from_remote, {cast, Msg}}, State) ->
     _ = (catch handle_message(Msg, State)),
+    {noreply, State};
+
+handle_cast({from_remote, {abcast, Nodes, Msg}}, State) ->
+    handle_abcast(Nodes, Msg, State),
     {noreply, State};
 
 handle_cast({from_remote, {call, {FromNode, From}, Msg}}, State) ->
@@ -286,6 +294,25 @@ handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
 
 handle_info(_Info, State) ->
     {noreply, State}.
+
+
+handle_abcast(Nodes, Msg, #s{role = director} = State) ->
+    lists:foreach(
+        fun (N) when N == node() -> catch handle_message(Msg, State);
+            (N) -> send_to(N, {cast, Msg}, State)
+        end, Nodes);
+handle_abcast(Nodes, Msg, #s{role = worker, director = Director} = State) ->
+    NewNodes = case lists:member(node(), Nodes) of
+        true  ->
+            catch handle_message(Msg, State),
+            lists:delete(node(), Nodes);
+        false ->
+            Nodes
+    end,
+    case NewNodes of
+        [] -> ok;
+        _ -> send_to(Director, {abcast, NewNodes, Msg}, State)
+    end.
 
 terminate(_Reason, _State) ->
     ok.
