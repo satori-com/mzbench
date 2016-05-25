@@ -8,6 +8,7 @@
          destroy_cluster/1,
          list_clouds/0,
          clusters_info/0,
+         remove_cluster_info/1,
          stop/0]).
 
 %% gen_server callbacks
@@ -52,6 +53,9 @@ list_clouds() ->
 
 clusters_info() ->
     dets:foldr(fun ({Id, State, Props}, Acc) -> [[{id, Id},{state, State}|Props]|Acc] end, [], ?MODULE).
+
+remove_cluster_info(Id) ->
+    gen_server:call(?MODULE, {remove_cluster_info, Id}, infinity).
 
 % just for test purpose
 stop() ->
@@ -113,8 +117,12 @@ handle_call({deallocation_failed, Id, Error}, _From, State) ->
 handle_call({get_cloud_list}, _From, State = #{clouds:= Clouds, default := Default}) ->
     {reply, [Default | maps:keys(maps:remove(Default, Clouds))], State};
 
-handle_call(stop, _from, State) ->
+handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
+
+handle_call({remove_cluster_info, Id}, _From, State) ->
+    catch unregister_cluster(Id),
+    {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
     lager:error("Unhandled call: ~p", [_Request]),

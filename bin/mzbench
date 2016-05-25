@@ -42,6 +42,7 @@ if server_functions:
   mzbench list_templates
   mzbench new_worker [--template=<template>] <name>
   mzbench clusters_info
+  mzbench remove_cluster_info <cluster_id>
   mzbench deallocate_cluster <cluster_id>
   mzbench selfcheck"""
 
@@ -385,6 +386,10 @@ def clusters_info(host):
 
 def deallocate_cluster(host, cluster_id):
     response = api.deallocate_cluster(host, cluster_id)
+    pretty_print(response)
+
+def remove_cluster_info(host, cluster_id):
+    response = api.remove_cluster_info(host, cluster_id)
     pretty_print(response)
 
 #=================================================================================================
