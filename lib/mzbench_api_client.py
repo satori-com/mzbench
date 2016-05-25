@@ -228,6 +228,17 @@ def deallocate_cluster(host, cluster_id):
 
     return assert_successful_get(host, '/deallocate_cluster', {'id': cluster_id})
 
+def remove_cluster_info(host, cluster_id):
+    """Remove cluster record from the table of current allocated cluster info
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param cluster_id: id of target cluster
+    :type cluster_id: int
+    """
+
+    return assert_successful_get(host, '/remove_cluster_info', {'id': cluster_id})
+
 def stream_lines(host, endpoint, args):
     try:
         response = requests.get(

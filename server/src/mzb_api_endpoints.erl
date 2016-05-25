@@ -203,6 +203,27 @@ handle(<<"GET">>, <<"/deallocate_cluster">>, Req) ->
         _:no_cluster -> erlang:error({not_found, "Cluster is not allocated"})
     end;
 
+handle(<<"GET">>, <<"/remove_cluster_info">>, Req) ->
+    ClusterId =
+        try
+            #{id:= Id} = cowboy_req:match_qs([{id, int}], Req),
+            Id
+        catch
+            error:bad_key ->
+                erlang:error({badarg, "Missing id argument"});
+            error:{case_clause, _} ->
+                % case_clause exception is cowboy's way of saying that
+                % provided id is not an int
+                erlang:error({badarg, "Provided id is not an int"})
+        end,
+
+    try
+        mzb_api_cloud:remove_cluster_info(ClusterId),
+        {ok, reply_json(200, #{}, Req), #{}}
+    catch
+        _:not_found -> erlang:error({not_found, "Cluster not found"})
+    end;
+
 handle(Method, Path, Req) ->
     lager:error("Unknown request: ~p ~p~n~p", [Method, Path, Req]),
     erlang:error({not_found, io_lib:format("Wrong endpoint: ~p ~p", [Method, Path])}).
