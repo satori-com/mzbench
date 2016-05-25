@@ -3,6 +3,7 @@
 
 cloud_plugin_test() ->
     application:set_env(mzbench_api, cloud_plugins, [{test_plugin, #{module => dummy_plugin}}]),
+    application:set_env(mzbench_api, bench_data_dir, "/tmp/mzbench_test"),
     ok = meck:new(dummy_plugin, [non_strict]),
     try
         ok = meck:expect(dummy_plugin, start, fun (test_plugin, #{}) -> instance end),
@@ -15,7 +16,7 @@ cloud_plugin_test() ->
                                                        end),
         ok = meck:expect(dummy_plugin, destroy_cluster, fun (dummy_cluster) -> ok end),
         ok = meck:expect(dummy_plugin, foo, fun (clusterId) -> ok end),
-        Config = #{cloud => undefined, initial_user => "user", purpose => "purpose", nodes_arg => 1, exclusive_node_usage => false},
+        Config = #{id => 1234, cloud => undefined, initial_user => "user", purpose => "purpose", nodes_arg => 1, exclusive_node_usage => false},
         mzb_api_cloud:start_link(),
         {dummy_hosts, dummy_user, Deallocator} = (catch mzb_api_bench:allocate_hosts(Config, fun (_, _, _) -> ok end)),
         ok = Deallocator(),

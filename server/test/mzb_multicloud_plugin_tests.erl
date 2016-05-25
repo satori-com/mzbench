@@ -40,7 +40,7 @@ multicloud_plugin_test() ->
         Config = #{},%#{cloud => undefined, initial_user => "user", purpose => "purpose", exclusive_node_usage => false},
 
         mzb_api_cloud:start_link(),
-        {ok, Id, dummy_user1, [dummy_hosts1, dummy_hosts2]} = mzb_api_cloud:create_cluster(multi, 20, Config),
+        {ok, Id, dummy_user1, [dummy_hosts1, dummy_hosts2]} = mzb_api_cloud:create_cluster( _BenchId = 1234, multi, 20, Config),
         ok = mzb_api_cloud:destroy_cluster(Id),
         ?assert(meck:called(dummy_plugin1, create_cluster, '_')),
         ?assert(meck:called(dummy_plugin1, destroy_cluster, '_')),

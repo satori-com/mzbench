@@ -20,10 +20,11 @@ create_cluster(#{clouds:= Clouds}, N, Config) ->
     allocate([{Name, N - lists:sum([M || {_, M} <- Parts])}|Parts], Config).
 
 allocate(Clouds, Config) ->
+    BenchId = maps:get(bench_id, Config),
     CreateRes = mzb_lists:pmap(
         fun ({Name, N}) ->
             try
-                mzb_api_cloud:create_cluster(Name, N, Config)
+                mzb_api_cloud:create_cluster(BenchId, Name, N, Config)
             catch
                 _:Error -> {error, {Name, N, Error}}
             end
