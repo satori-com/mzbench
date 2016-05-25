@@ -29,7 +29,10 @@ Usage:
   mzbench [--host=<host>] log <bench_id>
   mzbench [--host=<host>] userlog <bench_id>
   mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
-  mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>"""
+  mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>
+  mzbench [--host=<host>] clusters_info
+  mzbench [--host=<host>] remove_cluster_info <cluster_id>
+  mzbench [--host=<host>] deallocate_cluster <cluster_id>"""
 
 if server_functions:
     doc_acc += """
@@ -41,9 +44,6 @@ if server_functions:
   mzbench validate <script> [--env=<name=value>...]
   mzbench list_templates
   mzbench new_worker [--template=<template>] <name>
-  mzbench clusters_info
-  mzbench remove_cluster_info <cluster_id>
-  mzbench deallocate_cluster <cluster_id>
   mzbench selfcheck"""
 
 doc_acc += """
