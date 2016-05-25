@@ -84,7 +84,7 @@ handle_call({get_allocator, BenchId, Cloud, N, Config}, _From, State = #{cluster
             F =
                 fun () ->
                     try
-                        {ok, Cluster, User, Hosts} = Provider:create_cluster(Instance, N, Config),
+                        {ok, Cluster, User, Hosts} = Provider:create_cluster(Instance, N, maps:put(bench_id, BenchId, Config)),
                         gen_server:call(Self, {allocated, Id, Cluster, User, Hosts}, infinity),
                         {ok, Id, User, Hosts}
                     catch
