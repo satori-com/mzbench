@@ -1,0 +1,12 @@
+%% -*- mode: erlang -*-
+{application, rest_worker,
+ [
+  {description, "rest http worker"},
+  {vsn, git},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  hackney
+                 ]},
+  {env, []}
+ ]}.
