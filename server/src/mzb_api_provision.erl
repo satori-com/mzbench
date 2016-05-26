@@ -38,8 +38,7 @@ provision_nodes(Config, Logger) ->
     case ProvisionNodes of
         true ->
             ok = install_node(UniqHosts, Config, Logger),
-            install_workers(UniqHosts, Config, Logger, Env),
-            ensure_cookie(UserName, UniqHosts, Config, Logger);
+            install_workers(UniqHosts, Config, Logger, Env);
         _ -> ok
     end,
     DirectorNode = nodename(director_sname(Config), 0),
@@ -100,13 +99,6 @@ ntp_check(UserName, Hosts, Logger) ->
 
 nodename(Name, N) ->
     erlang:list_to_atom(mzb_string:format("~s_~b@127.0.0.1", [Name, N])).
-
-ensure_cookie(UserName, Hosts, #{purpose:= Cookie} = Config, Logger) ->
-    CookieFile = "~/.erlang.cookie",
-    NotLocalhosts = [H || H <- Hosts, H =/= "localhost", H =/= "127.0.0.1"],
-    ensure_file_content(NotLocalhosts, Cookie, CookieFile, Config, Logger),
-    _ = mzb_subprocess:remote_cmd(UserName, NotLocalhosts, "chmod", ["go-rwx", CookieFile], Logger),
-    ok.
 
 ensure_vm_args(Hosts, Nodenames, Config, Logger) ->
     _ = mzb_lists:pmap(
