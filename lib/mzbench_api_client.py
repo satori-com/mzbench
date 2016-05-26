@@ -13,7 +13,7 @@ class MZBenchAPIException(Exception):
 def start(host, script_file, script_content,
           node_commit = None, nodes = None, workers_per_node = None, deallocate_after_bench = None,
           provision_nodes = None, exclusive_node_usage = None, benchmark_name = None,
-          cloud = None, emails=[], includes=[], env={}
+          cloud = None, tags = None, emails=[], includes=[], env={}
         ):
     """Starts a bench
 
@@ -39,6 +39,8 @@ def start(host, script_file, script_content,
     :type benchmark_name: str or unicode
     :param cloud: Specify cloud provider to use
     :type cloud: str or unicode
+    :param tags: Benchmark tags
+    :type tags: str
     :param emails: Emails to notify on bench results
     :type emails: List of strings
     :param env: Dictionary of environment variables to substitute
@@ -75,9 +77,11 @@ def start(host, script_file, script_content,
         params += [('benchmark_name', benchmark_name)]
     if cloud is not None:
         params += [('cloud', cloud)]
+    if tags is not None:
+        params += [('tags', tags)]
     if node_commit is not None:
         params += [('node_commit', node_commit)]
-    
+
     params += [('email', email) for email in emails]
     params += [(k, v) for k, v in env.iteritems()]
 
@@ -238,6 +242,31 @@ def remove_cluster_info(host, cluster_id):
     """
 
     return assert_successful_get(host, '/remove_cluster_info', {'id': cluster_id})
+
+def add_tags(host, bench_id, tags):
+    """Add tags to an existing benchmark
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type bench_id: int
+    :param tags: Tags to add
+    :type tags: str
+    """
+
+    return assert_successful_get(host, '/add_tags', {'id': bench_id, 'tags': tags})
+
+def remove_tags(host, bench_id, tags):
+    """Remove tags from an existing benchmark
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type bench_id: int
+    :param tags: Tags to remove
+    :type tags: str
+    """
+
+    return assert_successful_get(host, '/remove_tags', {'id': bench_id, 'tags': tags})
+
 
 def stream_lines(host, endpoint, args):
     try:

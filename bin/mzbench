@@ -22,6 +22,7 @@ Usage:
     [--exclusive_node_usage=<exclusive_node_usage>]
     [--name=<benchmark_name>]
     [--cloud=<cloud_provider_name>]
+    [--tags=<tags>]
     <script_file>
   mzbench [--host=<host>] restart <bench_id>
   mzbench [--host=<host>] status [--wait] <bench_id>
@@ -32,7 +33,9 @@ Usage:
   mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>
   mzbench [--host=<host>] clusters_info
   mzbench [--host=<host>] remove_cluster_info <cluster_id>
-  mzbench [--host=<host>] deallocate_cluster <cluster_id>"""
+  mzbench [--host=<host>] deallocate_cluster <cluster_id>
+  mzbench [--host=<host>] add_tags <bench_id> <tags>
+  mzbench [--host=<host>] remove_tags <bench_id> <tags>"""
 
 if server_functions:
     doc_acc += """
@@ -236,10 +239,10 @@ def pretty_print(data):
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,
-        name, cloud, env):
+        name, cloud, tags, env):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
-        exclusive_node_usage, name, cloud, env)
+        exclusive_node_usage, name, cloud, tags, env)
     response = status(host, bench_id, wait=True)
     if response[u'status'] == u'failed':
         print('Bench failed')
@@ -247,7 +250,7 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          exclusive_node_usage, name, cloud, env):
+          exclusive_node_usage, name, cloud, tags, env):
     try:
         response = api.start(host,
             script_file,
@@ -259,6 +262,7 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             exclusive_node_usage=exclusive_node_usage,
             benchmark_name=name,
             cloud=cloud,
+            tags=tags,
             env=env,
             nodes=nodes,
             workers_per_node=workers_per_node)
@@ -390,6 +394,14 @@ def deallocate_cluster(host, cluster_id):
 
 def remove_cluster_info(host, cluster_id):
     response = api.remove_cluster_info(host, cluster_id)
+    pretty_print(response)
+
+def add_tags(host, bench_id, tags):
+    response = api.add_tags(host, bench_id, tags)
+    pretty_print(response)
+
+def remove_tags(host, bench_id, tags):
+    response = api.remove_tags(host, bench_id, tags)
     pretty_print(response)
 
 #=================================================================================================
