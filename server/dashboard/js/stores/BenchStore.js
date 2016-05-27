@@ -7,6 +7,7 @@ const CHANGE_EVENT = 'bench_change';
 
 const defaultData = {
     benchmarks: [],
+    toggles: new Map([]),
     server_date_diff: moment.duration(0),
     filter: "",
     pager: {},
@@ -171,6 +172,11 @@ class BenchStore extends EventEmitter {
     getCurrentPage() {
         return data.currentPage;
     }
+
+    getToggledSet(benchId) {
+        if (data.toggles.has(benchId)) return new Set(data.toggles.get(benchId));
+        return new Set([0]);
+    }
 }
 
 var _BenchStore = new BenchStore();
@@ -277,6 +283,10 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
         case ActionTypes.NOTIFY:
             $.notify({message: action.message}, {type: action.severity});
             break;
+
+        case ActionTypes.SAVE_TOGGLED_GRAPHS:
+            data.toggles.set(action.data.benchId, new Set(action.data.toggles));
+            _BenchStore.emitChange();
 
         default:
     }

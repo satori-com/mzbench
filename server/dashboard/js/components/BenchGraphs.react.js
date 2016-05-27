@@ -4,12 +4,13 @@ import Graph from './Graph.react';
 import GraphModal from './GraphModal.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
+import BenchStore from '../stores/BenchStore';
 
 class BenchGraphs extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = { toggles: new Set([0]) };
+        this.state = { toggles: BenchStore.getToggledSet(this.props.bench.id) };
         this.isGraphOpen = false;
     }
 
@@ -146,6 +147,7 @@ class BenchGraphs extends React.Component {
     _onToggle(idx) {
         let { toggles } = this.state;
         toggles.has(idx) ? toggles.delete(idx) : toggles.add(idx);
+        MZBenchActions.saveToggledGraphs(this.props.bench.id, toggles);
         this.setState({toggles: toggles});
     }
 

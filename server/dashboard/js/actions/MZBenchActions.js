@@ -126,6 +126,10 @@ export default {
         Dispatcher.dispatch({ type: Constants.DESELECT_GRAPH });
     },
 
+    saveToggledGraphs(benchId, toggles) {
+        Dispatcher.dispatch({ type: Constants.SAVE_TOGGLED_GRAPHS, data:{benchId: benchId, toggles: toggles}});
+    },
+
     cloneBench(id) {
         Dispatcher.dispatch({ type: Constants.CLONE_BENCH, data: id });
     },

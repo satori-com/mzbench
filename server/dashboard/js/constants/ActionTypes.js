@@ -28,5 +28,6 @@ export default keyMirror({
     UPDATE_LOG_QUERY_DATA: null,
     UPDATE_LOG_QUERY_KIND: null,
     UPDATE_LOG_QUERY_ERRORS: null,
+    SAVE_TOGGLED_GRAPHS: null,
     SUBSCRIBE_METRICS: null
 });
