@@ -492,16 +492,14 @@ extract_node_install_spec(Params) ->
     % BC CODE:
         case Get(mzbench_git) of
             undefined -> ok;
-            V1 -> application:set_env(mzbench_api, node_git, V1)
-            %_ ->
-            %     lager:error("mzbench_git param is obsolete, use node_git instead"),
-            %     erlang:error(mzbench_git_is_obsolete)
+            _ ->
+                 lager:error("mzbench_git param is obsolete, use node_git instead"),
+                 erlang:error(mzbench_git_is_obsolete_use_node_git)
         end,
         case Get(mzbench_rsync) of
             undefined -> ok;
-            V2 -> application:set_env(mzbench_api, node_rsync, V2)
-            %_ -> lager:error("mzbench_rsync param is obsolete, use node_rsync instead"),
-            %     erlang:error(mzbench_rsync_is_obsolete)
+            _ -> lager:error("mzbench_rsync param is obsolete, use node_rsync instead"),
+                 erlang:error(mzbench_rsync_is_obsolete_use_node_rsync)
         end,
     % END OF BC CODE
 
