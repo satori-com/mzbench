@@ -16,7 +16,9 @@
     server_data_dir/0,
     ensure_started/0,
     email_report/2,
-    is_datastream_ended/1
+    is_datastream_ended/1,
+    add_tags/2,
+    remove_tags/2
 ]).
 
 %% gen_server callbacks
@@ -86,6 +88,46 @@ is_datastream_ended(Id) ->
         [{_, B, _}] when is_pid(B) -> false;
         [{_, _, _Status}] -> true;
         [] -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
+
+add_tags(Id, Tags) ->
+    Res =
+        case ets:lookup(benchmarks, Id) of
+            [{_, B, undefined}] when is_pid(B) ->
+                try
+                    mzb_api_bench:add_tags(B, Tags)
+                catch
+                    exit:{no_proc, _} -> gen_server:call(?MODULE, {add_tags, Id, Tags})
+                end;
+            _ ->
+                gen_server:call(?MODULE, {add_tags, Id, Tags})
+        end,
+    case Res of
+        ok ->
+            mzb_api_firehose:update_bench(mzb_api_server:status(Id)),
+            ok;
+        {error, not_found} -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
+        {error, invalid_benchmark} -> erlang:error({invalid_benchmark, io_lib:format("Benchmark ~p is in invalid state", [Id])})
+    end.
+
+remove_tags(Id, Tags) ->
+    Res =
+        case ets:lookup(benchmarks, Id) of
+            [{_, B, undefined}] when is_pid(B) ->
+                try
+                    mzb_api_bench:remove_tags(B, Tags)
+                catch
+                    exit:{no_proc, _} -> gen_server:call(?MODULE, {remove_tags, Id, Tags})
+                end;
+            _ ->
+                gen_server:call(?MODULE, {remove_tags, Id, Tags})
+        end,
+    case Res of
+        ok ->
+            mzb_api_firehose:update_bench(mzb_api_server:status(Id)),
+            ok;
+        {error, not_found} -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
+        {error, invalid_benchmark} -> erlang:error({invalid_benchmark, io_lib:format("Benchmark ~p is in invalid state", [Id])})
     end.
 
 get_info() ->
@@ -202,6 +244,28 @@ handle_call(is_ready, _, #{status:= active} = State) ->
 handle_call(is_ready, _, #{status:= inactive} = State) ->
     {reply, false, State};
 
+handle_call({add_tags, Id, Tags}, _, State) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, _, Status = #{config:= Config}}] ->
+            NewTags = lists:usort(Tags ++ mzb_bc:maps_get(tags, Config, [])),
+            NewStatus = maps:put(config, maps:put(tags, NewTags, Config), Status),
+            save_results(Id, NewStatus, State),
+            {reply, ok, State};
+        [{_, _, _}] -> {reply, {error, invalid_benchmark}, State};
+        [] -> {reply, {error, not_found}, State}
+    end;
+
+handle_call({remove_tags, Id, Tags}, _, State) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, _, Status = #{config:= Config}}] ->
+            NewTags = mzb_bc:maps_get(tags, Config, []) -- Tags,
+            NewStatus = maps:put(config, maps:put(tags, NewTags, Config), Status),
+            save_results(Id, NewStatus, State),
+            {reply, ok, State};
+        [{_, _, _}] -> {reply, {error, invalid_benchmark}, State};
+        [] -> {reply, {error, not_found}, State}
+    end;
+
 handle_call(_Request, _From, State) ->
     lager:error("Unhandled call: ~p", [_Request]),
     {noreply, State}.
@@ -263,7 +327,7 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
         {ok, Pid} ->
             Mon = erlang:monitor(process, Pid),
             true = ets:insert_new(benchmarks, {Id, Pid, undefined}),
-            Status = 
+            Status =
                 try
                     mzb_api_bench:get_status(Pid)
                 catch

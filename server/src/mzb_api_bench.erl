@@ -13,7 +13,9 @@
     log_file/1,
     log_user_file/1,
     metrics_file/2,
-    remote_path/2
+    remote_path/2,
+    add_tags/2,
+    remove_tags/2
 ]).
 
 
@@ -48,6 +50,12 @@ interrupt_bench(Pid) ->
 request_report(Pid, Emails) ->
     mzb_pipeline:call(Pid, {request_report, Emails}).
 
+add_tags(Pid, Tags) ->
+    mzb_pipeline:call(Pid, {add_tags, Tags}).
+
+remove_tags(Pid, Tags) ->
+    mzb_pipeline:call(Pid, {remove_tags, Tags}).
+
 init([Id, Params]) ->
     Now = os:timestamp(),
     StartTime = seconds(Now),
@@ -73,6 +81,9 @@ init([Id, Params]) ->
                              DefaultCloud;
                 Cl -> Cl
             end,
+
+    Tags = mzb_bc:maps_get(tags, Params, []),
+
     Config = #{
         id => Id,
         benchmark_name => BenchName,
@@ -99,7 +110,8 @@ init([Id, Params]) ->
         node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
         node_log_user_port => application:get_env(mzbench_api, node_log_user_port, undefined),
         metric_update_interval_ms => extract_metric_update_interval(Params),
-        node_management_port => application:get_env(mzbench_api, node_management_port, undefined)
+        node_management_port => application:get_env(mzbench_api, node_management_port, undefined),
+        tags => Tags
     },
     Data = #{
         includes => Includes
@@ -353,6 +365,18 @@ handle_call({change_env, Env}, From, #{status:= running, config:= Config, cluste
 
 handle_call({change_env, _Env}, _From, #{} = State) ->
     {reply, {error, not_running}, State};
+
+handle_call({add_tags, Tags}, _From, #{config:= Config} = State) ->
+    info("Add tags: ~p / ~p", [Tags, mzb_bc:maps_get(tags, Config, [])], State),
+    NewTags = lists:usort(Tags ++ mzb_bc:maps_get(tags, Config, [])),
+    NewState = maps:put(config, maps:put(tags, NewTags, Config), State),
+    {reply, ok, NewState};
+
+handle_call({remove_tags, Tags}, _From, #{config:= Config} = State) ->
+    info("Remove tags: ~p", [Tags], State),
+    NewTags = mzb_bc:maps_get(tags, Config, []) -- Tags,
+    NewState = maps:put(config, maps:put(tags, NewTags, Config), State),
+    {reply, ok, NewState};
 
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),

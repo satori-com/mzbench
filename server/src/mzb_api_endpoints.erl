@@ -224,6 +224,36 @@ handle(<<"GET">>, <<"/remove_cluster_info">>, Req) ->
         _:not_found -> erlang:error({not_found, "Cluster not found"})
     end;
 
+handle(<<"GET">>, <<"/add_tags">>, Req) ->
+    with_bench_id(Req, fun(Id) ->
+        Tags =
+            try
+                #{tags:= TagsStr} = cowboy_req:match_qs([{tags, nonempty}], Req),
+                parse_tags(TagsStr)
+            catch
+                error:bad_key ->
+                    erlang:error({badarg, "Missing tags argument"})
+            end,
+
+        ok = mzb_api_server:add_tags(Id, Tags),
+        {ok, reply_json(200, #{}, Req), #{}}
+    end);
+
+handle(<<"GET">>, <<"/remove_tags">>, Req) ->
+    with_bench_id(Req, fun(Id) ->
+        Tags =
+            try
+                #{tags:= TagsStr} = cowboy_req:match_qs([{tags, nonempty}], Req),
+                parse_tags(TagsStr)
+            catch
+                error:bad_key ->
+                    erlang:error({badarg, "Missing tags argument"})
+            end,
+
+        ok = mzb_api_server:remove_tags(Id, Tags),
+        {ok, reply_json(200, #{}, Req), #{}}
+    end);
+
 handle(Method, Path, Req) ->
     lager:error("Unknown request: ~p ~p~n~p", [Method, Path, Req]),
     erlang:error({not_found, io_lib:format("Wrong endpoint: ~p ~p", [Method, Path])}).
@@ -357,7 +387,8 @@ parse_start_params(Req) ->
                                                         {true, List2} = check_string_multi_param(List),
                                                         List2
                                                     end,                                                        []},
-        {metric_update_interval_ms, single_value,   fun parse_update_interval/1,                                undefined}
+        {metric_update_interval_ms, single_value,   fun parse_update_interval/1,                                undefined},
+        {tags,                      single_value,   fun parse_tags/1,                                           []}
     ],
 
     {Params, Env} = lists:mapfoldl(
@@ -500,4 +531,7 @@ stream_metrics_from_files(Files, BenchId, Req) ->
                 {error, enoent} -> Req
             end
         end, Files)).
+
+parse_tags(Binary) when is_binary(Binary) -> parse_tags(erlang:binary_to_list(Binary));
+parse_tags(Str) -> string:tokens(Str, ", ").
 
