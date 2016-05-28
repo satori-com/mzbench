@@ -247,7 +247,8 @@ handle_call(is_ready, _, #{status:= inactive} = State) ->
 handle_call({add_tags, Id, Tags}, _, State) ->
     case ets:lookup(benchmarks, Id) of
         [{_, _, Status = #{config:= Config}}] ->
-            NewTags = lists:usort(Tags ++ mzb_bc:maps_get(tags, Config, [])),
+            OldTags = mzb_bc:maps_get(tags, Config, []),
+            NewTags = OldTags ++ [T || T <- Tags, not lists:member(T, OldTags)],
             NewStatus = maps:put(config, maps:put(tags, NewTags, Config), Status),
             save_results(Id, NewStatus, State),
             {reply, ok, State};

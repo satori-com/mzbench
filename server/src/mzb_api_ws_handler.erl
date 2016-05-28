@@ -247,6 +247,38 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
+dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{} = State) ->
+    #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
+    try
+        ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
+    catch
+        _:Exception ->
+            Str =
+                case Exception of
+                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
+                    _ -> io_lib:format("~p", Exception)
+                end,
+            mzb_api_firehose:notify(danger, mzb_string:format("Add tag failed: ~s", [Str]))
+    end,
+    mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
+    {ok, State};
+
+dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{} = State) ->
+    #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
+    try
+        ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])
+    catch
+        _:Exception ->
+            Str =
+                case Exception of
+                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
+                    _ -> io_lib:format("~p", Exception)
+                end,
+            mzb_api_firehose:notify(danger, mzb_string:format("Add tag failed: ~s", [Str]))
+    end,
+    mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
+    {ok, State};
+
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
@@ -326,7 +358,9 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      benchmark_name => BenchName,
                      nodes => Nodes,
                      cloud => Cloud,
-                     env => EnvMap2},
+                     env => EnvMap2,
+                     tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags]
+                     },
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,
                 #{id => Id},

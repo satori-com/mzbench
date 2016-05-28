@@ -134,6 +134,14 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
     },
 
+    addBenchTag(benchId, tag) {
+        MZBenchWS.send({ cmd: "add_tag", bench: benchId, tag: tag });
+    },
+
+    removeBenchTag(benchId, tag) {
+        MZBenchWS.send({ cmd: "remove_tag", bench: benchId, tag: tag });
+    },
+
     startStream(benchId, metric, subsamplingInterval, timeWindow, beginTime, endTime, continueStreaming) {
         const streamId = Misc.gen_guid();
         

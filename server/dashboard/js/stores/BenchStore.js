@@ -101,6 +101,14 @@ class BenchStore extends EventEmitter {
         return data.benchmarks;
     }
 
+    getAllTags() {
+        var tags = data.benchmarks.reduce((acc, val) => {return acc.concat(val.tags)}, []);
+
+        return tags.sort().filter(function(item, pos) {
+            return tags.indexOf(item) == pos;
+        })
+    }
+
     getSelectedBench() {
         if (!this.isLoaded() || this.isNewSelected()) {
             return undefined;

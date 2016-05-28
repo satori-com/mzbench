@@ -3,7 +3,7 @@ REBAR := $(abspath $(shell which ../bin/rebar3 || which rebar3))
 SERVICE_NAME=mzbench_api
 GIT_HEAD := $(shell git rev-parse HEAD)
 
-SOURCES := $(shell find src dashboard test -name .eunit -prune -o -type f -print)
+SOURCES := $(shell find src dashboard test -name .eunit -prune -o -name node_modules -prune -o -type f -print)
 MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*) $(wildcard ../common_apps/*/rebar.config)
 RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 

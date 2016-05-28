@@ -368,7 +368,8 @@ handle_call({change_env, _Env}, _From, #{} = State) ->
 
 handle_call({add_tags, Tags}, _From, #{config:= Config} = State) ->
     info("Add tags: ~p / ~p", [Tags, mzb_bc:maps_get(tags, Config, [])], State),
-    NewTags = lists:usort(Tags ++ mzb_bc:maps_get(tags, Config, [])),
+    OldTags = mzb_bc:maps_get(tags, Config, []),
+    NewTags = OldTags ++ [T || T <- Tags, not lists:member(T, OldTags)],
     NewState = maps:put(config, maps:put(tags, NewTags, Config), State),
     {reply, ok, NewState};
 
