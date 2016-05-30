@@ -3,6 +3,7 @@ import moment from 'moment';
 
 import RelativeDate from './RelativeDate.react';
 import MZBenchActions from '../actions/MZBenchActions';
+import Star from './Star.react';
 
 class TimelineElement extends React.Component {
     render() {
@@ -20,6 +21,10 @@ class TimelineElement extends React.Component {
                     <h6 className="no-overflow">
                         #{bench.id} {bench.benchmark_name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
+                        <Star selected={bench.tags.indexOf("favorites") > -1} onClick={(v) => {
+                            if (v == true) MZBenchActions.addBenchTag(bench.id, "favorites");
+                            else MZBenchActions.removeBenchTag(bench.id, "favorites");
+                        }}/>
                     </h6>
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
                     <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time_client} /></div>

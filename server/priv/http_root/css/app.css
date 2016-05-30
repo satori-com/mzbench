@@ -388,3 +388,60 @@ div.ReactTags__suggestions ul li.active {
     cursor: pointer;
 }
 
+.favorite-star-character {
+  color: #ece6ed;
+  cursor: pointer;
+  display: inline-block;
+  transform: scale3d(1.0, 1.0, 1.0);
+  -webkit-transform: scale3d(1.0, 1.0, 1.0);
+  -moz-transform: scale3d(1.0, 1.0, 1.0);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  float: right;
+  font-size: 12px;
+}
+@-webkit-keyframes favorite-star-bounce {
+  0% {
+    -webkit-transform: scale3d(1.0, 1.0, 1.0);
+  }
+  50% {
+    -webkit-transform: scale3d(1.4, 1.4, 1.0);
+  }
+  to {
+    -webkit-transform: scale3d(1.0, 1.0, 1.0);
+  }
+}
+@-moz-keyframes favorite-star-bounce {
+  0% {
+    -moz-transform: scale3d(1.0, 1.0, 1.0);
+  }
+  50% {
+    -moz-transform: scale3d(1.4, 1.4, 1.0);
+  }
+  to {
+    -moz-transform: scale3d(1.0, 1.0, 1.0);
+  }
+}
+@keyframes favorite-star-bounce {
+  0% {
+    transform: scale3d(1.0, 1.0, 1.0);
+  }
+  50% {
+    transform: scale3d(1.4, 1.4, 1.0);
+  }
+  100% {
+    transform: scale3d(1.0, 1.0, 1.0);
+  }
+}
+.favorite-star-character-active {
+  color: #ffac33;
+  -webkit-animation: favorite-star-bounce 0.3s ease-in-out;
+  -moz-animation: favorite-star-bounce 0.3s ease-in-out;
+  animation: favorite-star-bounce 0.3s ease-in-out;
+}
+.favorite-star-character-hover {
+  color: #ffcc53;
+}
