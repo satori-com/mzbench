@@ -350,16 +350,27 @@ check_max_bench_num(#{max_bench_num:= MaxNum, next_id:= NextId, data_dir:= Dir} 
     ets:foldl(
         fun ({_Id, _, undefined}, _) -> ok;
             ({Id, _, _Status}, _) when Id >= MinId -> ok;
-            ({Id, _, _Status}, _) ->
-                BenchDir = filename:join(Dir, erlang:integer_to_list(Id)),
-                lager:info("Deleting bench #~b", [Id]),
-                case mzb_file:del_dir(BenchDir) of
-                    ok -> ets:delete(benchmarks, Id);
-                    {error, Reason} ->
-                        lager:error("Delete directory ~p failed: ~p", [BenchDir, Reason])
+            ({Id, _, Status}, _) ->
+                case is_favorite(Status) of
+                    true ->
+                        ok;
+                    false ->
+                        BenchDir = filename:join(Dir, erlang:integer_to_list(Id)),
+                        lager:info("Deleting bench #~b", [Id]),
+                        case mzb_file:del_dir(BenchDir) of
+                            ok -> ets:delete(benchmarks, Id);
+                            {error, Reason} ->
+                                lager:error("Delete directory ~p failed: ~p", [BenchDir, Reason])
+                        end
                 end
         end, [], benchmarks),
     State.
+
+is_favorite(#{config:= Config}) ->
+    Tags = mzb_bc:maps_get(tags, Config, []),
+    lists:member("favorites", Tags);
+is_favorite(_) ->
+    false.
 
 save_results(Id, Status, State) ->
     try
