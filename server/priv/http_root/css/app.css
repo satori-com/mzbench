@@ -445,3 +445,20 @@ div.ReactTags__suggestions ul li.active {
 .favorite-star-character-hover {
   color: #ffcc53;
 }
+
+.timeline-tags {
+    /*display: inline-block;*/
+    /*float: right; */
+}
+
+.timeline-tag-link {
+    color: #888;
+}
+.timeline-tag-link-selected {
+    color: #fff;
+}
+
+.timeline-tag-link-selected:hover,
+.timeline-tag-link:hover {
+    text-decoration: underline;
+}

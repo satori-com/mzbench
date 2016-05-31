@@ -11,7 +11,7 @@ function _selectBenchAndTab(benchId, activeTab) {
             MZBenchActions.getTimeline({bench_id: parseInt(benchId)});
         }
 
-        MZBenchActions.selectActiveTab(activeTab);    
+        MZBenchActions.selectActiveTab(activeTab);
 }
 
 const routes = {
@@ -55,7 +55,7 @@ class MZBenchRouter extends Router {
         return Object.keys(obj).sort().reduce(function(parts, key) {
             const val = obj[key];
             if (undefined !== val) {
-                parts.push(encodeURI(key) + '=' + encodeURI(val));
+                parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
             }
             return parts;
         }, []).join('&');
