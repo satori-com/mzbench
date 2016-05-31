@@ -16,7 +16,7 @@ console: $(RELEASE_BINARY)
 
 .PHONY: js-dev
 js-dev: compile
-	erl -pa _build/default/deps/*/ebin -eval 'application:ensure_all_started(mzbench_api)'
+	ORIG_PATH=$(PATH) erl -pa _build/default/deps/*/ebin -eval 'application:ensure_all_started(mzbench_api)'
 
 .PHONY: jsbuild-auto
 jsbuild-auto:

@@ -15,7 +15,8 @@
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           log_streams = #{} :: #{},
-          metric_streams = #{} :: #{}
+          metric_streams = #{} :: #{},
+          timeline_items = [] :: [integer()]
        }).
 
 -record(stream_parameters, {
@@ -60,18 +61,27 @@ websocket_info(Message, Req, State) ->
 dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
     {ok, State};
 
-dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{timeline_opts   = TimelineOpts,
-                                                                     timeline_bounds = TimelineBounds}) ->
+dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{
+                                                    timeline_items  = TimelineIds,
+                                                    timeline_opts   = TimelineOpts,
+                                                    timeline_bounds = TimelineBounds}) ->
     BenchInfos1  = normalize([{Id, BenchInfo}]),
     BenchInfos2  = apply_filter(TimelineOpts, BenchInfos1),
-    TimlineItems = apply_boundaries(TimelineBounds, BenchInfos2, fun(A, B) -> A =< B end),
+    TimelineItems = apply_boundaries(TimelineBounds, BenchInfos2, fun(A, B) -> A =< B end),
+    [Bench] = BenchInfos1,
 
-    case TimlineItems of
-        [Bench] ->
+    case lists:member(Id, TimelineIds) of
+        true  ->
             Event = #{type => "UPDATE_BENCH_INFO", data => Bench},
             {reply, Event, State};
-        [] ->
-            {ok, State}
+        false ->
+            case TimelineItems of
+                [_] ->
+                    Event = #{type => "UPDATE_BENCH_INFO", data => Bench},
+                    {reply, Event, State#state{timeline_items = [Id|TimelineIds]}};
+                [] ->
+                    {ok, State}
+            end
     end;
 
 dispatch_info({metric_batch_end, StreamId}, State = #state{}) ->
@@ -183,8 +193,11 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
                pager => Pager
              },
 
+    TimelineIds = [Id || #{id:= Id} <- TimelineItems],
+
     {reply, Event, State#state{timeline_opts   = Cmd,
-                               timeline_bounds = {MinId, MaxId}}};
+                               timeline_bounds = {MinId, MaxId},
+                               timeline_items  = TimelineIds}};
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
     #{
@@ -368,7 +381,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
 
 %% Filtering
 
-apply_filter(TimelineOpts, BenchInfos) -> 
+apply_filter(TimelineOpts, BenchInfos) ->
     Query = mzb_bc:maps_get(<<"q">>, TimelineOpts, undefined),
     case Query of
         undefined -> BenchInfos;
@@ -615,10 +628,10 @@ get_file_reader(Filename) ->
 filter_by_time(BeginTime, EndTime, Values) ->
     lists:reverse(lists:foldl(fun(ValueString, Acc) ->
             {ValueTimestamp, _} = parse_value(ValueString),
-            
+
             AfterBeginTime = BeginTime =< ValueTimestamp,
             BeforeEndTime = ValueTimestamp =< EndTime,
-            
+
             case AfterBeginTime andalso BeforeEndTime of
                 true -> [ValueString | Acc];
                 false -> Acc
@@ -629,7 +642,7 @@ perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForM
     {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, NewValuesReversed} = 
         lists:foldl(fun(ValueString, {LastRetainedTime, SumForMean, NumValuesForMean, MinValue, MaxValue, Acc}) ->
             {ValueTimestamp, Value} = parse_value(ValueString),
-            
+
             NewMinValue = if
                 MinValue == undefined -> Value;
                 Value < MinValue -> Value;
@@ -640,7 +653,7 @@ perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForM
                 Value > MaxValue -> Value;
                 true -> MaxValue
             end,
-            
+ 
             case LastRetainedTime of
                 undefined -> {ValueTimestamp, 0, 0, undefined, undefined, [ 
                         io_lib:format("~p\t~p\t~p\t~p~n", 
