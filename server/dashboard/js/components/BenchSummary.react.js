@@ -49,7 +49,7 @@ class BenchSummary extends React.Component {
                 return acc;
             }, tagSuggestions);
 
-        var tags = this.props.bench.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
+        var tags = this.state.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
 
         return (
             <div className="fluid-container">
@@ -84,7 +84,7 @@ class BenchSummary extends React.Component {
                                                   categories={[{
                                                             id: 'cat1', type: 'tag',
                                                             title: 'existing tags',
-                                                            items: [],//tagSuggestions.slice(),
+                                                            items: tagSuggestions.slice(),
                                                             single: false
                                                           }]}
                                                   addNew={true}
@@ -128,6 +128,7 @@ class BenchSummary extends React.Component {
     _handleTagChange(tags) {
         var new_tags = tags.map((t) => {return t.title;});
         var old_tags = this.state.tags;
+        this.setState({tags: new_tags});
         new_tags.map((t) => {
             if (old_tags.indexOf(t) == -1) {
                 MZBenchActions.addBenchTag(this.props.bench.id, t);
