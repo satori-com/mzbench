@@ -4,7 +4,7 @@ import MZBenchActions from '../actions/MZBenchActions';
 import moment from 'moment';
 import 'moment-duration-format';
 import BenchStore from '../stores/BenchStore';
-import { WithContext as ReactTags } from 'react-tag-input';
+import TagInput from 'react-categorized-tag-input';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -32,7 +32,7 @@ class BenchSummary extends React.Component {
         let oldTags = this.state.tags;
         if (!newTags.every((e) => {oldTags.indexOf(e) > -1}) ||
             !oldTags.every((e) => {newTags.indexOf(e) > -1})) {
-            this.setState({tags: newProps.bench.tags})
+            this.setState({tags: newProps.bench.tags.slice()})
         }
     }
 
@@ -75,15 +75,19 @@ class BenchSummary extends React.Component {
                                     <td><span className={`label ${labelClass}`}>{bench.status}</span></td>
                                 </tr>
                                 <tr>
-                                    <th scope="row"></th>
+                                    <th scope="row">Tags</th>
                                     <td>
-                                        <ReactTags tags={this.state.tags.map(function (t, i) { return {id: i, text: t}})}
-                                            suggestions={tagSuggestions}
-                                            handleDelete={this._handleRemoveTag.bind(this)}
-                                            handleAddition={this._handleAddTag.bind(this)}
-                                            handleDrag={this._handleDragTag.bind(this)}
-                                            autofocus={false}
-                                            />
+                                        <TagInput key={this.props.bench.tags}
+                                                  value={this.props.bench.tags.slice()}
+                                                  categories={[{
+                                                            id: 'cat1', type: 'tag',
+                                                            title: 'existing tags',
+                                                            items: tagSuggestions.slice(),
+                                                            single: false
+                                                          }]}
+                                                  addNew={true}
+                                                  transformTag={(cat, tag) => {return tag;}}
+                                                  onChange={this._handleTagChange.bind(this)}/>
                                     </td>
                                 </tr>
                             </tbody>
@@ -117,34 +121,19 @@ class BenchSummary extends React.Component {
         );
     }
 
-    _handleAddTag(tag) {
-        let tags = this.state.tags;
+    _handleTagChange(new_tags) {
+        var old_tags = this.state.tags;
+        new_tags.map((t) => {
+            if (old_tags.indexOf(t) == -1) {
+                MZBenchActions.addBenchTag(this.props.bench.id, t);
+            }
+        });
 
-        if (tags.indexOf(tag) > -1) return;
-
-        tags.push(tag);
-        MZBenchActions.addBenchTag(this.props.bench.id, tag);
-        this.setState({tags: tags});
-    }
-
-    _handleRemoveTag(index) {
-        let tags = this.state.tags;
-        if (index > -1) {
-            MZBenchActions.removeBenchTag(this.props.bench.id, tags[index]);
-            tags.splice(index, 1);
-            this.setState({tags: tags});
-        }
-    }
-
-    _handleDragTag(tag, currPos, newPos) {
-        if (currPos == newPos) return;
-
-        var tags = this.state.tags;
-
-        tags.splice(currPos, 1);
-        tags.splice(newPos, 0, tag.text);
-
-        this.setState({ tags: tags });
+        old_tags.map((t) => {
+            if (new_tags.indexOf(t) == -1) {
+                MZBenchActions.removeBenchTag(this.props.bench.id, t);
+            }
+        });
     }
 
     _onCloneBench(event) {

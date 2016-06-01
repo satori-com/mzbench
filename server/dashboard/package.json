@@ -22,7 +22,7 @@
     "react-imageloader": "~2.1.0",
     "react-ace": "~2.5.0",
     "brace": "~0.5.1",
-    "react-tag-input": "~1.*.*"
+    "react-categorized-tag-input": "~0.*.*"
   },
   "scripts": {
     "start": "watchify -o ../priv/http_root/js/bundle.js -v -d .",
