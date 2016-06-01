@@ -90,7 +90,9 @@ multi_call(Nodes, Req, Timeout) ->
             try call(N, Req, Timeout) of
                 R -> {ok, {N, R}}
             catch
-                _:_ -> {bad, N}
+                _:Reason ->
+                    lager:error("Call ~p to ~p failed with reason: ~p~n~p", [Req, N, Reason, erlang:get_stacktrace()]),
+                    {bad, N}
             end
         end, Nodes),
     {[V || {ok, V} <- L], [V || {bad, V} <- L]}.
