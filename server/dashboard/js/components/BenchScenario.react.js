@@ -46,7 +46,7 @@ class BenchScenario extends React.Component {
         query += Object.keys(this.props.bench.env).map(
             (x) => {
                 let oldValue = this.props.bench.env[x];
-                let newValue = React.findDOMNode(this.refs[x]).value;
+                let newValue = ReactDOM.findDOMNode(this.refs[x]).value;
                 if (newValue != oldValue) {
                     return "&" + x.toString() + "=" + newValue;
                 } else {

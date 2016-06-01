@@ -1,4 +1,5 @@
-import React, { findDOMNode } from 'react';
+import React from 'react';
+import ReactDOM from 'react-dom';
 import Hjs from 'highlight.js';
 
 class Highlight extends React.Component {
@@ -11,7 +12,7 @@ class Highlight extends React.Component {
    }
 
     _highlightCode() {
-        let node = findDOMNode(this.refs.code);
+        let node = ReactDOM.findDOMNode(this.refs.code);
         Hjs.highlightBlock(node);
     }
 

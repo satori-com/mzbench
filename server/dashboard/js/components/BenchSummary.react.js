@@ -48,6 +48,9 @@ class BenchSummary extends React.Component {
                 if (i > -1) acc.splice(i, 1);
                 return acc;
             }, tagSuggestions);
+
+        var tags = this.props.bench.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
+
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
@@ -77,17 +80,18 @@ class BenchSummary extends React.Component {
                                 <tr>
                                     <th scope="row">Tags</th>
                                     <td>
-                                        <TagInput key={this.props.bench.tags}
-                                                  value={this.props.bench.tags.slice()}
+                                        <TagInput value={tags}
                                                   categories={[{
                                                             id: 'cat1', type: 'tag',
                                                             title: 'existing tags',
-                                                            items: tagSuggestions.slice(),
+                                                            items: [],//tagSuggestions.slice(),
                                                             single: false
                                                           }]}
                                                   addNew={true}
-                                                  transformTag={(cat, tag) => {return tag;}}
-                                                  onChange={this._handleTagChange.bind(this)}/>
+                                                  transformTag={(tag) => {return tag.title;}}
+                                                  onChange={this._handleTagChange.bind(this)}
+                                                  placeholder="Add a tag"
+                                                  />
                                     </td>
                                 </tr>
                             </tbody>
@@ -121,7 +125,8 @@ class BenchSummary extends React.Component {
         );
     }
 
-    _handleTagChange(new_tags) {
+    _handleTagChange(tags) {
+        var new_tags = tags.map((t) => {return t.title;});
         var old_tags = this.state.tags;
         new_tags.map((t) => {
             if (old_tags.indexOf(t) == -1) {

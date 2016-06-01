@@ -1,20 +1,21 @@
-import React, { findDOMNode } from 'react';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 class Modal extends React.Component {
     componentDidMount() {
-        $(findDOMNode(this.refs.modal)).modal({backdrop: "static", show: false});
+        $(ReactDOM.findDOMNode(this.refs.modal)).modal({backdrop: "static", show: false});
     }
 
     componentWillUnmount() {
-        $(findDOMNode(this.refs.modal)).off("hidden", this.handleHidden);
+        $(ReactDOM.findDOMNode(this.refs.modal)).off("hidden", this.handleHidden);
     }
 
     open() {
-        $(findDOMNode(this.refs.modal)).modal("show");
+        $(ReactDOM.findDOMNode(this.refs.modal)).modal("show");
     }
 
     close() {
-        $(findDOMNode(this.refs.modal)).modal("hide");
+        $(ReactDOM.findDOMNode(this.refs.modal)).modal("hide");
     }
 
     render() {

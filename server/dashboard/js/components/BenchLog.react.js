@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import LogsStore from '../stores/LogsStore';
 import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
@@ -36,7 +37,7 @@ class BenchLog extends React.Component {
         this.streamId = LogsStore.subscribeToLogs(this.props.bench.id);
         window.addEventListener("scroll", this._onScroll);
         window.addEventListener("resize", this._onResize);
-        React.findDOMNode(this.refs.loglookup).focus();
+        ReactDOM.findDOMNode(this.refs.loglookup).focus();
         this._updateFollowPos();
         this._updateTopPos();
     }
@@ -175,25 +176,25 @@ class BenchLog extends React.Component {
     }
 
     _updateFollowPos() {
-        let logElement = React.findDOMNode(this.refs.logwindow);
+        let logElement = ReactDOM.findDOMNode(this.refs.logwindow);
         if (!logElement) return;
         var rect = logElement.getBoundingClientRect();
         let top = (rect.top > 0) ? rect.top : 0;
         let right = (window.innerWidth - rect.right);
-        let followDiv = React.findDOMNode(this.refs.followdiv);
+        let followDiv = ReactDOM.findDOMNode(this.refs.followdiv);
         followDiv.style.top = top + 'px';
         followDiv.style.right = right + 'px';
-        let followBtn = React.findDOMNode(this.refs.followbtn);
+        let followBtn = ReactDOM.findDOMNode(this.refs.followbtn);
         let visible = document.body.scrollHeight > window.innerHeight;
         followBtn.style.visibility = visible ? "visible" : "hidden";
     }
 
     _updateTopPos() {
-        let logElement = React.findDOMNode(this.refs.logwindow);
+        let logElement = ReactDOM.findDOMNode(this.refs.logwindow);
         if (!logElement) return;
         var rect = logElement.getBoundingClientRect();
         let right = (window.innerWidth - rect.right);
-        let topBtn = React.findDOMNode(this.refs.topbtn);
+        let topBtn = ReactDOM.findDOMNode(this.refs.topbtn);
         topBtn.style.visibility = (document.body.scrollTop > 0 ? 'visible' : 'hidden');
         topBtn.style.right = right + 'px';
     }
@@ -247,13 +248,13 @@ class BenchLog extends React.Component {
 
     _onUser() {
         this.state.tempK = 0;
-        React.findDOMNode(this.refs.loglookup).focus();
+        ReactDOM.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 
     _onSystem() {
         this.state.tempK = 1;
-        React.findDOMNode(this.refs.loglookup).focus();
+        ReactDOM.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 
@@ -270,13 +271,13 @@ class BenchLog extends React.Component {
     _onTop(event) {
         event.preventDefault();
         this.setState({isFollow: false});
-        React.findDOMNode(this.refs.loglookup).focus();
+        ReactDOM.findDOMNode(this.refs.loglookup).focus();
         this.goTop();
     }
 
     _onErrors() {
         this.state.tempE = !this.state.tempE;
-        React.findDOMNode(this.refs.loglookup).focus();
+        ReactDOM.findDOMNode(this.refs.loglookup).focus();
         this._runSearch();
     }
 

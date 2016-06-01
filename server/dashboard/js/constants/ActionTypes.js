@@ -1,4 +1,4 @@
-import keyMirror from 'react/lib/keyMirror';
+import keyMirror from 'keymirror';
 
 export default keyMirror({
     UPDATE_BENCH_INFO: null,

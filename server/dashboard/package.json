@@ -7,7 +7,8 @@
     "babel-core": "~5.6.0",
     "uglify-js": "~2.4.0",
     "flux": "^2.0.0",
-    "react": "^0.13.0",
+    "react": "^0.14.*",
+    "react-dom": "^0.14.*",
     "react-imageloader": "~2.1.0",
     "director": "^1.2.0",
     "moment": "^2.10.0",
@@ -22,7 +23,8 @@
     "react-imageloader": "~2.1.0",
     "react-ace": "~2.5.0",
     "brace": "~0.5.1",
-    "react-categorized-tag-input": "~0.*.*"
+    "react-categorized-tag-input": "~2.*.*",
+    "keymirror": "~0.*.*"
   },
   "scripts": {
     "start": "watchify -o ../priv/http_root/js/bundle.js -v -d .",

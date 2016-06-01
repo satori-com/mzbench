@@ -1,4 +1,4 @@
-import React, { findDOMNode } from 'react';
+import React from 'react';
 import Modal from './Modal.react';
 
 class GraphModal extends Modal {

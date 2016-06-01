@@ -13,8 +13,8 @@ class BenchReports extends React.Component {
     }
 
     componentDidMount() {
-        $(React.findDOMNode(this.refs.emailReportModal)).on('shown.bs.modal', () => {
-            React.findDOMNode(this.refs.email).focus();
+        $(ReactDOM.findDOMNode(this.refs.emailReportModal)).on('shown.bs.modal', () => {
+            ReactDOM.findDOMNode(this.refs.email).focus();
         });
     }
 
