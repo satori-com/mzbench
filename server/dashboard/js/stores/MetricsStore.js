@@ -4,8 +4,27 @@ import Dispatcher from '../dispatcher/AppDispatcher';
 import ActionTypes from '../constants/ActionTypes';
 import MZBenchActions from '../actions/MZBenchActions';
 import BenchStore from '../stores/BenchStore';
+import Misc from '../utils/Misc';
 
 const CHANGE_EVENT = 'metrics_change';
+
+const NORMAL_STREAM = 0;
+const AGGREGATED_STREAM = 1;
+
+class _StreamElement {
+    constructor(benchId, type) {
+        this.startingDate   = moment(BenchStore.findById(benchId).start_time).unix();
+        this.timeWindow     = undefined;
+        this.batchCounter   = 0;
+        this.data           = [];
+        this.aggregators    = [];
+        
+        if(type === AGGREGATED_STREAM) {
+            this.parentStreams = [];
+            this.lastIdx = 0;
+        }
+    }
+};
 
 let data = {
     streams: new Map([])
@@ -62,6 +81,48 @@ function _garbadgeCollectOldData(streamId) {
     }
 }
 
+function _createAggregatedElement(streamId, i) {
+    const parentStreams = data.streams.get(streamId).parentStreams;
+    
+    let currentParentStream = data.streams.get(parentStreams[0]);
+    let elem = {
+        "date": currentParentStream.data[i]["date"], 
+        "value": currentParentStream.data[i]["value"], 
+        "min": currentParentStream.data[i]["min"], 
+        "max": currentParentStream.data[i]["max"]
+    };
+    
+    for(let j = 1, l = parentStreams.length; j < l; j++) {
+        currentParentStream = data.streams.get(parentStreams[j]);
+        
+        elem["value"] += currentParentStream.data[i]["value"];
+        if(elem["min"] > currentParentStream.data[i]["min"]) elem["min"] = currentParentStream.data[i]["min"];
+        if(elem["max"] < currentParentStream.data[i]["max"]) elem["max"] = currentParentStream.data[i]["max"];
+    }
+    
+    elem["value"] = elem["value"]/parentStreams.length;
+    data.streams.get(streamId).data.push(elem);
+}
+
+function _updateAggregatedStream(streamId) {
+    let stream = data.streams.get(streamId);
+    let minLength = stream.parentStreams.reduce((acc, parentStreamId) => {
+        const parentStream = data.streams.get(parentStreamId);
+        if(acc === undefined || parentStream.data.length < acc) return parentStream.data.length;
+        else return acc;
+    }, undefined);
+    
+    for(; stream.lastIdx < minLength; stream.lastIdx++) _createAggregatedElement(streamId, stream.lastIdx);
+    
+    stream.batchCounter = stream.parentStreams.reduce((acc, parentStreamId) => {
+        const parentStream = data.streams.get(parentStreamId);
+        if(acc === undefined || parentStream.batchCounter < acc) return parentStream.batchCounter;
+        else return acc;
+    }, undefined);
+    
+    _garbadgeCollectOldData(streamId);
+}
+
 class MetricsStore extends EventEmitter {
     constructor() {
         super();
@@ -90,17 +151,17 @@ class MetricsStore extends EventEmitter {
         if(data.streams.has(streamId)) {
             _updateBatchCounter(streamId);
             _garbadgeCollectOldData(streamId);
+            
+            data.streams.get(streamId).aggregators.forEach((aggregatedStreamId) => {
+                _updateAggregatedStream(aggregatedStreamId);
+            });
         }
     }
 
     subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd) {
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, undefined, undefined, continueStreamingAfterEnd);
-        data.streams.set(streamId, {
-            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
-            timeWindow: undefined,
-            batchCounter: 0,
-            data: []
-        });
+        let elem = new _StreamElement(benchId, NORMAL_STREAM);
+        data.streams.set(streamId, elem);
         return streamId;
     }
 
@@ -108,28 +169,47 @@ class MetricsStore extends EventEmitter {
         const startingDate = moment(BenchStore.findById(benchId).start_time).unix();
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, 
                                                     startingDate + beginTime, startingDate + endTime, false);
-        data.streams.set(streamId, {
-            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
-            timeWindow: undefined,
-            batchCounter: 0,
-            data: []
-        });
+        let elem = new _StreamElement(benchId, NORMAL_STREAM);
+        data.streams.set(streamId, elem);
         return streamId;
     }
 
     subscribeToMetricWithTimeWindow(benchId, metric, timeInterval) {
         const streamId = MZBenchActions.startStream(benchId, metric, 0, timeInterval, undefined, undefined, true);
-        data.streams.set(streamId, {
-            startingDate: moment(BenchStore.findById(benchId).start_time).unix(),
-            timeWindow: timeInterval,
-            batchCounter: 0,
-            data: []
+        let elem = new _StreamElement(benchId, NORMAL_STREAM);
+        elem.timeWindow = timeInterval;
+        data.streams.set(streamId, elem);
+        return streamId;
+    }
+    
+    createAggregatedStream(benchId, parentStreams, timeInterval) {
+        const streamId = Misc.gen_guid();
+        let elem = new _StreamElement(benchId, AGGREGATED_STREAM);
+        elem.timeWindow = timeInterval;
+        elem.parentStreams = parentStreams;
+        data.streams.set(streamId, elem);
+        
+        parentStreams.forEach((parentStreamId) => {
+            data.streams.get(parentStreamId).aggregators.push(streamId);
         });
+        
         return streamId;
     }
 
     unsubscribeFromMetric(streamId) {
         MZBenchActions.stopStream(streamId);
+        data.streams.delete(streamId);
+    }
+    
+    removeAggregatedStream(streamId) {
+        let stream = data.streams.get(streamId);
+        stream.parentStreams.forEach((parentStreamId) => {
+            let parentStream = data.streams.get(parentStreamId);
+            parentStream.aggregators = parentStream.aggregators.filter((aggregatedStreamId) => {
+                return aggregatedStreamId != streamId;
+            });
+        });
+        
         data.streams.delete(streamId);
     }
 

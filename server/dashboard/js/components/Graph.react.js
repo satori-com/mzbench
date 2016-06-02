@@ -4,6 +4,70 @@ import MetricsStore from '../stores/MetricsStore';
 
 const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
+const MIN_GRAPHS_TO_BEGIN_COMPRESSION = 30;
+
+class _DataStream {
+    constructor(name, aggregated, metrics) {
+        this.name = name;
+        this.aggregated = aggregated;
+        this.metrics = metrics;
+        this.streams = [];
+    }
+    
+    subscribeToEntireMetric(benchId, subsamplingInterval, continueStreamingAfterEnd) {
+        this.streams = this.metrics.map((metric) => {
+            return MetricsStore.subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd);
+        });
+        this._createAggregatedMetric(benchId, undefined);
+    }
+    
+    subscribeToMetricSubset(benchId, subsamplingInterval, beginTime, endTime) {
+        this.streams = this.metrics.map((metric) => {
+            return MetricsStore.subscribeToEntireMetric(benchId, metric, subsamplingInterval, beginTime, endTime);
+        });
+        this._createAggregatedMetric(benchId, undefined);
+    }
+    
+    subscribeToMetricWithTimeWindow(benchId, timeInterval) {
+        this.streams = this.metrics.map((metric) => {
+            return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, timeInterval);
+        });
+        this._createAggregatedMetric(benchId, timeInterval);
+    }
+    
+    unsubscribeFromMetric() {
+        this._destroyAggregatedMetric();
+        this.streams.forEach((streamId) => {
+            MetricsStore.unsubscribeFromMetric(streamId);
+        });
+    }
+    
+    getMetricMaxDate() {
+        return MetricsStore.getMetricMaxDate(this.streams[this.streams.length - 1]);
+    }
+    
+    getMetricData() {
+        return MetricsStore.getMetricData(this.streams[this.streams.length - 1]);
+    }
+    
+    getBatchCounter() {
+        return MetricsStore.getBatchCounter(this.streams[this.streams.length - 1]);
+    }
+    
+    _createAggregatedMetric(benchId, timeInterval) {
+        if(this.aggregated) {
+            const id = MetricsStore.createAggregatedStream(benchId, this.streams.slice(), timeInterval);
+            this.streams.push(id);
+        }
+    }
+    
+    _destroyAggregatedMetric() {
+        if(this.aggregated) {
+            const id = this.streams.pop();
+            MetricsStore.removeAggregatedStream(id);
+        }
+    }
+};
 
 class Graph extends React.Component {
     constructor(props) {
@@ -13,6 +77,8 @@ class Graph extends React.Component {
         this.currentZoom = undefined;
         this.previouslyRunning = undefined;
         this.updatesCounter = 0;
+        
+        this._createStreams();
         
         this.state = this._resolveState();
         this._onChange = this._onChange.bind(this);
@@ -108,7 +174,7 @@ class Graph extends React.Component {
             data.values.forEach((value) => {
                 let label = rolloverTextContainer.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
-                            .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
+                            .text(`${this.streams[value.line_id - 1].name}: ${value.value}`)
                             .classed('mg-area' + value.line_id + '-color', true);
                 
                 ++lineCount;
@@ -119,7 +185,7 @@ class Graph extends React.Component {
             
             let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
-                        .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
+                        .text(`${this.streams[data.line_id - 1].name}: ${data.value}`)
                         .classed(`mg-area${data.line_id}-color`, true);
         }
     }
@@ -137,7 +203,7 @@ class Graph extends React.Component {
             data.values.forEach((value) => {
                 let label = rolloverTextContainer.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
-                            .text(`${this.props.targets[value.line_id - 1]}: ${value.value}`)
+                            .text(`${this.streams[value.line_id - 1].name}: ${value.value}`)
                             .classed('mg-area' + value.line_id + '-color', true);
                 
                 ++lineCount;
@@ -148,7 +214,7 @@ class Graph extends React.Component {
             
             let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
-                        .text(`${this.props.targets[data.line_id - 1]}: ${data.value}`)
+                        .text(`${this.streams[data.line_id - 1].name}: ${data.value}`)
                         .classed(`mg-area${data.line_id}-color`, true);
         }
     }
@@ -164,8 +230,21 @@ class Graph extends React.Component {
     _performZoom(step) {
         this.currentZoom = step;
         this._destroySubscriptions();
+        this._createStreams();
         this._createSubscriptions();
         this._resetState();
+    }
+
+    _calcDataMax() {
+        return this.state.data.reduce((acc, stream) => {
+            const stream_max = stream.reduce((acc, value) => {
+                if(acc === undefined || value.max > acc) return value.max;
+                else return acc;
+            }, undefined);
+            
+            if(acc === undefined || stream_max > acc) return stream_max;
+            else return acc;
+        }, undefined);
     }
 
     _renderGraph() {
@@ -199,7 +278,7 @@ class Graph extends React.Component {
             graph_options.brushing_history = true;
             graph_options.after_brushing = this._performZoom.bind(this);
             graph_options.brushing_manual_redraw = true;
-            graph_options.aggregate_rollover = this.props.targets.length > 1;
+            graph_options.aggregate_rollover = this.streams.length > 1;
         }
 
         if(this.state.isLoaded) {
@@ -208,7 +287,7 @@ class Graph extends React.Component {
                 else return prev;
             }, true);
             graph_options.data = isEmpty ? [[{date: 0, value: 0, min: 0, max: 0}]] : this.state.data;
-            graph_options.legend = this.props.targets;
+            graph_options.legend = this.streams.map((stream) => { return stream.name; });
             
             graph_options.target = document.getElementById(this._graphDOMId());
             
@@ -220,11 +299,13 @@ class Graph extends React.Component {
             
             graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
             graph_options.max_x = this.state.maxDate;
+            graph_options.min_y = 0;
+            graph_options.max_y = this._calcDataMax();
             
             MG.data_graphic(graph_options);
         } else {
             graph_options.chart_type = 'missing-data';
-            graph_options.legend = this.props.targets;
+            graph_options.legend = this.streams.map((stream) => { return stream.name; });
             graph_options.target = document.getElementById(this._graphDOMId());
             
             MG.data_graphic(graph_options);
@@ -250,8 +331,40 @@ class Graph extends React.Component {
         }
     }
 
+    _createStreams() {
+        if(this.props.renderFullscreen || !this.props.isRunning
+                || this.props.targets.length < MIN_GRAPHS_TO_BEGIN_COMPRESSION) {
+            this.streams = this.props.targets.map((metric) => {
+                let m = [];
+                m.push(metric);
+                return new _DataStream(metric, false, m);
+            });
+        } else {
+            this.streams = [];
+        
+            let metricsToAggregate = [];
+            for(let i = 0; i < this.props.targets.length; i++) {
+                if(this.props.targets[i].match("systemload.*mzb_worker") === null) {
+                    let m = [];
+                    m.push(this.props.targets[i]);
+                    this.streams.push(new _DataStream(this.props.targets[i], false, m));
+                } else {
+                    metricsToAggregate.push(this.props.targets[i]);
+                }
+            }
+            
+            if(metricsToAggregate.length !== 0) {
+                let tmp = metricsToAggregate[0].split(".");
+                tmp.pop();
+                const metricName = tmp.join(".") + ".mzb_worker.aggregated";
+                this.streams.push(new _DataStream(metricName, true, metricsToAggregate));
+            }
+        }
+    }
+
     _resetGraphs() {
         this._destroySubscriptions();
+        this._createStreams();
         this._resetState();
         this._createSubscriptions();
     }
@@ -273,31 +386,30 @@ class Graph extends React.Component {
     }
 
     _createSubscriptions() {
-        this.props.targets.forEach((metric, index) => {
-            const streamId = this._subscribeToMetric(this.props.benchId, metric);
-            this.streams[index] = streamId;
+        this.streams.forEach((stream) => {
+            this._subscribeToMetric(this.props.benchId, stream);
         });
     }
     
     _destroySubscriptions() {
-        this.streams.forEach((streamId) => {
-            MetricsStore.unsubscribeFromMetric(streamId);
+        this.streams.forEach((stream) => {
+            stream.unsubscribeFromMetric();
         });
     }
 
-    _subscribeToMetric(benchId, metric) {
+    _subscribeToMetric(benchId, stream) {
         if(this.props.renderFullscreen) {
             if(this.currentZoom) {
-                return MetricsStore.subscribeToMetricSubset(benchId, metric, this._computeSubsamplingInterval(), 
-                                                            this.currentZoom.min_x, this.currentZoom.max_x);
+                stream.subscribeToMetricSubset(benchId, this._computeSubsamplingInterval(), 
+                    this.currentZoom.min_x, this.currentZoom.max_x);
             } else {
-                return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+                stream.subscribeToEntireMetric(benchId, this._computeSubsamplingInterval(), false);
             }
         } else {
             if(this.props.isRunning) {
-                return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, RUNNING_GRAPH_SHOWED_DURATION*60);
+                stream.subscribeToMetricWithTimeWindow(benchId, RUNNING_GRAPH_SHOWED_DURATION*60);
             } else {
-                return MetricsStore.subscribeToEntireMetric(benchId, metric, this._computeSubsamplingInterval(), false);
+                stream.subscribeToEntireMetric(benchId, this._computeSubsamplingInterval(), false);
             }
         }
     }
@@ -307,15 +419,15 @@ class Graph extends React.Component {
         
         this.setState({
             maxDate: 0, 
-            data: this.props.targets.map((metric) => { return []; }), 
-            dataBatchs: this.props.targets.map((metric) => { return 0; }), 
+            data: this.streams.map((stream) => { return []; }), 
+            dataBatchs: this.streams.map((streams) => { return 0; }), 
             isLoaded: false
         });
     }
 
     _resolveState() {
-        const maxDate = this.props.targets.reduce((maxDate, metric, index) => {
-            const metricMaxDate = MetricsStore.getMetricMaxDate(this.streams[index]);
+        const maxDate = this.streams.reduce((maxDate, stream) => {
+            const metricMaxDate = stream.getMetricMaxDate();
             
             if(metricMaxDate) {
                 if(metricMaxDate > maxDate) {
@@ -328,8 +440,8 @@ class Graph extends React.Component {
             }
         }, 0);
 
-        const metricData = this.props.targets.map((metric, index) => {
-            const data = MetricsStore.getMetricData(this.streams[index]);
+        const metricData = this.streams.map((stream) => {
+            const data = stream.getMetricData();
             if(data) {
                 return data;
             } else {
@@ -337,8 +449,8 @@ class Graph extends React.Component {
             }
         });
 
-        const metricBatchs = this.props.targets.map((metric, index) => {
-            const batchCounter = MetricsStore.getBatchCounter(this.streams[index]);
+        const metricBatchs = this.streams.map((stream) => {
+            const batchCounter = stream.getBatchCounter();
             if(batchCounter) {
                 return batchCounter;
             } else {
