@@ -14,10 +14,18 @@ test-unit: compile
 .PHONY: check
 check: test-unit dialyzer.log
 
+.PHONY: rebuild-parser
+rebuild-parser:
+	mkdir -p _build
+	-git clone https://github.com/seancribbs/neotoma _build/neotoma
+	make -C _build/neotoma compile
+	make -C _build/neotoma escript
+	./_build/neotoma/neotoma src/mzbl_syntax.peg
+
 .PHONY: clean
 clean:
 	rm -rf .make
-	rm -rf deps
+	rm -rf _build
 	rm -rf tmp
 	$(REBAR) clean
 

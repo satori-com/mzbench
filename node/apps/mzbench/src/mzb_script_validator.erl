@@ -26,6 +26,11 @@ read_and_validate(ScriptFileName, Env) ->
                 "Failed to parse script ~s:~nline ~p: ~s",
                 [ScriptFileName, LineNumber, [E]]),
             {error, C, Error, erlang:get_stacktrace(), [Message]};
+        C:{parse_error,{expected, E, {{line, LineNumber}, {column, ColumnNumber}}}} = Error ->
+            Message = mzb_string:format(
+                "Failed to parse script ~s:~nline ~p, column ~p: ~p",
+                [ScriptFileName, LineNumber, ColumnNumber, E]),
+            {error, C, Error, erlang:get_stacktrace(), [Message]};
         C:{invalid_operation_name, Name} = Error ->
             {error, C, Error, erlang:get_stacktrace(),
                 [mzb_string:format("Script ~s is invalid:~nInvalid operation name ~p~n",

@@ -18,57 +18,62 @@ from mzb_test_utils import run_successful_bench, restart_bench, start_mzbench_se
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+scripts_bdl_dir = mzbench_dir + 'acceptance_tests/scripts.bdl/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def correct_test():
     run_successful_bench(scripts_dir + 'correct_script.erl')
+    run_successful_bench(scripts_bdl_dir + 'correct_script.bdl')
 
 
 def worker_from_rsync_test():
-    run_successful_bench(
-        scripts_dir + 'worker_from_rsync.erl',
-        env={'exec_worker_dir': os.path.abspath('../workers/exec') + '/'})
+    env = {'exec_worker_dir': os.path.abspath('../workers/exec') + '/'}
+    run_successful_bench(scripts_dir + 'worker_from_rsync.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'worker_from_rsync.bdl', env=env)
 
 
 def lua_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
     mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
-    run_successful_bench(
-        scripts_dir + 'lua_worker_from_git.erl',
-        env={'worker_branch': worker_commit,
-             'mzbench_repo':  mzbench_repo})
+    env = {'worker_branch': worker_commit,
+             'mzbench_repo':  mzbench_repo}
+    run_successful_bench(scripts_dir + 'lua_worker_from_git.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'lua_worker_from_git.bdl', env=env)
 
 
 def python_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
     mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
-    run_successful_bench(
-        scripts_dir + 'python_worker_from_git.erl',
-        env={'worker_branch': worker_commit,
-             'mzbench_repo':  mzbench_repo})
+    env = {'worker_branch': worker_commit,
+             'mzbench_repo':  mzbench_repo}
+    run_successful_bench(scripts_dir + 'python_worker_from_git.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'python_worker_from_git.bdl', env=env)
 
 
 def worker_from_git_test():
     # worker is located in the same repo as node
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
     mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
-    run_successful_bench(
-        scripts_dir + 'worker_from_git.erl',
-        env={'worker_branch': worker_commit,
-             'mzbench_repo':  mzbench_repo})
+    env = {'worker_branch': worker_commit,
+             'mzbench_repo':  mzbench_repo}
+    run_successful_bench(scripts_dir + 'worker_from_git.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'worker_from_git.bdl', env=env)
 
 
 def poisson_loop_test():
     run_successful_bench(scripts_dir + 'loop_poisson.erl')
+    run_successful_bench(scripts_bdl_dir + 'loop_poisson.bdl')
 
 
 def env_test():
-    run_successful_bench(scripts_dir + 'env.erl', env={
+    env = {
         'jozin': 'bazin',
         'wait_ms': '10',
         'pool_size': '2',
         'loop_time': '5',
-        'loop_rate': '2'})
+        'loop_rate': '2'}
+    run_successful_bench(scripts_dir + 'env.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'env.bdl', env=env)
 
 
 def vars_defaults_test():
@@ -85,15 +90,22 @@ def vars_defaults_test():
         env={'var2': 'var2_new_value'},
         check_user_log_function=check_log)
 
+    run_successful_bench(scripts_bdl_dir + 'vars_defaults.bdl',
+        env={'var2': 'var2_new_value'},
+        check_user_log_function=check_log)
+
 
 def poisson_worker_start_test():
     run_successful_bench(mzbench_dir + 'examples/worker_start_poisson.erl',
         expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')
+    run_successful_bench(mzbench_dir + 'examples.bdl/worker_start_poisson.bdl',
+        expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')
 
 
 def unicode_resources_test():
-    run_successful_bench(scripts_dir + 'unicode_resource.erl',
-        env={'strings_filename':'unicode_strings.txt'})
+    env = {'strings_filename':'unicode_strings.txt'}
+    run_successful_bench(scripts_dir + 'unicode_resource.erl', env=env)
+    run_successful_bench(scripts_bdl_dir + 'unicode_resource.bdl', env=env)
 
 
 def data_endpoint_test():
@@ -163,22 +175,27 @@ def restart_test():
 
 def loop_without_rate_test():
     run_successful_bench(scripts_dir + 'superloop.erl')
+    run_successful_bench(scripts_bdl_dir + 'superloop.bdl')
 
 
 def wait_zero_signal_test():
     run_successful_bench(scripts_dir + 'wait_zero_signal.erl')
+    run_successful_bench(scripts_bdl_dir + 'wait_zero_signal.bdl')
 
 
 def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples/assertions.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples.bdl/assertions.bdl', env={})
 
 
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
+    run_successful_bench(scripts_bdl_dir + 'ignore_failure_test.bdl')
 
 
 def comb_test():
     run_successful_bench(mzbench_dir + 'examples/comb.erl')
+    run_successful_bench(mzbench_dir + 'examples.bdl/comb.bdl')
 
 
 def workers_per_node_test():
@@ -279,6 +296,10 @@ def hooks_test():
         assert regex.search(log)
 
     run_successful_bench(scripts_dir + 'hooks.erl',
+        check_log_function=check_log,
+        check_user_log_function=check_user_log)
+
+    run_successful_bench(scripts_bdl_dir + 'hooks.bdl',
         check_log_function=check_log,
         check_user_log_function=check_user_log)
 

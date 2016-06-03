@@ -13,16 +13,21 @@ from util import cmd
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+scripts_bdl_dir = mzbench_dir + 'acceptance_tests/scripts.bdl/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
+def run_erl_and_bdl(function, name, postfix = ''):
+    cmd(mzbench_dir + 'bin/mzbench ' + function + ' ' + scripts_dir + name + '.erl' + postfix)
+    cmd(mzbench_dir + 'bin/mzbench ' + function + ' ' + scripts_bdl_dir + name + '.bdl' + postfix)
+
 def devtool_run_local_tests():
-    cmd(mzbench_dir + 'bin/mzbench validate ' + scripts_dir +'loop_rate.erl')
+    run_erl_and_bdl('validate', 'loop_rate')
 
-    cmd(mzbench_dir + 'bin/mzbench validate ' + scripts_dir +'env.erl --env pool_size=20 --env jozin=jozin --env wait_ms=100')
+    run_erl_and_bdl('validate', 'env', ' --env pool_size=20 --env jozin=jozin --env wait_ms=100')
 
-    cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'loop_rate.erl')
+    run_erl_and_bdl('run_local', 'loop_rate')
 
-    cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'data_script.erl')
+    run_erl_and_bdl('run_local', 'data_script')
 
     try:
         cmd(mzbench_dir + 'bin/mzbench run_local ' + scripts_dir + 'syntax_error.erl')

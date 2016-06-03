@@ -12,34 +12,46 @@ from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbenc
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+scripts_bdl_dir = mzbench_dir + 'acceptance_tests/scripts.bdl/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def signal_test():
     run_successful_bench(mzbench_dir + 'examples/signal.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples.bdl/signal.bdl', env={})
 
 def signal_count_test():
     run_successful_bench(mzbench_dir + 'examples/signal_count.erl', env={})
+    run_successful_bench(mzbench_dir + 'examples.bdl/signal_count.bdl', env={})
 
 def signal_parallel_test():
     run_successful_bench(scripts_dir + 'signal_parallel.erl', env={})
+    run_successful_bench(scripts_bdl_dir + 'signal_parallel.bdl', env={})
 
 def signal_deadlock_test():
     run_failing_bench(scripts_dir + 'signal_error1.erl',
+        expected_log_message_regex=r'Deadlock is posible')
+    run_failing_bench(scripts_bdl_dir + 'signal_error1.bdl',
         expected_log_message_regex=r'Deadlock is posible')
 
 
 def nobody_waits_for_signal_test():
     run_failing_bench(scripts_dir + 'signal_error2.erl',
         expected_log_message_regex=r'Nobody sets signal')
+    run_failing_bench(scripts_bdl_dir + 'signal_error2.bdl',
+        expected_log_message_regex=r'Nobody sets signal')
 
 
 def nobody_sets_signal_test():
     run_failing_bench(scripts_dir + 'signal_error3.erl',
         expected_log_message_regex=r'Nobody waits for signal')
+    run_failing_bench(scripts_bdl_dir + 'signal_error3.bdl',
+        expected_log_message_regex=r'Nobody waits for signal')
 
 
 def nobody_sets_signal_in_loop_test():
     run_failing_bench(scripts_dir + 'signal_error4.erl',
+        expected_log_message_regex=r'Nobody waits for signal')
+    run_failing_bench(scripts_bdl_dir + 'signal_error4.bdl',
         expected_log_message_regex=r'Nobody waits for signal')
 
 

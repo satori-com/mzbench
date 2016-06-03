@@ -2,6 +2,7 @@
 
 -export([parse/1,
          hostname/1,
+         add_indents/1,
          get_real_script_name/1,
          read/1,
          read_from_string/1,
@@ -75,18 +76,83 @@ read(Path) ->
 
 -spec parse(string()) -> [script_expr()].
 parse(Body) ->
-    case erl_scan:string(Body) of
-        {ok, [], _} -> [];
-        {ok, Ts, _} ->
-            case erl_parse:parse_exprs(Ts) of
-                {ok, [AST]} ->
-                    mzbl_ast:transform(AST);
-                {error, Error} ->
+    case bdl_script(Body) of
+        true -> new_parser(Body);
+        _ ->case erl_scan:string(Body) of
+                {ok, [], _} -> [];
+                {ok, Ts, _} ->
+                    case erl_parse:parse_exprs(Ts) of
+                        {ok, [AST]} ->
+                            mzbl_ast:transform(AST);
+                        {error, Error} ->
+                            erlang:error({parse_error, Error})
+                    end;
+                {error, Error, _} ->
                     erlang:error({parse_error, Error})
-            end;
-        {error, Error, _} ->
-            erlang:error({parse_error, Error})
+            end
     end.
+
+-spec new_parser(string()) -> term().
+new_parser(Text) ->
+    case mzbl_syntax:parse(add_indents(Text)) of
+        {fail, Msg} -> erlang:error({parse_error, Msg});
+        {scenario, List} -> mzbl_ast:new_records(List)
+    end.
+
+-spec bdl_script(string()) -> boolean().
+bdl_script([$#, $!, $b, $e, $n, $c, $h, $D, $L, $\n | _]) -> true;
+bdl_script(_) -> false.
+
+-spec add_indents(string()) -> string().
+add_indents(Text) ->
+    Lines = string:tokens(Text, "\n"),
+    {LineNumber, NewText, Indents, Br} = lists:foldl(fun process_line/2, {1, [], [0], []}, Lines),
+    if Br =/= [] -> erlang:error({parse_error, "Wrong bracket count, unpaired: " ++ Br});
+        true -> ok end,
+    {IndentToken, _} = token_and_indents(LineNumber, Indents, 0),
+    string:join(lists:reverse(NewText) ++ [IndentToken], "\n").
+
+-spec process_line(string(), {integer(), [string()], [integer()], [char()]}) -> {integer(), [string()], [integer()], [char()]}.
+process_line(Line, {LineNumber, SoFar, Indents, []}) ->
+    NewIndent = get_indent(0, Line),
+    {IndentToken, NewIndents} = token_and_indents(LineNumber, Indents, NewIndent),
+    {LineNumber + 1, [IndentToken ++ Line | SoFar], NewIndents, eat_brackets([], Line, none)};
+process_line(Line, {LineNumber, SoFar, Indent, Brackets}) ->
+    {LineNumber + 1, [Line | SoFar], Indent, eat_brackets(Brackets, Line, none)}.
+
+-spec token_and_indents(integer(), [integer()], integer()) -> {string(), [integer()]}.
+token_and_indents(_, [H | T], N) when (H == N) or (N == -1) -> {[], [H | T]};
+token_and_indents(_, [H | T], N) when H < N -> {"_INDENT_", [N, H | T]};
+token_and_indents(LineNumber, L, N) ->
+    case lists:member(N, L) of
+        true -> {A, B} = lists:splitwith(fun (E) -> E > N end, L),
+                {lists:flatten(["_DEDENT_ " || _X <- A]), B};
+        false -> erlang:error({parse_error,
+            lists:flatten(io_lib:format("Wrong indentation on Line ~p", [LineNumber]))})
+    end.
+
+-spec get_indent(integer(), [char()]) -> integer().
+get_indent(N, [$   | Tail]) -> get_indent(N + 1, Tail);
+get_indent(N, [$\t | Tail]) -> get_indent(N + 1, Tail);
+get_indent(_, [$# | _]) -> -1;
+get_indent(_, []) -> -1;
+get_indent(N, _) -> N.
+
+-spec eat_brackets([char()], string(), char() | none) -> [char()].
+eat_brackets(Brackets, [], _) -> Brackets;
+eat_brackets(Brackets, [$" | Rest], none) -> eat_brackets(Brackets, Rest, $");
+eat_brackets(Brackets, [$" | Rest], $") -> eat_brackets(Brackets, Rest, none);
+eat_brackets(Brackets, [$' | Rest], none) -> eat_brackets(Brackets, Rest, $');
+eat_brackets(Brackets, [$' | Rest], $') -> eat_brackets(Brackets, Rest, none);
+eat_brackets(Brackets, [$\\, $\\ | Rest], Mode) -> eat_brackets(Brackets, Rest, Mode);
+eat_brackets(Brackets, [$\\, $" | Rest], Mode) -> eat_brackets(Brackets, Rest, Mode);
+eat_brackets(Brackets, [$\\, $' | Rest], Mode) -> eat_brackets(Brackets, Rest, Mode);
+eat_brackets(Brackets, [$# | _], none) -> Brackets;
+eat_brackets(Brackets, [Br | Rest], none) when (Br == $() or (Br == $[) -> eat_brackets([Br | Brackets], Rest, none);
+eat_brackets([$( | Brackets], [ $) | Rest], none) -> eat_brackets(Brackets, Rest, none);
+eat_brackets([$[ | Brackets], [ $] | Rest], none) -> eat_brackets(Brackets, Rest, none);
+eat_brackets(_, [Br | _], none) when (Br == $)) or (Br == $]) -> erlang:error({parse_error, "Wrong bracketing"});
+eat_brackets(Brackets, [_ | Rest], Mode) -> eat_brackets(Brackets, Rest, Mode).
 
 -spec extract_pools_and_env([script_expr()], [{Key::term(), Value::term()}]) ->
     {[#operation{}], [proplists:property()]}.
@@ -211,6 +277,7 @@ extract_worker(PoolOpts) ->
 -spec resolve_worker_provider([atom()]) -> {worker_provider(), worker_name()}.
 resolve_worker_provider(Worker) ->
     case Worker of
+        [[WorkerName, Kind]] when is_atom(Kind) -> resolve_worker_provider([WorkerName, Kind]);
         [WorkerName] -> {mzb_erl_worker, WorkerName};
         [WorkerName, erlang] -> {mzb_erl_worker, WorkerName};
         [WorkerName, lua] -> {mzb_lua_worker, WorkerName};

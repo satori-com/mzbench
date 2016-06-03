@@ -8,6 +8,7 @@
     fold/3,
     var_eval/3,
     var_mapfold/4,
+    new_records/1,
     find_operation_and_extract_args/2,
     find_operation_and_extract_args/3
     ]).
@@ -87,6 +88,27 @@ records(T) when is_tuple(T) ->
         [Meta] -> #operation{name = undefined, meta = Meta, args = []}
     end;
 records(S) -> S.
+
+-spec new_records(term()) -> term().
+new_records([Fn | Rest]) when (Fn == ramp) or (Fn == comb) or (Fn == think_time) or
+        (Fn == exp) or (Fn == poisson) or (Fn == pow) -> new_records({call, Fn, Rest, {}});
+new_records(L) when is_list(L) -> lists:map(fun new_records/1, L);
+new_records(B) when is_binary(B) -> B;
+new_records(N) when is_number(N) -> N;
+new_records({value, Value, Units, _Meta}) ->
+    #constant{value = new_records(Value), units = Units};
+new_records({call, thread, SubCalls, _}) -> new_records(SubCalls);
+new_records({call, Name, Params, Meta}) when is_atom(Name) ->
+    IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
+    #operation{
+        name = Name,
+        meta = tuple_to_list(Meta),
+        args = new_records(Params),
+        is_std = IsStd
+    };
+new_records({call, Name, Params, _}) ->
+    new_records(list_to_tuple([Name] ++ Params)); % special case when Name is not an atom
+new_records(S) -> S.
 
 -spec transform(abstract_expr()) -> term().
 transform(AST) ->

@@ -49,13 +49,16 @@ def start(host, script_file, script_content,
     :rtype: Dictionary
     """
     import erl_utils
+    import bdl_utils
     import math
 
-    script_terms = erl_utils.convert(script_content, env)
-    includes = erl_utils.get_includes(script_terms)
+    script_utils = bdl_utils if bdl_utils.is_bdl_scenario(script_content) else erl_utils
+
+    script_terms = script_utils.convert(script_content, env)
+    includes = script_utils.get_includes(script_terms)
 
     if workers_per_node is not None:
-        desired_num_nodes = int(math.ceil(float(erl_utils.get_num_of_workers(script_terms))/float(workers_per_node)))
+        desired_num_nodes = int(math.ceil(float(script_utils.get_num_of_workers(script_terms))/float(workers_per_node)))
     else:
         desired_num_nodes = None
 
