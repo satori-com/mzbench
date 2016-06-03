@@ -33,7 +33,7 @@ init([]) ->
         child_spec(supervisor, bench_sup, mzb_bench_sup, permanent, []),
         child_spec(worker, garbage_cleaner, mzb_gc, permanent, []),
         child_spec(worker, watchdog, mzb_watchdog, permanent, []),
-        child_spec(supervisor, interconnect, mzb_interconnect_sup, permanent, [InterconnectPort, fun mzb_protocol:handle/1])
+        child_spec(supervisor, interconnect, mzb_interconnect_sup, permanent, [InterconnectPort, fun mzb_protocol:handle/2])
     ]
     }}.
 

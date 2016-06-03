@@ -144,10 +144,10 @@ handle_call({set_handler, Handler}, _From, State) ->
 handle_call(nodes, _From, #s{nodes = Nodes} = State) ->
     {reply, maps:keys(Nodes), State};
 
-handle_call({call, Node, Req}, _From, State) when Node == node() ->
-    try handle_message(Req, State) of
-        ignore -> {noreply, State};
-        {res, Res} -> {reply, {ok, Res}, State}
+handle_call({call, Node, Req}, From, State) when Node == node() ->
+    try handle_message(Req, fun (R) -> gen_server:reply(From, {ok, R}), ok end, State) of
+        noreply -> {noreply, State};
+        {reply, Res} -> {reply, {ok, Res}, State}
     catch
         C:E ->
             {reply, {exception, {C,E,erlang:get_stacktrace()}}, State}
@@ -157,10 +157,10 @@ handle_call({call, Node, Req}, From, State) ->
     send_to(Node, {call, {node(), From}, Req}, State),
     {noreply, State};
 
-handle_call({call_director, Req}, _From, #s{role = director} = State) ->
-    try handle_message(Req, State) of
-        ignore -> {noreply, State};
-        {res, Res} -> {reply, {ok, Res}, State}
+handle_call({call_director, Req}, From, #s{role = director} = State) ->
+    try handle_message(Req, fun (R) -> gen_server:reply(From, {ok, R}), ok end, State) of
+        noreply -> {noreply, State};
+        {reply, Res} -> {reply, {ok, Res}, State}
     catch
         C:E ->
             {reply, {exception, {C,E,erlang:get_stacktrace()}}, State}
@@ -218,9 +218,10 @@ handle_cast({from_remote, {abcast, Nodes, Msg}}, State) ->
     {noreply, State};
 
 handle_cast({from_remote, {call, {FromNode, From}, Msg}}, State) ->
-    try handle_message(Msg, State) of
-        ignore -> ok;
-        {res, Res} -> send_to(FromNode, {reply, From, {ok, Res}}, State)
+    ReplyFun = fun (R) -> send_to(FromNode, {reply, From, {ok, R}}, State), ok end,
+    try handle_message(Msg, ReplyFun, State) of
+        noreply -> ok;
+        {reply, Res} -> ReplyFun(Res)
     catch
         C:E ->
             send_to(FromNode, {reply, From, {exception, {C,E,erlang:get_stacktrace()}}}, State)
@@ -259,11 +260,20 @@ handle_cast({from_remote, {down, _Node, Owner, Ref, Pid, Reason}}, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_message(Msg, #s{handler = undefined}) ->
+handle_message(Msg, State) -> handle_message(Msg, fun (_) -> ok end, State).
+
+handle_message(Msg, _, #s{handler = undefined}) ->
     system_log:warning("Ignoring msg due to undefined handler~nMessage: ~p", [Msg]),
-    ignore;
-handle_message(Msg, #s{handler  = Handler}) ->
-    {res, Handler(Msg)}.
+    noreply;
+handle_message(Msg, ReplyFun, #s{handler  = Handler}) ->
+    try Handler(Msg, ReplyFun) of
+        {reply, Res} -> {reply, Res};
+        noreply -> noreply
+    catch
+        _:E ->
+            system_log:error("Handler for ~p has crashed at ~p: ~p~n~p", [Msg, node(), E, erlang:get_stacktrace()]),
+            noreply
+    end.
 
 handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
                                             connection_monitors = Mons,
@@ -296,7 +306,6 @@ handle_info({'DOWN', Ref, _, _, Reason}, #s{nodes = Nodes,
 
 handle_info(_Info, State) ->
     {noreply, State}.
-
 
 handle_abcast(Nodes, Msg, #s{role = director} = State) ->
     lists:foreach(
