@@ -24,6 +24,7 @@
     super_pid  = undefined,
     failed     = 0,
     succeed    = 0,
+    stopped    = 0,
     pools      = [],
     owner      = undefined,
     bench_name = undefined,
@@ -152,10 +153,11 @@ handle_info(Req, State) ->
     {noreply, State}.
 
 -spec handle_pool_report(Info :: [{K :: atom(), V :: term()}], #state{}) -> #state{}.
-handle_pool_report(Info, #state{succeed = Ok, failed = NOk} = State) ->
+handle_pool_report(Info, #state{succeed = Ok, failed = NOk, stopped = Stopped} = State) ->
     NewOk = Ok + proplists:get_value(succeed_workers, Info, 0),
     NewNOk = NOk + proplists:get_value(failed_workers, Info, 0),
-    State#state{succeed = NewOk, failed = NewNOk}.
+    NewStopped = Stopped + proplists:get_value(stopped_workers, Info, 0),
+    State#state{succeed = NewOk, failed = NewNOk, stopped = NewStopped}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -194,16 +196,18 @@ shift(Nodes, 0) -> Nodes;
 shift(Nodes, Size) when length(Nodes) < Size -> shift(Nodes, Size rem length(Nodes));
 shift(Nodes, Size) when Size > 0 -> {F, T} = lists:split(Size, Nodes), T ++ F.
 
-maybe_stop(#state{stop_reason = Reason, succeed = Ok, failed = NOk} = State) when Reason /= undefined ->
+maybe_stop(#state{stop_reason = Reason, succeed = Ok, failed = NOk, stopped = Stopped} = State) when Reason /= undefined ->
     system_log:info("[ director ] Received stop signal with reason: ~p", [Reason]),
     system_log:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
+    system_log:info("[ director ] Stopped workers = ~p", [Stopped]),
     stop_pools(State#state.pools),
     maybe_report_and_stop(State#state{pools = []});
 
-maybe_stop(#state{pools = [], succeed = Ok, failed = NOk} = State) ->
+maybe_stop(#state{pools = [], succeed = Ok, failed = NOk, stopped = Stopped} = State) ->
     ok = mzb_metrics:final_trigger(),
     system_log:info("[ director ] All pools have finished, stopping mzb_director_sup ~p", [State#state.super_pid]),
     system_log:info("[ director ] Succeed/Failed workers = ~p/~p", [Ok, NOk]),
+    system_log:info("[ director ] Stopped workers = ~p", [Stopped]),
     FailedAsserts = mzb_metrics:get_failed_asserts(),
     Reason =
         case FailedAsserts of
@@ -236,11 +240,16 @@ maybe_report_and_stop(#state{owner = Owner, continuation = Continuation} = State
     erlang:spawn(fun mzb_sup:stop_bench/0),
     {stop, normal, State}.
 
-format_results(#state{stop_reason = normal, succeed = Ok, failed = 0}) ->
+format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = 0}) ->
     {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully", [Ok])};
-format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk}) ->
+format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = Stopped}) ->
+    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully (~b workers have been stopped)", [Ok, Stopped])};
+format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = 0}) ->
     {error, {workers_failed, NOk},
         mzb_string:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk])};
+format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = Stopped}) ->
+    {error, {workers_failed, NOk},
+        mzb_string:format("FAILED~n~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped])};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
