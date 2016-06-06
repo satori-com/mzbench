@@ -15,12 +15,18 @@
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
+-define(POLLVARS_INTERVAL_MS, 1000).
+
 -record(s, {
     workers  = [] :: ets:tid(),
     succeed  = 0 :: non_neg_integer(),
     failed   = 0 :: non_neg_integer(),
     name     = undefined :: string(),
-    worker_starter = undefined :: undefined | {pid(), reference()}
+    worker_starter = undefined :: undefined | {pid(), reference()},
+    current_pool_size = 0 :: non_neg_integer(),
+    worker_starter_fun = undefined :: fun(),
+    workers_num_fun = undefined :: fun(),
+    poll_vars_timer = undefined :: reference()
 }).
 
 %%%===================================================================
@@ -58,14 +64,14 @@ handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
 
-handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers}, #s{workers = Tid, name = PoolName} = State) ->
+handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId}, #s{workers = Tid, name = PoolName} = State) ->
     Self = self(),
     {P, Ref} = erlang:spawn_monitor(fun() ->
             mzb_worker_runner:run_worker_script(WorkerScript, Env, Worker, Self, PoolName)
         end),
     ets:insert(Tid, {P, Ref}),
     if
-        WId < 4 orelse WId =:= NumWorkers -> system_log:info("Starting worker on ~p no ~p", [Node, WId]);
+        WId < 4 -> system_log:info("Starting worker on ~p no ~p", [Node, WId]);
         WId =:= 4 -> system_log:info("Starting remaining workers...", []);
         true -> ok
     end,
@@ -74,6 +80,34 @@ handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId, NumWorkers}, #s
 handle_cast(Msg, State) ->
     system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
+
+handle_info(poll_vars, #s{worker_starter = undefined,
+                          current_pool_size = CurrentPoolSize,
+                          worker_starter_fun = WorkerStartFun,
+                          workers_num_fun = WorkersNumFun,
+                          workers = Tid} = State) ->
+    {_, WorkerNumber, _} = WorkersNumFun(),
+    CurrentWorkerNumber = ets:info(Tid, size),
+
+    NewState =
+        if
+            WorkerNumber > CurrentPoolSize ->
+                WorkerStarter =
+                    erlang:spawn_monitor(fun () ->
+                        WorkerStartFun(WorkerNumber - CurrentWorkerNumber, CurrentWorkerNumber)
+                    end),
+                State#s{current_pool_size = WorkerNumber, worker_starter = WorkerStarter};
+            WorkerNumber < CurrentWorkerNumber ->
+                kill_some_workers(CurrentWorkerNumber - WorkerNumber, Tid),
+                State;
+            true ->
+                State
+        end,
+
+    {noreply, restart_pollvars_timer(NewState)};
+
+handle_info(poll_vars, #s{} = State) ->
+    {noreply, State};
 
 handle_info({'DOWN', Ref, _, _, normal}, #s{worker_starter = {_, Ref}} = State) ->
     maybe_stop(State#s{worker_starter = undefined});
@@ -120,9 +154,47 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
-    #operation{name = pool, args = [PoolOpts, Script], meta = Meta} = Pool,
-    Eval = fun (E) -> mzbl_interpreter:eval_std(E, Env) end,
+    WorkersNumFun = fun () -> eval_worker_number(Pool, Env, NumNodes, Offset) end,
+    {Script, WorkerNumber, StartDelay} = WorkersNumFun(),
+    #operation{name = pool, args = [PoolOpts|_], meta = Meta} = Pool,
     Name = proplists:get_value(pool_name, Meta),
+
+    Worker = mzbl_script:extract_worker(PoolOpts),
+
+    load_worker(Worker),
+
+    Self = self(),
+    Node = node(),
+    WorkerStartFun = fun (WNum, StartingFrom) ->
+        Numbers = lists:seq(0, WNum - 1),
+        system_log:info("Worker offsets: ~p", [Numbers]),
+        StartTime = msnow(),
+        lists:foreach(fun(N) ->
+                        worker_start_delay(StartDelay, NumNodes, N, StartTime),
+                        WId = (StartingFrom + N) * NumNodes + Offset,
+                        WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}]),
+                        gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId })
+                    end, Numbers)
+    end,
+
+    WorkerStarter =
+        erlang:spawn_monitor(fun () -> WorkerStartFun(WorkerNumber, 0) end),
+
+    restart_pollvars_timer(
+        State#s{name = Name,
+                worker_starter = WorkerStarter,
+                current_pool_size = WorkerNumber,
+                worker_starter_fun = WorkerStartFun,
+                workers_num_fun = WorkersNumFun}).
+
+restart_pollvars_timer(#s{poll_vars_timer = OldTimer} = State) ->
+    _ = (catch erlang:cancel_timer(OldTimer)),
+    PollVarsTimer = erlang:send_after(?POLLVARS_INTERVAL_MS, self(), poll_vars),
+    State#s{poll_vars_timer = PollVarsTimer}.
+
+eval_worker_number(Pool, Env, NumNodes, Offset) ->
+    #operation{name = pool, args = [PoolOpts, Script]} = Pool,
+    Eval = fun (E) -> mzbl_interpreter:eval_std(E, Env) end,
     [Size] = Eval(mzbl_ast:find_operation_and_extract_args(size, PoolOpts, [undefined])),
     [PerNode] = Eval(mzbl_ast:find_operation_and_extract_args(per_node, PoolOpts, [undefined])),
     StartDelay = case mzbl_ast:find_operation_and_extract_args(worker_start, PoolOpts, [undefined]) of
@@ -143,26 +215,16 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
             end,
     system_log:info("Size, PerNode, Size2, Offset, NumNodes: ~p, ~p, ~p, ~p, ~p",
         [Size, PerNode, Size2, Offset, NumNodes]),
-    Worker = mzbl_script:extract_worker(PoolOpts),
-    Self = self(),
 
-    load_worker(Worker),
+    Script2 = mzbl_ast:add_meta(Script, [{pool_size, Size2}]),
+    {Script2, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes), StartDelay}.
 
-    Numbers = lists:seq(0, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes) - 1),
-    system_log:info("Worker offsets: ~p", [Numbers]),
-
-    WorkerStarter =
-        erlang:spawn_monitor(fun () ->
-            Node = node(),
-            StartTime = msnow(),
-            lists:foreach(fun(N) ->
-                            worker_start_delay(StartDelay, NumNodes, N, StartTime),
-                            WId = N * NumNodes + Offset,
-                            WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}, {pool_size, Size2}]),
-                            gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId, Size2})
-                        end, Numbers)
-        end),
-    State#s{name = Name, worker_starter = WorkerStarter}.
+kill_some_workers(N, Tid) ->
+    Pids = fun F (0, _, Acc) -> lists:reverse(Acc);
+               F (_, '$end_of_table', Acc) -> lists:reverse(Acc);
+               F (K, Pid, Acc) -> F(K - 1, ets:next(Tid, Pid), [Pid | Acc])
+           end (N, ets:first(Tid), []),
+    [exit(P, kill) || P <- Pids].
 
 load_worker({WorkerProvider, Worker}) ->
     case erlang:apply(WorkerProvider, load, [Worker]) of
