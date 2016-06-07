@@ -23,7 +23,7 @@ class _DataStream {
     
     subscribeToMetricSubset(benchId, subsamplingInterval, beginTime, endTime) {
         this.streams = this.metrics.map((metric) => {
-            return MetricsStore.subscribeToEntireMetric(benchId, metric, subsamplingInterval, beginTime, endTime);
+            return MetricsStore.subscribeToMetricSubset(benchId, metric, subsamplingInterval, beginTime, endTime);
         });
         this._createAggregatedMetric(benchId, undefined);
     }
@@ -231,8 +231,8 @@ class Graph extends React.Component {
         this.currentZoom = step;
         this._destroySubscriptions();
         this._createStreams();
-        this._createSubscriptions();
         this._resetState();
+        this._createSubscriptions();
     }
 
     _calcDataMax() {
