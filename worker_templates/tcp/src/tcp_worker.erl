@@ -13,12 +13,15 @@
     start_accepter/3
 ]).
 
--include("../../common_apps/mzbench_language/include/mzbl_types.hrl").
--include("../../node/apps/mzbench/include/mzb_ast.hrl").
-
 -define(default_connect_timeout, 10000).
 -define(default_recv_timeout, 5000).
 -define(default_backlog, 20).
+
+-record(constant, {
+    value = undefined,
+    units = undefined,
+    meta = []
+}).
 
 -record(s, {
     socket        = undefined,
