@@ -4,7 +4,7 @@ import MetricsStore from '../stores/MetricsStore';
 
 const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
-const MIN_GRAPHS_TO_BEGIN_COMPRESSION = 30;
+const MIN_GRAPHS_TO_BEGIN_COMPRESSION = 20;
 
 class _DataStream {
     constructor(name, aggregated, metrics) {
