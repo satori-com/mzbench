@@ -135,7 +135,6 @@ handle_info({'DOWN', _Ref, _, Pid, killed_by_pool}, #s{workers = Workers, name =
     NewState = State#s{stopped = State#s.stopped + 1},
     case ets:lookup(Workers, Pid) of
         [{Pid, Ref}] ->
-            system_log:warning("[ ~p ] Worker ~p was stopped", [Name, Pid]),
             ok = mzb_metrics:notify(mzb_string:format("workers.~s.ended", [Name]), 1),
             ets:delete(Workers, Pid),
             erlang:demonitor(Ref, [flush]);
