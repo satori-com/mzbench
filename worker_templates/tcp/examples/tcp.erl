@@ -20,7 +20,7 @@
 
   {pool, [{size, {var, "workers", 10}},
           {worker_type, tcp_worker}], [
-    {connect, {var, "host", {choose, {var, "bench_hosts", ["localhost"]}}}, {var, "port", 23423}},
+    {connect, {var, "host", "localhost"}, {var, "port", 23423}},
     {send, {var, "first-message", <<"first message">>}},
     {loop, [{time, {{var, "duration", 100}, sec}},
             {rate, {{var, "message-rate", 50000}, rps}}
