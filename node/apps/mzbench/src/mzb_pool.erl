@@ -88,7 +88,6 @@ handle_info(poll_vars, #s{name = Name,
                           worker_starter_fun = WorkerStartFun,
                           workers_num_fun = WorkersNumFun,
                           workers = Tid} = State) ->
-
     {_, WorkerNumber, _} = WorkersNumFun(),
 
     NewState =
@@ -111,7 +110,7 @@ handle_info(poll_vars, #s{name = Name,
     {noreply, restart_pollvars_timer(NewState)};
 
 handle_info(poll_vars, #s{} = State) ->
-    {noreply, State};
+    {noreply, restart_pollvars_timer(State)};
 
 handle_info({'DOWN', Ref, _, _, normal}, #s{worker_starter = {_, Ref}} = State) ->
     maybe_stop(State#s{worker_starter = undefined});
