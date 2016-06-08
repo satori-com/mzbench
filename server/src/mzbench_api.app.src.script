@@ -47,6 +47,7 @@
         {server_configs, ["~/.config/mzbench/server.config", "/etc/mzbench/server.config"]},
         {max_bench_num, 1000},
         {metric_update_interval_ms, 10000},
+        {ntp_max_timediff_s, undefined},
         {vm_args, []}
     ]}
 ]}.

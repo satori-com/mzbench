@@ -47,6 +47,9 @@
     {tgz_packages_dir, "~/.local/cache/mzbench_api/packages"},
     {metric_update_interval_ms, 10000},
     {max_bench_num, 1000},
+
+    % benchmark will crash if ntp time diff in cluster is greater than this value
+    {ntp_max_timediff_s, undefined}, % in sec but if undefined - run ntp but do not crash in any case
     {vm_args, []}
   ]}
 ].
