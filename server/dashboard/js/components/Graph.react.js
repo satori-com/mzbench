@@ -235,6 +235,18 @@ class Graph extends React.Component {
         this._createSubscriptions();
     }
 
+    _calcDataMin() {
+        return this.state.data.reduce((acc, stream) => {
+            const stream_min = stream.reduce((acc, value) => {
+                if(acc === undefined || value.min < acc) return value.min;
+                else return acc;
+            }, undefined);
+            
+            if(acc === undefined || stream_min < acc) return stream_min;
+            else return acc;
+        }, undefined);
+    }
+
     _calcDataMax() {
         return this.state.data.reduce((acc, stream) => {
             const stream_max = stream.reduce((acc, value) => {
@@ -299,7 +311,9 @@ class Graph extends React.Component {
             
             graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
             graph_options.max_x = this.state.maxDate;
-            graph_options.min_y = 0;
+            
+            const data_min = this._calcDataMin();
+            graph_options.min_y = (data_min < 0)?data_min:0;
             graph_options.max_y = this._calcDataMax();
             
             MG.data_graphic(graph_options);
