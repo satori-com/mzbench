@@ -29,6 +29,7 @@
     {gc_sleep, 10},
     {log_queue_max_len, 1000},
     {log_rate_limit, 200},
-    {metric_update_interval_ms, 10000}
+    {metric_update_interval_ms, 10000},
+    {time_sync_interval_s, 60}
   ]}
  ]}.

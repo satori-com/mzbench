@@ -41,15 +41,10 @@ handle({add_signal, Name, Count}, _) ->
 handle(is_director_alive, _) ->
     {reply, mzb_director:is_alive()};
 
-handle(update_time_offset, ReplyFun) ->
-    _ = spawn(fun () ->
-        ReplyFun(mzb_time:update_time_offset())
-    end),
-    noreply;
-
 handle(get_local_timestamp, _) ->
     {reply, os:timestamp()};
 
 handle(Unhandled, _) ->
     system_log:error("Unhandled node message: ~p", [Unhandled]),
     erlang:error({unknown_message, Unhandled}).
+

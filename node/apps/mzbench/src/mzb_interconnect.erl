@@ -21,7 +21,8 @@
     monitor/2,
     demonitor/1,
     demonitor/2,
-    handle/1
+    handle/1,
+    get_director/0
 ]).
 
 %% gen_server callbacks
@@ -116,6 +117,9 @@ demonitor({interconnect_monitor, _, _} = Ref, [flush]) ->
 handle(Msg) ->
     gen_server:cast(?MODULE, {from_remote, Msg}).
 
+get_director() ->
+    gen_server:call(?MODULE, get_director).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -185,6 +189,12 @@ handle_call({demonitor, Pid, Ref}, _From, State) when node(Pid) == node() ->
 handle_call({demonitor, Pid, Ref}, _From, #s{} = State) ->
     send_to(node(Pid), {demonitor, {}, Pid, Ref}, State),
     {reply, ok, rm_rmon(Pid, Ref, State)};
+
+handle_call(get_director, _From, #s{role = director} = State) ->
+    {reply, node(), State};
+
+handle_call(get_director, _From, #s{role = worker, director = Director} = State) ->
+    {reply, Director, State};
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
