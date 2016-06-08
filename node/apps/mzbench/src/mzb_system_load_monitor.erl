@@ -61,7 +61,16 @@ metric_names(Nodes) ->
                   metrics => [{metric_name("process_count", N), gauge} || N <- Nodes]}},
         {graph, #{title => "System metrics report interval",
                   units => "sec",
-                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}}
+                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}},
+        {graph, #{title => "Actual time diff with director",
+                  units => "us",
+                  metrics => [{metric_name("dir_time_diff", N), gauge} || N <- Nodes]}},
+        {graph, #{title => "Time offset at node",
+                  units => "us",
+                  metrics => [{metric_name("time_offset", N), gauge} || N <- Nodes]}},
+        {graph, #{title => "Director ping time",
+                  units => "us",
+                  metrics => [{metric_name("director_ping", N), gauge} || N <- Nodes]}}
         ]}].
 
 %% gen_server callbacks
@@ -143,6 +152,14 @@ handle_info(trigger,
     end,
 
     ok = mzb_metrics:notify({metric_name("process_count"), gauge}, erlang:system_info(process_count)),
+
+    ok = mzb_metrics:notify({metric_name("time_offset"), gauge}, mzb_time:get_offset()),
+
+    T1 = mzb_time:timestamp(),
+    DirectorTime = mzb_interconnect:call_director(get_local_timestamp),
+    T2 = mzb_time:timestamp(),
+    ok = mzb_metrics:notify({metric_name("director_ping"), gauge}, timer:now_diff(T2, T1)),
+    ok = mzb_metrics:notify({metric_name("dir_time_diff"), gauge}, (timer:now_diff(T1, DirectorTime) + timer:now_diff(T2, DirectorTime)) div 2),
 
     %system_log:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(IntervalMs, self(), trigger),
