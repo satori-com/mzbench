@@ -3,8 +3,8 @@ pool(size = 20,
      worker_type = dummy_worker)
         wait(1 sec)
         print("C!")
-        set_signal("A", 9)
+        set_signal("A", 9):
 pool(size = 1,
-     worker_type = dummy_worker)
+     worker_type = dummy_worker):
         wait_signal("A", 200, 10 sec)
         print("E!")

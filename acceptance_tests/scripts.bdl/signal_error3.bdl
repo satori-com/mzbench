@@ -1,4 +1,4 @@
 #!benchDL
 pool(size = var("nodes_num"),
-     worker_type = dummy_worker)
+     worker_type = dummy_worker):
     set_signal("A")

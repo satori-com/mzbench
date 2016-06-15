@@ -7,7 +7,7 @@ empty_test() ->
 
 empty_bdl_test() ->
     install_specs_check([], "#!benchDL\n"
-      "pool(size = 1)\n"
+      "pool(size = 1):\n"
       " do_stuff()").
 
 add_indents_test() ->

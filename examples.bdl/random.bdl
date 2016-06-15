@@ -1,7 +1,7 @@
 #!benchDL
 # random element example
 pool(size = 1,
-     worker_type = dummy_worker)
+     worker_type = dummy_worker):
     print(sprintf("binary: ~p,list: ~p,number: ~p",
         [random_binary(3), random_list(3), random_number(33)]))
 

@@ -1,6 +1,6 @@
 #!benchDL
 pool(size = var("nodes_num"),
-     worker_type = dummy_worker)
-    parallel()
-        thread()
+     worker_type = dummy_worker):
+    parallel():
+        thread():
             wait_signal("A")

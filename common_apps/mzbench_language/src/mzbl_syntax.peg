@@ -1,9 +1,9 @@
 scenario <- __ operation* !. `{scenario, lists:nth(2, Node)}`;
 operation <- (multiline / single) __ `lists:nth(1, Node)`;
-multiline <- id __ '(' args? ')' __ indent __ operation+ __ dedent __
+multiline <- id __ '(' args? ')' __ ':' __ indent __ operation+ __ dedent __
 `case length(lists:nth(4, Node)) of
-  0 -> {call, lists:nth(1, Node), [lists:nth(9, Node)], Idx};
-  _ -> {call, lists:nth(1, Node), [lists:nth(1, lists:nth(4, Node)), lists:nth(9, Node)], Idx}
+  0 -> {call, lists:nth(1, Node), [lists:nth(11, Node)], Idx};
+  _ -> {call, lists:nth(1, Node), [lists:nth(1, lists:nth(4, Node)), lists:nth(11, Node)], Idx}
 end`;
 single <- id __ '(' args? ')' `{call, lists:nth(1, Node), lists:nth(4, Node), Idx}`;
 args <- kargs / pargs ~;

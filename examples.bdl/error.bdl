@@ -1,6 +1,6 @@
 #!benchDL
 # error function generates execution error with specified message
-pool(size = 1, worker_type = dummy_worker)
+pool(size = 1, worker_type = dummy_worker):
 	error("waldo")
 
 # should output shomething like this among other log messages:

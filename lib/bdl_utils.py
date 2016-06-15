@@ -147,7 +147,7 @@ def lex(text):
     grammar = Grammar("""\
     entry = _ (statement _)* _
     statement = multiline / single
-    multiline = atom _ args _ "_INDENT_" _ (statement _)+ "_DEDENT_"
+    multiline = atom _ args _ ":" _ "_INDENT_" _ (statement _)+ "_DEDENT_"
     single = atom _ args
     atom = ~"[a-z][0-9a-zA-Z_]*" / ("'" ~"[^']*" "'")
     _ = ~"\s*" (~"#[^\\r\\n]*\s*")*

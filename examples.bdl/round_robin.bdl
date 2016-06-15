@@ -1,6 +1,6 @@
 #!benchDL
 pool(size = 5,
-     worker_type = dummy_worker)
+     worker_type = dummy_worker):
     print(sprintf("My number is: ~p", [round_robin(1010, 2020, 3030, 4040, 5050)]))
 
 # sample output:

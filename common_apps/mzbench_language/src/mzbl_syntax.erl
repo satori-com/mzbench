@@ -1,3 +1,5 @@
+%%% This file is auto-generated from mzbl_syntax.peg, run make rebuild-parser if you wish to change it, do not edit directly
+
 -module(mzbl_syntax).
 -export([parse/1,file/1]).
 -define(p_anything,true).
@@ -38,9 +40,9 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'multiline'(input(), index()) -> parse_result().
 'multiline'(Input, Index) ->
-  p(Input, Index, 'multiline', fun(I,D) -> (p_seq([fun 'id'/2, fun '__'/2, p_string(<<"(">>), p_optional(fun 'args'/2), p_string(<<")">>), fun '__'/2, fun 'indent'/2, fun '__'/2, p_one_or_more(fun 'operation'/2), fun '__'/2, fun 'dedent'/2, fun '__'/2]))(I,D) end, fun(Node, Idx) ->case length(lists:nth(4, Node)) of
-  0 -> {call, lists:nth(1, Node), [lists:nth(9, Node)], Idx};
-  _ -> {call, lists:nth(1, Node), [lists:nth(1, lists:nth(4, Node)), lists:nth(9, Node)], Idx}
+  p(Input, Index, 'multiline', fun(I,D) -> (p_seq([fun 'id'/2, fun '__'/2, p_string(<<"(">>), p_optional(fun 'args'/2), p_string(<<")">>), fun '__'/2, p_string(<<":">>), fun '__'/2, fun 'indent'/2, fun '__'/2, p_one_or_more(fun 'operation'/2), fun '__'/2, fun 'dedent'/2, fun '__'/2]))(I,D) end, fun(Node, Idx) ->case length(lists:nth(4, Node)) of
+  0 -> {call, lists:nth(1, Node), [lists:nth(11, Node)], Idx};
+  _ -> {call, lists:nth(1, Node), [lists:nth(1, lists:nth(4, Node)), lists:nth(11, Node)], Idx}
 end end).
 
 -spec 'single'(input(), index()) -> parse_result().

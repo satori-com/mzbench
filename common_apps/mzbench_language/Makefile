@@ -21,6 +21,11 @@ rebuild-parser:
 	make -C _build/neotoma compile
 	make -C _build/neotoma escript
 	./_build/neotoma/neotoma src/mzbl_syntax.peg
+	-rm src/mzbl_syntax.erl.temp
+	mv src/mzbl_syntax.erl src/mzbl_syntax.erl.temp
+	echo "%%% This file is auto-generated from mzbl_syntax.peg, run make rebuild-parser if you wish to change it, do not edit directly\n" > src/mzbl_syntax.erl
+	cat src/mzbl_syntax.erl.temp >> src/mzbl_syntax.erl
+	-rm src/mzbl_syntax.erl.temp
 
 .PHONY: clean
 clean:
