@@ -70,7 +70,8 @@ call_director(Req) -> call_director(Req, infinity).
 call_director(Req, Timeout) ->
     case gen_server:call(?MODULE, {call_director, Req}, Timeout) of
         {ok, Res} -> Res;
-        {exception, {C, E, ST}} -> erlang:raise(C, E, ST)
+        {exception, {C, E, ST}} -> erlang:raise(C, E, ST);
+        {error, Reason} -> erlang:error(Reason)
     end.
 
 call(Node, Req) -> call(Node, Req, infinity).
@@ -169,6 +170,9 @@ handle_call({call_director, Req}, From, #s{role = director} = State) ->
         C:E ->
             {reply, {exception, {C,E,erlang:get_stacktrace()}}, State}
     end;
+
+handle_call({call_director, _Req}, _From, #s{role = worker, director = undefined} = State) ->
+    {reply, {error, not_connected}, State};
 
 handle_call({call_director, Req}, From, #s{role = worker, director = Director} = State) ->
     send_to(Director, {call, {node(), From}, Req}, State),

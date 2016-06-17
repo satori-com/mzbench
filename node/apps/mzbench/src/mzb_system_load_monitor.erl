@@ -155,11 +155,15 @@ handle_info(trigger,
 
     ok = mzb_metrics:notify({metric_name("time_offset"), gauge}, mzb_time:get_offset()),
 
-    T1 = mzb_time:timestamp(),
-    DirectorTime = mzb_interconnect:call_director(get_local_timestamp),
-    T2 = mzb_time:timestamp(),
-    ok = mzb_metrics:notify({metric_name("director_ping"), gauge}, timer:now_diff(T2, T1)),
-    ok = mzb_metrics:notify({metric_name("dir_time_diff"), gauge}, (timer:now_diff(T1, DirectorTime) + timer:now_diff(T2, DirectorTime)) div 2),
+    try
+        T1 = mzb_time:timestamp(),
+        DirectorTime = mzb_interconnect:call_director(get_local_timestamp),
+        T2 = mzb_time:timestamp(),
+        ok = mzb_metrics:notify({metric_name("director_ping"), gauge}, timer:now_diff(T2, T1)),
+        ok = mzb_metrics:notify({metric_name("dir_time_diff"), gauge}, (timer:now_diff(T1, DirectorTime) + timer:now_diff(T2, DirectorTime)) div 2)
+    catch
+        error:not_connected -> ok
+    end,
 
     %system_log:info("System load at ~p: cpu ~p, la ~p, ram ~p", [node(), Cpu, La1, AllocatedMem / TotalMem]),
     erlang:send_after(IntervalMs, self(), trigger),
