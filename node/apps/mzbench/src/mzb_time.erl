@@ -2,6 +2,7 @@
 
 -export([start_link/0,
          timestamp/0,
+         system_time/1,
          get_offset/0]).
 
 -behaviour(gen_server).
@@ -29,6 +30,10 @@ start_link() ->
 timestamp() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     {MegaSecs, Secs, MicroSecs + get_offset()}.
+
+-spec system_time(Units :: micro_seconds) -> non_neg_integer().
+system_time(micro_seconds) ->
+    erlang:system_time(micro_seconds) + get_offset().
 
 -spec get_offset() -> integer().
 get_offset() ->
