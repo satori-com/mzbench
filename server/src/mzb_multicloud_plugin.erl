@@ -15,9 +15,10 @@ start(_Name, Opts) ->
 
 create_cluster(#{clouds:= Clouds}, N, Config) ->
     Sum = lists:sum([W || {_, W} <- Clouds]),
-    Parts = [{Name, round(N * W / Sum)} || {Name, W} <- tl(Clouds)],
-    [{Name, _}|_] = Clouds,
-    allocate([{Name, N - lists:sum([M || {_, M} <- Parts])}|Parts], Config).
+    ReversedClouds = lists:reverse(Clouds),
+    Parts = [{Name, round(N * W / Sum)} || {Name, W} <- tl(ReversedClouds)],
+    [{Name, _}|_] = ReversedClouds,
+    allocate(lists:reverse([{Name, N - lists:sum([M || {_, M} <- Parts])}|Parts]), Config).
 
 allocate(Clouds, Config) ->
     BenchId = maps:get(bench_id, Config),
