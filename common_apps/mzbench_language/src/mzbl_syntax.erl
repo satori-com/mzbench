@@ -71,7 +71,7 @@ end end).
 
 -spec 'pair'(input(), index()) -> parse_result().
 'pair'(Input, Index) ->
-  p(Input, Index, 'pair', fun(I,D) -> (p_seq([fun '__'/2, p_label('key', p_choose([fun 'id'/2, fun 'string'/2])), fun '__'/2, p_string(<<"=">>), fun '__'/2, p_label('value', fun 'value'/2), fun '__'/2]))(I,D) end, fun(Node, Idx) ->{call, proplists:get_value(key, Node), [proplists:get_value(value, Node)], Idx} end).
+  p(Input, Index, 'pair', fun(I,D) -> (p_seq([fun '__'/2, p_label('key', p_choose([fun 'id'/2, fun 'string'/2])), fun '__'/2, p_string(<<"=">>), fun '__'/2, p_label('value', fun 'value'/2), fun '__'/2]))(I,D) end, fun(Node, Idx) ->{call, t, [proplists:get_value(key, Node), proplists:get_value(value, Node)], Idx} end).
 
 -spec 'value'(input(), index()) -> parse_result().
 'value'(Input, Index) ->

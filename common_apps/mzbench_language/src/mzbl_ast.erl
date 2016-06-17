@@ -100,15 +100,23 @@ new_records({value, Value, Units, _Meta}) ->
 new_records({call, thread, SubCalls, _}) -> new_records(SubCalls);
 new_records({call, Name, Params, Meta}) when is_atom(Name) ->
     IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
+    Args = if (Name == loop) or (Name == pool) -> [P1, P2] = Params,
+                [detuple(P1), new_records(P2)];
+            Name == make_install -> detuple(Params);
+            true -> new_records(Params) end,
     #operation{
         name = Name,
         meta = tuple_to_list(Meta),
-        args = new_records(Params),
+        args = Args,
         is_std = IsStd
     };
 new_records({call, Name, Params, _}) ->
     new_records(list_to_tuple([Name] ++ Params)); % special case when Name is not an atom
 new_records(S) -> S.
+
+-spec detuple(term()) -> term().
+detuple(L) when is_list(L) -> lists:map(fun detuple/1, L);
+detuple({call, t, [Name | Params], Meta}) -> new_records({call, Name, Params, Meta}).
 
 -spec transform(abstract_expr()) -> term().
 transform(AST) ->
