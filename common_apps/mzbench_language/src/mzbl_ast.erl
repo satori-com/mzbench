@@ -102,7 +102,7 @@ new_records({call, Name, Params, Meta}) when is_atom(Name) ->
     IsStd = mzbl_stdlib_signatures:is_std_function(Name, length(Params)),
     Args = if (Name == loop) or (Name == pool) -> [P1, P2] = Params,
                 [detuple(P1), new_records(P2)];
-            Name == make_install -> detuple(Params);
+            (Name == make_install) or (Name == defaults) -> detuple(Params);
             true -> new_records(Params) end,
     #operation{
         name = Name,
