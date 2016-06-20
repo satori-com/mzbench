@@ -37,7 +37,14 @@ system_time(micro_seconds) ->
 
 -spec get_offset() -> integer().
 get_offset() ->
-    ets:lookup_element(?MODULE, offset, 2).
+    case erlang:get(mzb_time_offset_ref) of
+        undefined ->
+            Ref = ets:lookup_element(?MODULE, offset_ref, 2),
+            erlang:put(mzb_time_offset_ref, Ref),
+            mz_counter:get_value_raw(Ref);
+        Ref ->
+            mz_counter:get_value_raw(Ref)
+    end.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -45,7 +52,8 @@ get_offset() ->
 -spec init([]) -> {ok, #state{}}.
 init([]) ->
     _ = ets:new(?MODULE, [set, named_table, {read_concurrency, true}]),
-    ets:insert(?MODULE, {offset, 0}),
+    {ok, CounterRef} = mz_counter:create_raw(),
+    ets:insert(?MODULE, {offset_ref, CounterRef}),
     random:seed(erlang:now()),
     ok = perform_sync(),
     TimeSyncIntervalMS = 1000 * application:get_env(mzbench, time_sync_interval_s, undefined),
@@ -90,9 +98,14 @@ perform_sync() ->
         Director when Director == node() -> ok;
         Director ->
             Offset = evaluate_time_offset(Director, 20),
-            true = ets:update_element(?MODULE, offset, {2, Offset})
+            set_offset(Offset)
     end,
     ok.
+
+set_offset(Offset) ->
+    Ref = ets:lookup_element(?MODULE, offset_ref, 2),
+    OldOffset = mz_counter:get_value_raw(Ref),
+    mz_counter:notify_raw(Ref, Offset - OldOffset).
 
 -spec evaluate_time_offset(Node :: atom(), SleepBetweenAttempts :: non_neg_integer()) -> Offset :: integer().
 evaluate_time_offset(Node, SleepInterval) ->
