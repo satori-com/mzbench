@@ -203,6 +203,9 @@ check_op(ramp, [Profile, Rate1, Rate2], T, Env) ->
         is(rate, T),
         check(Rate1, rate, Env),
         check(Rate2, rate, Env)]);
+check_op(ramp, _Params, T, _Env) ->
+    all_([{false, mzb_string:format("Ramp requires exactly three arguments", []), undefined},
+        is(rate, T)]);
 check_op(comb, Args, T, Env) ->
     RatesAndTimes = every_other(lists:zip(lists:droplast(Args), tl(Args))),
     and_(
