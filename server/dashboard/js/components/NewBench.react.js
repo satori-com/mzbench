@@ -40,7 +40,7 @@ class NewBench extends React.Component {
                   <div className="form-group col-md-3">
                     <label>Cloud</label>
                     <select defaultValue={bench.cloud} onChange={this._onChangeCloud} className="form-control">
-                        {clouds.map((cloudId) => { return <option key={cloudId}>{cloudId}</option>}) }
+                        {clouds.map((cloudId) => { return <option key={cloudId} value={cloudId}>{cloudId}</option>}) }
                     </select>
                   </div>
                 </div>
