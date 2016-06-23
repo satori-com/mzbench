@@ -346,7 +346,7 @@ class Graph extends React.Component {
     }
 
     _createStreams() {
-        if(this.props.renderFullscreen || !this.props.isRunning
+        if(this.props.renderFullscreen
                 || this.props.targets.length < MIN_GRAPHS_TO_BEGIN_COMPRESSION) {
             this.streams = this.props.targets.map((metric) => {
                 let m = [];
