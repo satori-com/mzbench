@@ -112,7 +112,11 @@ function _updateAggregatedStream(streamId) {
         else return acc;
     }, undefined);
     
-    for(; stream.lastIdx < minLength; stream.lastIdx++) _createAggregatedElement(streamId, stream.lastIdx);
+    let updatePerformed = false;
+    for(; stream.lastIdx < minLength; stream.lastIdx++) {
+        _createAggregatedElement(streamId, stream.lastIdx);
+        updatePerformed = true;
+    }
     
     stream.batchCounter = stream.parentStreams.reduce((acc, parentStreamId) => {
         const parentStream = data.streams.get(parentStreamId);
@@ -120,7 +124,11 @@ function _updateAggregatedStream(streamId) {
         else return acc;
     }, undefined);
     
-    _garbadgeCollectOldData(streamId);
+    if(updatePerformed) {
+        _garbadgeCollectOldData(streamId);
+        stream.parentStreams.forEach((parentStreamId) => _garbadgeCollectOldData(parentStreamId));
+        stream.lastIdx = stream.data.length - 1;
+    }
 }
 
 class MetricsStore extends EventEmitter {
@@ -150,7 +158,7 @@ class MetricsStore extends EventEmitter {
     updateMetricBatchCounter(streamId) {
         if(data.streams.has(streamId)) {
             _updateBatchCounter(streamId);
-            _garbadgeCollectOldData(streamId);
+            if(!data.streams.get(streamId).aggregators) _garbadgeCollectOldData(streamId);
             
             data.streams.get(streamId).aggregators.forEach((aggregatedStreamId) => {
                 _updateAggregatedStream(aggregatedStreamId);
