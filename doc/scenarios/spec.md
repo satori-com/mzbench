@@ -141,7 +141,7 @@ Check if the condition `<Condition>` is satisfied throughout the entire benchmar
 
 `<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metrics* values.
 
-[Metrics](../workers.nd#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
+[Metrics](../workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
 
 ```erlang
 {gt, "http_ok", 20}
@@ -152,7 +152,7 @@ The `http_ok` metric is provided by the [simple_http](https://github.com/machine
 
 # Pools
 
-**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](../workers.nd) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
+**Pool** represents a sequence of **jobs**—statements to run. The statements are defined by the [worker](../workers.md) and [MZBench's standard library](#standard-library). The jobs are evenly distributed between nodes, so they can be executed in parallel.
 
 Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
 
