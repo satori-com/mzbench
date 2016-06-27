@@ -271,11 +271,16 @@ handle_stage(pipeline, gathering_metric_names, #{cluster_connection:= Connection
     end;
 
 handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
-    #{script:= Script, env:= DefaultEnv} = Config,
+    #{script:= Script, env:= DefaultEnv, director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
     ScriptFilePath = script_path(Script),
     DirFun = fun (Msg) -> director_call(Connection, Msg, ?HOOKS_TIMEOUT) end,
     {Body, Env} = DirFun({read_and_validate, remote_path(ScriptFilePath, Config), mzbl_script:normalize_env(DefaultEnv)}),
-    NewEnv = mzb_script_hooks:pre_hooks(DirFun, Body, Env, Config, get_logger(State)),
+    ActualWorkerHosts = case WorkerHosts of
+        [] -> [DirectorHost];
+        _ -> WorkerHosts
+    end,
+    EnvWithWorkerHosts = [{"worker_hosts", ActualWorkerHosts} | Env],
+    NewEnv = mzb_script_hooks:pre_hooks(DirFun, Body, EnvWithWorkerHosts, Config, get_logger(State)),
     NewConfig = maps:put(env, mzbl_script:normalize_env(NewEnv), Config),
     fun (S) -> S#{config => NewConfig} end;
 
