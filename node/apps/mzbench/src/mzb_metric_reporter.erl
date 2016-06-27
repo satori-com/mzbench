@@ -4,7 +4,8 @@
 
 %% exometer
 -export([
-         report/2
+         report/2,
+         new_metrics/1
          ]).
 
 %% gen_event
@@ -18,10 +19,16 @@
 report(Metric, Value) ->
     gen_event:sync_notify(metrics_event_manager, {report, [Metric, Value]}).
 
+new_metrics(Metrics) ->
+    gen_event:sync_notify(metrics_event_manager, {new_metrics, Metrics}).
+
 % gen_event
 
 handle_event({report, Report}, ServerPid) ->
     ok = gen_server:call(ServerPid, {report, Report}),
+    {ok, ServerPid};
+handle_event({new_metrics, Metrics}, ServerPid) ->
+    ok = gen_server:call(ServerPid, {new_metrics, Metrics}),
     {ok, ServerPid}.
 
 init([ServerPid]) -> {ok, ServerPid}.

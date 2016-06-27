@@ -44,6 +44,9 @@ handle(is_director_alive, _) ->
 handle(get_local_timestamp, _) ->
     {reply, os:timestamp()};
 
+handle(get_system_metrics, _) ->
+    {reply, mzb_system_load_monitor:metric_names()};
+
 handle(Unhandled, _) ->
     system_log:error("Unhandled node message: ~p", [Unhandled]),
     erlang:error({unknown_message, Unhandled}).

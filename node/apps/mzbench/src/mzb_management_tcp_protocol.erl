@@ -83,18 +83,6 @@ handle_message({connect_nodes, Hosts}, ReplyFun) ->
             {reply, {error, E}}
     end;
 
-handle_message({metric_names, ScriptPath, Env}, _) ->
-    try
-        case mzb_script_validator:read_and_validate(ScriptPath, mzbl_script:normalize_env(Env)) of
-            {ok, _Warnings, _Body0, Env0} ->
-                {reply, {ok, mzb_script_metrics:metrics(ScriptPath, Env0)}};
-            {error, _, _, _, Errors} ->
-                {reply, {error, Errors}}
-        end
-    catch
-        _:E -> {reply, {error, [mzb_string:format("Unexpected exception on metrics gathering: ~p~n~p", [E, erlang:get_stacktrace()])]}}
-    end;
-
 handle_message({change_env, Env}, _) ->
     {reply, mzb_director:change_env(Env)};
 
@@ -150,8 +138,11 @@ handle_cast(Msg, State) ->
     system_log:error("~p has received unexpected cast: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
+handle_call({new_metrics, Metrics}, _From, State = #state{}) ->
+    send_message({new_metrics, #{ groups => mzb_script_metrics:build_metric_groups_json(Metrics) }}, State),
+    {reply, ok, State};
+
 handle_call({report, [Name, Value]}, _From, State = #state{}) ->
-    %Name = string:join(Probe, "."),
     Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
     send_message({metric_value, Name, Metric}, State),
     {reply, ok, State};

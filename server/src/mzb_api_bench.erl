@@ -158,7 +158,6 @@ workflow_config(_State) ->
                   starting_collectors,
                   uploading_script,
                   uploading_includes,
-                  gathering_metric_names,
                   pre_hooks,
                   starting,
                   running,
@@ -253,22 +252,6 @@ handle_stage(pipeline, starting_collectors, #{cluster_connection:= Connection, n
     LogsCollectors = StartFun(get_log_port, maps:get(log_file_handler, State)) ++
             StartFun(get_log_user_port, maps:get(log_user_file_handler, State)),
     fun (S) -> S#{collectors => LogsCollectors} end;
-
-handle_stage(pipeline, gathering_metric_names, #{cluster_connection:= Connection, config:= Config} = State) ->
-    #{script:= Script, env:= Env} = Config,
-    case director_call(Connection, {metric_names, remote_path(script_path(Script), Config), Env}) of
-        {ok, MetricsMap} ->
-            lists:foreach(
-                fun (M) ->
-                    File = metrics_file(M, Config),
-                    {ok, H} = file:open(File, [write]),
-                    file:close(H)
-                end, mzb_api_metrics:extract_metric_names(MetricsMap)),
-            fun (S) -> S#{metrics => MetricsMap} end;
-        {error, Error} ->
-            error("Can't get metrics info: ~p", [Error], State),
-            erlang:error({get_metrics_error, Error})
-    end;
 
 handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
     #{script:= Script, env:= DefaultEnv, director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
@@ -387,6 +370,15 @@ handle_call({remove_tags, Tags}, _From, #{config:= Config} = State) ->
 handle_call(_Request, _From, State) ->
     error("Unhandled call: ~p", [_Request], State),
     {noreply, State}.
+
+handle_cast({director_message, {new_metrics, NewMetrics}}, #{metrics:= Metrics, config:= Config} = State) ->
+    lists:foreach(
+        fun (M) ->
+            File = metrics_file(M, Config),
+            {ok, H} = file:open(File, [write]),
+            file:close(H)
+        end, mzb_api_metrics:extract_metric_names(NewMetrics) -- mzb_api_metrics:extract_metric_names(Metrics)),
+    {noreply, maybe_update_bench(State#{metrics => NewMetrics})};
 
 handle_cast({director_message, Unknown}, State) ->
     lager:error("Unknown director message ~p", [Unknown]),

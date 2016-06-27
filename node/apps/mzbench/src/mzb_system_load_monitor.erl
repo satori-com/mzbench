@@ -5,7 +5,7 @@
 %% API
 -export([
     start_link/1,
-    metric_names/1
+    metric_names/0
     ]).
 
 %% gen_server callbacks
@@ -32,45 +32,45 @@
 start_link(IntervalMs) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [IntervalMs], []).
 
-metric_names(Nodes) ->
+metric_names() ->
     [{group, "System Load", [
         {graph, #{title => "Load average",
                   units => "la1",
-                  metrics => [{metric_name("la1", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("la1"), gauge}]}},
 
         {graph, #{title => "CPU",
                   units => "%",
-                  metrics => [{metric_name("cpu", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("cpu"), gauge}]}},
 
         {graph, #{title => "RAM",
                   units => "%",
-                  metrics => [{metric_name("ram", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("ram"), gauge}]}},
 
         {graph, #{title => "Network transmit",
                   units => "bytes",
-                  metrics => [{metric_name("nettx", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("nettx"), gauge}]}},
 
         {graph, #{title => "Network receive",
                   units => "bytes",
-                  metrics => [{metric_name("netrx", N), gauge} || N <- Nodes]}}
+                  metrics => [{metric_name("netrx"), gauge}]}}
                   ]},
      {group, "MZBench Internals", [
         {graph, #{title => "Mailbox messages",
-                  metrics => [{metric_name("message_queue", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("message_queue"), gauge}]}},
         {graph, #{title => "Erlang processes",
-                  metrics => [{metric_name("process_count", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("process_count"), gauge}]}},
         {graph, #{title => "System metrics report interval",
                   units => "sec",
-                  metrics => [{metric_name("interval", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("interval"), gauge}]}},
         {graph, #{title => "Actual time diff with director",
                   units => "us",
-                  metrics => [{metric_name("dir_time_diff", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("dir_time_diff"), gauge}]}},
         {graph, #{title => "Time offset at node",
                   units => "us",
-                  metrics => [{metric_name("time_offset", N), gauge} || N <- Nodes]}},
+                  metrics => [{metric_name("time_offset"), gauge}]}},
         {graph, #{title => "Director ping time",
                   units => "us",
-                  metrics => [{metric_name("director_ping", N), gauge} || N <- Nodes]}}
+                  metrics => [{metric_name("director_ping"), gauge}]}}
         ]}].
 
 %% gen_server callbacks

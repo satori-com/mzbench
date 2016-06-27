@@ -1,6 +1,6 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/2, metrics/2, normalize/1, build_metric_groups_json/1]).
+-export([script_metrics/2, normalize/1, build_metric_groups_json/1]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
@@ -30,10 +30,7 @@ script_metrics(Pools, _WorkerNodes) ->
                                     units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}}
                         ]}],
-
-    SystemLoadMetrics = mzb_system_load_monitor:metric_names([node() | mzb_interconnect:nodes()]),
-
-    normalize(PoolMetrics ++ SystemLoadMetrics ++ MZBenchInternal).
+    normalize(PoolMetrics ++ MZBenchInternal).
 
 pool_metrics(Pools) ->
     PoolWorkers = [mzbl_script:extract_worker(PoolOpts) ||
@@ -52,17 +49,6 @@ pool_name(Pool) ->
     #operation{name = pool, meta = Meta} = Pool,
     proplists:get_value(pool_name, Meta).
 
-metrics(Path, EnvFromClient) ->
-    Script = mzbl_script:read(Path),
-    Nodes = mzb_interconnect:nodes(),
-    {Pools, _} = mzbl_script:extract_pools_and_env(Script, EnvFromClient),
-
-    ScriptMetrics = script_metrics(Pools, Nodes),
-
-    #{ groups => build_metric_groups_json(ScriptMetrics) }.
-
-%% normalize any user metrics to inner format
-
 normalize(Seq) ->
     {Grouped, Groupless} = lists:partition(fun (X) ->
                                                    is_tuple(X) andalso element(1, X) == group
@@ -77,16 +63,36 @@ normalize(Seq) ->
 
     NormalizedGroup = [normalize_group(G) || G <- Grouped],
 
-    merge_groups(DefaultGroups ++ NormalizedGroup, []).
+    merge_groups(DefaultGroups ++ NormalizedGroup).
 
-merge_groups([], Res) -> lists:reverse(Res);
+merge_groups(Groups) -> merge_groups(lists:reverse(Groups), []).
+
+merge_groups([], Res) -> Res;
 merge_groups([{group, Name, Graphs} = G | T], Res) ->
     case lists:keytake(Name, 2, Res) of
         {value, {group, _, MoreGraphs}, Res2} ->
-            merge_groups(T, [{group, Name, Graphs ++ MoreGraphs}|Res2]);
+            merge_groups(T, [{group, Name, merge_graphs(Graphs ++ MoreGraphs)}|Res2]);
         false ->
             merge_groups(T, [G|Res])
     end.
+
+merge_graphs(Metrics) -> merge_graphs(lists:reverse(Metrics), []).
+
+merge_graphs([], Res) -> Res;
+merge_graphs([{graph, #{title:= Title, metrics:= Metrics} = Opts} = G|T], Res) ->
+    case take_metric(Title, Res, []) of
+        {{graph, #{metrics:= OldMetrics}}, NewRes} ->
+            OldMetricsFiltered = lists:filter(fun ({MName, _, _}) ->
+                false == lists:keyfind(MName, 1, Metrics)
+                end, OldMetrics),
+            merge_graphs(T, [{graph, maps:put(metrics, Metrics ++ OldMetricsFiltered, Opts)}|NewRes]);
+        not_found -> merge_graphs(T, [G|Res])
+    end.
+
+take_metric(_Title, [], _Acc) -> not_found;
+take_metric(Title, [{graph, #{title:= Title}} = M | T], Acc) ->
+    {M, lists:reverse(Acc) ++ T};
+take_metric(Title, [M | T], Acc) -> take_metric(Title, T, [M|Acc]).
 
 normalize_group({group, Name, Graphs}) ->
     NormalizedGraphs = [normalize_graph(G) || G <- Graphs],

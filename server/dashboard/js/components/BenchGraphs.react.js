@@ -88,7 +88,7 @@ class BenchGraphs extends React.Component {
                     const link = `#/bench/${this.props.bench.id}/graphs/${group_idx}/${idx}`;
 
                     return (
-                        <div key={idx} className="col-xs-12 col-md-6">
+                        <div key={""+idx+"("+targets.length+")"} className="col-xs-12 col-md-6">
                             <a href={link} className="bs-link">
                                 <Graph isRunning={this.props.bench.isRunning()} targets={targets}
                                     title={graph.title} units={graph.units} benchId={this.props.bench.id}

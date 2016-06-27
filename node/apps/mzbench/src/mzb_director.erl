@@ -110,11 +110,14 @@ handle_cast(start_pools, #state{nodes = []} = State) ->
     {stop, empty_nodes, State};
 
 handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
-    Metrics = mzb_script_metrics:script_metrics(Script, Nodes),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Env, Metrics, Nodes]},
+         {mzb_metrics, start_link, [Env, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
+    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics),
+    SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
+    WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
+    mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),
     {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
     StartedPools = start_pools(NewScript, Env, Nodes, []),
     maybe_stop(State#state{pools = StartedPools});

@@ -1,6 +1,8 @@
 -module(mzb_metrics).
 
--export([start_link/3,
+-export([start_link/2,
+         declare_metric/2,
+         declare_metrics/1,
          notify/2,
          get_value/1,
          get_local_values/1,
@@ -19,7 +21,6 @@
          terminate/2,
          code_change/3]).
 
--type metric_type() :: counter | histogram | gauge.
 
 -record(s, {
     nodes = [] :: [node()],
@@ -30,7 +31,7 @@
     last_rps_calculation_time = undefined :: erlang:timestamp(),
     asserts = [] :: [map()],
     active = true :: true | false,
-    metrics = [] :: [{string(), metric_type(), term()}],
+    metric_groups = [],
     update_interval_ms :: undefined | integer(),
     assert_accuracy_ms :: undefined | integer()
 }).
@@ -41,8 +42,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Env, MetricGroups, Nodes) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, MetricGroups, Nodes], [{spawn_opt, [{priority, high}]}]).
+start_link(Env, Nodes) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     mz_counter:notify(Name, Value);
@@ -52,6 +53,12 @@ notify({Name, histogram}, Value) ->
     mz_histogram:notify(Name, Value);
 notify(Name, Value) ->
     notify({Name, counter}, Value).
+
+declare_metric(Group, GraphOpts) ->
+    gen_server:call(?MODULE, {declare_metrics, [{group, Group, [{graph, GraphOpts}]}]}).
+
+declare_metrics(Groups) ->
+    gen_server:call(?MODULE, {declare_metrics, Groups}).
 
 get_value(Metric) ->
     try global_get(Metric)
@@ -70,14 +77,13 @@ get_failed_asserts() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Env, MetricGroups, Nodes]) ->
+init([Env, Nodes]) ->
     {ok, UpdateIntervalMs} = application:get_env(mzbench, metric_update_interval_ms),
     _ = ets:new(?MODULE, [set, protected, named_table]),
     Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
     erlang:send_after(UpdateIntervalMs, self(), trigger),
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
-    ok = create_metrics(MetricGroups),
     {ok, #s{
         nodes = Nodes,
         last_tick_time = StartTime,
@@ -86,10 +92,15 @@ init([Env, MetricGroups, Nodes]) ->
         last_rps_calculation_time = StartTime,
         asserts = Asserts,
         active = true,
-        metrics = extract_metrics(MetricGroups),
+        metric_groups = [],
         update_interval_ms = UpdateIntervalMs,
         assert_accuracy_ms = round(UpdateIntervalMs * 1.5)
         }}.
+
+handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
+    NewGroups = mzb_script_metrics:normalize(OldGroups ++ Groups),
+    mzb_metric_reporter:new_metrics(NewGroups),
+    {reply, ok, State#s{metric_groups = NewGroups}};
 
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
@@ -144,23 +155,14 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State4#s{last_tick_time = Now}
     end.
 
-create_metrics(MetricGroups) ->
-    lists:foreach(
-        fun ({Name, counter, _}) -> mz_counter:create(Name);
-            ({Name, gauge, _}) -> mzb_gauge:create(Name);
-            ({Name, histogram, _}) -> mz_histogram:create(Name);
-            ({_, _, _}) -> ok
-        end, extract_metrics(MetricGroups)),
-    ok.
-
-aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
+aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups} = State) ->
     system_log:info("[ metrics ] METRIC AGGREGATION:"),
     StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
         fun (N) ->
             system_log:info("[ metrics ] Waiting for metrics from ~p...", [N]),
-            case mzb_interconnect:call(N, {get_local_metrics_values, Metrics}) of
+            case mzb_interconnect:call(N, {get_local_metrics_values, extract_metrics(MetricGroups)}) of
                 {badrpc, Reason} ->
                     system_log:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
                     erlang:error({request_metrics_failed, N, Reason});
@@ -168,7 +170,7 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
                     system_log:info("[ metrics ] Received metrics from ~p", [N]),
                     Res
             end
-        end, lists:usort([erlang:node()] ++ Nodes)),
+        end, lists:usort([erlang:node()|Nodes])),
 
     Aggregated = merge_metrics_data(Values),
 
@@ -185,12 +187,12 @@ aggregate_metrics(#s{nodes = Nodes, metrics = Metrics} = State) ->
 
     State.
 
-evaluate_derived_metrics(#s{metrics = Metrics} = State) ->
+evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
     system_log:info("[ metrics ] Evaluating rates..."),
     NewState = eval_rps(State),
 
     system_log:info("[ metrics ] Evaluating derived metrics..."),
-    DerivedMetrics = lists:filter(fun is_derived_metric/1, Metrics),
+    DerivedMetrics = lists:filter(fun is_derived_metric/1, extract_metrics(MetricGroups)),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
         try Provider:apply(Resolver, [], Worker) of
             Val -> global_set(Name, gauge, Val)
