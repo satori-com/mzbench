@@ -12,12 +12,13 @@ const defaultData = {
     filter: "",
     pager: {},
     currentPage: new Map(),
+    total: 0,
     isLoaded: false,
     isNewSelected: false,
     isNewActive: false,
     clouds: [],
     newBench: {
-        benchmark_name: "Something",
+        name: "Something",
         script_name: "generic.erl",
         script_body: "#!benchDL\n" +
                      "# the simplest example\n" +
@@ -32,7 +33,8 @@ const defaultData = {
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined,
-    activeGraph: undefined
+    activeGraph: undefined,
+    timelineId: undefined
 };
 
 let data = jQuery.extend(true, {}, defaultData); // extend is used to copy object recursively
@@ -83,7 +85,7 @@ class BenchStore extends EventEmitter {
         return data.benchmarks.find(x => x.id == id);
     }
 
-    updateBench(bench) {
+    updateItem(bench) {
         let existBench = this.findById(bench.id);
         if (existBench) {
             Object.assign(existBench, bench);
@@ -92,17 +94,25 @@ class BenchStore extends EventEmitter {
         }
     }
 
+    getServerDateDiff() {
+        return data.server_date_diff;
+    }
+
     loadAll(benchmarks) {
         benchmarks.sort((a, b) => b.id - a.id);
         data.benchmarks = benchmarks.map((b) => new Bench(b));
         data.isLoaded = true;
-        if (!this.getSelectedBench() && (0 < data.benchmarks.length)) {
+        if (!this.getSelected() && (0 < data.benchmarks.length)) {
             data.selectedBenchId = data.benchmarks[0].id;
         }
     }
 
-    getBenchmarks() {
+    getItems() {
         return data.benchmarks;
+    }
+
+    getTimelineId() {
+        return data.timelineId;
     }
 
     getAllTags() {
@@ -113,14 +123,14 @@ class BenchStore extends EventEmitter {
         })
     }
 
-    getSelectedBench() {
+    getSelected() {
         if (!this.isLoaded() || this.isNewSelected()) {
             return undefined;
         }
         return this.findById(data.selectedBenchId);
     }
 
-    getSelectedBenchId() {
+    getSelectedId() {
         return data.selectedBenchId;
     }
 
@@ -148,11 +158,11 @@ class BenchStore extends EventEmitter {
         return data.clouds;
     }
 
-    getNewBench() {
+    getNew() {
         return data.newBench;
     }
 
-    resetNewBench() {
+    resetNew() {
         data.newBench = Object.assign({}, defaultData.newBench);
     }
 
@@ -176,6 +186,10 @@ class BenchStore extends EventEmitter {
         return data.currentPage;
     }
 
+    getTotal() {
+        return data.total;
+    }
+
     getToggledSet(benchId) {
         if (data.toggles.has(benchId)) return new Set(data.toggles.get(benchId));
         return new Set([0]);
@@ -188,7 +202,7 @@ export default _BenchStore;
 _BenchStore.dispatchToken = Dispatcher.register((action) => {
     switch (action.type) {
         case ActionTypes.UPDATE_BENCH_INFO:
-            _BenchStore.updateBench(action.data);
+            _BenchStore.updateItem(action.data);
             _BenchStore.emitChange();
             break;
 
@@ -198,6 +212,9 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             _BenchStore.loadAll(action.data);
             data.pager = action.pager;
             data.isShowTimelineLoadingMask = false;
+            data.timelineId = action.timeline_id;
+            data.total = action.total;
+
             if (data.selectedBenchId === undefined) {
                 data.isNewSelected = true;
                 data.isNewActive = true;

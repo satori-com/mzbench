@@ -68,7 +68,7 @@ class Bench extends React.Component {
         }
 
         if (this.state.isNewSelected) {
-            return <NewBench bench={BenchStore.getNewBench()} clouds={BenchStore.getClouds()}/>;
+            return <NewBench bench={BenchStore.getNew()} clouds={BenchStore.getClouds()}/>;
         }
 
         if (!this.state.bench) {
@@ -95,7 +95,7 @@ class Bench extends React.Component {
         return {
             isLoaded: true,
             isNewSelected: false,
-            bench: BenchStore.getSelectedBench(),
+            bench: BenchStore.getSelected(),
             tab: BenchStore.getActiveTab(),
             activeGraph: BenchStore.getSelectedGraph()
         };

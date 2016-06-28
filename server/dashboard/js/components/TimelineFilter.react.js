@@ -17,14 +17,23 @@ class TimelineFilter extends React.Component {
     }
 
     render() {
+        let placeholder = this.props.dashboardMode ? "Search Dashboards" : "Search Benchmarks";
         return (
             <form>
                 <div className="form-group">
                     <div className="input-group">
-                        <input type="text" ref="filterInput" className="form-control" placeholder="Search Benchmarks" onKeyDown={this._onKeyDown.bind(this)} value={this.state.filter} onChange={this._onChange.bind(this)} />
-                        <div className="input-group-btn">
-                            <a role="button" className="btn btn-success" href="#/new"><span className="glyphicon glyphicon-plus"></span> New</a>
-                        </div>
+                        <input type="text" ref="filterInput" className="form-control" placeholder={placeholder} onKeyDown={this._onKeyDown.bind(this)} value={this.state.filter} onChange={this._onChange.bind(this)} />
+                        {
+                            this.props.dashboardMode ?
+                                (<div className="input-group-btn">
+                                    <a role="button" className="btn btn-danger" href="#/" title="Turn off dashboard mode"><span className="glyphicon glyphicon-signal"></span></a>
+                                    <a role="button" className="btn btn-success" href="#/dashboard/new"><span className="glyphicon glyphicon-plus"></span></a>
+                                </div>) :
+                                (<div className="input-group-btn">
+                                    <a role="button" className="btn btn-info" href="#/dashboard" title="Turn on dashboard mode"><span className="glyphicon glyphicon-dashboard"></span></a>
+                                    <a role="button" className="btn btn-success" href="#/new"><span className="glyphicon glyphicon-plus"></span></a>
+                                </div>)
+                        }
                     </div>
                 </div>
             </form>
@@ -32,7 +41,7 @@ class TimelineFilter extends React.Component {
     }
 
     _runSearch() {
-        MZBenchRouter.navigate("/timeline", {q: this.state.filter});
+        MZBenchRouter.navigate((this.props.dashboardMode ? "/dashboard" : "") + "/timeline", {q: this.state.filter});
     }
 
     _onKeyDown(event) {
@@ -54,6 +63,7 @@ class TimelineFilter extends React.Component {
 
 TimelineFilter.propTypes = {
     filter: React.PropTypes.string,
+    dashboardMode: React.PropTypes.bool,
     autoSearchInterval: React.PropTypes.number
 };
 

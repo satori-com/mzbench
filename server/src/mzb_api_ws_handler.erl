@@ -16,7 +16,10 @@
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           log_streams = #{} :: #{},
           metric_streams = #{} :: #{},
-          timeline_items = [] :: [integer()]
+          timeline_items = [] :: [integer()],
+          dashboard_items = [] :: [integer()],
+          dashboard_query = undefined :: undefined | map(),
+          tags = [] :: [string()]
        }).
 
 -record(stream_parameters, {
@@ -66,7 +69,8 @@ dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{
                                                     timeline_opts   = TimelineOpts,
                                                     timeline_bounds = TimelineBounds}) ->
     BenchInfos1  = normalize([{Id, BenchInfo}]),
-    BenchInfos2  = apply_filter(TimelineOpts, BenchInfos1),
+    Query = mzb_bc:maps_get(<<"q">>, TimelineOpts, undefined),
+    BenchInfos2  = apply_filter(Query, BenchInfos1),
     TimelineItems = apply_boundaries(TimelineBounds, BenchInfos2, fun(A, B) -> A =< B end),
     [Bench] = BenchInfos1,
 
@@ -174,8 +178,76 @@ dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
 
 dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State) ->
-    Data = #{clouds => mzb_api_cloud:list_clouds()},
-    {reply, #{type => "SERVER_INFO", data => Data}, State};
+    Tags = get_all_tags(),
+    Data = #{clouds => mzb_api_cloud:list_clouds(), tags => Tags},
+    {reply, #{type => "SERVER_INFO", data => Data}, State#state{tags = Tags}};
+
+dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, State) ->
+    NewId = dets:foldl(fun ({Id, _}, Acc) -> max(Acc, Id) end, 0, dashboards) + 1,
+    dets:insert(dashboards, {NewId, Data}),
+    dets:sync(dashboards),
+    Event = #{
+               type => "DASHBOARD_CREATED",
+               data => NewId
+             },
+    {reply, Event, State};
+
+dispatch_request(#{<<"cmd">> := <<"update_dashboard">>, <<"data">> := Data}, State) ->
+    Id = maps:get(<<"id">>, Data),
+    dets:insert(dashboards, {Id, maps:remove(<<"id">>, Data)}),
+    dets:sync(dashboards),
+    Event = #{
+               type => "NOTIFY",
+               message => "Dashboard has been saved",
+               severity => "success"
+             },
+    {reply, Event, State};
+
+dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State) ->
+    Boards = dets:foldl(fun ({Id, Data}, Acc) -> [maps:put(id, Id, Data)|Acc] end, [], dashboards),
+    Sorted = lists:sort(fun (#{id := IdA}, #{id := IdB}) ->
+                                IdA >= IdB
+                        end, Boards),
+    Query = mzb_bc:maps_get(<<"q">>, Cmd, undefined),
+    Filtered = filter_dashboards(Sorted, Query),
+    {TimelineItems, {MinId, MaxId}} = apply_pagination(Cmd, Filtered),
+
+    KV = [{next, MinId}, {prev, MaxId}],
+    Pager = maps:from_list([T || T = {_K,V} <- KV, V /= undefined]),
+
+    Event = #{
+               type => "DASHBOARDS",
+               data => TimelineItems,
+               pager => Pager
+             },
+
+    TimelineIds = [Id || #{id:= Id} <- TimelineItems],
+
+    {reply, Event, State#state{dashboard_items  = TimelineIds,
+                               dashboard_query = Cmd}};
+
+dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
+    BenchInfos0 = mzb_api_server:get_info(),
+    BenchInfos1 = normalize(BenchInfos0),
+    Query = mzb_bc:maps_get(<<"criteria">>, Cmd, undefined),
+    BenchsetId = mzb_bc:maps_get(<<"benchset_id">>, Cmd, 0),
+    BenchInfos2 = apply_filter(Query, BenchInfos1),
+
+    Sets = lists:map(fun(Chart) ->
+              Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, undefined)),
+              Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, undefined)),
+              Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
+              GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, undefined)),
+              benchset(BenchInfos2, Metric, Kind, Size, GroupEnv)
+             end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
+
+    Event = #{
+               type => "BENCHSET",
+               data => Sets,
+               benchset_id => BenchsetId
+             },
+    {reply, Event, State};
+
 
 dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     lager:info("Get timeline start"),
@@ -183,17 +255,22 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     MaxId = mzb_bc:maps_get(<<"max_id">>, Cmd, undefined),
     MinId = mzb_bc:maps_get(<<"min_id">>, Cmd, undefined),
     BenchId = mzb_bc:maps_get(<<"bench_id">>, Cmd, undefined),
-    Filter = fun (I) -> apply_filter(Cmd, normalize([I])) end,
+    TimelineUid = mzb_bc:maps_get(<<"timeline_id">>, Cmd, 0),
+    Query = mzb_bc:maps_get(<<"q">>, Cmd, undefined),
+    Filter = fun (I) -> apply_filter(Query, normalize([I])) end,
     {TimelineItems, NewMinId, NewMaxId} = mzb_api_server:get_info(Filter, MaxId, BenchId, MinId, Limit),
 
     KV = [{next, NewMinId}, {prev, NewMaxId}],
+
     Pager = maps:from_list([T || T = {_K,V} <- KV, V /= undefined]),
 
     Event = #{
                type => "INIT_TIMELINE",
                server_date => mzb_string:iso_8601_fmt(mzb_api_bench:seconds()),
                data => TimelineItems,
-               pager => Pager
+               pager => Pager,
+               total => length(TimelineItems),
+               timeline_id => TimelineUid
              },
 
     TimelineIds = [Id || #{id:= Id} <- TimelineItems],
@@ -202,6 +279,17 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
     {reply, Event, State#state{timeline_opts   = Cmd,
                                timeline_bounds = {NewMinId, NewMaxId},
                                timeline_items  = TimelineIds}};
+
+dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State) ->
+    #{
+        <<"stream_id">> := StreamId,
+        <<"bench_ids">> := BenchIds,
+        <<"metric">> := MetricName,
+        <<"kind">> := Kind,
+        <<"x_env">> := XEnv} = Cmd,
+    Self = self(),
+    spawn(fun() -> get_finals(Self, StreamId, BenchIds, MetricName, Kind, XEnv) end),
+    {ok, State};
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
     #{
@@ -340,6 +428,84 @@ kill_streamer({Pid, Ref}) ->
     erlang:demonitor(Ref, [flush]),
     erlang:exit(Pid, aborted).
 
+get_all_tags() ->
+    BenchInfos = mzb_api_server:get_info(),
+    lists:map(fun erlang:list_to_atom/1,
+        lists:usort(lists:foldl(fun({_Id, #{config := Config}}, Acc) ->
+                Acc ++ mzb_bc:maps_get(tags, Config, []) end, [], BenchInfos))).
+
+
+benchset(BenchInfos, Metric, Kind, Size, GroupEnv) ->
+    benchset(BenchInfos, Metric, Kind, Size, GroupEnv, []).
+
+benchset(_, Metric, Kind, _, _, Acc) when (Metric == undefined) or (Kind == undefined) -> Acc;
+benchset(_, _, _, Size, _, Acc) when (Size > 0) and (size(Acc) >= Size) -> Acc;
+benchset([], _, _, _, _, Acc) -> Acc;
+benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, Acc) ->
+    NewAcc = case has_metric(Metric, BenchInfo) of
+                false -> Acc;
+                    _ -> #{id:= Id, start_time:= StartTime} = BenchInfo,
+                        add_to_benchset(Acc, Kind,
+                          get_bench_env(GroupEnv, BenchInfo), Id, StartTime)
+             end,
+    benchset(Rest, Metric, Kind, Size, GroupEnv, NewAcc).
+
+has_metric(Metric, #{metrics:= #{groups:= Groups}}) ->
+    lists:any(fun(#{graphs:= Graphs}) ->
+        lists:any(fun(#{metrics:= Metrics}) ->
+            lists:any(fun(#{name:= Name}) when Name == Metric -> true; (_) -> false end, Metrics)
+                end, Graphs) end, Groups);
+has_metric(_, _) ->
+    false.
+
+get_bench_env(EnvName, #{env:= Env}) ->
+    mzb_bc:maps_get(EnvName, Env, []).
+
+add_to_benchset(Acc, "group", Name, Id, Time) ->
+    add_to_group(Acc, Name, Id, Time);
+add_to_benchset(Acc, _, Name, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time}]} | Acc].
+
+add_to_group([], Name, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time}]}];
+add_to_group([#{name := Name, benches := B} | Rest], Name, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time} | B]} | Rest];
+add_to_group([C | Rest], Name, Id, Time) ->
+    [C | add_to_group(Rest, Name, Id, Time)].
+
+get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
+    Data = lists:map(fun(BenchId) ->
+                {Timestamp, YVal} = get_last_value(BenchId, MetricName),
+                XVal = if Kind == <<"group">> -> get_bench_x_var(BenchId, binary_to_list(XEnv));
+                          true -> Timestamp end,
+                {XVal, YVal} end, BenchIds),
+    Sorted = lists:sort(fun ({A, _}, {B, _}) -> A >= B end, Data),
+    Values = lists:foldl(fun({X, Y}, Acc) -> [io_lib:format("~p\t~p\t~p\t~p~n", [X, Y, Y, Y]) |Acc] end, [], Sorted),
+    Pid ! {metric_value, StreamId, Values},
+    Pid ! {metric_batch_end, StreamId}.
+
+get_bench_x_var(BenchId, EnvName) ->
+    #{config:= #{env:= Env}} = mzb_api_server:status(BenchId),
+    Val = proplists:get_value(EnvName, Env),
+    try
+      mzb_string:list_to_number(Val)
+    catch _:_ -> 0
+    end.
+
+
+get_last_value(BenchId, MetricName) ->
+    #{config:= Config} = mzb_api_server:status(BenchId),
+    Filename = mzb_api_bench:metrics_file(MetricName, Config),
+    FileReader = get_file_reader(Filename),
+    Data = last_line(FileReader, <<>>),
+    FileReader(close),
+    Data.
+
+last_line(FileReader, Last) ->
+    case FileReader(read_line) of
+        {ok, Data} -> last_line(FileReader, Data);
+        eof -> parse_value(Last)
+    end.
 
 %% Normalization
 
@@ -372,7 +538,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                   true -> EnvMap end,
     ScriptFields = #{script_body => ScriptBody,
                      script_name => ScriptName,
-                     benchmark_name => BenchName,
+                     name => BenchName,
                      nodes => Nodes,
                      cloud => Cloud,
                      env => EnvMap2,
@@ -385,8 +551,22 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
 
 %% Filtering
 
-apply_filter(TimelineOpts, BenchInfos) ->
-    Query = mzb_bc:maps_get(<<"q">>, TimelineOpts, undefined),
+filter_dashboards(List, undefined) -> List;
+filter_dashboards(List, <<>>) -> List;
+filter_dashboards(List, Query) ->
+    QueryString = binary_to_list(Query),
+    try
+      lists:filter(fun(#{<<"name">> := Name}) ->
+        case re:run(Name, QueryString, [caseless]) of
+          {match, _} -> true;
+                   _ -> false
+        end end, List)
+    catch _:Error ->
+        lager:error("Failed to apply dashboard filter: ~p ~p~n Query: ~p -- List ~p", [Error, erlang:get_stacktrace(), Query, List]),
+        []
+    end.
+
+apply_filter(Query, BenchInfos) ->
     case Query of
         undefined -> BenchInfos;
         _ ->

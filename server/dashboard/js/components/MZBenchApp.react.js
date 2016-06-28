@@ -1,7 +1,7 @@
 import React from 'react';
 import MZBenchActions from '../actions/MZBenchActions';
 import Timeline from './Timeline.react';
-import Bench from './Bench.react';
+import Details from './Details.react';
 
 class MZBenchApp extends React.Component {
     componentWillMount() {
@@ -20,7 +20,7 @@ class MZBenchApp extends React.Component {
                         <Timeline />
                     </div>
                     <div className="col-xs-8 bench-pane">
-                        <Bench />
+                        <Details />
                     </div>
                 </div>
             </div>

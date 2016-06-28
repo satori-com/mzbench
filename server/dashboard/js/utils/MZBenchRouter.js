@@ -1,17 +1,31 @@
 import { Router } from 'director';
 import MZBenchActions from '../actions/MZBenchActions';
 import BenchStore from '../stores/BenchStore';
+import DashboardStore from '../stores/DashboardStore';
+import GlobalStore from '../stores/GlobalStore';
 
 function _selectBenchAndTab(benchId, activeTab) {
+        MZBenchActions.turnOffDashboardMode();
         MZBenchActions.selectBenchById(benchId);
 
         // If 'back' button is pressed then old bench could be not
         // presented in the currently loaded timeline
-        if (!BenchStore.getSelectedBench() && !isNaN(benchId)) {
+        if (!BenchStore.getSelected() && !isNaN(benchId)) {
             MZBenchActions.getTimeline({bench_id: parseInt(benchId)});
         }
 
         MZBenchActions.selectActiveTab(activeTab);
+}
+
+function _selectDashboardAndTab(dashboardId, activeTab) {
+        MZBenchActions.turnOnDashboardMode();
+        MZBenchActions.selectDashboardById(dashboardId);
+
+        if (!DashboardStore.getSelected() && !isNaN(dashboardId)) {
+            MZBenchActions.getDashboards({});
+        }
+
+        MZBenchActions.selectDashboardTab(activeTab);
 }
 
 const routes = {
@@ -42,10 +56,25 @@ const routes = {
     },
     '/new': () => {
         MZBenchActions.newBench();
+        MZBenchActions.turnOffDashboardMode();
+    },
+    '/dashboard/:dashboardId/:activeTab': (dashboardId, activeTab) => {
+        _selectDashboardAndTab(dashboardId, activeTab);
+    },
+    '/dashboard/new': () => {
+        MZBenchActions.newDashboard();
+        MZBenchActions.turnOnDashboardMode();
+    },
+    '/dashboard': () => {
+        MZBenchActions.turnOnDashboardMode();
     },
     '/timeline': () => {
         let opts = Object.assign({q: ""}, _MZBenchRouter.getQuery());
         MZBenchActions.applyQueryParameters(opts);
+        MZBenchActions.getTimeline({});
+    },
+    '/': () => {
+        MZBenchActions.turnOffDashboardMode();
         MZBenchActions.getTimeline({});
     }
 };

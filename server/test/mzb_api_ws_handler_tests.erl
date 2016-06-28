@@ -57,14 +57,14 @@ filter_test() ->
               start_time => "2015-07-22T07:24:02Z",
               status => success},
 
-    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"">>}, [Bench])),
-    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"20\\d5">>}, [Bench])),
-    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"success">>}, [Bench])),
-    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"another">>}, [Bench])),
-    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"333">>}, [Bench])),
+    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(<<"">>, [Bench])),
+    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(<<"20\\d5">>, [Bench])),
+    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(<<"success">>, [Bench])),
+    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(<<"another">>, [Bench])),
+    ?assertEqual([Bench], mzb_api_ws_handler:apply_filter(<<"333">>, [Bench])),
 
-    ?assertEqual([], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"failed">>}, [Bench])),
-    ?assertEqual([], mzb_api_ws_handler:apply_filter(#{<<"q">> => <<"foobar">>}, [Bench])).
+    ?assertEqual([], mzb_api_ws_handler:apply_filter(<<"failed">>, [Bench])),
+    ?assertEqual([], mzb_api_ws_handler:apply_filter(<<"foobar">>, [Bench])).
 
 
 pagination_test() ->

@@ -7,32 +7,46 @@ const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
 const MIN_GRAPHS_TO_BEGIN_COMPRESSION = 20;
 
 class _DataStream {
-    constructor(name, aggregated, metrics) {
+    constructor(name, aggregated, metrics, benchId, kind, benchIds, x_env) {
         this.name = name;
         this.aggregated = aggregated;
         this.metrics = metrics;
+        this.benchId = benchId;
         this.streams = [];
+        this.kind = kind;
+        this.benchIds = benchIds;
+        this.x_env = x_env;
     }
     
-    subscribeToEntireMetric(benchId, subsamplingInterval, continueStreamingAfterEnd) {
-        this.streams = this.metrics.map((metric) => {
-            return MetricsStore.subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd);
-        });
-        this._createAggregatedMetric(benchId, undefined);
+    subscribeToEntireMetric(subsamplingInterval, continueStreamingAfterEnd) {
+        if (this.kind == "ordinary" || this.kind == "compare") {
+            this.streams = this.metrics.map((metric) => {
+                return MetricsStore.subscribeToEntireMetric(this.benchId, metric, subsamplingInterval, continueStreamingAfterEnd, this.kind == "compare");
+            });
+            this._createAggregatedMetric(this.benchId, undefined);
+        } else {
+            this.streams = this.metrics.map((metric) => {
+               return MetricsStore.subscribeToFinalResults(metric, this.benchIds, this.kind, this.x_env);
+            });
+        }
     }
     
-    subscribeToMetricSubset(benchId, subsamplingInterval, beginTime, endTime) {
+    subscribeToMetricSubset(subsamplingInterval, beginTime, endTime) {
+        if (this.kind != "ordinary") throw "Subscribe to a subset is not supported for cummulative metrics";
+
         this.streams = this.metrics.map((metric) => {
-            return MetricsStore.subscribeToMetricSubset(benchId, metric, subsamplingInterval, beginTime, endTime);
+            return MetricsStore.subscribeToMetricSubset(this.benchId, metric, subsamplingInterval, beginTime, endTime);
         });
-        this._createAggregatedMetric(benchId, undefined);
+        this._createAggregatedMetric(this.benchId, undefined);
     }
     
-    subscribeToMetricWithTimeWindow(benchId, timeInterval) {
+    subscribeToMetricWithTimeWindow(timeInterval) {
+        if (this.kind != "ordinary") throw "Subscribe with time window is not supported for cummulative metrics";
+
         this.streams = this.metrics.map((metric) => {
-            return MetricsStore.subscribeToMetricWithTimeWindow(benchId, metric, timeInterval);
+            return MetricsStore.subscribeToMetricWithTimeWindow(this.benchId, metric, timeInterval);
         });
-        this._createAggregatedMetric(benchId, timeInterval);
+        this._createAggregatedMetric(this.benchId, timeInterval);
     }
     
     unsubscribeFromMetric() {
@@ -54,9 +68,9 @@ class _DataStream {
         return MetricsStore.getBatchCounter(this.streams[this.streams.length - 1]);
     }
     
-    _createAggregatedMetric(benchId, timeInterval) {
+    _createAggregatedMetric(timeInterval) {
         if(this.aggregated) {
-            const id = MetricsStore.createAggregatedStream(benchId, this.streams.slice(), timeInterval);
+            const id = MetricsStore.createAggregatedStream(this.benchId, this.streams.slice(), timeInterval);
             this.streams.push(id);
         }
     }
@@ -136,6 +150,9 @@ class Graph extends React.Component {
     }
     
     _formatDate(rawDate) {
+        if (this.props.kind == "group")
+            return "" + rawDate;
+
         const absDate = (rawDate < 0)?-1*rawDate:rawDate;
         const negDate = rawDate < 0;
         let date = moment.duration(absDate, 'seconds');
@@ -348,11 +365,33 @@ class Graph extends React.Component {
     _createStreams() {
         if(this.props.renderFullscreen
                 || this.props.targets.length < MIN_GRAPHS_TO_BEGIN_COMPRESSION) {
-            this.streams = this.props.targets.map((metric) => {
-                let m = [];
-                m.push(metric);
-                return new _DataStream(metric, false, m);
-            });
+            if (this.props.kind == "") {
+                this.streams = this.props.targets.map((metric) => {
+                    let m = [];
+                    m.push(metric);
+                    return new _DataStream(metric, false, m, this.props.benchId, "ordinary", [], "");
+                });
+            } else {
+                this.props.targets.forEach((metric) => {
+                    let m = [];
+                    m.push(metric);
+                    if (this.props.kind == "compare") {
+                        this.props.benchset.forEach((B) => {
+                            let Id = B.benches[0].id;
+                            this.streams.push(new _DataStream(B.name+":"+Id, false, m, Id, this.props.kind, [], ""));
+                        });
+                    } else if (this.props.kind == "regression") {
+                        let Ids = this.props.benchset.map((B) => B.benches[0].id);
+                        this.streams.push(new _DataStream(metric, false, m, undefined, this.props.kind, Ids, ""));
+                    } else if (this.props.kind == "group") {
+                        this.props.benchset.forEach((B) => {
+                            let Ids = B.benches.map((bench) => bench.id);
+                            this.streams.push(new _DataStream(B.name, false, m, undefined, this.props.kind, Ids, this.props.x_env));
+                        });
+                    }
+                });
+            }
+
         } else {
             this.streams = [];
         
@@ -361,7 +400,7 @@ class Graph extends React.Component {
                 if(this.props.targets[i].match("systemload.*mzb_worker") === null) {
                     let m = [];
                     m.push(this.props.targets[i]);
-                    this.streams.push(new _DataStream(this.props.targets[i], false, m));
+                    this.streams.push(new _DataStream(this.props.targets[i], false, m, this.props.benchId, "ordinary", [], ""));
                 } else {
                     metricsToAggregate.push(this.props.targets[i]);
                 }
@@ -371,7 +410,7 @@ class Graph extends React.Component {
                 let tmp = metricsToAggregate[0].split(".");
                 tmp.pop();
                 const metricName = tmp.join(".") + ".mzb_worker.aggregated";
-                this.streams.push(new _DataStream(metricName, true, metricsToAggregate));
+                this.streams.push(new _DataStream(metricName, true, metricsToAggregate, this.props.benchId, "ordinary", [], ""));
             }
         }
     }
@@ -401,7 +440,7 @@ class Graph extends React.Component {
 
     _createSubscriptions() {
         this.streams.forEach((stream) => {
-            this._subscribeToMetric(this.props.benchId, stream);
+            this._subscribeToMetric(stream);
         });
     }
     
@@ -411,19 +450,19 @@ class Graph extends React.Component {
         });
     }
 
-    _subscribeToMetric(benchId, stream) {
+    _subscribeToMetric(stream) {
         if(this.props.renderFullscreen) {
             if(this.currentZoom) {
-                stream.subscribeToMetricSubset(benchId, this._computeSubsamplingInterval(), 
+                stream.subscribeToMetricSubset(this._computeSubsamplingInterval(),
                     this.currentZoom.min_x, this.currentZoom.max_x);
             } else {
-                stream.subscribeToEntireMetric(benchId, this._computeSubsamplingInterval(), false);
+                stream.subscribeToEntireMetric(this._computeSubsamplingInterval(), false);
             }
         } else {
             if(this.props.isRunning) {
-                stream.subscribeToMetricWithTimeWindow(benchId, RUNNING_GRAPH_SHOWED_DURATION*60);
+                stream.subscribeToMetricWithTimeWindow(RUNNING_GRAPH_SHOWED_DURATION*60);
             } else {
-                stream.subscribeToEntireMetric(benchId, this._computeSubsamplingInterval(), false);
+                stream.subscribeToEntireMetric(this._computeSubsamplingInterval(), false);
             }
         }
     }
@@ -491,7 +530,7 @@ class Graph extends React.Component {
 };
 
 Graph.propTypes = {
-    benchId: React.PropTypes.number.isRequired,
+    benchId: React.PropTypes.number,
     benchStartTime: React.PropTypes.object,
     benchFinishTime: React.PropTypes.object,
     
@@ -500,17 +539,26 @@ Graph.propTypes = {
     title: React.PropTypes.string,
     units: React.PropTypes.string,
 
+    kind: React.PropTypes.string,
+    x_env: React.PropTypes.string,
+    benchset: React.PropTypes.array,
+
     domPrefix: React.PropTypes.string,
     renderFullscreen: React.PropTypes.bool
 };
 
 Graph.defaultProps = {
+    benchId: undefined,
     benchStartTime: undefined,
     benchFinishTime: undefined,
     
     isRunning: false,
     title: "",
     units: "",
+
+    kind: "", // For cummulative benches
+    x_env: "",
+    benchset: [], // Empty when a single bench is shown
 
     domPrefix: "",
     renderFullscreen: false

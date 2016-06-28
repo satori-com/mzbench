@@ -31,7 +31,7 @@ class NewBench extends React.Component {
                 <div className="row">
                   <div className="form-group col-md-3">
                     <label>Name</label>
-                    <input type="text" defaultValue={bench.benchmark_name} onChange={this._onChangeName} className="form-control" placeholder="Type something" />
+                    <input type="text" defaultValue={bench.name} onChange={this._onChangeName} className="form-control" placeholder="Type something" />
                   </div>
                   <div className="form-group col-md-3">
                     <label>Nodes</label>
@@ -77,7 +77,7 @@ class NewBench extends React.Component {
         MZBenchActions.withNewBench((b) => {b.script_body = newValue});
     }
     _onChangeName(event) {
-        MZBenchActions.withNewBench((b) => {b.benchmark_name = event.target.value});
+        MZBenchActions.withNewBench((b) => {b.name = event.target.value});
     }
     _onCancel(event) {
         MZBenchActions.resetNewBench();
@@ -109,11 +109,11 @@ class NewBench extends React.Component {
         event.preventDefault();
         let notify = $.notify({message: `Starting the benchmark... `}, {type: 'info', delay: 0});
         let formData = new FormData();
-        let bench = BenchStore.getNewBench();
+        let bench = BenchStore.getNew();
         let blob = new Blob([bench.script_body], { type: "text/plain"});
         formData.append('bench', blob, bench.script_name);
         let query = MZBenchRouter.buildLink('/start', {
-            benchmark_name: bench.benchmark_name,
+            benchmark_name: bench.name,
             nodes: bench.nodes,
             cloud: bench.cloud});
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import BenchStore from '../stores/BenchStore';
+import DashboardStore from '../stores/DashboardStore';
+import GlobalStore from '../stores/GlobalStore';
 import TimelineElement from './TimelineElement.react';
 import TimelineFilter from './TimelineFilter.react';
 import Duration from './Duration.react';
@@ -15,32 +17,36 @@ class Timeline extends React.Component {
 
     componentDidMount() {
         BenchStore.onChange(this._onChange);
+        GlobalStore.onChange(this._onChange);
+        DashboardStore.onChange(this._onChange);
     }
 
     componentWillUnmount() {
         BenchStore.off(this._onChange);
+        GlobalStore.off(this._onChange);
+        DashboardStore.off(this._onChange);
     }
 
     renderLoadingSpinner() {
         return (<LoadingSpinner>Loading...</LoadingSpinner>);
     }
 
-    renderNewBenchIfNeeded() {
-        if (!BenchStore.isNewActive()) return null;
-
-        let bench = BenchStore.getNewBench();
+    renderNewIfNeeded() {
+        if (!this.state.isNewActive) return null;
 
         let cssClass = "bs bs-new";
 
-        if (BenchStore.isNewSelected()) {
+        if (this.state.isNewSelected) {
             cssClass += " bs-selected";
         }
 
+        let link = this.state.dashboardMode ? "#/dashboard/new" : "#/new";
+
         return (
-            <a href={`#/new`} className="bs-link">
+            <a href={link} className="bs-link">
                 <div className={cssClass}>
                     <h6 className="no-overflow">
-                        {bench.benchmark_name}
+                        {this.state.newName}
                         <span className="label">new</span>
                     </h6>
                 </div>
@@ -74,6 +80,14 @@ class Timeline extends React.Component {
             );
         }
 
+        if (this.state.dashboardMode)
+            return (
+                <div className="alert alert-info" role="alert">
+                    There aren't any dashboards.
+                    Press <b>&quot;+&quot;</b> above to create one.
+                </div>
+            );
+
         return (
             <div className="alert alert-info" role="alert">
                 There aren't any benchmarks.
@@ -87,14 +101,21 @@ class Timeline extends React.Component {
             return this.renderEmptyTimeline();
         }
 
-        return this.state.list.map((bench) => {
-            let isSelected = this.state.selectedBench && this.state.selectedBench.id == bench.id;
-            return (
-                <Duration key={bench.id} bench={bench}>
-                    <TimelineElement key={bench.id} bench={bench} isSelected={isSelected} />
-                </Duration>
-            );
-        });
+        if (GlobalStore.isDashboardModeOn()) {
+            return this.state.list.map((item) => {
+                let isSelected = this.state.selectedItem && this.state.selectedItem.id == item.id;
+                return (<TimelineElement key={item.id} bench={item} isSelected={isSelected} />);
+            });
+        } else {
+            return this.state.list.map((item) => {
+                let isSelected = this.state.selectedItem && this.state.selectedItem.id == item.id;
+                return (
+                    <Duration key={item.id} bench={item}>
+                        <TimelineElement key={item.id} bench={item} isSelected={isSelected} />
+                    </Duration>
+                );
+            });
+        }
     }
 
     renderTimeline() {
@@ -129,9 +150,9 @@ class Timeline extends React.Component {
 
         return (
             <div>
-                <TimelineFilter filter={this.state.filter}/>
+                <TimelineFilter filter={this.state.filter} dashboardMode={this.state.dashboardMode}/>
                 {this.renderClearSearchQueryIfNeeded()}
-                {this.renderNewBenchIfNeeded()}
+                {this.renderNewIfNeeded()}
                 {this.renderTimeline()}
                 <nav>
                     <ul className="pager">
@@ -144,16 +165,23 @@ class Timeline extends React.Component {
     }
 
     _resolveState() {
-        if (!BenchStore.isLoaded()) {
+        let dashboardMode = GlobalStore.isDashboardModeOn();
+        let store = dashboardMode ? DashboardStore : BenchStore;
+
+        if (!store.isLoaded()) {
             return { isLoaded: false };
         }
 
         return {
-            selectedBench: BenchStore.getSelectedBench(),
-            filter: BenchStore.getFilter(),
-            pager: BenchStore.getPager(),
-            list: BenchStore.getBenchmarks(),
-            isTimelineLoading: BenchStore.isShowTimelineLoadingMask(),
+            selectedItem: store.getSelected(),
+            filter: store.getFilter(),
+            pager: store.getPager(),
+            list: store.getItems(),
+            isNewActive: store.isNewActive(),
+            isNewSelected: store.isNewSelected(),
+            newName: store.getNew().name,
+            isTimelineLoading: store.isShowTimelineLoadingMask(),
+            dashboardMode : dashboardMode,
             isLoaded: true
         };
     }

@@ -1,4 +1,6 @@
 import BenchStore from '../stores/BenchStore';
+import DashboardStore from '../stores/DashboardStore';
+import GlobalStore from '../stores/GlobalStore';
 import MetricsStore from '../stores/MetricsStore';
 import LogsStore from '../stores/LogsStore';
 import Constants from '../constants/ActionTypes';
@@ -13,10 +15,14 @@ export default {
             onopen: () => {
                 let opts = {};
 
-                let benchId = BenchStore.getSelectedBenchId();
+                let benchId = BenchStore.getSelectedId();
                 if (benchId) { opts.bench_id = benchId; }
 
-                this.getTimeline(opts);
+                if (GlobalStore.isDashboardModeOn())
+                    this.getDashboards(opts);
+                else
+                    this.getTimeline(opts);
+
                 this.getServerInfo();
 
                 if (notify) {
@@ -54,12 +60,34 @@ export default {
         Dispatcher.dispatch({ type: Constants.SET_CURRENT_PAGE, data: currentPage });
     },
 
+    turnOnDashboardMode(mode) {
+        if (!DashboardStore.isLoaded()) {
+            this.getDashboards({});
+        }
+        Dispatcher.dispatch({ type: Constants.TURN_ON_DASHBOARD_MODE});
+    },
+
+    turnOffDashboardMode(mode) {
+        if (!BenchStore.isLoaded()) {
+            this.getTimeline({});
+        }
+        Dispatcher.dispatch({ type: Constants.TURN_OFF_DASHBOARD_MODE});
+    },
+
     setFilter(query) {
         Dispatcher.dispatch({ type: Constants.SET_FILTER, data: query });
     },
 
     withNewBench(lambda) {
         Dispatcher.dispatch({ type: Constants.MODIFY_NEW_BENCH, data: lambda });
+    },
+
+    withSelectedDashboard(lambda) {
+        Dispatcher.dispatch({ type: Constants.MODIFY_SELECTED_DASHBOARD, data: lambda });
+    },
+
+    addChartToSelectedDashboard() {
+        Dispatcher.dispatch({ type: Constants.ADD_CHART_TO_SELECTED_DASHBOARD });        
     },
 
     hideTimelineLoadingMask() {
@@ -88,16 +116,41 @@ export default {
         Dispatcher.dispatch({ type: Constants.CLEAN_NEW_BENCH });
     },
 
-    getTimeline(opts) {
+    getBenchset(opts) {
+        Object.assign(opts, {cmd: "get_benchset"});
+        MZBenchWS.send(opts);
+    },
+
+    getTimeline(opts, timelineId) {
         Object.assign(opts, {cmd: "get_timeline"});
 
-        this.showTimelineLoadingMask();
-
-        opts.q = BenchStore.getFilter();
+        if (timelineId) {
+            Object.assign(opts, {timeline_id: timelineId});
+        } else {
+//            this.showTimelineLoadingMask();
+            opts.q = BenchStore.getFilter();
+        }
 
         if (undefined == opts.bench_id) {
             BenchStore.getCurrentPage().forEach((value, key) => opts[key] = value)
         }
+
+        MZBenchWS.send(opts);
+    },
+
+    saveSelectedDashboard() {
+        if (DashboardStore.isNewSelected()) {
+            MZBenchWS.send({cmd: "create_dashboard", data: DashboardStore.getNew()});
+            this.getDashboards({});
+        } else {
+            MZBenchWS.send({cmd: "update_dashboard", data: DashboardStore.getSelected()});
+        }
+    },
+
+    getDashboards(opts) {
+        Object.assign(opts, {cmd: "get_dashboards"});
+
+        opts.q = DashboardStore.getFilter();
 
         MZBenchWS.send(opts);
     },
@@ -114,8 +167,16 @@ export default {
         Dispatcher.dispatch({ type: Constants.SELECT_BENCH_BY_ID, data: benchId });
     },
 
+    selectDashboardById(dashboardId) {
+        Dispatcher.dispatch({ type: Constants.SELECT_DASHBOARD_BY_ID, data: dashboardId });
+    },
+
     selectActiveTab(tab) {
         Dispatcher.dispatch({ type: Constants.SELECT_ACTIVE_TAB, data: tab });
+    },
+
+    selectDashboardTab(tab) {
+        Dispatcher.dispatch({ type: Constants.SELECT_DASHBOARD_ACTIVE_TAB, data: tab });
     },
 
     selectGraph(groupId, graphId) {
@@ -136,6 +197,10 @@ export default {
 
     newBench() {
         Dispatcher.dispatch({ type: Constants.NEW_BENCH });
+    },
+
+    newDashboard() {
+        Dispatcher.dispatch({ type: Constants.NEW_DASHBOARD });
     },
 
     addBenchTag(benchId, tag) {
@@ -173,7 +238,7 @@ export default {
         if(continueStreaming) {
             encodedContinueStreaming = "true";
         }
-        
+
         MZBenchWS.send({ 
             cmd: "start_streaming_metric", 
             stream_id: streamId, 
@@ -186,6 +251,20 @@ export default {
             stream_after_eof: encodedContinueStreaming
         });
         return streamId;
+    },
+
+    getFinals(metric, benchIds, kind, x_env) {
+        const streamId = Misc.gen_guid();
+
+        MZBenchWS.send({
+            cmd: "get_finals",
+            stream_id: streamId,
+            bench_ids : benchIds,
+            metric: metric,
+            kind: kind,
+            x_env: x_env
+        });
+        return streamId;        
     },
     
     stopStream(streamId) {

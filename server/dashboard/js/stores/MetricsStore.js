@@ -12,8 +12,12 @@ const NORMAL_STREAM = 0;
 const AGGREGATED_STREAM = 1;
 
 class _StreamElement {
-    constructor(benchId, type) {
-        this.startingDate   = moment(BenchStore.findById(benchId).start_time).unix();
+    constructor(benchId, type, normalizeStart) {
+        if (benchId != -1)
+            this.startingDate   = moment(BenchStore.findById(benchId).start_time).unix();
+        else
+            this.startingDate   = normalizeStart ? -1 : 0;
+
         this.timeWindow     = undefined;
         this.batchCounter   = 0;
         this.data           = [];
@@ -57,6 +61,9 @@ function _applyUpdate(streamId, update) {
 }
 
 function _addObservation(streamId, observation) {
+    if (data.streams.get(streamId).startingDate === -1) {
+        data.streams.get(streamId).startingDate = observation.date;
+    }
     data.streams.get(streamId).data.push({
         "date": _convertDate(streamId, observation.date), 
         "value": observation.value, 
@@ -166,9 +173,9 @@ class MetricsStore extends EventEmitter {
         }
     }
 
-    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd) {
+    subscribeToEntireMetric(benchId, metric, subsamplingInterval, continueStreamingAfterEnd, normalizeStart) {
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, undefined, undefined, continueStreamingAfterEnd);
-        let elem = new _StreamElement(benchId, NORMAL_STREAM);
+        let elem = new _StreamElement(normalizeStart ? -1 : benchId, NORMAL_STREAM, normalizeStart);
         data.streams.set(streamId, elem);
         return streamId;
     }
@@ -178,6 +185,13 @@ class MetricsStore extends EventEmitter {
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, 
                                                     startingDate + beginTime, startingDate + endTime, false);
         let elem = new _StreamElement(benchId, NORMAL_STREAM);
+        data.streams.set(streamId, elem);
+        return streamId;
+    }
+
+    subscribeToFinalResults(metric, benchIds, kind, x_env) {
+        const streamId = MZBenchActions.getFinals(metric, benchIds, kind, x_env);
+        let elem = new _StreamElement(-1, NORMAL_STREAM);
         data.streams.set(streamId, elem);
         return streamId;
     }
