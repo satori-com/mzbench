@@ -67,7 +67,7 @@ class DashboardOverview extends React.Component {
 
             if (benches.length == 0) return (<h4 key={idx}>{c.metric} not found</h4>);
 
-            let guid = "guid-" + Misc.gen_guid();
+            let guid = "compare-" + idx;
             let envName = Misc.ucfirst(c.group_env);
 
             return (<div key={idx}>
