@@ -170,7 +170,6 @@ tick(#s{last_tick_time = LastTick} = State) ->
     end.
 
 aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = Histograms} = State) ->
-    system_log:info("[ metrics ] METRIC AGGREGATION:"),
     StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
@@ -186,7 +185,6 @@ aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = H
 
     Aggregated = merge_metrics_data(Values),
 
-    system_log:info("[ metrics ] Updating metric values..."),
     lists:foreach(
         fun ({N, V, counter}) -> global_inc(N, counter, V);
             ({N, V, gauge})   -> global_set(N, gauge, V)
@@ -208,10 +206,8 @@ aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = H
     State#s{histograms = NewHistograms}.
 
 evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
-    system_log:info("[ metrics ] Evaluating rates..."),
     NewState = eval_rps(State),
 
-    system_log:info("[ metrics ] Evaluating derived metrics..."),
     DerivedMetrics = lists:filter(fun is_derived_metric/1, extract_metrics(MetricGroups)),
     lists:foreach(fun ({Name, derived, #{resolver:= Resolver, worker:= {Provider, Worker}}}) ->
         try Provider:apply(Resolver, [], Worker) of
@@ -241,13 +237,11 @@ check_signals(#s{nodes = Nodes} = State) ->
     system_log:info("[ metrics ] CHECK SIGNALS:"),
     RawSignals = mzb_lists:pmap(
         fun (N) ->
-            system_log:info("[ metrics ] Reading signals from ~p...", [N]),
             case mzb_interconnect:call(N, get_all_signals) of
                 {badrpc, Reason} ->
                     system_log:error("[ metrics ] Failed to request signals from node ~p (~p)", [N, Reason]),
                     [];
                 Res ->
-                    system_log:info("[ metrics ] Received signals from ~p", [N]),
                     Res
             end
         end, lists:usort([erlang:node()] ++ Nodes)),
