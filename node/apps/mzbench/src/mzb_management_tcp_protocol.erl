@@ -103,6 +103,20 @@ handle_message({call_worker, WorkerType, Method, Env}, _) ->
     ok = Provider:load(Worker),
     {reply, Provider:apply(Method, [Env], Worker)};
 
+handle_message(get_metrics, _) ->
+    try
+        {reply, {ok, mzb_metrics:get_metrics()}}
+    catch
+        _:E -> {{error, E}}
+    end;
+
+handle_message(get_cumulative_histograms, _) ->
+    try
+        {reply, {ok, mzb_metrics:get_histogram_data()}}
+    catch
+        _:E -> {reply, {error, E}}
+    end;
+
 handle_message(Msg, _) ->
     erlang:error({unhandled, Msg}).
 

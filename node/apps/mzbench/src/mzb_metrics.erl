@@ -11,7 +11,9 @@
          build_metric_groups/1,
          extract_exometer_metrics/1,
          datapoint2str/1,
-         datapoints/1]).
+         datapoints/1,
+         get_metrics/0,
+         get_histogram_data/0]).
 
 -behaviour(gen_server).
 -export([init/1,
@@ -33,10 +35,10 @@
     active = true :: true | false,
     metric_groups = [],
     update_interval_ms :: undefined | integer(),
-    assert_accuracy_ms :: undefined | integer()
+    assert_accuracy_ms :: undefined | integer(),
+    histograms = []
 }).
 
--define(INTERVALNAME, report_interval).
 
 %%%===================================================================
 %%% API
@@ -73,6 +75,12 @@ final_trigger() ->
 get_failed_asserts() ->
     gen_server:call(?MODULE, get_failed_asserts).
 
+get_metrics() ->
+    gen_server:call(?MODULE, get_metrics).
+
+get_histogram_data() ->
+    gen_server:call(?MODULE, get_histogram_data).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -108,6 +116,12 @@ handle_call(final_trigger, _From, State) ->
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
     {reply, mzb_asserts:get_failed(_Finished = true, AccuracyMs, Asserts), State};
+
+handle_call(get_metrics, _From, #s{metric_groups = Groups} = State) ->
+    {reply, Groups, State};
+
+handle_call(get_histogram_data, _From, #s{histograms = Histograms} = State) ->
+    {reply, [{N, mz_histogram:export(Ref)} || {N, Ref} <- Histograms], State};
 
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
@@ -155,19 +169,17 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State4#s{last_tick_time = Now}
     end.
 
-aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups} = State) ->
+aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = Histograms} = State) ->
     system_log:info("[ metrics ] METRIC AGGREGATION:"),
     StartTime = os:timestamp(),
 
     Values = mzb_lists:pmap(
         fun (N) ->
-            system_log:info("[ metrics ] Waiting for metrics from ~p...", [N]),
             case mzb_interconnect:call(N, {get_local_metrics_values, extract_metrics(MetricGroups)}) of
                 {badrpc, Reason} ->
                     system_log:error("[ metrics ] Failed to request metrics from node ~p (~p)", [N, Reason]),
                     erlang:error({request_metrics_failed, N, Reason});
                 Res ->
-                    system_log:info("[ metrics ] Received metrics from ~p", [N]),
                     Res
             end
         end, lists:usort([erlang:node()|Nodes])),
@@ -180,12 +192,20 @@ aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups} = State) ->
             ({N, V, gauge})   -> global_set(N, gauge, V)
         end, Aggregated),
 
+
+    NewHistograms = lists:foldl(
+        fun ({{Name, histogram}, DataList}, Acc) ->
+                Ref = proplists:get_value(Name, Acc),
+                NewRef = mz_histogram:merge_to(Ref, DataList),
+                lists:keystore(Name, 1, Acc, {Name, NewRef});
+            (_, Acc) -> Acc
+        end, Histograms, groupby([{{N,T}, V} || {N, V, T} <- lists:append(Values)])),
+
     FinishTime = os:timestamp(),
     MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
-
     global_set("metric_merging_time", gauge, MergingTime),
 
-    State.
+    State#s{histograms = NewHistograms}.
 
 evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
     system_log:info("[ metrics ] Evaluating rates..."),

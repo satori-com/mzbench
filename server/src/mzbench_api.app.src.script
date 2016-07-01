@@ -15,7 +15,8 @@
         mzbench_utils,
         gen_smtp,
         observer,
-        runtime_tools
+        runtime_tools,
+        hdr_histogram
     ]},
     {mod, {mzb_api_app, []}},
     {env, [
@@ -48,6 +49,7 @@
         {max_bench_num, 1000},
         {metric_update_interval_ms, 10000},
         {ntp_max_timediff_s, undefined},
-        {vm_args, []}
+        {vm_args, []},
+        {final_metrics_percentiles, [min, 50, 90, 95, max]}
     ]}
 ]}.

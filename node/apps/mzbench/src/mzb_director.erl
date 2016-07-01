@@ -244,20 +244,29 @@ maybe_report_and_stop(#state{owner = Owner, continuation = Continuation} = State
     {stop, normal, State}.
 
 format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = 0}) ->
-    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully", [Ok])};
+    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully", [Ok]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = Stopped}) ->
-    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully (~b workers have been stopped)", [Ok, Stopped])};
+    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully (~b workers have been stopped)", [Ok, Stopped]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = 0}) ->
     {error, {workers_failed, NOk},
-        mzb_string:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk])};
+        mzb_string:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = Stopped}) ->
     {error, {workers_failed, NOk},
-        mzb_string:format("FAILED~n~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped])};
+        mzb_string:format("FAILED~n~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped]), get_stats_data()};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
-    {error, {asserts_failed, length(FailedAsserts)}, Str}.
+    {error, {asserts_failed, length(FailedAsserts)}, Str, get_stats_data()}.
+
+get_stats_data() ->
+    try
+        {mzb_metrics:get_metrics(), mzb_metrics:get_histogram_data()}
+    catch
+        _:Error ->
+            system_log:error("Get stats data exception: ~p~n~p", [Error, erlang:get_stacktrace()]),
+            erlang:error(Error)
+    end.
 
 compile_and_load(Script, Env) ->
     {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),

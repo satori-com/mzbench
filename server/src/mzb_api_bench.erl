@@ -144,7 +144,8 @@ init([Id, Params]) ->
         emails => maps:get(email, Params),
         self => self(), % stages are spawned, so we can't get pipeline pid from callback
         director_node => undefined,
-        previous_status => undefined
+        previous_status => undefined,
+        results => undefined
     },
     info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
@@ -275,10 +276,14 @@ handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Con
 
 handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
     case director_call(Connection, get_results, infinity) of
-        {ok, Str} -> info("Benchmark result: ~s", [Str], State);
-        {error, Reason, ReasonStr} ->
+        {ok, Str, {Metrics, Histograms}} ->
+            info("Benchmark result: ~s", [Str], State),
+            Res = aggregate_results(Metrics, Histograms, State),
+            fun (S) -> S#{results => Res} end;
+        {error, Reason, ReasonStr, {Metrics, Histograms}} ->
             error("Benchmark result: ~s", [ReasonStr], State),
-            erlang:error({benchmark_failed, Reason})
+            Res = aggregate_results(Metrics, Histograms, State),
+            mzb_pipeline:error({benchmark_failed, Reason}, fun (S) -> S#{results => Res} end)
     end;
 
 handle_stage(pipeline, post_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
@@ -290,8 +295,30 @@ handle_stage(pipeline, post_hooks, #{cluster_connection:= Connection, config:= C
     NewConfig = maps:put(env, NewEnv, Config),
     fun (S) -> S#{config => NewConfig} end;
 
-handle_stage(finalize, saving_bench_results, #{id:= Id} = State) ->
-    mzb_api_server:bench_finished(Id, status(State));
+handle_stage(finalize, saving_bench_results, #{id:= Id, cluster_connection:= Connection, results:= CurRes} = State) ->
+
+    NewRes =
+        case CurRes of
+            undefined -> % this happends when user presses stop button
+
+                Metrics =
+                    case director_call(Connection, get_metrics) of
+                        {ok, M} -> M;
+                        {error, _} -> []
+                    end,
+
+                Histograms =
+                    case director_call(Connection, get_cumulative_histograms) of
+                        {ok, H} -> H;
+                        {error, _} -> []
+                    end,
+
+                aggregate_results(Metrics, Histograms, State);
+            _ -> CurRes
+        end,
+
+    mzb_api_server:bench_finished(Id, status(State#{results => NewRes})),
+    fun (S) -> S#{results => NewRes} end;
 
 handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
     case send_email_report(Emails, status(State)) of
@@ -552,7 +579,7 @@ send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
 status(State) ->
-    mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics], State).
+    mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results], State).
 
 generate_bench_env(Params) ->
     Env = maps:get(env, Params),
@@ -864,3 +891,88 @@ handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handle
 handle_management_msg({error, _}, _, S = #{handlers:= Handlers}) ->
     _ = [ H(close) || {_, H} <- maps:to_list(Handlers)],
     {ok, S#{handlers => #{}}}.
+
+aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
+
+    Percentiles = application:get_env(mzbench_api, final_metrics_percentiles, []),
+
+    Flatten = [ M || {group, _, Graphs} <- Metrics, {graph, #{metrics:= Ms}} <- Graphs, M <- Ms],
+
+    Res = lists:flatmap(
+        fun
+            ({Name, counter, _}) ->
+                File = mzb_api_bench:metrics_file(Name, Config),
+                FinalValue = metric_file_fold(File, fun (_, Value, _) -> Value end, undefined),
+                FileRPS = mzb_api_bench:metrics_file(Name ++ ".rps", Config),
+                Data = metric_file_fold(FileRPS, fun (_, Value, Acc) -> [Value|Acc] end, []),
+                RPSFinal = statistics(Data, Percentiles),
+                [{Name, FinalValue}] ++ [{Name ++ ".rps." ++ N, V} || {N, V} <- RPSFinal];
+            ({Name, Type, _}) when Type == gauge; Type == derived ->
+                File = mzb_api_bench:metrics_file(Name, Config),
+                Data = metric_file_fold(File, fun (_, Value, Acc) -> [Value|Acc] end, []),
+                Final = statistics(Data, Percentiles),
+                [{Name ++ "." ++ N, V} || {N, V} <- Final];
+            ({Name, histogram, _}) ->
+                case proplists:get_value(Name, Histograms, undefined) of
+                    undefined -> [];
+                    Values ->
+                        {ok, Ref} = hdr_histogram:from_binary(Values),
+                        try
+                            lists:map(
+                                fun (min) -> {Name ++ ".min", hdr_histogram:min(Ref)};
+                                    (max) -> {Name ++ ".max", hdr_histogram:max(Ref)};
+                                    (mean) -> {Name ++ ".mean", hdr_histogram:mean(Ref)};
+                                    (median) -> {Name ++ ".median", hdr_histogram:median(Ref)};
+                                    (N) when N =< 100 -> {Name ++ "." ++ integer_to_list(N), hdr_histogram:percentile(Ref, erlang:float(N))}
+                                end, Percentiles)
+                        after
+                            hdr_histogram:close(Ref)
+                        end
+                end
+        end, Flatten),
+    info("Bench final metrics: ~p", [Res], State),
+    Res.
+
+%percentile2str(A) when is_atom(A) -> atom_to_list(A);
+%percentile2str(N) when is_integer(N) -> integer_to_list(N).
+
+statistics([], _) -> [];
+statistics(Data, Percentiles) ->
+    Sorted = lists:sort(Data),
+    Len = length(Sorted),
+    lists:map(fun
+        (mean) ->   {"mean", lists:sum(Sorted) / Len};
+        (median) -> {"median", percentile(Sorted, Len, 50)};
+        (min) ->    {"min", hd(Sorted)};
+        (max) ->    {"max", lists:last(Sorted)};
+        (P) when 0 < P, P =< 100 -> {integer_to_list(P), percentile(Sorted, Len, P)}
+    end, Percentiles).
+
+percentile(Sorted, Len, P) ->
+    K = mzb_utility:int_ceil(P*Len/100),
+    lists:nth(K, Sorted).
+
+metric_file_fold(File, Fun, InitAcc) ->
+    case file:open(File, [raw, read, binary]) of
+        {ok, H} ->
+            try
+                fun R(Acc) ->
+                    case file:read_line(H) of
+                        {ok, <<>>} -> R(Acc);
+                        {ok, D} ->
+                            [TimestampBin, ValueBin] = binary:split(D, <<"\t">>),
+                            Timestamp = erlang:binary_to_integer(TimestampBin),
+                            Value = mzb_utility:any_to_num(string:strip(erlang:binary_to_list(ValueBin), right, $\n)),
+                            NewAcc = Fun(Timestamp, Value, Acc),
+                            R(NewAcc);
+                        eof -> Acc;
+                        {error, Reason} ->
+                            erlang:error({metrics_read_error, Reason})
+                    end
+                end (InitAcc)
+            after
+                file:close(H)
+            end;
+        {error, Error} ->
+            erlang:error(Error)
+    end.

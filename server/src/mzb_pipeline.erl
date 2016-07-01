@@ -9,6 +9,7 @@
     cast/2,
     stop/1,
     reply/2,
+    error/2,
     init/1,
     handle_call/3,
     handle_cast/2,
@@ -84,6 +85,9 @@ init([Module, UserArgs]) ->
         ignore -> ignore
     end.
 
+error(Reason, Fun) ->
+    erlang:error({exception, Reason, Fun}).
+
 handle_call({workflow, stop}, _From, State = #state{active = false}) ->
     {reply, ok, State};
 
@@ -114,16 +118,18 @@ handle_call({user_call, Msg}, From, #state{module = Module, user_state = UserSta
 handle_call(_Unhandled, _From, State) ->
     {noreply, State}.
 
-handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST} }, State = #state{ref = Ref}) ->
+handle_cast({workflow, exception, Phase = finalize, Stage, Ref, {_C, E, ST, Fn} }, State = #state{ref = Ref}) ->
+    NewState0 = migrate_state(Fn, State),
     gen_server:cast(self(), {workflow, next, finalize, Stage, Ref}),
-    NewState = change_pipeline_status({exception, Phase, Stage, E, ST}, State),
-    {noreply, NewState#state{stage = undefined}};
-
-handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST} }, State = #state{ref = Ref}) ->
-    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
-    NewState = change_pipeline_status({exception, Phase, Stage, E, ST}, State),
-    NewState1 = change_pipeline_status({final, failed}, NewState),
+    NewState1 = change_pipeline_status({exception, Phase, Stage, E, ST}, NewState0),
     {noreply, NewState1#state{stage = undefined}};
+
+handle_cast({workflow, exception, Phase = pipeline, Stage, Ref, {_C, E, ST, Fn} }, State = #state{ref = Ref}) ->
+    NewState0 = migrate_state(Fn, State),
+    gen_server:cast(self(), {workflow, start_phase, finalize, Ref}),
+    NewState1 = change_pipeline_status({exception, Phase, Stage, E, ST}, NewState0),
+    NewState2 = change_pipeline_status({final, failed}, NewState1),
+    {noreply, NewState2#state{stage = undefined}};
 
 handle_cast({workflow, complete, _Phase, _Stage, Ref, Fn},
             State = #state{prefinal = true, ref = Ref}) ->
@@ -165,9 +171,12 @@ handle_cast({workflow, start, Phase, Stage, Ref}, State = #state{ref = Ref, modu
                 StageResult = Module:handle_stage(Phase, Stage, UserState),
                 gen_server:cast(Self, {workflow, complete, Phase, Stage, Ref, StageResult})
             catch
+                C:{exception, E, Fn} ->
+                    ST = erlang:get_stacktrace(),
+                    gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST, Fn}});
                 C:E ->
                     ST = erlang:get_stacktrace(),
-                    gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST}})
+                    gen_server:cast(Self, {workflow, exception, Phase, Stage, Ref, {C, E, ST, undefined}})
             end
         end),
     NewState = change_pipeline_status({start, Phase, Stage}, State),

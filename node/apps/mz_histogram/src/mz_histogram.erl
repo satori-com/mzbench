@@ -5,7 +5,9 @@
          create/2,
          notify/2,
          get_and_remove_raw_data/1,
-         merge_histograms/2]).
+         merge_histograms/2,
+         merge_to/2,
+         export/1]).
 
 -behaviour(gen_server).
 
@@ -88,6 +90,16 @@ merge_histograms(DataList, Datapoints) ->
     after
         hdr_histogram:close(Ref)
     end.
+
+merge_to(undefined, DataList)->
+    {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
+    merge_to(Ref, DataList);
+merge_to(ToRef, DataList) ->
+    lists:foreach(fun (Values) -> import_hdr_data(ToRef, Values) end, DataList),
+    ToRef.
+
+export(Ref) ->
+    hdr_histogram:to_binary(Ref).
 
 %%%===================================================================
 %%% gen_server callbacks
