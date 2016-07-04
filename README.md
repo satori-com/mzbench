@@ -49,7 +49,7 @@ Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzb
 When the server is running, launch an example benchmark:
 
 ```bash
-$ ./bin/mzbench run examples/ramp.erl
+$ ./bin/mzbench run examples.bdl/ramp.bdl
 {
     "status": "pending", 
     "id": 6

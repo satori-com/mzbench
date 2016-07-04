@@ -29,7 +29,7 @@ class BenchScenario extends React.Component {
                      </div>) : "" }
                 <div className="row">
                     <div className="col-md-12">
-                        <Highlight className="erlang">
+                        <Highlight className="python">
                             {this.props.bench.script_body || ""}
                         </Highlight>
                     </div>

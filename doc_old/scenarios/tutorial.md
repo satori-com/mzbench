@@ -6,22 +6,34 @@ Here's how you write a scenario to load-test a locally running web app.
 
 1.  Create a file called *myscenario.erl* with this content:
 
-        pool(size = 1,
-             worker_type = http_worker):
-            set_host("localhost")
-            set_port(8080)
-            get("/")
+        [ {pool,
+            [
+                {size, 1},
+                {worker_type, http_worker}
+            ],
+            [
+                {set_host, "localhost"},
+                {set_port, 8080},
+                {get, "/"}
+            ]
+        }].
 
-    Scenarios are written in [special language](spec.md) similar to Python in some aspects. Here's what this scenatio means, step by step:
+    Scenarios are written in [special language](spec.md) similar to Erlang. Here's what this scenatio means, step by step:
 
-        pool(size = 1,
-             worker_type = http_worker):
+        [ {pool,
+            [
+                {size, 1},
+                {worker_type, http_worker}
+            ],
 
     Here we define a [pool](spec.md#pools) of workers, namely one worker of type `http_worker`. Workers of this type can send GET and POST HTTP requests, which is exactly what we need.
 
-            set_host("localhost")
-            set_port(8080)
-            get("/")
+            [
+                {set_host, "localhost"},
+                {set_port, 8080},
+                {get, "/"}
+            ]
+        }].
 
     Here we define the actions that each worker in the pool must perform: set the target host and port and send a single GET request to the "/" endpoint, i.e. to *http://localhost:8080/*.
 
@@ -45,13 +57,25 @@ Here's how you write a scenario to load-test a locally running web app.
     
 4.  Modify *myscenario.erl* so that it looks like this:
 
-        pool(size = 1,
-             worker_type = http_worker):
-                set_host("localhost")
-                set_port(8080)
-                loop(time = 1 min,
-                     rate = 10 rps):
-                        get("/")
+        [ {pool,
+            [
+                {size, 1},
+                {worker_type, http_worker}
+            ],
+            [
+                {set_host, "localhost"},
+                {set_port, 8080},
+                {loop,
+                    [
+                        {time, {1, min}},
+                        {rate, {10, rps}}
+                    ],
+                    [
+                        {get, "/"}
+                    ]
+                }
+            ]
+        }].
         
     We've replaced a single GET request with a [loop](spec.md#loops) that sends 10 requests per second for 1 minute.
     

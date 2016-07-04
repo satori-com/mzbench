@@ -28,8 +28,8 @@ $ curl http://mzbench.myserver.com/logs?id=100500
 Ask the server to start a benchmark from the given [scenario file](scenarios/spec.md). The file is submitted as form data. A successful response is a JSON object with "id" and "status" fields:
 
 ```bash
-# Start a benchmark from scenario.bdl:
-$ curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start
+# Start a benchmark from scenario.erl:
+$ curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start
 {
     "id": 46,
     "status": "pending"
@@ -58,14 +58,14 @@ node_commit
 Examples:
 
 ```bash
-# Start scenario.bdl on five cloud nodes:
-curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?nodes=5
+# Start scenario.erl on five cloud nodes:
+curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?nodes=5
 
-# Start scenario.bdl on three preallocated nodes 123.45.67.89 and node.myserver.com:
-curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?nodes=123.45.67.89,node.myserver.com
+# Start scenario.erl on three preallocated nodes 123.45.67.89 and node.myserver.com:
+curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?nodes=123.45.67.89,node.myserver.com
 
-# Start scenario.bdl and disable cloud nodes deallocation:
-curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?deallocate_after_bench=false
+# Start scenario.erl and disable cloud nodes deallocation:
+curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?deallocate_after_bench=false
 ```
 
 

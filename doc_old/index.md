@@ -54,7 +54,7 @@ Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzb
 When the server is running, launch an example benchmark:
 
 ```bash
-$ ./bin/mzbench run workers/http/examples/localhost.bdl
+$ ./bin/mzbench run workers/http/examples/localhost.erl
 {
     "status": "pending", 
     "id": 6

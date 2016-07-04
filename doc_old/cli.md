@@ -62,7 +62,7 @@ Optional params:
 ### start
 
 ```bash
-$ mzbench start --env foo=bar --nodes=5 foo.bdl
+$ mzbench start --env foo=bar --nodes=5 foo.erl
 {
     "status": "pending", 
     "id": 86
@@ -112,7 +112,7 @@ Optional params:
 ### run
 
 ```bash
-$ mzbench run --env foo=bar --nodes=5 foo.bdl
+$ mzbench run --env foo=bar --nodes=5 foo.erl
 {
     "status": "pending", 
     "id": 86
@@ -130,7 +130,7 @@ Positional param:
 ### run_local
 
 ```bash
-$ mzbench run_local --env foo=bar foo.bdl
+$ mzbench run_local --env foo=bar foo.erl
 Executing make -C /path/to/mzbench/bin/../node compile
 ...
 ```
@@ -151,7 +151,7 @@ Optional param:
 ### validate
 
 ```bash
-$ mzbench validate foo.bdl
+$ mzbench validate foo.erl
 ok
 ```
 

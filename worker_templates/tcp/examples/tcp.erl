@@ -1,7 +1,6 @@
 [
 
 % iface: lo                     | iface: eth0
-% hardware: mac                 | harware: p16-17.addsrv.net
 %
 % 1 connection                  | 1 connection     | 10 connections
 % ---------------------------------------------------------------------------------------

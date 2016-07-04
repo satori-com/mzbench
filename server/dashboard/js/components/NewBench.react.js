@@ -4,7 +4,7 @@ import BenchStore from '../stores/BenchStore';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import MZBenchActions from '../actions/MZBenchActions';
 
-require('brace/mode/erlang');
+require('brace/mode/python');
 require('brace/theme/github');
 
 class NewBench extends React.Component {
@@ -53,7 +53,7 @@ class NewBench extends React.Component {
                 <div className="row">
                     <div className="form-group col-md-12">
                         <AceEditor
-                            mode="erlang"
+                            mode="python"
                             theme="github"
                             width="100%"
                             maxLines={100000}
