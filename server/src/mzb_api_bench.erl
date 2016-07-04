@@ -258,7 +258,15 @@ handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Co
     #{script:= Script, env:= DefaultEnv, director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
     ScriptFilePath = script_path(Script),
     DirFun = fun (Msg) -> director_call(Connection, Msg, ?HOOKS_TIMEOUT) end,
-    {Body, Env} = DirFun({read_and_validate, remote_path(ScriptFilePath, Config), mzbl_script:normalize_env(DefaultEnv)}),
+    {Body, Env} =
+        try
+            DirFun({read_and_validate, remote_path(ScriptFilePath, Config), mzbl_script:normalize_env(DefaultEnv)})
+        catch
+            error:{error, List} ->
+                error("~s", [string:join(List, "\n")], State),
+                erlang:error(validation_failed)
+
+        end,
     ActualWorkerHosts = case WorkerHosts of
         [] -> [DirectorHost];
         _ -> WorkerHosts
@@ -268,14 +276,18 @@ handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Co
     NewConfig = maps:put(env, mzbl_script:normalize_env(NewEnv), Config),
     fun (S) -> S#{config => NewConfig} end;
 
-handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Config}) ->
+handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Config} = State) ->
     #{script:= Script, env:= Env} = Config,
     ScriptFilePath = script_path(Script),
-    ok = director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}),
-    ok;
+    case director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}) of
+        ok -> ok;
+        {error, List} ->
+            error("Start benchmark failed, ~s", [string:join(List, "\n")], State),
+            erlang:error(start_benchmark_failed)
+    end;
 
 handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
-    case director_call(Connection, get_results, infinity) of
+    try director_call(Connection, get_results, infinity) of
         {ok, Str, {Metrics, Histograms}} ->
             info("Benchmark result: ~s", [Str], State),
             Res = aggregate_results(Metrics, Histograms, State),
@@ -284,6 +296,10 @@ handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
             error("Benchmark result: ~s", [ReasonStr], State),
             Res = aggregate_results(Metrics, Histograms, State),
             mzb_pipeline:error({benchmark_failed, Reason}, fun (S) -> S#{results => Res} end)
+    catch
+        _:Error ->
+            error("Benchmark exception: ~s", [Error], State),
+            erlang:error({benchmark_failed, Error})
     end;
 
 handle_stage(pipeline, post_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
@@ -302,15 +318,19 @@ handle_stage(finalize, saving_bench_results, #{id:= Id, cluster_connection:= Con
             undefined  when Connection /= undefined -> % this happends when user presses stop button
 
                 Metrics =
-                    case director_call(Connection, get_metrics) of
+                    try director_call(Connection, get_metrics) of
                         {ok, M} -> M;
                         {error, _} -> []
+                    catch
+                        _:_ -> []
                     end,
 
                 Histograms =
-                    case director_call(Connection, get_cumulative_histograms) of
+                    try director_call(Connection, get_cumulative_histograms) of
                         {ok, H} -> H;
                         {error, _} -> []
+                    catch
+                        _:_ -> []
                     end,
 
                 aggregate_results(Metrics, Histograms, State);
@@ -371,10 +391,13 @@ handle_call({change_env, Env}, From, #{status:= running, config:= Config, cluste
     info("Change env req received: ~p~nOldEnv: ~p", [Env, maps:get(env, Config)], State),
     Self = self(),
     director_async_call(Connection, {change_env, Env},
-        fun (Res) ->
-            info("Received change_env response: ~p", [Res], State),
-            ok == Res andalso mzb_pipeline:cast(Self, {env_changed, Env}),
-            mzb_pipeline:reply(From, Res)
+        fun ({result, Res}) ->
+                info("Received change_env response: ~p", [Res], State),
+                ok == Res andalso mzb_pipeline:cast(Self, {env_changed, Env}),
+                mzb_pipeline:reply(From, Res);
+            ({exception, {C, E, ST}}) ->
+                error("Change env exception ~p:~p~n~p", [C, E, ST], State),
+                mzb_pipeline:reply(From, {error, E})
         end),
     {noreply, State};
 
@@ -843,26 +866,27 @@ director_call(Connection, Msg) ->
 director_call(Connection, Msg, Timeout) ->
     Ref = erlang:make_ref(),
     Self = self(),
-    Cont =
-        fun (Res) ->
-            Self ! {Ref, Res}
-        end,
+    Cont = fun (Res) -> Self ! {Ref, Res} end,
     director_async_call(Connection, Msg, Cont),
     Mon = mzb_api_connection:monitor(Connection),
     case Timeout of
         infinity ->
             receive
-                {Ref, Res} ->
+                {Ref, {result, Res}} ->
                     mzb_api_connection:demonitor(Mon),
                     Res;
+                {Ref, {exception, {C, E, ST}}} ->
+                    erlang:raise(C, E, ST);
                 {'DOWN', Mon, _, _, _} ->
                     erlang:error(director_connection_down)
             end;
         _ ->
             receive
-                {Ref, Res} ->
+                {Ref, {result, Res}} ->
                     mzb_api_connection:demonitor(Mon),
                     Res;
+                {Ref, {exception, {C, E, ST}}} ->
+                    erlang:raise(C, E, ST);
                 {'DOWN', Mon, _, _, _} ->
                     erlang:error(director_connection_down)
             after Timeout ->
@@ -973,6 +997,7 @@ metric_file_fold(File, Fun, InitAcc) ->
             after
                 file:close(H)
             end;
+        {error, enoent} -> InitAcc;
         {error, Error} ->
             erlang:error(Error)
     end.

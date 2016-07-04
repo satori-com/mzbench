@@ -68,7 +68,8 @@ check(State) ->
             start_check_timer(),
             State;
         false ->
-            system_log:warning("[ watchdog ] Node ~p is going to shutdown because director process is down", [node()]),
-            init:stop()
+            system_log:warning("[ watchdog ] Node ~p is going to shutdown in 1 min because director process is down", [node()]),
+            {ok, _} = timer:apply_after(60000, init, stop, []),
+            State
     end.
 

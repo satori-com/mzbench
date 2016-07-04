@@ -30,15 +30,15 @@ start_link(Ref, Socket, Transport, Opts) ->
 
 dispatch({request, Ref, Msg}, State) ->
     system_log:info("Received request: ~p", [Msg]),
-    try
-        ReplyFun = fun (Reply) ->  send_message({response, Ref, Reply}, State) end,
-        case handle_message(Msg, ReplyFun) of
-            {reply, Reply} -> ReplyFun(Reply);
-            noreply -> ok
-        end
+    ReplyFun = fun (Reply) -> send_message({response, Ref, {result, Reply}}, State) end,
+    try handle_message(Msg, ReplyFun) of
+        {reply, Reply} -> ReplyFun(Reply);
+        noreply -> ok
     catch
-        _:Error ->
-            system_log:error("Api server message handling exception: ~p~n~p", [Error, erlang:get_stacktrace()])
+        C:Error ->
+            ST = erlang:get_stacktrace(),
+            system_log:error("Api server message handling exception: ~p~n~p", [Error, ST]),
+            send_message({response, Ref, {exception, {C, Error, ST}}}, State)
     end,
     {noreply, State};
 

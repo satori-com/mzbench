@@ -55,7 +55,7 @@ get_results() ->
         _:E ->
             ST = erlang:get_stacktrace(),
             Str = mzb_string:format("Unexpected error: ~p~n~p", [E, ST]),
-            {error, {unexpected_error, E, ST}, Str}
+            {error, {unexpected_error, E, ST}, Str, {[], []}}
     end.
 
 start_pool(Pool, Env, NumNodes, Offset) ->
