@@ -85,6 +85,7 @@ init([Module, UserArgs]) ->
         ignore -> ignore
     end.
 
+-spec error(Reason :: term(), Fun :: undefined | fun()) -> no_return().
 error(Reason, Fun) ->
     erlang:error({exception, Reason, Fun}).
 

@@ -50,8 +50,8 @@ run_script(Script, Env) ->
         ok ->
             Res =
                 case mzb_bench_sup:get_results() of
-                    {ok, R} -> R;
-                    {error, _, R} -> R
+                    {ok, R, _} -> R;
+                    {error, _, R, _} -> R
                 end,
             io:format("~s~n", [Res]);
         {error, Messages} ->
