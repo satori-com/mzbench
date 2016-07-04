@@ -1,7 +1,7 @@
 -module(mzb_metrics).
 
 -export([start_link/2,
-         declare_metric/2,
+         declare_metric/5,
          declare_metrics/1,
          notify/2,
          get_value/1,
@@ -56,8 +56,13 @@ notify({Name, histogram}, Value) ->
 notify(Name, Value) ->
     notify({Name, counter}, Value).
 
-declare_metric(Group, GraphOpts) ->
-    gen_server:call(?MODULE, {declare_metrics, [{group, Group, [{graph, GraphOpts}]}]}).
+declare_metric(Group, Title, Name, Type, Opts) ->
+    mzb_interconnect:call_director({declare_metrics,
+        [{declare_metrics, [
+            {group, Group, [
+                {graph, Opts#{title => Title, metrics => [{Name, Type}]}}
+            ]}
+        ]}]}).
 
 declare_metrics(Groups) ->
     gen_server:call(?MODULE, {declare_metrics, Groups}).
@@ -108,6 +113,8 @@ init([Env, Nodes]) ->
 handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
     NewGroups = mzb_script_metrics:normalize(OldGroups ++ Groups),
     mzb_metric_reporter:new_metrics(NewGroups),
+    NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
+    [ mzb_metrics:notify({N, counter}, 0) || N <- NewCounters],
     {reply, ok, State#s{metric_groups = NewGroups}};
 
 handle_call(final_trigger, _From, State) ->

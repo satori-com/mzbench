@@ -299,7 +299,7 @@ handle_stage(finalize, saving_bench_results, #{id:= Id, cluster_connection:= Con
 
     NewRes =
         case CurRes of
-            undefined -> % this happends when user presses stop button
+            undefined  when Connection /= undefined -> % this happends when user presses stop button
 
                 Metrics =
                     case director_call(Connection, get_metrics) of

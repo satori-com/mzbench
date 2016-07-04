@@ -72,7 +72,7 @@ change_env(Id, Env) ->
 
 status(Id) ->
     case ets:lookup(benchmarks, Id) of
-        [{_, B, undefined}] ->
+        [{_, B, undefined}] when is_pid(B) ->
             mzb_api_bench:get_status(B);
         [{_, _, Status}] ->
             Status;

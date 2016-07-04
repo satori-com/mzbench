@@ -117,6 +117,9 @@ handle_message(get_cumulative_histograms, _) ->
         _:E -> {reply, {error, E}}
     end;
 
+handle_message({declare_metrics, MetricGroups}, _) ->
+    {reply, mzb_metrics:declare_metrics(MetricGroups)};
+
 handle_message(Msg, _) ->
     erlang:error({unhandled, Msg}).
 
