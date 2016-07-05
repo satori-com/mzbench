@@ -34,7 +34,7 @@ const routes = {
 
         // If 'back' button is pressed then old bench could be not
         // presented in the currently loaded timeline
-        if (!BenchStore.getSelectedBench() && !isNaN(benchId)) {
+        if (!BenchStore.getSelected() && !isNaN(benchId)) {
             MZBenchActions.getTimeline({bench_id: parseInt(benchId)});
         }
         MZBenchActions.selectGraph(graphGroupId, graphId);
