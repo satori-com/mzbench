@@ -316,7 +316,6 @@ groupby([{H, _}|_] = L, Res) ->
 
 
 get_local_values(Metrics) ->
-    system_log:info("[ local_metrics ] Getting local metric values on ~p...", [node()]),
     MetricsData = lists:filtermap(
         fun ({Name, counter, _}) ->
                 try
@@ -341,7 +340,6 @@ get_local_values(Metrics) ->
                 false
         end,
         Metrics),
-    system_log:info("[ local_metrics ] Got ~p metrics on ~p", [erlang:length(MetricsData), node()]),
     MetricsData.
 
 extract_metrics(Groups) ->

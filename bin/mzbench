@@ -27,6 +27,7 @@ Usage:
   mzbench [--host=<host>] restart <bench_id>
   mzbench [--host=<host>] status [--wait] <bench_id>
   mzbench [--host=<host>] stop <bench_id>
+  mzbench [--host=<host>] results [--wait] <bench_id>
   mzbench [--host=<host>] log <bench_id>
   mzbench [--host=<host>] userlog <bench_id>
   mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
@@ -316,6 +317,38 @@ def status(host, bench_id, wait):
             if should_stop == 'y':
                 stop(host, bench_id)
             sys.exit(130)
+
+def results(host, bench_id, wait):
+    if not wait:
+        response = api.results(host, bench_id, wait)
+        pretty_print(response)
+        return response
+    else:
+        print('')
+        start_time = int(time.time())
+        # server doesn't support 'wait' flag yet
+        while True:
+            response = api.status(host, bench_id, wait)
+            if 'DEBUG' in os.environ:
+                pretty_print(response)
+
+            if sys.stdout.isatty():
+                current_time = int(time.time())
+                mins = (current_time - start_time) / 60
+                secs = (current_time - start_time) % 60
+                statusline = 'status: {0}{1}{2}'.format(
+                    response[u'status'],
+                    ' ' * (30 - len(response[u'status'])),
+                    '{0:02}:{1:02}'.format(mins, secs))
+                print('\r' + statusline, end='')
+
+            if response[u'status'] in [u'failed', u'complete', u'stopped']:
+                print('')
+                response = api.results(host, bench_id, wait)
+                pretty_print(response)
+                return response
+            sys.stdout.flush()
+            time.sleep(3)
 
 def stop(host, bench_id):
     response = api.stop(host, bench_id)

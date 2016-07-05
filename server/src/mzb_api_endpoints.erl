@@ -82,6 +82,11 @@ handle(<<"GET">>, <<"/status">>, Req) ->
         {ok, reply_json(200, format_status(mzb_api_server:status(Id)), Req), #{}}
     end);
 
+handle(<<"GET">>, <<"/results">>, Req) ->
+    with_bench_id(Req, fun(Id) ->
+        {ok, reply_json(200, format_results(mzb_api_server:status(Id)), Req), #{}}
+    end);
+
 handle(<<"GET">>, <<"/log">>, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
@@ -326,6 +331,13 @@ format_status(#{status:= Status, start_time:= StartTime, finish_time:= FinishTim
         _ -> Data#{finish_time => list_to_binary(iso_8601_fmt(FinishTime))}
     end,
     Data1.
+
+format_results(#{results:= undefined}) ->
+    #{};
+format_results(#{results:= Results}) ->
+    maps:from_list([{list_to_binary(Name), Value} || {Name, Value} <- Results]);
+format_results(#{}) ->
+    #{}.
 
 check_severity(<<"debug">>) -> {true, debug};
 check_severity(<<"info">>) -> {true, info};

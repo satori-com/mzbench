@@ -201,6 +201,23 @@ def status(host, bench_id, wait=False):
          'wait': 'true' if wait else 'false'})
 
 
+def results(host, bench_id, wait=False):
+    """Get bench results
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type bench_id: int
+    :returns: benchmark resulting metric values
+    :rtype: dict
+    """
+    return assert_successful_get(
+        host,
+        '/results',
+        {'id': bench_id,
+         'wait': 'true' if wait else 'false'})
+
+
 def stop(host, bench_id):
     """Stop a bench
 
