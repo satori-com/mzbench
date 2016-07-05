@@ -193,7 +193,8 @@ class DashboardEdit extends React.Component {
     _onMetricSuggestionsUpdateRequested(idx) {
         return ({ value }) => {
             this.state.metric_suggestions[idx] =
-                this._suggestion.getSuggestions(value, this.state.metrics);
+                this._suggestion.getSuggestions(value,
+        this.props.item.charts[idx].kind == "compare" ? this.state.metrics : this.state.results);
             this.setState(this.state);
         }
     }
@@ -279,6 +280,10 @@ class DashboardEdit extends React.Component {
             let env = b.env || {};
             return acc_b.concat(Object.keys(env));
         }, []));
+        this.state.results = Misc.uniq_fast(benches.reduce((acc_b, b) => {
+            let results = b.results || {};
+            return acc_b.concat(Object.keys(results));
+        }, []));
 
         if (!this.state.metric_suggestions) this.state.metric_suggestions = [];
         if (!this.state.x_suggestions) this.state.x_suggestions = [];
@@ -287,7 +292,8 @@ class DashboardEdit extends React.Component {
         for (var i in this.props.item.charts) {
             if (!this.state.metric_suggestions[i])
                 this.state.metric_suggestions[i] =
-                    this._suggestion.getSuggestions(this.props.item.charts[i].metric, this.state.metrics);
+                    this._suggestion.getSuggestions(this.props.item.charts[i].metric,
+                        this.props.item.charts[i].kind == "compare" ? this.state.metrics : this.state.results);
 
             if (!this.state.x_suggestions[i])
                 this.state.x_suggestions[i] =

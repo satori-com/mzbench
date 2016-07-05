@@ -288,7 +288,7 @@ dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State) ->
         <<"kind">> := Kind,
         <<"x_env">> := XEnv} = Cmd,
     Self = self(),
-    spawn(fun() -> get_finals(Self, StreamId, BenchIds, MetricName, Kind, XEnv) end),
+    spawn(fun() -> get_finals(Self, StreamId, BenchIds, binary_to_list(MetricName), Kind, XEnv) end),
     {ok, State};
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
@@ -442,7 +442,7 @@ benchset(_, Metric, Kind, _, _, Acc) when (Metric == undefined) or (Kind == unde
 benchset(_, _, _, Size, _, Acc) when (Size > 0) and (size(Acc) >= Size) -> Acc;
 benchset([], _, _, _, _, Acc) -> Acc;
 benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, Acc) ->
-    NewAcc = case has_metric(Metric, BenchInfo) of
+    NewAcc = case has_metric(Metric, Kind, BenchInfo) of
                 false -> Acc;
                     _ -> #{id:= Id, start_time:= StartTime} = BenchInfo,
                         add_to_benchset(Acc, Kind,
@@ -450,12 +450,14 @@ benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, Acc) ->
              end,
     benchset(Rest, Metric, Kind, Size, GroupEnv, NewAcc).
 
-has_metric(Metric, #{metrics:= #{groups:= Groups}}) ->
+has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}}) ->
     lists:any(fun(#{graphs:= Graphs}) ->
         lists:any(fun(#{metrics:= Metrics}) ->
             lists:any(fun(#{name:= Name}) when Name == Metric -> true; (_) -> false end, Metrics)
                 end, Graphs) end, Groups);
-has_metric(_, _) ->
+has_metric(Metric, _, #{results:= Res}) ->
+    mzb_bc:maps_get(Metric, Res, undefined) /= undefined;
+has_metric(_, _, _) ->
     false.
 
 get_bench_env(EnvName, #{env:= Env}) ->
@@ -494,18 +496,12 @@ get_bench_x_var(BenchId, EnvName) ->
 
 
 get_last_value(BenchId, MetricName) ->
-    #{config:= Config} = mzb_api_server:status(BenchId),
-    Filename = mzb_api_bench:metrics_file(MetricName, Config),
-    FileReader = get_file_reader(Filename),
-    Data = last_line(FileReader, <<>>),
-    FileReader(close),
-    Data.
-
-last_line(FileReader, Last) ->
-    case FileReader(read_line) of
-        {ok, Data} -> last_line(FileReader, Data);
-        eof -> parse_value(Last)
-    end.
+    Status = mzb_api_server:status(BenchId),
+    Time = mzb_bc:maps_get(finish_time, Status, 0),
+    {Time, case mzb_bc:maps_get(results, Status, undefined) of
+      undefined -> 0;
+      Proplist -> proplists:get_value(MetricName, Proplist, 0)
+    end}.
 
 %% Normalization
 
@@ -532,6 +528,9 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
       cloud:=          Cloud,
       vm_args:=        VMArgs,
       env:=            Env} = Config,
+    Results = case mzb_bc:maps_get(results, Status, undefined) of
+                undefined -> [];
+                R -> R end,
     DefaultVMArgs = application:get_env(mzbench_api, vm_args, undefined),
     EnvMap = mzb_bc:maps_without(["mzb_script_name", "nodes_num", "bench_workers_dir", "bench_script_dir", "worker_hosts"], maps:from_list(Env)),
     EnvMap2 = if VMArgs =/= DefaultVMArgs -> maps:put(vm_args, VMArgs, EnvMap);
@@ -542,6 +541,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      nodes => Nodes,
                      cloud => Cloud,
                      env => EnvMap2,
+                     results => maps:from_list(Results),
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags]
                      },
 
