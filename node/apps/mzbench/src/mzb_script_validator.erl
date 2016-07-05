@@ -8,8 +8,7 @@ read_and_validate(ScriptFileName, Env) ->
     try
         {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
         Nodes = [node()|mzb_interconnect:nodes()],
-        AutoEnv = [{"nodes_num", length(Nodes)},
-                   {"bench_hosts", [mzbl_script:hostname(N) || N <- Nodes]},
+        AutoEnv = [{"nodes_num", max(length(Nodes) - 1, 1)},
                    {"bench_script_dir", filename:dirname(ScriptFileName)},
                    {"bench_workers_dir", WorkerDirs}],
         Body = mzbl_script:read(ScriptFileName),
