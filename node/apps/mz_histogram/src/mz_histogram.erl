@@ -99,7 +99,10 @@ merge_to(ToRef, DataList) ->
     ToRef.
 
 export(Ref) ->
-    hdr_histogram:to_binary(Ref).
+    case hdr_histogram:to_binary(Ref, [{compression, none}]) of
+        Bin when is_binary(Bin) -> {ok, Bin};
+        {error, Reason} -> {error, Reason}
+    end.
 
 %%%===================================================================
 %%% gen_server callbacks

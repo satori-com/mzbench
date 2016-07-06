@@ -128,7 +128,7 @@ handle_call(get_metrics, _From, #s{metric_groups = Groups} = State) ->
     {reply, Groups, State};
 
 handle_call(get_histogram_data, _From, #s{histograms = Histograms} = State) ->
-    {reply, [{N, mz_histogram:export(Ref)} || {N, Ref} <- Histograms], State};
+    {reply, [{N, Bin} || {N, Ref} <- Histograms, {ok, Bin} <- [mz_histogram:export(Ref)]], State};
 
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
