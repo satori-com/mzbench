@@ -18,16 +18,16 @@ start(_Name, Opts) ->
 
 -spec create_cluster(#{}, NumNodes :: pos_integer(), Config :: #{}) -> {ok, term(), string(), [string()]}.
 create_cluster(Opts = #{instance_user:= UserName}, NumNodes, Config) when is_integer(NumNodes), NumNodes > 0 ->
-    {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Opts), get_config(Opts)),
+    Overhead = mzb_bc:maps_get(overhead, Opts, 0),
+    {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Overhead, Opts), get_config(Opts)),
     Instances = proplists:get_value(instances_set, Data),
     Ids = [proplists:get_value(instance_id, X) || X <- Instances],
-    lager:info("AWS ids: ~p", [Ids]),
     try
         {ok, _} = erlcloud_ec2:create_tags(Ids, [{"Name", maps:get(purpose, Config, "")}], get_config(Opts)),
-        wait_nodes_start(Ids, Opts, ?MAX_POLL_COUNT),
-        {ok, [NewData]} = get_description(Ids, Opts, ?MAX_POLL_COUNT),
+        StartedIds = wait_nodes_start(NumNodes, Ids, Opts, ?MAX_POLL_COUNT),
+        {ok, [NewData]} = get_description(StartedIds, Opts, ?MAX_POLL_COUNT),
         lager:info("~p", [NewData]),
-        IPs = get_IPs(Ids, NewData),
+        IPs = get_IPs(StartedIds, NewData),
         wait_nodes_ssh(IPs, ?MAX_POLL_COUNT),
         {ok, {Opts, Ids}, UserName, IPs}
     catch
@@ -77,9 +77,9 @@ wait_nodes_ssh([H | T], C) ->
         _ -> timer:sleep(?POLL_INTERVAL), wait_nodes_ssh([H | T], C - 1)
     end.
 
-wait_nodes_start(_, _, C) when C < 0 -> erlang:error({ec2_error, cluster_start_timed_out});
-wait_nodes_start([], _, _) -> ok;
-wait_nodes_start([H | T], Opts, C) ->
+wait_nodes_start(_, _, _, C) when C < 0 -> erlang:error({ec2_error, cluster_start_timed_out});
+wait_nodes_start(0, _, _, _) -> [];
+wait_nodes_start(N, [H | T], Opts, C) ->
     {ok, Res} = erlcloud_ec2:describe_instance_status([{"InstanceId", H}], [], get_config(Opts)),
     lager:info("Waiting nodes result: ~p", [Res]),
     Status = case Res of
@@ -87,16 +87,16 @@ wait_nodes_start([H | T], Opts, C) ->
              _  -> undefined
     end,
     case Status of
-        "running"  -> wait_nodes_start(T, Opts, C - 1);
+        "running"  -> [H | wait_nodes_start(N - 1, T, Opts, C - 1)];
         _ -> timer:sleep(?POLL_INTERVAL),
-             wait_nodes_start([H | T], Opts, C - 1)
+             wait_nodes_start(N, T ++ [H], Opts, C - 1)
     end.
 
-instance_spec(NumNodes, #{instance_spec:= Ec2AppConfig}) ->
+instance_spec(NumNodes, Overhead, #{instance_spec:= Ec2AppConfig}) ->
     lists:foldr(fun({Name, Value}, A) -> set_record_element(A, Name, Value) end,
         #ec2_instance_spec{
             min_count = NumNodes,
-            max_count = NumNodes,
+            max_count = trunc(NumNodes*(1 + Overhead / 100)),
             iam_instance_profile_name = "undefined"},
         Ec2AppConfig).
 
