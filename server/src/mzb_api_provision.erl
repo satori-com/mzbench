@@ -65,7 +65,7 @@ get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserNam
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
 
--spec clean_nodes(term(), fun()) -> ok.
+-spec clean_nodes(#{}, fun((_,_,_) -> any())) -> ok.
 clean_nodes(Config, Logger) ->
     #{
         user_name:= UserName,
