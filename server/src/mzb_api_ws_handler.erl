@@ -385,7 +385,10 @@ apply_filter(TimelineOpts, BenchInfos) ->
     Query = mzb_bc:maps_get(<<"q">>, TimelineOpts, undefined),
     case Query of
         undefined -> BenchInfos;
-        Q -> [Bench || Bench <- BenchInfos, is_satisfy_filter(Q, Bench)]
+        _ ->
+            Q = binary_to_list(Query),
+            QTokens = string:tokens(Q, " "),
+            [Bench || Bench <- BenchInfos, lists:all(fun (Token) -> is_satisfy_filter(Token, Bench) end, QTokens)]
     end.
 
 get_searchable_fields(BenchInfo) ->
@@ -398,11 +401,28 @@ get_searchable_fields(BenchInfo) ->
               end, Values) ++ Tags.
 
 is_satisfy_filter(Query, BenchInfo) ->
+    is_satisfy_fields(Query, BenchInfo) orelse is_satisfy_env(Query, BenchInfo).
+
+is_satisfy_env(Query, BenchInfo) ->
+    case string:tokens(Query, "=") of
+        [Key, Value] ->
+            Env = maps:get(env, BenchInfo),
+            ActualValue = mzb_bc:maps_get(Key, Env, undefined),
+            compare(Value, ActualValue);
+        _ -> false
+    end.
+
+compare(VStr, V) when is_integer(V) -> (catch list_to_integer(VStr)) == V;
+compare(VStr, V) when is_float(V) -> abs(mzb_utility:any_to_num(VStr) - V) =< 0.01;
+compare(VStr, V) when is_atom(V) -> VStr == atom_to_list(V);
+compare(VStr, V) when is_list(V) -> VStr == V;
+compare(_, _) -> false.
+
+is_satisfy_fields(Query, BenchInfo) ->
     try
-        QueryString = binary_to_list(Query),
         SearchFields = get_searchable_fields(BenchInfo),
         lists:any(fun(Field) ->
-                      case re:run(Field, QueryString, [caseless]) of
+                      case re:run(Field, Query, [caseless]) of
                           {match, _} -> true;
                           _ -> false
                       end
