@@ -47,8 +47,8 @@ int_ceil(X) ->
 
 any_to_num(Value) when is_integer(Value) or is_float(Value) -> Value;
 any_to_num(Value) when is_binary(Value) ->
-    any_to_num(binary_to_list(Value)); 
-any_to_num(Value) when is_list(Value) -> 
+    any_to_num(binary_to_list(Value));
+any_to_num(Value) when is_list(Value) ->
     case string:to_float(Value) of
         {error,no_float} -> list_to_integer(Value);
         {F,_Rest} -> F
