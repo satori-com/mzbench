@@ -465,3 +465,7 @@ p.dashboard {
   padding-left: 20px;
   padding-top: 20px;
 }
+
+a.Collapsible__trigger {
+  padding-left: 40px;
+}

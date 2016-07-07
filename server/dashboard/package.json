@@ -23,6 +23,7 @@
     "babelify": "~6.1.3",
     "react-imageloader": "~2.1.0",
     "react-ace": "~2.5.0",
+    "react-collapsible": "~0.3.0",
     "brace": "~0.5.1",
     "react-categorized-tag-input": "~2.*.*",
     "keymirror": "~0.*.*"

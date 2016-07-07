@@ -238,7 +238,8 @@ dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
               Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, undefined)),
               Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
               GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, undefined)),
-              benchset(BenchInfos2, Metric, Kind, Size, GroupEnv)
+              XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, undefined)),
+              benchset(BenchInfos2, Metric, Kind, Size, GroupEnv, XEnv)
              end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
 
     Event = #{
@@ -435,20 +436,20 @@ get_all_tags() ->
                 Acc ++ mzb_bc:maps_get(tags, Config, []) end, [], BenchInfos))).
 
 
-benchset(BenchInfos, Metric, Kind, Size, GroupEnv) ->
-    benchset(BenchInfos, Metric, Kind, Size, GroupEnv, []).
+benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv) ->
+    benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv, []).
 
-benchset(_, Metric, Kind, _, _, Acc) when (Metric == undefined) or (Kind == undefined) -> Acc;
-benchset(_, _, _, Size, _, Acc) when (Size > 0) and (size(Acc) >= Size) -> Acc;
-benchset([], _, _, _, _, Acc) -> Acc;
-benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, Acc) ->
+benchset(_, Metric, Kind, _, _, _, Acc) when (Metric == undefined) or (Kind == undefined) -> Acc;
+benchset(_, _, _, Size, _, _, Acc) when (Size > 0) and (size(Acc) >= Size) -> Acc;
+benchset([], _, _, _, _, _, Acc) -> Acc;
+benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, XEnv, Acc) ->
     NewAcc = case has_metric(Metric, Kind, BenchInfo) of
                 false -> Acc;
-                    _ -> #{id:= Id, start_time:= StartTime} = BenchInfo,
-                        add_to_benchset(Acc, Kind,
-                          get_bench_env(GroupEnv, BenchInfo), Id, StartTime)
+                    V -> #{id:= Id, start_time:= StartTime} = BenchInfo,
+                        add_to_benchset(Acc, Kind, V,
+                          get_bench_env(GroupEnv, BenchInfo), get_bench_env(XEnv, BenchInfo), Id, StartTime)
              end,
-    benchset(Rest, Metric, Kind, Size, GroupEnv, NewAcc).
+    benchset(Rest, Metric, Kind, Size, GroupEnv, XEnv, NewAcc).
 
 has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}}) ->
     lists:any(fun(#{graphs:= Graphs}) ->
@@ -456,24 +457,26 @@ has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}}) ->
             lists:any(fun(#{name:= Name}) when Name == Metric -> true; (_) -> false end, Metrics)
                 end, Graphs) end, Groups);
 has_metric(Metric, _, #{results:= Res}) ->
-    mzb_bc:maps_get(Metric, Res, undefined) /= undefined;
+    mzb_bc:maps_get(Metric, Res, false);
 has_metric(_, _, _) ->
     false.
 
 get_bench_env(EnvName, #{env:= Env}) ->
     mzb_bc:maps_get(EnvName, Env, []).
 
-add_to_benchset(Acc, "group", Name, Id, Time) ->
-    add_to_group(Acc, Name, Id, Time);
-add_to_benchset(Acc, _, Name, Id, Time) ->
+add_to_benchset(Acc, "group", Value, Name, X, Id, Time) ->
+    add_to_group(Acc, Value, Name, X, Id, Time);
+add_to_benchset(Acc, "regression", Value, Name, _X, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time, final => Value}]} | Acc];
+add_to_benchset(Acc, _, _, Name, _X, Id, Time) ->
     [#{name => Name, benches => [#{id => Id, time => Time}]} | Acc].
 
-add_to_group([], Name, Id, Time) ->
-    [#{name => Name, benches => [#{id => Id, time => Time}]}];
-add_to_group([#{name := Name, benches := B} | Rest], Name, Id, Time) ->
-    [#{name => Name, benches => [#{id => Id, time => Time} | B]} | Rest];
-add_to_group([C | Rest], Name, Id, Time) ->
-    [C | add_to_group(Rest, Name, Id, Time)].
+add_to_group([], Value, Name, X, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time, x => X, final => Value}]}];
+add_to_group([#{name := Name, benches := B} | Rest], Value, Name, X, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time, x => X, final => Value} | B]} | Rest];
+add_to_group([C | Rest], Value, Name, X, Id, Time) ->
+    [C | add_to_group(Rest, Value, Name, X, Id, Time)].
 
 get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
     Data = lists:map(fun(BenchId) ->

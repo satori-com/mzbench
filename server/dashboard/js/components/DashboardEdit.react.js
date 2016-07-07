@@ -140,7 +140,7 @@ class DashboardEdit extends React.Component {
         return  (<div className="dashboard-config-row" key={idx}>
                     <div className="row">
                       <div className="form-group col-md-6">
-                        <label>Metric name for chart #{idx+1}</label>
+                        <label>Metric name for Y, chart #{idx+1}</label>
                         <Autosuggest suggestions={this.state.metric_suggestions[idx]}
                            getSuggestionValue={this._suggestion.getSuggestionValue}
                            onSuggestionsUpdateRequested={this._onMetricSuggestionsUpdateRequested(idx)}
@@ -160,7 +160,7 @@ class DashboardEdit extends React.Component {
                     </div>
                     <div className="row">
                       <div className="form-group col-md-6">
-                        <label>Env var for groups</label>
+                        <label>{(chart.kind == "group") ? "Env var for groups" : "Env var for caption"}</label>
                         <Autosuggest suggestions={this.state.group_suggestions[idx]}
                            getSuggestionValue={this._suggestion.getSuggestionValue}
                            onSuggestionsUpdateRequested={this._onGroupSuggestionsUpdateRequested(idx)}

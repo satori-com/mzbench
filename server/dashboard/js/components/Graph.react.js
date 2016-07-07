@@ -153,6 +153,9 @@ class Graph extends React.Component {
         if (this.props.kind == "group")
             return "" + rawDate;
 
+        if (this.props.kind == "regression")
+            return moment(rawDate).format("lll");
+
         const absDate = (rawDate < 0)?-1*rawDate:rawDate;
         const negDate = rawDate < 0;
         let date = moment.duration(absDate, 'seconds');

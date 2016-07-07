@@ -4,6 +4,7 @@ import BenchStore from '../stores/BenchStore';
 import Graph from './Graph.react';
 import MZBenchActions from '../actions/MZBenchActions';
 import Misc from '../utils/Misc';
+import Collapsible from 'react-collapsible';
 import moment from 'moment';
 
 
@@ -53,9 +54,29 @@ class DashboardOverview extends React.Component {
                             <td><a href={link}>{b.name}</a></td>
                             <td><a href={link}>{bb.id}</a></td>
                             <td><a href={link}>{time}</a></td>
+                            {bb.x ? (<td><a href={link}>{bb.x}</a></td>) : null}
+                            {bb.final ? (<td><a href={link}>{bb.final}</a></td>) : null}
                         </tr>);
             });
         });
+    }
+
+    renderTable(kind, groupEnv, xEnv, benches) {
+        if (kind == "compare") 
+            return (<table className="table table-striped">
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th></tr>
+                {this.renderLegend(benches)}
+            </table>);
+        if (kind == "group")
+            return (<table className="table table-striped">
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>X</th><th>Value</th></tr>
+                {this.renderLegend(benches)}
+            </table>);
+        if (kind == "regression")
+            return (<table className="table table-striped">
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>Value</th></tr>
+                {this.renderLegend(benches)}
+            </table>);
     }
 
     renderGraphs() {
@@ -65,19 +86,19 @@ class DashboardOverview extends React.Component {
             let benches = this.state.benchset[idx];
             let targets = [c.metric];
 
-            if (benches.length == 0) return (<h4 key={idx}>{c.metric} not found</h4>);
+            if (!benches || benches.length == 0) return (<h4 key={idx}>{c.metric} not found</h4>);
 
             let guid = "compare-" + idx;
-            let envName = Misc.ucfirst(c.group_env);
+            let groupEnv = Misc.ucfirst(c.group_env);
+            let xEnv = Misc.ucfirst(c.group_env);
 
             return (<div key={idx}>
                         <p className="dashboard">{c.description}</p>
                         <Graph targets={targets} kind={c.kind} x_env={c.x_env}
                             title={c.metric} benchset={benches} domPrefix={guid} />
-                        <table className="table table-striped">
-                            <tr><th></th><th>{envName}</th><th>Bench Id</th><th>Time</th></tr>
-                            {this.renderLegend(benches)}
-                        </table>
+                        <Collapsible triggerText="Benches">
+                            {this.renderTable(c.kind, groupEnv, xEnv, benches)}
+                        </Collapsible>
                     </div>);
         });
     }
