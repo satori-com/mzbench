@@ -122,8 +122,7 @@ evaluate_time_offset(Node, SleepInterval) ->
         end,
 
     Res = [ CalcOffset() || _ <- lists:seq(1, 10) ],
-    {RoundTripTime, TimeOffset} = lists:min(Res),
-    system_log:info("Time sync at ~p: ~p (~p) / ~p", [node(), TimeOffset, RoundTripTime, Res]),
+    {_RoundTripTime, TimeOffset} = lists:min(Res),
 
     TimeOffset.
 

@@ -171,8 +171,6 @@ code_change(_OldVsn, State, _Extra) ->
 start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     WorkersNumFun = fun () -> eval_worker_number(Pool, Env, NumNodes, Offset) end,
     {Script, WorkerNumber, StartDelay} = WorkersNumFun(),
-    system_log:info("WorkerNumber at node ~p: ~p, Offset: ~p, NumNodes: ~p",
-        [node(), WorkerNumber, Offset, NumNodes]),
     #operation{name = pool, args = [PoolOpts|_], meta = Meta} = Pool,
     Name = proplists:get_value(pool_name, Meta),
 
@@ -184,7 +182,6 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
     Node = node(),
     WorkerStartFun = fun (WNum, StartingFrom) ->
         Numbers = lists:seq(0, WNum - 1),
-        system_log:info("Worker offsets: ~p", [Numbers]),
         StartTime = msnow(),
         lists:foreach(fun(N) ->
                         worker_start_delay(StartDelay, NumNodes, N, StartTime),

@@ -21,7 +21,7 @@ provision_nodes(Config, Logger) ->
     } = Config,
 
     UniqHosts = lists:usort([DirectorHost|WorkerHosts]),
-    Logger(info, "Provisioning nodes: ~p~nWith config: ~p", [UniqHosts, Config]),
+    Logger(info, "Provisioning ~p nodes with config:~n~p", [length(UniqHosts), Config]),
     RootDir = mzb_api_bench:remote_path("", Config),
     ok = ensure_dir(UserName, UniqHosts, RootDir, Logger),
 
@@ -88,7 +88,6 @@ ntp_check(_, [H], Logger) ->
 ntp_check(UserName, Hosts, Logger) ->
     MaxTimeDiff = application:get_env(mzbench_api, ntp_max_timediff_s, undefined),
     try lists:map(fun(X) ->
-        Logger(info, "ntpdate response: ~p", [X]),
         [_, T | _] = lists:reverse(string:tokens(X, " \n")),
         {F, []} = string:to_float(T), erlang:round(?MICROSEC_IN_SEC*F) end,
         mzb_subprocess:remote_cmd(UserName, Hosts, "ntpdate -q pool.ntp.org", [], Logger)) of
@@ -135,18 +134,21 @@ ensure_file_content(Hosts, Content, Filepath,
     ok = ensure_file(UserName, Hosts, Localfile, Remotefile, Logger),
     ok = file:delete(Localfile).
 
+ensure_file(_UserName, [Host], LocalPath, RemotePath, Logger) when Host == "localhost"; Host == "127.0.0.1" ->
+    Logger(info, "[ COPY ] ~s -> ~s", [LocalPath, RemotePath]),
+    {ok, _} = file:copy(LocalPath, RemotePath),
+    ok;
 ensure_file(UserName, Hosts, LocalPath, RemotePath, Logger) ->
+    UserNameParam =
+        case UserName of
+            undefined -> "";
+            _ -> io_lib:format("~s@", [UserName])
+        end,
+    Logger(info, "[ SCP ] ~s -> ~s<HOST>:~s~n  for ~p", [LocalPath, UserNameParam, RemotePath, Hosts]),
     _ = mzb_lists:pmap(
-        fun (Local) when Local == "localhost"; Local == "127.0.0.1" ->
-                Logger(info, "[ COPY ] ~s -> ~s", [LocalPath, RemotePath]),
-                {ok, _} = file:copy(LocalPath, RemotePath);
-            (Host) ->
-                UserNameParam =
-                    case UserName of
-                        undefined -> "";
-                        _ -> io_lib:format("~s@", [UserName])
-                    end,
-                mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s", [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], Logger)
+        fun (Host) ->
+            mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s ~s~s:~s",
+                [LocalPath, UserNameParam, Host, RemotePath], [stderr_to_stdout], fun (_, _, _) -> ok end)
         end, Hosts),
     ok.
 
@@ -175,18 +177,20 @@ vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port
 
     io_lib:format(string:join([A ++ "~n" || A <- NewArgs ++ ConfigArgs], ""), []).
 
-get_host_os_id(UserName, Host, Logger) ->
-    string:to_lower(mzb_string:char_substitute(lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], "uname -sr", [], Logger, [])), $ , $-)).
+get_host_os_id(UserName, Hosts, Logger) ->
+    OSIds = mzb_subprocess:remote_cmd(UserName, Hosts, "uname -sr", [], Logger, []),
+    [string:to_lower(mzb_string:char_substitute(lists:flatten(ID), $ , $-)) || ID <- OSIds].
 
-get_host_erts_version(UserName, Host, Logger) ->
-    lists:flatten(mzb_subprocess:remote_cmd(UserName, [Host], 
+get_host_erts_version(UserName, Hosts, Logger) ->
+    Versions = mzb_subprocess:remote_cmd(UserName, Hosts,
         "erl -noshell -eval 'io:fwrite(\\\"~s\\\", [erlang:system_info(version)]).' -s erlang halt", 
-        [], Logger, [])).
+        [], Logger, []),
+    [lists:flatten(V) || V <- Versions].
 
-get_host_system_id(UserName, Host, Logger) ->
-    OSId = get_host_os_id(UserName, Host, Logger),
-    ERTSVersion = get_host_erts_version(UserName, Host, Logger),
-    mzb_string:format("~s_erts-~s", [OSId, ERTSVersion]).
+get_host_system_id(UserName, Hosts, Logger) ->
+    OSIds = get_host_os_id(UserName, Hosts, Logger),
+    ERTSVersions = get_host_erts_version(UserName, Hosts, Logger),
+    [{H, mzb_string:format("~s_erts-~s", [Id, ERTS])} || {H, Id, ERTS} <- lists:zip3(Hosts, OSIds, ERTSVersions)].
 
 download_file(User, Host, FromFile, ToFile, Logger) ->
     _ = case Host of
@@ -220,7 +224,7 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
     PackagesDir = mzb_api_paths:tgz_packages_dir(),
     HostsAndOSs = case InstallSpec of
         #git_install_spec{build = "local"} -> [{H, "noarch"} || H <- Hosts];
-        _ -> mzb_lists:pmap(fun (Host) -> {Host, get_host_system_id(User, Host, Logger)} end, Hosts)
+        _ -> get_host_system_id(User, Hosts, Logger)
     end,
     ok = filelib:ensure_dir(PackagesDir ++ "/"),
     UniqueOSs = lists:usort([OS || {_Host, OS} <- HostsAndOSs]),
@@ -243,25 +247,21 @@ install_package(Hosts, PackageName, InstallSpec, InstallationDir, Config, Logger
             try
                 case lists:member(OS, OSsWithMissingTarballs) of
                     true ->
-                        Logger(info, "Building package ~s on ~s", [PackageName, Host]),
                         build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger),
                         case lists:keyfind(OS, 2, HostsAndOSs) of
                             {Host, OS} ->
                                 Logger(info, "Downloading package ~s from ~s", [PackageName, Host]),
                                 download_file(User, Host, RemoteTarballPath, LocalTarballPath, Logger);
                             _ ->
-                                Logger(info, "Not downloading package ~s from ~s", [PackageName, Host]),
                                 ok
                         end;
                     false ->
-                        Logger(info, "Uploading package ~s to ~s", [PackageName, Host]),
                         ensure_file(User, [Host], LocalTarballPath, RemoteTarballPath, Logger)
                 end,
                 % Extract tgz to tmp directory and then rsync it to the installation directory in order to prevent
                 % different nodes provisioning to affect each other (if we ran several nodes on one host)
-                ExtractCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s", [ExtractDir, ExtractDir, RemoteTarballPath]),
-                _ = mzb_subprocess:remote_cmd(User, [Host], ExtractCmd, [], Logger),
-                InstallationCmd = mzb_string:format("mkdir -p ~s && rsync -aW ~s/ ~s", [InstallationDir, ExtractDir, InstallationDir]),
+                InstallationCmd = mzb_string:format("mkdir -p ~s && cd ~s && tar xzf ~s && mkdir -p ~s && rsync -aW ~s/ ~s",
+                    [ExtractDir, ExtractDir, RemoteTarballPath, InstallationDir, ExtractDir, InstallationDir]),
                 _ = mzb_subprocess:remote_cmd(User, [Host], InstallationCmd, [], Logger)
             after
                 RemoveCmd = mzb_string:format("rm -rf ~s; rm -rf ~s; true", [RemoteTarballPath, ExtractDir]),

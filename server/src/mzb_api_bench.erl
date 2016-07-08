@@ -180,7 +180,7 @@ handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State)
         _ -> ok
     end,
 
-    info("Starting benchmark at ~b ~p", [StartTime, Config], State);
+    info("Starting benchmark at ~b~n~p", [StartTime, Config], State);
 
 handle_stage(pipeline, checking_script, #{config:= Config}) ->
     #{script:= #{body:= ScriptBody}} = Config,
@@ -195,7 +195,9 @@ handle_stage(pipeline, checking_script, #{config:= Config}) ->
 handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     {Hosts, UserName, Deallocator} = allocate_hosts(Config, get_logger(State)),
 
-    info("Allocated hosts: [~p] @ ~p", [UserName, Hosts], State),
+    if length(Hosts) > 1 -> info("Allocated hosts: [~p] @~n~p", [UserName, Hosts], State);
+       true -> info("Allocated hosts: [~p] @ ~p", [UserName, Hosts], State)
+    end,
 
     fun (S) ->
         S#{config => Config#{

@@ -90,7 +90,6 @@ init([]) ->
     {ok, #s{}}.
 
 handle_call({set_nodes, Nodes}, _From, #s{} = State) ->
-    system_log:info("Nodes are: ~p~n", [Nodes]),
     {reply, {ok}, State#s{nodes = Nodes}};
 handle_call({check, Name}, From, #s{queue = Q} = State) ->
     case length(ets:lookup(?MODULE, {signal, Name})) > 0 of

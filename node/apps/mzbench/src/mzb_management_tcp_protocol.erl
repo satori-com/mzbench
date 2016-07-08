@@ -29,7 +29,6 @@ start_link(Ref, Socket, Transport, Opts) ->
     proc_lib:start_link(?MODULE, init, [Ref, Socket, Transport, Opts]).
 
 dispatch({request, Ref, Msg}, State) ->
-    system_log:info("Received request: ~p", [Msg]),
     ReplyFun = fun (Reply) -> send_message({response, Ref, {result, Reply}}, State) end,
     try handle_message(Msg, ReplyFun) of
         {reply, Reply} -> ReplyFun(Reply);

@@ -36,7 +36,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
                 end
         end,
 
-    Logger(info, "[ REMOTE EXEC ] ~s at ~p", [CmdFormater("<HOST>"), Hosts]),
+    Logger(info, "[ REMOTE EXEC ] ~s~n  at ~p", [CmdFormater("<HOST>"), Hosts]),
 
     try
         mzb_lists:pmap(
@@ -69,8 +69,6 @@ exec_format(Format, Args, Opts, Logger, Handler, InitState) ->
     Port = open_port({spawn, lists:flatten(Command)}, [stream, eof, exit_status | Opts]),
     case get_data(Port, Handler, InitState) of
         {0, Output} ->
-            Duration = timer:now_diff(os:timestamp(), BeforeExec),
-            Logger(info,  "[ EXEC ] OK in ~p ms (~p)", [Duration / 1000, self()]),
             string:strip(Output, right, $\n);
         {Code, Output} ->
             Duration = timer:now_diff(os:timestamp(), BeforeExec),

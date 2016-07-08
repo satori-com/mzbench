@@ -108,7 +108,6 @@ load_config([File|T]) ->
                           end, Config),
             ok;
         {error, enoent} ->
-            system_log:info("Config file not found: ~p", [File]),
             load_config(T);
         {error, Reason} ->
             system_log:error("Could not open file ~p, reason ~p", [File, Reason])
