@@ -1,0 +1,14 @@
+#!benchDL
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/tcpkali")
+
+pool(size = numvar("nodes_num"), worker_type = tcpkali_worker):
+    start(url = "127.0.0.1:80",
+          duration = "20s",
+          message_rate = "10",
+          rcvbuf = "200000",
+          sndbuf = "200000",
+          message = "test")
+
+# For more information on tcpkali options please refer to tcpkali doc
+# https://github.com/machinezone/tcpkali/blob/master/README.md
