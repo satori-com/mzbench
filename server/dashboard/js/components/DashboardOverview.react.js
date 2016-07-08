@@ -69,7 +69,7 @@ class DashboardOverview extends React.Component {
             </table>);
         if (kind == "group")
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{xEnv} - X</th><th>{name}</th></tr>
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{xEnv}</th><th>{name}</th></tr>
                 {this.renderLegend(benches)}
             </table>);
         if (kind == "regression")
@@ -90,7 +90,7 @@ class DashboardOverview extends React.Component {
 
             let guid = "compare-" + idx;
             let groupEnv = Misc.ucfirst(c.group_env);
-            let xEnv = Misc.ucfirst(c.group_env);
+            let xEnv = Misc.ucfirst(c.x_env);
 
             return (<div key={idx}>
                         <p className="dashboard">{c.description}</p>

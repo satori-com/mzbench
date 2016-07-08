@@ -284,6 +284,7 @@ class Graph extends React.Component {
         let graph_options = {
             title: this.props.title,
             y_label: this.props.units,
+            x_label: this.props.x_env,
             missing_text: "Loading...",
 
             buffer: 0,
