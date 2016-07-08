@@ -160,7 +160,7 @@ class DashboardEdit extends React.Component {
                     </div>
                     <div className="row">
                       <div className="form-group col-md-6">
-                        <label>{(chart.kind == "group") ? "Env var for groups" : "Env var for caption"}</label>
+                        <label>{(chart.kind == "compare") ? "Env var for caption" : "Env var for groups"}</label>
                         <Autosuggest suggestions={this.state.group_suggestions[idx]}
                            getSuggestionValue={this._suggestion.getSuggestionValue}
                            onSuggestionsUpdateRequested={this._onGroupSuggestionsUpdateRequested(idx)}

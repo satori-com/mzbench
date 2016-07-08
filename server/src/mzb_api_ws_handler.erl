@@ -467,7 +467,7 @@ get_bench_env(EnvName, #{env:= Env}) ->
 add_to_benchset(Acc, "group", Value, Name, X, Id, Time) ->
     add_to_group(Acc, Value, Name, X, Id, Time);
 add_to_benchset(Acc, "regression", Value, Name, _X, Id, Time) ->
-    [#{name => Name, benches => [#{id => Id, time => Time, final => Value}]} | Acc];
+    add_to_regression(Acc, Value, Name, Id, Time);
 add_to_benchset(Acc, _, _, Name, _X, Id, Time) ->
     [#{name => Name, benches => [#{id => Id, time => Time}]} | Acc].
 
@@ -477,6 +477,13 @@ add_to_group([#{name := Name, benches := B} | Rest], Value, Name, X, Id, Time) -
     [#{name => Name, benches => [#{id => Id, time => Time, x => X, final => Value} | B]} | Rest];
 add_to_group([C | Rest], Value, Name, X, Id, Time) ->
     [C | add_to_group(Rest, Value, Name, X, Id, Time)].
+
+add_to_regression([], Value, Name, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time, final => Value}]}];
+add_to_regression([#{name := Name, benches := B} | Rest], Value, Name, Id, Time) ->
+    [#{name => Name, benches => [#{id => Id, time => Time, final => Value} | B]} | Rest];
+add_to_regression([C | Rest], Value, Name, Id, Time) ->
+    [C | add_to_regression(Rest, Value, Name, Id, Time)].
 
 get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
     Data = lists:map(fun(BenchId) ->

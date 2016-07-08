@@ -61,7 +61,7 @@ class DashboardOverview extends React.Component {
         });
     }
 
-    renderTable(kind, groupEnv, xEnv, benches) {
+    renderTable(name, kind, groupEnv, xEnv, benches) {
         if (kind == "compare") 
             return (<table className="table table-striped">
                 <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th></tr>
@@ -69,12 +69,12 @@ class DashboardOverview extends React.Component {
             </table>);
         if (kind == "group")
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>X</th><th>Value</th></tr>
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{xEnv} - X</th><th>{name}</th></tr>
                 {this.renderLegend(benches)}
             </table>);
         if (kind == "regression")
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>Value</th></tr>
+                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{name}</th></tr>
                 {this.renderLegend(benches)}
             </table>);
     }
@@ -97,7 +97,7 @@ class DashboardOverview extends React.Component {
                         <Graph targets={targets} kind={c.kind} x_env={c.x_env}
                             title={c.metric} benchset={benches} domPrefix={guid} />
                         <Collapsible triggerText="Show benches" triggerTextWhenOpen="Hide benches">
-                            {this.renderTable(c.kind, groupEnv, xEnv, benches)}
+                            {this.renderTable(c.metric, c.kind, groupEnv, xEnv, benches)}
                         </Collapsible>
                     </div>);
         });
