@@ -384,10 +384,7 @@ class Graph extends React.Component {
                             let Id = B.benches[0].id;
                             this.streams.push(new _DataStream(B.name+":"+Id, false, m, Id, this.props.kind, [], ""));
                         });
-                    } else if (this.props.kind == "regression") {
-                        let Ids = this.props.benchset.map((B) => B.benches[0].id);
-                        this.streams.push(new _DataStream(metric, false, m, undefined, this.props.kind, Ids, ""));
-                    } else if (this.props.kind == "group") {
+                    } else if ((this.props.kind == "group") || (this.props.kind == "regression")) {
                         this.props.benchset.forEach((B) => {
                             let Ids = B.benches.map((bench) => bench.id);
                             this.streams.push(new _DataStream(B.name, false, m, undefined, this.props.kind, Ids, this.props.x_env));
