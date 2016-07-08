@@ -467,5 +467,7 @@ p.dashboard {
 }
 
 a.Collapsible__trigger {
-  padding-left: 40px;
+  padding: 6px 20px 6px 40px;
+  display: inline-block;
+  margin-bottom: 20px;
 }

@@ -1,6 +1,7 @@
 import moment from 'moment';
 import React from 'react';
 import MetricsStore from '../stores/MetricsStore';
+import BenchStore from '../stores/BenchStore';
 
 const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
@@ -154,7 +155,7 @@ class Graph extends React.Component {
             return "" + rawDate;
 
         if (this.props.kind == "regression")
-            return moment(rawDate).format("lll");
+            return moment(rawDate * 1000).add(BenchStore.getServerDateDiff()).format("lll");
 
         const absDate = (rawDate < 0)?-1*rawDate:rawDate;
         const negDate = rawDate < 0;
