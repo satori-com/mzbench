@@ -7,7 +7,7 @@
 % For Common and EUnit tests
 -export([time_of_next_iteration/3, msnow/0]).
 
--define(MAXSLEEP, 10000).
+-define(MAXSLEEP, 1000).
 
 -include("mzbl_types.hrl").
 
@@ -81,8 +81,6 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
             poisson = Poisson
         },
     case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
-        [#constant{value = 0, units = rps}] ->
-            {nil, State4};
         [#constant{value = _, units = _} = RPS] ->
             RPSFun = Evaluator(RPS),
             looprun(TimeFun, #const_rate{rate_fun = RPSFun}, Body, WorkerProvider, State4, Env, Opts);
@@ -114,10 +112,12 @@ msnow() ->
     -> number().
 time_of_next_iteration(#const_rate{value = undefined}, _, _) -> 0;
 time_of_next_iteration(#const_rate{value = 0}, Duration, _) -> Duration * 2; % should be more than loop length "2" does not stand for anything important
+time_of_next_iteration(#const_rate{value = 0.0}, Duration, _) -> Duration * 2;
 time_of_next_iteration(#const_rate{value = Rate}, _Duration, IterationNumber) ->
     (IterationNumber * 1000) / Rate;
-time_of_next_iteration(#linear_rate{from = Rate, to = Rate}, _, IterationNumber) ->
-    (IterationNumber * 1000) / Rate;
+time_of_next_iteration(#linear_rate{from = F, to = T}, Duration, _) when F == 0, T == 0 -> Duration * 2; % we want to match 0 and 0.0 hence the guard usage
+time_of_next_iteration(#linear_rate{from = Rate1, to = Rate2}, _, IterationNumber) when Rate1 == Rate2 ->
+    (IterationNumber * 1000) / Rate1;
 time_of_next_iteration(#linear_rate{from = StartRPS, to = FinishRPS}, RampDuration, IterationNumber) ->
     % This function solves the following equation for Elapsed:
     %
@@ -178,7 +178,6 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
     ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
-
     Remain = round(ShouldBe) - LocalTime,
     GotTime = round(Time) - LocalTime,
 
