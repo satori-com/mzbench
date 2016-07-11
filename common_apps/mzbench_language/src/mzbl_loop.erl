@@ -12,14 +12,14 @@
 -include("mzbl_types.hrl").
 
 -record(const_rate, {
-    rate_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
-    value    = undefined :: undefined | integer()
+    rate_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | number(), NewState :: term()}),
+    value    = undefined :: undefined | number()
 }).
 -record(linear_rate, {
-    from_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
-    to_fun   = undefined :: fun((State :: term()) -> {Rate :: undefined | integer(), NewState :: term()}),
-    from     = undefined :: undefined | integer(),
-    to       = undefined :: undefined | integer()
+    from_fun = undefined :: fun((State :: term()) -> {Rate :: undefined | number(), NewState :: term()}),
+    to_fun   = undefined :: fun((State :: term()) -> {Rate :: undefined | number(), NewState :: term()}),
+    from     = undefined :: undefined | number(),
+    to       = undefined :: undefined | number()
 }).
 
 -record(opts, {
