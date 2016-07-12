@@ -11,6 +11,7 @@
     stop_bench/1,
     change_env/2,
     get_info/0,
+    get_info/5,
     bench_finished/2,
     status/1,
     server_data_dir/0,
@@ -138,6 +139,81 @@ get_info() ->
                 [{Id, Status}|Acc]
         end, [], benchmarks).
 
+get_info(Filter, undefined, undefined, undefined, Limit) ->
+    {Res, Min, _} = getprev(ets:last(benchmarks), Filter, Limit, []),
+    {Res, Min, undefined};
+get_info(Filter, Max, undefined, undefined, Limit) when is_integer(Max) ->
+    getprev(ets:prev(benchmarks, Max), Filter, Limit, []);
+get_info(Filter, undefined, Id, undefined, Limit) when is_integer(Id) ->
+    {Res, _Min, Max} = getnext(Id, Filter, Limit, []),
+    L = length(Res),
+    if
+        L < Limit ->
+            {Res2, Min2, _Max2} = getprev(ets:prev(benchmarks, Id), Filter, Limit - L, []),
+            {Res ++ Res2, Min2, Max};
+        true ->
+            {Res2, Min2, Max2} = getprev(ets:prev(benchmarks, Id), Filter, Limit, []),
+            L2 = length(Res2),
+            if
+                L2 < Limit ->
+                    {Res3, _Min3, Max3} = getnext(ets:next(benchmarks, Id), Filter, Limit - L2, []),
+                    {Res3 ++ Res2, Min2, Max3};
+                true ->
+                    {Res2, Min2, Max2}
+            end
+    end;
+get_info(Filter, undefined, undefined, Min, Limit) when is_integer(Min) ->
+    {Res1, Min1, Max1} = getnext(ets:next(benchmarks, Min), Filter, Limit, []),
+    L = length(Res1),
+    if
+        L < Limit ->
+            {Res2, Min2, _} = getprev(Min, Filter, Limit - L, []),
+            {Res1 ++ Res2, Min2, Max1};
+        true ->
+            {Res1, Min1, Max1}
+    end.
+
+getprev('$end_of_table', _, _Limit, Acc) ->
+    Res = lists:reverse(Acc),
+    {_Min, Max} = get_boundaries(Res),
+    {Res, undefined, Max};
+getprev(_, _, Limit, Acc) when length(Acc) >= Limit ->
+    Res = lists:reverse(Acc),
+    {Min, Max} = get_boundaries(Res),
+    {Res, Min, Max};
+getprev(Id, Filter, Limit, Acc) ->
+    try Filter({Id, status(Id)}) of
+        [] -> getprev(ets:prev(benchmarks, Id), Filter, Limit, Acc);
+        [S] -> getprev(ets:prev(benchmarks, Id), Filter, Limit, [S|Acc])
+    catch
+        error:{not_found, _} ->
+            Res = lists:reverse(Acc),
+            {Min, Max} = get_boundaries(Res),
+            {Res, Min, Max}
+    end.
+
+getnext('$end_of_table', _, _Limit, Acc) ->
+    {Min, _Max} = get_boundaries(Acc),
+    {Acc, Min, undefined};
+getnext(_, _, Limit, Acc) when length(Acc) >= Limit ->
+    {Min, Max} = get_boundaries(Acc),
+    {Acc, Min, Max};
+getnext(Id, Filter, Limit, Acc) ->
+    try Filter({Id, status(Id)}) of
+        [] -> getnext(ets:next(benchmarks, Id), Filter, Limit, Acc);
+        [S] -> getnext(ets:next(benchmarks, Id), Filter, Limit, [S|Acc])
+    catch
+        error:{not_found, _} ->
+            {Min, Max} = get_boundaries(Acc),
+            {Acc, Min, Max}
+    end.
+
+get_boundaries([]) -> {undefined, undefined};
+get_boundaries([#{id:= Max}|_] = L) ->
+    [#{id:= Min}|_] = lists:reverse(L),
+    {Min, Max}.
+
+
 email_report(Id, Emails) ->
     lager:info("[ SERVER ] Report req for #~b for emails: ~p", [Id, Emails]),
     Status = case ets:lookup(benchmarks, Id) of
@@ -156,7 +232,7 @@ email_report(Id, Emails) ->
     end.
 
 init([]) ->
-    _ = ets:new(benchmarks, [named_table, set, protected]),
+    _ = ets:new(benchmarks, [named_table, ordered_set, protected]),
     ServerDir = server_data_dir(),
     ok = filelib:ensure_dir(filename:join(ServerDir, ".")),
     MaxId = import_data(ServerDir),

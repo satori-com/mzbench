@@ -178,12 +178,15 @@ dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State) ->
     {reply, #{type => "SERVER_INFO", data => Data}, State};
 
 dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
-    BenchInfos0 = mzb_api_server:get_info(),
-    BenchInfos1 = normalize(BenchInfos0),
-    BenchInfos2 = apply_filter(Cmd, BenchInfos1),
-    {TimelineItems, {MinId, MaxId}} = apply_pagination(Cmd, BenchInfos2),
+    lager:info("Get timeline start"),
+    Limit = mzb_bc:maps_get(<<"limit">>, Cmd, 10),
+    MaxId = mzb_bc:maps_get(<<"max_id">>, Cmd, undefined),
+    MinId = mzb_bc:maps_get(<<"min_id">>, Cmd, undefined),
+    BenchId = mzb_bc:maps_get(<<"bench_id">>, Cmd, undefined),
+    Filter = fun (I) -> apply_filter(Cmd, normalize([I])) end,
+    {TimelineItems, NewMinId, NewMaxId} = mzb_api_server:get_info(Filter, MaxId, BenchId, MinId, Limit),
 
-    KV = [{next, MinId}, {prev, MaxId}],
+    KV = [{next, NewMinId}, {prev, NewMaxId}],
     Pager = maps:from_list([T || T = {_K,V} <- KV, V /= undefined]),
 
     Event = #{
@@ -195,8 +198,9 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State) ->
 
     TimelineIds = [Id || #{id:= Id} <- TimelineItems],
 
+    lager:info("Get timeline end"),
     {reply, Event, State#state{timeline_opts   = Cmd,
-                               timeline_bounds = {MinId, MaxId},
+                               timeline_bounds = {NewMinId, NewMaxId},
                                timeline_items  = TimelineIds}};
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
