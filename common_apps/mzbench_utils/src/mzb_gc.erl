@@ -3,33 +3,32 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(s, {sleep = undefined}).
+-record(s, {
+    sleep = undefined :: undefined | integer()
+}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(Sleep) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Sleep], []).
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
 
-init([]) ->
-    case application:get_env(mzbench, gc_sleep, undefined) of
-        undefined -> ignore;
-        Sleep ->
-            self() ! trigger,
-            {ok, #s{sleep = Sleep}}
-    end.
+init([undefined]) -> ignore;
+init([Sleep]) ->
+    self() ! trigger,
+    {ok, #s{sleep = Sleep}}.
 
 handle_call(_Request, _From, State) ->
    {noreply, State}.
