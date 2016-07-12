@@ -304,7 +304,7 @@ add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = 
         end_time = EndTime, 
         stream_after_eof = StreamAfterEof
     } = StreamParams,
-    lager:info("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, 
+    lager:debug("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, 
                     begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p", 
                     [MetricName, BenchId, StreamId, SubsamplingInterval, BeginTime, EndTime, TimeWindow, StreamAfterEof]),
     Self = self(),
@@ -316,13 +316,13 @@ add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = 
     State#state{metric_streams = maps:put(StreamId, Ref, Streams)}.
 
 add_log_stream(BenchId, StreamId, #state{log_streams = Streams} = State) ->
-    lager:info("Starting streaming logs of the benchmark #~p, stream #~p", [BenchId, StreamId]),
+    lager:debug("Starting streaming logs of the benchmark #~p, stream #~p", [BenchId, StreamId]),
     Pid = self(),
     Ref = erlang:spawn_monitor(fun() -> stream_log(BenchId, StreamId, Pid) end),
     State#state{log_streams = maps:put(StreamId, Ref, Streams)}.
 
 remove_stream(StreamId, Streams) ->
-    lager:info("Stoping stream with stream_id = ~p", [StreamId]),
+    lager:debug("Stoping stream with stream_id = ~p", [StreamId]),
     case maps:find(StreamId, Streams) of
         {ok, Ref} ->
             kill_streamer(Ref),
@@ -561,7 +561,7 @@ stream_metric(Id, Metric, StreamParams, SendFun) ->
     try
         PollTimeout = application:get_env(mzbench_api, bench_poll_timeout, undefined),
         perform_streaming(Id, FileReader, SendFun, StreamParams#stream_parameters{metric_report_interval_sec = ReportIntervalMs div 1000}, PollTimeout),
-        lager:info("Streamer for #~b ~s has finished", [Id, Metric])
+        lager:debug("Streamer for #~b ~s has finished", [Id, Metric])
     after
         FileReader(close)
     end.
