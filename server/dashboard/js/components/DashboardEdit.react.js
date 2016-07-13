@@ -88,7 +88,8 @@ class DashboardEdit extends React.Component {
           type: "text"
         };
 
-        let found = this.state.total === -1 ? "⏳" : this.state.total;
+        let total = this.state.total;
+        let found = total === -1 ? "⏳" : (total == this.props.benchLimit ? `> ${total}` : total);
 
         return (
             <div className="fluid-container">
@@ -313,6 +314,11 @@ class DashboardEdit extends React.Component {
 
 DashboardEdit.propTypes = {
     item: React.PropTypes.object,
+    updateInterval: React.PropTypes.number,
+    benchLimit: React.PropTypes.number
+};
+
+DashboardEdit.defaultProps = {
     updateInterval: 500,
     benchLimit: 20
 };
