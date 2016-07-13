@@ -3,6 +3,7 @@ import React from 'react';
 import Duration from './Duration.react';
 import BenchSummary from './BenchSummary.react';
 import BenchOverviewGraphs from './BenchOverviewGraphs.react';
+import BenchResults from './BenchResults.react';
 
 class BenchOverview extends React.Component {
     render() {
@@ -13,6 +14,7 @@ class BenchOverview extends React.Component {
                 </Duration>
                 <hr />
                 <BenchOverviewGraphs bench={this.props.bench} activeGraph={this.props.activeGraph}/>
+                <BenchResults bench={this.props.bench}/>
             </div>
         );
     }
