@@ -10,7 +10,7 @@
     restart_bench/1,
     stop_bench/1,
     change_env/2,
-    get_info/0,
+    bench_foldl/2,
     get_info/5,
     bench_finished/2,
     status/1,
@@ -131,13 +131,13 @@ remove_tags(Id, Tags) ->
         {error, invalid_benchmark} -> erlang:error({invalid_benchmark, io_lib:format("Benchmark ~p is in invalid state", [Id])})
     end.
 
-get_info() ->
+bench_foldl(Fun, AccInit) ->
     ets:foldl(
         fun ({Id, Pid, undefined}, Acc) ->
-                [{Id, mzb_api_bench:get_status(Pid)}|Acc];
+                Fun(Id, mzb_api_bench:get_status(Pid), Acc);
             ({Id, _, Status}, Acc) ->
-                [{Id, Status}|Acc]
-        end, [], benchmarks).
+                Fun(Id, Status, Acc)
+        end, AccInit, benchmarks).
 
 get_info(Filter, undefined, undefined, undefined, Limit) ->
     {Res, Min, _} = getprev(ets:last(benchmarks), Filter, Limit, []),

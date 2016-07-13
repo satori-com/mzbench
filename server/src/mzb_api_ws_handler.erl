@@ -227,11 +227,10 @@ dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State) ->
                                dashboard_query = Cmd}};
 
 dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
-    BenchInfos0 = mzb_api_server:get_info(),
-    BenchInfos1 = normalize(BenchInfos0),
     Query = mzb_bc:maps_get(<<"criteria">>, Cmd, undefined),
     BenchsetId = mzb_bc:maps_get(<<"benchset_id">>, Cmd, 0),
-    BenchInfos2 = apply_filter(Query, BenchInfos1),
+    Filter = fun (I) -> apply_filter(Query, normalize([I])) end,
+    {BenchInfos0, Min, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, _MaxBenchsetSize = 200),
 
     Sets = lists:map(fun(Chart) ->
               Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, undefined)),
@@ -239,13 +238,14 @@ dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
               Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
               GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, undefined)),
               XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, undefined)),
-              benchset(BenchInfos2, Metric, Kind, Size, GroupEnv, XEnv)
+              benchset(BenchInfos0, Metric, Kind, Size, GroupEnv, XEnv)
              end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
 
     Event = #{
                type => "BENCHSET",
                data => Sets,
-               benchset_id => BenchsetId
+               benchset_id => BenchsetId,
+               next_id => Min
              },
     {reply, Event, State};
 
@@ -430,11 +430,12 @@ kill_streamer({Pid, Ref}) ->
     erlang:exit(Pid, aborted).
 
 get_all_tags() ->
-    BenchInfos = mzb_api_server:get_info(),
-    lists:map(fun erlang:list_to_atom/1,
-        lists:usort(lists:foldl(fun({_Id, #{config := Config}}, Acc) ->
-                Acc ++ mzb_bc:maps_get(tags, Config, []) end, [], BenchInfos))).
-
+    Tags = mzb_api_server:bench_foldl(
+        fun (_, #{config:= Config}, Acc) ->
+                mzb_bc:maps_get(tags, Config, []) ++ Acc;
+            (_, _, Acc) -> Acc
+        end, []),
+    [list_to_binary(T) || T <- lists:usort(Tags)].
 
 benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv) ->
     benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv, []).
