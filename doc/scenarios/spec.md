@@ -1,6 +1,4 @@
-In MZBench, scenarios are .erl files written in a special DSL. Think of it as a simplified, declarative version of Erlang.
-
-*[DSL]: Domain-Specific Language
+In MZBench, scenarios are .erl files written in a special DSL (domain specific language). Think of it as a simplified, declarative version of Erlang.
 
 MZBench test scenarios consist of *lists*, *tuples*, and *atoms*:
 
