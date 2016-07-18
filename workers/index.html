@@ -207,7 +207,7 @@
 <p>All <a href="../scenarios/spec/#make_install"><code>make_install</code></a> top-level statements are ignored in this execution mode.</p>
 </div>
 <h3 id="execute">Execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h3>
-<p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/spec/#make_install"><code>{make_install, [{git, &lt;URL&gt;}, {branch, &lt;Branch&gt;}, {dir, &lt;Dir&gt;}]}</code></a>.</p>
+<p>After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker&rsquo;s git address in your benchmark scenario with <a href="../scenarios/spec/#make_install"><code>make_install(git = &lt;URL&gt;, branch = &lt;Branch&gt;, dir = &lt;Dir&gt;)</code></a>.</p>
 <p><a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">Simple HTTP worker example →</a></p>
 <h2 id="how-to-write-an-erlang-worker">How to write an Erlang worker<a class="headerlink" href="#how-to-write-an-erlang-worker" title="Permanent link">&para;</a></h2>
 <div class="admonition note">
@@ -216,54 +216,61 @@
 </div>
 <h3 id="the-erlang-worker-structure">The Erlang Worker Structure<a class="headerlink" href="#the-erlang-worker-structure" title="Permanent link">&para;</a></h3>
 <p>A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.</p>
-<p>To understand the general structure of a worker, let&rsquo;s see the source code of the <code>dummy_worker</code> provided with the MZBench distribution:</p>
-<pre><code class="erlang">-module(dummy_worker).
+<p>To understand the general structure of a worker, let&rsquo;s see the source code of the <code>simple_http_worker</code> provided with the MZBench distribution:</p>
+<pre><code class="erlang">-module(simple_http_worker).
+
 -export([initial_state/0, metrics/0,
-         print/3]).
+         get/3]).
 
--include(&quot;mzb_types.hrl&quot;).
-
--type state() :: string().
--type meta() :: [{Key :: atom(), Value :: any()}].
-
--type graph_group() :: {group, Name :: string(), [graph()]}
-                     | graph().
--type graph()       :: {graph, Opts :: #{metrics =&gt; [metric()],
-                                         units =&gt; string(),
-                                         title =&gt; string()}}
-                     | [metric()]
-                     | metric().
--type metric()      :: {Name :: string(), Type :: metric_type() }
-                     | {Name :: string(), Type :: metric_type(), Opts :: map() }.
--type metric_type() :: counter | gauge | histogram.
-
--spec initial_state() -&gt; state().
 initial_state() -&gt; [].
 
--spec metrics() -&gt; [graph_group()].
-metrics() -&gt; [{group, &quot;Application Metrics&quot;, [
-                {graph, #{ title =&gt; &quot;Dummy counter&quot;,
-                           units =&gt; &quot;budger&quot;,
-                           metrics =&gt; [{&quot;dummy_counter&quot;, counter}]}}
-             ]}].
+metrics() -&gt;
+    [
+        {group, &quot;Summary&quot;, [
+            {graph, #{title =&gt; &quot;HTTP Response&quot;,
+                      units =&gt; &quot;N&quot;,
+                      metrics =&gt; [{&quot;http_ok&quot;, counter}, {&quot;http_fail&quot;, counter}, {&quot;other_fail&quot;, counter}]}},
+            {graph, #{title =&gt; &quot;Latency&quot;,
+                      units =&gt; &quot;microseconds&quot;,
+                      metrics =&gt; [{&quot;latency&quot;, histogram}]}}
+        ]}
+    ].
 
--spec print(state(), meta(), string()) -&gt; {nil, state()}.
-print(State, Meta, Text) -&gt;
-    mzb_metrics:notify({&quot;dummy_counter&quot;, counter}, 1),
-    lager:info(&quot;Printing ~p, Meta: ~p~n&quot;, [Text, Meta]),
+get(State, _Meta, URL) -&gt;
+    StartTime = os:timestamp(),
+    Response = hackney:request(get, list_to_binary(URL), [], &lt;&lt;&quot;&quot;&gt;&gt;, []),
+
+    case Response of
+        {ok, _, _, BodyRef} -&gt; hackney:skip_body(BodyRef);
+        _ -&gt; ok
+    end,
+
+    Latency = timer:now_diff(os:timestamp(), StartTime),
+    mzb_metrics:notify({&quot;latency&quot;, histogram}, Latency),
+
+    case Response of
+        {ok, 200, _, _} -&gt;
+            mzb_metrics:notify({&quot;http_ok&quot;, counter}, 1);
+        {ok, _, _, _} = Reply -&gt;
+            lager:error(&quot;GET failed: ~p&quot;, [Reply]),
+            mzb_metrics:notify({&quot;http_fail&quot;, counter}, 1);
+        E -&gt;
+            lager:error(&quot;hackney:request failed: ~p&quot;, [E]),
+            mzb_metrics:notify({&quot;other_fail&quot;, counter}, 1)
+    end,
     {nil, State}.
 </code></pre>
 
-<p>It exports three functions: <code>initial_state/0</code>, <code>metrics/0</code>, and <code>print/3</code>. The first two are mandatory for any worker. </p>
+<p>It exports three functions: <code>initial_state/0</code>, <code>metrics/0</code>, and <code>get/3</code>. The first two are mandatory for any worker. </p>
 <dl>
 <dt><code>initial_state/0</code></dt>
 <dd>Set the worker&rsquo;s initial state. Each parallel job has its own state, so this function will be called once per job start.</dd>
 <dt><code>metrics/0</code></dt>
 <dd>Return a group of metrics generated by this worker. <a href="#declaring-metrics">Declaring Metrics</a>.</dd>
 </dl>
-<p>The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>dummy_worker</code>, for instance, provides the <code>print</code> statement to output a string to the standard output. </p>
+<p>The rest of the exported functions define the BDL statements provided by this worker. You can, of course, provide none, although such a worker wouldn&rsquo;t be very useful. The <code>simple_http_worker</code>, for instance, provides the <code>get</code> statement to fetch particular HTTP document.</p>
 <h3 id="how-to-define-statements">How to Define Statements<a class="headerlink" href="#how-to-define-statements" title="Permanent link">&para;</a></h3>
-<p>To define a DSL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:</p>
+<p>To define a BDL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:</p>
 <pre><code class="erlang">&lt;statement_name&gt;(State, Meta, [&lt;Param1&gt;, [&lt;Param2&gt;, ...]]) -&gt;
     {ReturnValue, NewState}.
 </code></pre>
@@ -274,14 +281,21 @@ print(State, Meta, Text) -&gt;
     {nil, State}.
 </code></pre>
 
-<p>is called as <code>{foo, X, Y}</code> from a benchmarking scenario.</p>
+<p>is called as <code>foo(X, Y)</code> from a benchmarking scenario.</p>
+<p>If you want to use key arguments at your function call as <code>foo(x = 1, y = 2)</code>, you need to declare three argument function foo and expect third parameter to be <a href="http://erlang.org/doc/man/proplists.html">proplist</a>. For example:</p>
+<pre><code class="erlang">foo(State, Meta, Proplist) -&gt;
+    1 = proplists:get_value(x, Proplist),
+    2 = proplists:get_value(y, Proplist),
+    {nil, State}.
+</code></pre>
+
 <p>The statement function must return a tuple of two values:</p>
 <ul>
 <li>the return value of statement; return <code>nil</code> if your statement has no return value</li>
 <li>the next worker state</li>
 </ul>
 <p>Statements are processed sequentially; each statement receives the state from the previous one and passes it further.</p>
-<p>Two exceptions are the statements within the <a href="../scenarios/spec/#parallel_1"><code>{parallel}</code></a> section and iterations within a <code>{loop}</code> with <a href="../scenarios/spec/#parallel">parallel &gt; 1</a>. In these cases the statements within the same thread share the same sequence of statements, which parallel threads don&rsquo;t. The final state of the whole <code>{parallel}</code> or <code>{loop}</code> statement is the one from the first &ldquo;thread&rdquo;; other threads&rsquo; states don&rsquo;t affect the final state.</p>
+<p>Two exceptions are the statements within the <a href="../scenarios/spec/#parallel_1"><code>parallel</code></a> section and iterations within a <code>loop</code> with <a href="../scenarios/spec/#parallel">parallel &gt; 1</a>. In these cases the statements within the same thread share the same sequence of statements, which parallel threads don&rsquo;t. The final state of the whole <code>parallel</code> or <code>loop</code> statement is the one from the first &ldquo;thread&rdquo;; other threads&rsquo; states don&rsquo;t affect the final state.</p>
 <h3 id="metrics">Metrics<a class="headerlink" href="#metrics" title="Permanent link">&para;</a></h3>
 <p>Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.</p>
 <h4 id="metric-types">Metric Types<a class="headerlink" href="#metric-types" title="Permanent link">&para;</a></h4>
@@ -344,20 +358,19 @@ pending_requests() -&gt;
 <h4 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h4>
 <p><a href="../scenarios/spec/#pre_hook-and-post_hook">Pre and post hooks</a> let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.</p>
 <p>Scenario:</p>
-<pre><code class="erlang">{pre_hook, [
-    {exec, all, &quot;yum install zlib&quot;},
-    {worker_call, fetch_commit, my_worker}
-]}
+<pre><code class="python">pre_hook():
+    exec(all, &quot;yum install mylib&quot;)
+    worker_call(fetch_url, simple_http_worker)
 
-{pool, [{size, 3}, {worker_type, dummy_worker}], [
-    {loop, [{time, {1, sec}},
-            {rate, {ramp, linear, {10, rps}, {50, rps}}}],
-        [{print, {var, &quot;commit&quot;, &quot;default&quot;}}]}]},
+pool(size = 3, worker_type = simple_http_worker):
+    loop(time = 1 sec,
+         rate = ramp(linear, 10 rps, 50 rps)):
+        get(var(&quot;url&quot;, &quot;http://mydomain.com&quot;))
 </code></pre>
 
 <p>Worker:</p>
-<pre><code class="erlang">fetch_commit(Env) -&gt;
-    {ok, [{&quot;commit&quot;, &quot;0123456&quot;} | Env]}.
+<pre><code class="erlang">fetch_url(Env) -&gt;
+    {ok, [{&quot;url&quot;, &quot;http://mycdn.com/myresource&quot;} | Env]}.
 </code></pre>
 
 <h3 id="updating-metrics">Updating Metrics<a class="headerlink" href="#updating-metrics" title="Permanent link">&para;</a></h3>
@@ -420,12 +433,12 @@ def my_print(msg):
     pass
 </code></pre>
 
-<p>is called as <code>{foo, X, Y}</code> from a benchmarking scenario.</p>
+<p>is called as <code>foo(X, Y)</code> from a benchmarking scenario.</p>
 <p>The statement function may return a value corresponding to the return value of the statement or nothing if the statement has no return value.</p>
 <p>Statements are processed sequentially in the same interpreter, so the values of the global variables are conserved between calls.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Please beware that the <a href="../scenarios/spec/#parallel_1"><code>{parallel}</code></a> section and <a href="../scenarios/spec/#parallel">parallel &gt; 1</a> option of the <code>{loop}</code> 
+<p>Please beware that the <a href="../scenarios/spec/#parallel_1"><code>parallel</code></a> section and <a href="../scenarios/spec/#parallel">parallel &gt; 1</a> option of the <code>loop</code> 
 can&rsquo;t and shouldn&rsquo;t be used with the Python based workers.</p>
 </div>
 <h3 id="metrics_1">Metrics<a class="headerlink" href="#metrics_1" title="Permanent link">&para;</a></h3>

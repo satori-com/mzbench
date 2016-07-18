@@ -196,8 +196,8 @@ $ curl http://mzbench.myserver.com/logs?id=100500
 <h1 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h1>
 <h2 id="post-start">POST /start<a class="headerlink" href="#post-start" title="Permanent link">&para;</a></h2>
 <p>Ask the server to start a benchmark from the given <a href="../scenarios/spec/">scenario file</a>. The file is submitted as form data. A successful response is a JSON object with &ldquo;id&rdquo; and &ldquo;status&rdquo; fields:</p>
-<pre><code class="bash"># Start a benchmark from scenario.erl:
-$ curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start
+<pre><code class="bash"># Start a benchmark from scenario.bdl:
+$ curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start
 {
     &quot;id&quot;: 46,
     &quot;status&quot;: &quot;pending&quot;
@@ -221,14 +221,14 @@ $ curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start
 <dd>Commit hash or branch name in the <a href="https://github.com/machinezone/mzbench/">MZBench repository</a> that should be installed on the nodes.</dd>
 </dl>
 <p>Examples:</p>
-<pre><code class="bash"># Start scenario.erl on five cloud nodes:
-curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?nodes=5
+<pre><code class="bash"># Start scenario.bdl on five cloud nodes:
+curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?nodes=5
 
-# Start scenario.erl on three preallocated nodes 123.45.67.89 and node.myserver.com:
-curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?nodes=123.45.67.89,node.myserver.com
+# Start scenario.bdl on three preallocated nodes 123.45.67.89 and node.myserver.com:
+curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?nodes=123.45.67.89,node.myserver.com
 
-# Start scenario.erl and disable cloud nodes deallocation:
-curl -XPOST --form bench=@scenario.erl http://mzbench.myserver.com/start?deallocate_after_bench=false
+# Start scenario.bdl and disable cloud nodes deallocation:
+curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?deallocate_after_bench=false
 </code></pre>
 
 <h2 id="get-statusidnumber">GET /status?id=number<a class="headerlink" href="#get-statusidnumber" title="Permanent link">&para;</a></h2>

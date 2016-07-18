@@ -208,7 +208,7 @@ Executing make -C /path/to/mzbench/bin/../server generate
 </dl>
 <h2 id="benchmark-control">Benchmark Control<a class="headerlink" href="#benchmark-control" title="Permanent link">&para;</a></h2>
 <h3 id="start">start<a class="headerlink" href="#start" title="Permanent link">&para;</a></h3>
-<pre><code class="bash">$ mzbench start --env foo=bar --nodes=5 foo.erl
+<pre><code class="bash">$ mzbench start --env foo=bar --nodes=5 foo.bdl
 {
     &quot;status&quot;: &quot;pending&quot;, 
     &quot;id&quot;: 86
@@ -245,7 +245,7 @@ Executing make -C /path/to/mzbench/bin/../server generate
 <dd>Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.</dd>
 </dl>
 <h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
-<pre><code class="bash">$ mzbench run --env foo=bar --nodes=5 foo.erl
+<pre><code class="bash">$ mzbench run --env foo=bar --nodes=5 foo.bdl
 {
     &quot;status&quot;: &quot;pending&quot;, 
     &quot;id&quot;: 86
@@ -259,7 +259,7 @@ Executing make -C /path/to/mzbench/bin/../server generate
 <dd>The path to the <a href="../scenarios/spec/">scenario</a> file for the benchmark.</dd>
 </dl>
 <h3 id="run_local">run_local<a class="headerlink" href="#run_local" title="Permanent link">&para;</a></h3>
-<pre><code class="bash">$ mzbench run_local --env foo=bar foo.erl
+<pre><code class="bash">$ mzbench run_local --env foo=bar foo.bdl
 Executing make -C /path/to/mzbench/bin/../node compile
 ...
 </code></pre>
@@ -276,7 +276,7 @@ Executing make -C /path/to/mzbench/bin/../node compile
 <dd><a href="../scenarios/spec/#environment-variables">Environment variable</a> definitions.</dd>
 </dl>
 <h3 id="validate">validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h3>
-<pre><code class="bash">$ mzbench validate foo.erl
+<pre><code class="bash">$ mzbench validate foo.bdl
 ok
 </code></pre>
 

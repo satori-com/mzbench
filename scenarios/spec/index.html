@@ -197,30 +197,23 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<p>In MZBench, scenarios are .erl files written in a special <abbr title="Domain-Specific Language">DSL</abbr>. Think of it as a simplified, declarative version of Erlang.</p>
-<p>MZBench test scenarios consist of <em>lists</em>, <em>tuples</em>, and <em>atoms</em>:</p>
-<ul>
-<li>A <strong>list</strong> is a comma-separated sequence enclosed in square brackets: <code>[A, B, C]</code></li>
-<li>A <strong>tuple</strong> is a comma-separated sequence enclosed in curly braces: <code>{A, B, C}</code></li>
-<li><strong>Atoms</strong> are reserved words—function names, rate units, conditions. Basically, anything that&rsquo;s not a list, a tuple, a number, or a string is an atom: <code>print, make_install, lte, rpm</code>  </li>
-</ul>
-<p>The whole scenario is a list of tuples with a dot at the end:</p>
-<pre><code class="erlang">[
-    {function1, param1, param2},
-    {function2, [{param_name, param_value}]},
+<p>In MZBench, scenarios are .bdl files written in a special DSL (domain specific language). BDL stands for Benchmark Definition Language. Think of it as a simple ident-based (like python) language with a small set of instructions and measurement units.</p>
+<p>MZBench test scenarios consist of function calls and multi-line statements. Function name is <em>identifier</em>. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are values with values, for example:</p>
+<pre><code class="python">multiline(param1 = 10, param2 = 20):
+    function1(1, 2)
+    function2(param1 = function3(1), param2 = 2)
     ...
-].
 </code></pre>
 
-<p>Each of these tuples is called a <em>statement</em>. A statement represents a function call: the first item is the function name, the others are the params to pass to it. Each param in its turn can also be a list, a tuple, or an atom.</p>
+<p>Function value could be used in some cases, in the example above <code>function3</code> value is used to pass to function2.</p>
 <p>Some statements only appear at the top level of a scenario. They&rsquo;re called <em>top-level statements</em>. There&rsquo;re two kinds of top-level statements: <a href="#directives">directives</a> and <a href="#pools">pools</a>.</p>
-<p><a href="https://github.com/machinezone/mzbench/tree/master/examples">See live examples of MZBench scenarios on GitHub →</a></p>
+<p><a href="https://github.com/machinezone/mzbench/tree/master/examples.bdl">See live examples of MZBench scenarios on GitHub →</a></p>
 <h1 id="directives">Directives<a class="headerlink" href="#directives" title="Permanent link">&para;</a></h1>
 <p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
 <h2 id="top-level-directives">Top-Level Directives<a class="headerlink" href="#top-level-directives" title="Permanent link">&para;</a></h2>
 <p>All top-level directives are optional.</p>
 <h3 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{make_install, [{git, &quot;&lt;URL&gt;&quot;}, {branch, &quot;&lt;Branch&gt;&quot;}, {dir, &quot;&lt;Dir&gt;&quot;}]}
+<pre><code class="python">make_install(git = &quot;&lt;URL&gt;&quot;, branch = &quot;&lt;Branch&gt;&quot;, dir = &quot;&lt;Dir&gt;&quot;)
 </code></pre>
 
 <p>Install an external worker from a remote git repository on the test nodes before running the benchmark.</p>
@@ -236,14 +229,14 @@ $ make generate_tgz
 <p>If <code>branch</code> is not specified, the default git branch is used.</p>
 <p>If <code>dir</code> is not specified, <code>.</code> is used.</p>
 <h3 id="defaults">defaults<a class="headerlink" href="#defaults" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{defaults, [{&quot;&lt;VarName1&gt;&quot;, &lt;Value1&gt;}, {&quot;&lt;VarName2&gt;&quot;, &lt;Value2&gt;}, ...]}
+<pre><code class="python">defaults(&quot;&lt;VarName1&gt;&quot; = &lt;Value1&gt;, &quot;&lt;VarName2&gt;&quot; = &lt;Value2&gt;, ...)
 </code></pre>
 
 <p>Allows to define the default values for environment variables, i.e. the values used if no value was provided for this variable on the command line.</p>
 <p>See <a href="#environment-variables">Environment Variables</a> for additional information.</p>
 <h3 id="include_resource">include_resource<a class="headerlink" href="#include_resource" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{include_resource, &lt;ResourceName&gt;, &quot;&lt;FileName&gt;&quot;, &lt;Type&gt;}
-{include_resource, &lt;ResourceName&gt;, &quot;&lt;FileURL&gt;&quot;, &lt;Type&gt;}`
+<pre><code class="python">include_resource(&lt;ResourceName&gt;, &quot;&lt;FileName&gt;&quot;, &lt;Type&gt;)
+include_resource(&lt;ResourceName&gt;, &quot;&lt;FileURL&gt;&quot;, &lt;Type&gt;)`
 </code></pre>
 
 <p>Register a <a href="#resource-files">resource file</a> as <code>&lt;ResourceName&gt;</code>.</p>
@@ -262,53 +255,53 @@ $ make generate_tgz
 <dd>Custom binary (image, executable, archive, etc.), not interpreted.</dd>
 </dl>
 <h3 id="pre_hook-and-post_hook">pre_hook and post_hook<a class="headerlink" href="#pre_hook-and-post_hook" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{pre_hook, &lt;Actions&gt;}
-{post_hook, &lt;Actions&gt;}
+<pre><code class="python">pre_hook():
+    &lt;Actions&gt;
+post_hook():
+    &lt;Actions&gt;
 </code></pre>
 
 <p>Run actions before and after the benchmark. Two kinds of actions are supported: <em>exec commands</em> and <em>worker calls</em>:</p>
-<pre><code>Actions = [Action]
-Action = {exec, Target, BashCommand}
-    | {worker_call, WorkerMethod, WorkerModule}
-    | {worker_call, WorkerMethod, WorkerModule, WorkerType}
+<pre><code>Actions = Action1
+          Action2
+          ...
+Action = exec(Target, BashCommand)
+    | worker_call(WorkerMethod, WorkerModule)
+    | worker_call(WorkerMethod, WorkerModule, WorkerType)
 Target = all | director
 </code></pre>
 <p><strong>Exec commands</strong> let you to run any shell command on all nodes or only on the director node.</p>
 <p><strong>Worker calls</strong> are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the <a href="#environment-variables">environment variables</a> used in the benchmark.</p>
 <h3 id="assert">assert<a class="headerlink" href="#assert" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{assert, always, &lt;Condition&gt;}
-{assert, &lt;Time&gt;, &lt;Condition&gt;}
+<pre><code class="python">assert(always, &lt;Condition&gt;)
+assert(&lt;Time&gt;, &lt;Condition&gt;)
 </code></pre>
 
 <p>Check if the condition <code>&lt;Condition&gt;</code> is satisfied throughout the entire benchmark or at least for the amount of time <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
-<p><code>&lt;Condition&gt;</code> is a comparison of two value and is defined as a tuple <code>{&lt;Operation&gt;, &lt;Operand1&gt;, &lt;Operand2&gt;}</code>.</p>
+<p><code>&lt;Condition&gt;</code> is a comparison of two value and is defined as a tuple <code>&lt;Operand1&gt; &lt;Operation&gt; &lt;Operand2&gt;</code>.</p>
 <p><code>&lt;Operation&gt;</code> is one of four atoms:</p>
 <dl>
-<dt><code>lt</code></dt>
+<dt><code>&lt;</code></dt>
 <dd>Less than.</dd>
-<dt><code>gt</code></dt>
+<dt><code>&gt;</code></dt>
 <dd>Greater than.</dd>
-<dt><code>lte</code></dt>
+<dt><code>&lt;=</code></dt>
 <dd>Less than or equal to.</dd>
-<dt><code>gte</code></dt>
+<dt><code>&gt;=</code></dt>
 <dd>Greater than or equal to.</dd>
 </dl>
 <p><code>&lt;Operand1&gt;</code> and <code>&lt;Operand2&gt;</code> are the values to compare. They can be integers, floats, or <em>metrics</em> values.</p>
-<p><a href="../../workers.nd#metrics">Metrics</a> are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:</p>
-<pre><code class="erlang">{gt, &quot;http_ok&quot;, 20}
+<p><a href="../../workers/#metrics">Metrics</a> are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:</p>
+<pre><code class="python">&quot;http_ok&quot; &gt; 20
 </code></pre>
 
 <p>The <code>http_ok</code> metric is provided by the <a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">simple_http</a> worker. This condition passes if the number of successful HTTP responses is greater than 20.    </p>
 <h1 id="pools">Pools<a class="headerlink" href="#pools" title="Permanent link">&para;</a></h1>
-<p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../../workers.nd">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
+<p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../../workers/">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
 <p>Here&rsquo;s a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:</p>
-<pre><code class="erlang">    [ {pool,
-        [ {size, 10}, {worker_type, simple_http_worker} ],
-        [
-            {get, &quot;http://example.com&quot;},
-            {get, &quot;http://foobar.com&quot;} 
-        ]
-    } ].
+<pre><code class="python">    pool(size = 10, worker_type = simple_http_worker):
+        get(&quot;http://example.com&quot;)
+        get(&quot;http://foobar.com&quot;)
 </code></pre>
 
 <p>The <code>get</code> statement is provided by the built-in <a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">simple_http</a> worker.</p>
@@ -316,7 +309,7 @@ Target = all | director
 <h2 id="pool-options">Pool Options<a class="headerlink" href="#pool-options" title="Permanent link">&para;</a></h2>
 <h3 id="size">size<a class="headerlink" href="#size" title="Permanent link">&para;</a></h3>
 <p><em>required</em></p>
-<pre><code class="erlang">{size, &lt;NumberOfJobs&gt;}`
+<pre><code class="python">size = &lt;NumberOfJobs&gt;`
 </code></pre>
 
 <p>How many times you want the pool executed.</p>
@@ -324,7 +317,7 @@ Target = all | director
 <p><strong><code>&lt;NumberOfJobs&gt;</code></strong> is any positive number.</p>
 <h3 id="worker_type">worker_type<a class="headerlink" href="#worker_type" title="Permanent link">&para;</a></h3>
 <p><em>required</em></p>
-<pre><code class="erlang">{worker_type, &lt;WorkerName&gt;}
+<pre><code class="python">worker_type = &lt;WorkerName&gt;
 </code></pre>
 
 <p>The worker that provides statements for the jobs.</p>
@@ -333,10 +326,10 @@ Target = all | director
 <p>A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.</p>
 </div>
 <h3 id="worker_start">worker_start<a class="headerlink" href="#worker_start" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{worker_start, {linear, &lt;Rate&gt;}}
-{worker_start, {poisson, &lt;Rate&gt;}}
-{worker_start, {exp, &lt;Scale&gt;, &lt;Time&gt;}}
-{worker_start, {pow, &lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;}}
+<pre><code class="python">worker_start = linear(&lt;Rate&gt;)
+worker_start = poisson(&lt;Rate&gt;)
+worker_start = exp(&lt;Scale&gt;, &lt;Time&gt;)
+worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
 </code></pre>
 
 <p>Start the jobs with a given rate:</p>
@@ -358,100 +351,80 @@ Target = all | director
 </dl>
 <p>You can customize and combine rates:</p>
 <h3 id="ramp">ramp<a class="headerlink" href="#ramp" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{ramp, linear, &lt;StartRate&gt;, &lt;EndRate&gt;}
+<pre><code class="python">ramp(linear, &lt;StartRate&gt;, &lt;EndRate&gt;)
 </code></pre>
 
 <p>Linearly change the rate from <a href="#rate_1"><code>&lt;StartRate&gt;</code></a> at the beginning of the pool to <a href="#rate_1"><code>&lt;EndRate&gt;</code></a> at its end.</p>
 <h3 id="comb">comb<a class="headerlink" href="#comb" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{comb, &lt;Rate1&gt;, &lt;Time1&gt;, &lt;Rate2&gt;, &lt;Time2&gt;, ...}
+<pre><code class="python">comb(&lt;Rate1&gt;, &lt;Time1&gt;, &lt;Rate2&gt;, &lt;Time2&gt;, ...)
 </code></pre>
 
 <p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate1&gt;</code></a> for <a href="#time_1"><code>&lt;Time1&gt;</code></a>, then switch to <a href="#rate_1"><code>&lt;Rate2&gt;</code></a> for <a href="#time_1"><code>&lt;Time2&gt;</code></a>, etc.</p>
 <h1 id="loops">Loops<a class="headerlink" href="#loops" title="Permanent link">&para;</a></h1>
 <p><strong>Loop</strong> is a sequence of statements executed over and over for a given time.</p>
 <p>A loop looks similar to a <a href="#pools">pool</a>—it consists of a list of <a href="#loop options">options</a> and a list statements to run:</p>
-<pre><code class="erlang">{loop, [
-        {time, &lt;Time&gt;},
-        {rate, &lt;Rate&gt;},
-        {parallel, &lt;N&gt;},
-        {iterator, &lt;Name&gt;},
-        {spawn, &lt;Spawn&gt;}
-    ],
-    [
-        &lt;Statement1&gt;,
-        &lt;Statement2&gt;,
-        ...
-    ]
-}
+<pre><code class="python">loop(time = &lt;Time&gt;,
+     rate = &lt;Rate&gt;,
+     parallel = &lt;N&gt;,
+     iterator = &lt;Name&gt;,
+     spawn = &lt;Spawn&gt;):
+    &lt;Statement1&gt;
+    &lt;Statement2&gt;
+    ...
 </code></pre>
 
 <p>Here&rsquo;s a loop that sends HTTP GET requests for 30 seconds with a growing rate of 1 → 5 rps:</p>
-<pre><code class="erlang">{loop, [
-        {time, {30, sec}},
-        {rate, {ramp, linear, {1, rps}, {5, rps}}}
-    ],
-    [
-        {get, &quot;http://example.com&quot;}
-    ]
-}
+<pre><code class="python">loop(time = 30 sec,
+     rate = ramp(linear, 1 rps, 5 rps)):
+        get(&quot;http://example.com&quot;)
 </code></pre>
 
 <p>You can put loops inside loops. Here&rsquo;s a nested loop that sends HTTP GET requests for 30 seconds, increasing the rate by 1 rps every three seconds:</p>
-<pre><code class="erlang">{loop, [
-        {time, {30, sec}},
-        {rate, {10, rpm}},
-        {iterator, &quot;i&quot;}
-    ],
-    [
-        {loop, [
-                {time, {3, sec}}, 
-                {rate, {{var, &quot;i&quot;}, rps}}
-            ],
-            [
-                {get, &quot;http://google.com&quot;}
-            ]
-        }
-    ]
-}
+<pre><code class="python">loop(time = 30 sec,
+     rate = 10 rpm,
+     iterator = &quot;i&quot;):
+        loop(time = 3 sec, 
+             rate = var(&quot;i&quot;) rps):
+                get(&quot;http://google.com&quot;)
 </code></pre>
 
 <p>The difference between these two examples is that in the first case the rate is growing smoothly and in the second one it&rsquo;s growing in steps.</p>
 <h2 id="loop-options">Loop options<a class="headerlink" href="#loop-options" title="Permanent link">&para;</a></h2>
 <h3 id="time">time<a class="headerlink" href="#time" title="Permanent link">&para;</a></h3>
 <p><em>required</em></p>
-<pre><code class="erlang">{time, &lt;Time&gt;}
+<pre><code class="python">time = &lt;Time&gt;
 </code></pre>
 
 <p>Run the loop for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <h3 id="rate">rate<a class="headerlink" href="#rate" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{rate, &lt;Rate&gt;}
+<pre><code class="python">rate = &lt;Rate&gt;
 </code></pre>
 
 <p>Repeat the loop with the <a href="#rate_1"><code>&lt;Rate&gt;</code></a> rate.</p>
 <h3 id="think_time">think_time<a class="headerlink" href="#think_time" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{think_time, &lt;Time&gt;, &lt;Rate&gt;}
+<pre><code class="python">think_time = [&lt;Time&gt;, &lt;Rate&gt;]
 </code></pre>
 
 <p>Start jobs with rate <a href="#rate_1"><code>&lt;Rate&gt;</code></a> for a second, then sleep for <a href="#time_1"><code>&lt;Time&gt;</code></a> and repeat.</p>
 <h3 id="parallel">parallel<a class="headerlink" href="#parallel" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{parallel, &lt;N&gt;}
+<pre><code class="python">parallel = &lt;N&gt;
 </code></pre>
 
 <p>Run <code>&lt;N&gt;</code> iterations of the loop in parallel.</p>
 <h3 id="iterator">iterator<a class="headerlink" href="#iterator" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{iterator, &quot;&lt;IterName&gt;&quot;}
+<pre><code class="python">iterator = &quot;&lt;IterName&gt;&quot;
 </code></pre>
 
-<p>Define a variable named <code>&lt;IterName&gt;</code> inside the loop that contains the current iteration number. It can be accessed with <code>{var, &lt;IterName&gt;}</code>.</p>
+<p>Define a variable named <code>&lt;IterName&gt;</code> inside the loop that contains the current iteration number. It can be accessed with <code>var(&lt;IterName&gt;)</code>.</p>
 <h3 id="spawn">spawn<a class="headerlink" href="#spawn" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{spawn, (true|false)}
+<pre><code class="python">spawn = (true|false)
 </code></pre>
 
 <p>If <code>true</code>, every iteration runs in a separate, spawned process. Default is <code>false</code>.</p>
 <h1 id="resource-files">Resource Files<a class="headerlink" href="#resource-files" title="Permanent link">&para;</a></h1>
 <p><strong>Resource file</strong> is an external data source for the benchmark.</p>
 <p>To declare a resource file for the benchmark, use <a href="#include-resource"><code>include_resource</code></a>.</p>
-<p>Once the resource file is registered, its content can be included at any place in the scenario using the <code>resource</code> statement: <code>{resource, &lt;ResourceName&gt;}</code>.</p>
+<p>Once the resource file is registered, its content can be included at any place in the scenario using the <code>resource</code> statement: <code>resource(&lt;ResourceName&gt;)</code>.</p>
 <p>For example, suppose we have a file <code>names.json</code>:</p>
 <pre><code>[
     "Bob",
@@ -460,24 +433,12 @@ Target = all | director
 ]
 </code></pre>
 <p>Here&rsquo;s how you can use this file in a scenario:</p>
-<pre><code class="erlang">[
-    {include_resource, names, &quot;names.json&quot;, json},
-    {pool, [
-            {size, 3},
-            {worker_type, dummy_worker}
-        ],
-        [
-            {loop, [
-                    {time, {5, sec}},
-                    {rate, {1, rps}}
-                ],
-                [
-                    {print, {choose, {resource, names}}} % print a random name from the file
-                ]
-            }
-        ]
-    }
-].
+<pre><code class="python">include_resource(names, &quot;names.json&quot;, json)
+pool(size = 3,
+     worker_type = dummy_worker):
+    loop(time = 5 sec,
+         rate = 1 rps):
+        print(choose(resource(names))) # print a random name from the file
 </code></pre>
 
 <h1 id="standard-library">Standard Library<a class="headerlink" href="#standard-library" title="Permanent link">&para;</a></h1>
@@ -488,122 +449,128 @@ Target = all | director
 </code></pre>
 
 <h3 id="var">var<a class="headerlink" href="#var" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{var, &quot;&lt;VarName&gt;&quot;}
+<pre><code class="python">var(&quot;&lt;VarName&gt;&quot;)
 </code></pre>
 
-<p>To get the value of a variable, refer to it by the name: <code>{var, "&lt;VarName&gt;"}</code>.</p>
-<pre><code class="erlang">{var, &quot;foo&quot;} % returns &quot;bar&quot;
-{var, &quot;n&quot;} % returns &quot;42&quot;, a string
+<p>To get the value of a variable, refer to it by the name: <code>var("&lt;VarName&gt;")</code>.</p>
+<pre><code class="python">var(&quot;foo&quot;) # returns &quot;bar&quot;
+var(&quot;n&quot;) # returns &quot;42&quot;, a string
 </code></pre>
 
 <p>If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable, see <a href="#defaults">defaults top-level directive</a>.</p>
 <h3 id="numvar">numvar<a class="headerlink" href="#numvar" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{numvar, &quot;&lt;VarName&gt;&quot;}
+<pre><code class="python">numvar(&quot;&lt;VarName&gt;&quot;)
 </code></pre>
 
-<p>By default, variable values are considered strings. To get a numerical value (integer or float), use <code>{numvar, "VarName"}</code>:</p>
-<pre><code class="erlang">{numvar, &quot;n&quot;} % returns 42, an integer.
+<p>By default, variable values are considered strings. To get a numerical value (integer or float), use <code>numvar("VarName")</code>:</p>
+<pre><code class="python">numvar(&quot;n&quot;) # returns 42, an integer.
 </code></pre>
 
 <h2 id="parallelization-and-syncing">Parallelization and Syncing<a class="headerlink" href="#parallelization-and-syncing" title="Permanent link">&para;</a></h2>
 <h3 id="parallel_1">parallel<a class="headerlink" href="#parallel_1" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{parallel, &lt;Statement1&gt;, &lt;Statement2&gt;, ...}
+<pre><code class="python">parallel():
+    thread():
+        &lt;Statement1&gt;
+    thread():
+        &lt;Statement2&gt;
+    ...
 </code></pre>
 
 <p>Execute multiple statements in parallel. Unlike executing statements in a pool, this way all statements are executed on the same node.</p>
 <h3 id="set_signal">set_signal<a class="headerlink" href="#set_signal" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{set_signal, &lt;SignalName&gt;}
-{set_signal, &lt;SignalName&gt;, &lt;Count&gt;]}
+<pre><code class="python">set_signal(&lt;SignalName&gt;)
+set_signal(&lt;SignalName&gt;, &lt;Count&gt;)
 </code></pre>
 
 <p>Emit a global signal <code>&lt;SignalName&gt;</code>.</p>
 <p>If <code>&lt;Count&gt;</code> is specified, the signal is emitted <code>&lt;Count&gt;</code> times.</p>
 <p><code>&lt;SignalName&gt;</code> is a string, atom, number, or, in fact, any <a href="http://erlang.org/doc/reference_manual/expressions.html#id77790">Erlang term</a>.</p>
 <h3 id="wait_signal">wait_signal<a class="headerlink" href="#wait_signal" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{wait_signal, &lt;SignalName&gt;}
-{wait_signal, &lt;SignalName&gt;, &lt;Count&gt;}
+<pre><code class="python">wait_signal(&lt;SignalName&gt;)
+wait_signal(&lt;SignalName&gt;, &lt;Count&gt;)
 </code></pre>
 
 <p>Wait for the global signal <code>&lt;SignalName&gt;</code> to be emitted. If <code>&lt;Count&gt;</code> is specified, wait for the signal to be emitted <code>&lt;Count&gt;</code> times.</p>
 <h2 id="errors-handling">Errors Handling<a class="headerlink" href="#errors-handling" title="Permanent link">&para;</a></h2>
 <h3 id="ignore_failure">ignore_failure<a class="headerlink" href="#ignore_failure" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{ignore_failure, &lt;Statement&gt;}
+<pre><code class="python">ignore_failure():
+    &lt;Statement&gt;
 </code></pre>
 
 <p>Execute the statement <code>&lt;Statement&gt;</code> and continue with the benchmark even if it fails.</p>
 <p>If the statement succeeds, its result is returned; otherwise, the failure reason is returned.</p>
 <h2 id="randomization">Randomization<a class="headerlink" href="#randomization" title="Permanent link">&para;</a></h2>
 <h3 id="random_number">random_number<a class="headerlink" href="#random_number" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{random_number, &lt;Min&gt;, &lt;Max&gt;}
-{random_number, &lt;Max&gt;}
+<pre><code class="python">random_number(&lt;Min&gt;, &lt;Max&gt;)
+random_number(&lt;Max&gt;)
 </code></pre>
 
 <p>Return a random number between <code>&lt;Min&gt;</code> and <code>&lt;Max&gt;</code>, including <code>&lt;Min&gt;</code> and not including <code>&lt;Max&gt;</code>.</p>
-<p><code>{random_number, &lt;Max&gt;}</code> is equivalent to <code>{random_number, 0, &lt;Max&gt;}</code></p>
+<p><code>random_number(&lt;Max&gt;)</code> is equivalent to <code>random_number(0, &lt;Max&gt;)</code></p>
 <h3 id="random_list">random_list<a class="headerlink" href="#random_list" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{random_list, &lt;Size&gt;}
+<pre><code class="python">random_list(&lt;Size&gt;)
 </code></pre>
 
 <p>Return a list of random integer of length <code>&lt;Size&gt;</code>.</p>
 <h3 id="random_binary">random_binary<a class="headerlink" href="#random_binary" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{random_binary, &lt;Size&gt;}
+<pre><code class="python">random_binary(&lt;Size&gt;)
 </code></pre>
 
 <p>Return a binary sequence of <code>&lt;Size&gt;</code> random bytes.</p>
 <h3 id="choose">choose<a class="headerlink" href="#choose" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{choose, &lt;N&gt;, &lt;List&gt;}
-{choose, &lt;List&gt;}
+<pre><code class="python">choose(&lt;N&gt;, &lt;List&gt;)
+choose(&lt;List&gt;)
 </code></pre>
 
 <p>Return a list of <code>&lt;N&gt;</code> random elements of the list <code>&lt;List&gt;</code>.</p>
-<p><code>{choose, &lt;List&gt;}</code> is equivalent to <code>{choose, 1, &lt;List&gt;}</code>.</p>
+<p><code>choose(&lt;List&gt;)</code> is equivalent to <code>choose(1, &lt;List&gt;)</code>.</p>
 <h3 id="round_robin">round_robin<a class="headerlink" href="#round_robin" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{round_robin, &lt;List&gt;}
+<pre><code class="python">round_robin(&lt;List&gt;)
 </code></pre>
 
 <p>Pick the next element of the list. When the last one is picked, start over from the first one.</p>
 <p><strong>BEWARE:</strong> The <code>round_robin</code> function complexity is <code>O(n)</code> when <code>n</code> is the length of the <code>&lt;List&gt;</code>, so it is extremely slow for big lists. You should consider to cache the value somehow if it is the case.</p>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <h3 id="dump">dump<a class="headerlink" href="#dump" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{dump, &quot;&lt;Text&gt;&quot;}
+<pre><code class="python">dump(&quot;&lt;Text&gt;&quot;)
 </code></pre>
 
 <p>Write <code>&lt;Text&gt;</code> to the benchmark log.</p>
 <h3 id="sprintf">sprintf<a class="headerlink" href="#sprintf" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{sprintf, &quot;&lt;Format&gt;&quot;, [&lt;Value1&gt;, &lt;Value2&gt;, ...]}
+<pre><code class="python">sprintf(&quot;&lt;Format&gt;&quot;, [&lt;Value1&gt;, &lt;Value2&gt;, ...])
 </code></pre>
 
 <p>Return <a href="http://www.erlang.org/doc/man/io.html#fwrite-1">formatted text</a> with a given format and placeholder values.</p>
 <h2 id="data-conversion">Data Conversion<a class="headerlink" href="#data-conversion" title="Permanent link">&para;</a></h2>
 <h3 id="t">t<a class="headerlink" href="#t" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{t, &lt;List&gt;}
+<pre><code class="python">t(&lt;List&gt;)
 </code></pre>
 
 <p>Convert <code>&lt;List&gt;</code> to a tuple.</p>
 <h3 id="term_to_binary">term_to_binary<a class="headerlink" href="#term_to_binary" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{term_to_binary, &lt;term&gt;}
+<pre><code class="python">term_to_binary(&lt;term&gt;)
 </code></pre>
 
 <p>Convert an Erlang term to a binary object. <a href="http://www.erlang.org/doc/man/erlang.html#term_to_binary-1">Learn more</a> in the Erlang docs.</p>
 <h2 id="pause">Pause<a class="headerlink" href="#pause" title="Permanent link">&para;</a></h2>
 <h3 id="wait">wait<a class="headerlink" href="#wait" title="Permanent link">&para;</a></h3>
-<pre><code class="erlang">{wait, &lt;Time&gt;}
+<pre><code class="python">wait(&lt;Time&gt;)
 </code></pre>
 
 <p>Pause the current job for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <h1 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h1>
 <h2 id="time_1">Time<a class="headerlink" href="#time_1" title="Permanent link">&para;</a></h2>
 <p><strong><code>&lt;Time&gt;</code></strong> is a tuple <code>{&lt;Duration&gt;, (ms|sec|min|h)}</code>:</p>
-<pre><code class="erlang">{1, sec}` % one second
-{10, min} % 10 minutes
-{0.5, h} % half hour
+<pre><code class="python">1 sec` # one second
+10 min # 10 minutes
+0.5 h # half hour
 </code></pre>
 
 <h2 id="rate_1">Rate<a class="headerlink" href="#rate_1" title="Permanent link">&para;</a></h2>
-<p><strong><code>&lt;Rate&gt;</code></strong> is a tuple <code>{&lt;N&gt;, (rps|rpm|rph)}</code>:</p>
-<pre><code class="erlang">{10, rps} % 10 jobs per second
-{12, rpm} % 12 jobs per minute
-{100, h} % 100 jobs per hour
+<p><strong><code>&lt;Rate&gt;</code></strong> is a tuple <code>&lt;N&gt; (rps|rpm|rph)</code>:</p>
+<pre><code class="python">10 rps # 10 jobs per second
+12 rpm # 12 jobs per minute
+100 h # 100 jobs per hour
 </code></pre></div>
             
         </div>
