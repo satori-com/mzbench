@@ -19,10 +19,13 @@ const defaultData = {
     newBench: {
         benchmark_name: "Something",
         script_name: "generic.erl",
-        script_body: "[ % the simplest example\n    {pool, [{size, 3}, % three execution \"threads\"\n"
-                        +"            {worker_type, dummy_worker}],\n        [{loop, [{time, {5, min}}, % total loop time\n"
-                        +"                 {rate, {1, rps}}], % one rps for every worker, 3 rps totally\n"
-                        +"                [{print, \"FOO\"}]}]} % this operation prints \"FOO\" to console\n].",
+        script_body: "#!benchDL\n" +
+                     "# the simplest example\n" +
+                     "pool(size = 3, # three execution \"threads\"\n" +
+                     "     worker_type = dummy_worker):\n" +
+                     "        loop(time = 5 min, # total loop time\n" +
+                     "             rate = 1 rps): # one rps for every worker, 3 rps totally\n" +
+                     "            print(\"FOO\") # this operation prints \"FOO\" to console\n",
         nodes: "1",
         cloud: "",
         env: {}},
