@@ -152,7 +152,7 @@ get_info(Filter, undefined, Id, undefined, Limit) when is_integer(Id) ->
             {Res2, Min2, _Max2} = getprev(ets:prev(benchmarks, Id), Filter, Limit - L),
             {Res ++ Res2, Min2, Max};
         true ->
-            {Res2, Min2, Max2} = getprev(ets:prev(benchmarks, Id), Filter, Limit),
+            {Res2, Min2, Max2} = getprev(Id, Filter, Limit),
             L2 = length(Res2),
             if
                 L2 < Limit ->
