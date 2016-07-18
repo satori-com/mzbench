@@ -104,3 +104,9 @@ pagination_test() ->
     ?assertEqual({[#{id => 22}, #{id => 21}], {21, 22}},
                  mzb_api_ws_handler:apply_pagination(Req#{<<"min_id">> => 20}, BenchIds)).
 
+aggregate_test() ->
+    ?assertEqual([], mzb_api_ws_handler:aggregate([])),
+    ?assertEqual([{1, {2, 2.0, 2}}], mzb_api_ws_handler:aggregate([{1, 2}])),
+    ?assertEqual([{1, {2, 3.0, 4}}], mzb_api_ws_handler:aggregate([{1, 2}, {1, 4}])),
+    ?assertEqual([{1, {2, 4.0, 6}}, {2, {5, 6.0, 7}}], mzb_api_ws_handler:aggregate([{1,2}, {1, 6}, {1, 4}, {2, 7}, {2, 5}])).
+

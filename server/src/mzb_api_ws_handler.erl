@@ -8,7 +8,8 @@
 % export for tests
 -export([normalize/1,
          apply_filter/2,
-         apply_pagination/2 ]).
+         apply_pagination/2,
+         aggregate/1]).
 
 -record(state, {
           ref = undefined :: undefined | reference(),
@@ -493,9 +494,23 @@ get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
                           true -> Timestamp end,
                 {XVal, YVal} end, BenchIds),
     Sorted = lists:sort(fun ({A, _}, {B, _}) -> A >= B end, Data),
-    Values = lists:foldl(fun({X, Y}, Acc) -> [io_lib:format("~p\t~p\t~p\t~p~n", [X, Y, Y, Y]) |Acc] end, [], Sorted),
+    Aggregated = aggregate(Sorted),
+    Values = lists:foldl(fun({X, {Min, Avg, Max}}, Acc) -> [io_lib:format("~p\t~p\t~p\t~p~n", [X, Avg, Min, Max]) |Acc] end, [], Aggregated),
     Pid ! {metric_value, StreamId, Values},
     Pid ! {metric_batch_end, StreamId}.
+
+aggregate([]) -> [];
+aggregate([{X, _}|_] = L) -> aggregate(L, {X, []}, []).
+
+aggregate([{X, Y}|T], {X, L}, Res) ->
+    aggregate(T, {X, [Y|L]}, Res);
+aggregate([], {X, L}, Res) ->
+    lists:reverse([{X, {lists:min(L), avg(L), lists:max(L)}}|Res]);
+aggregate([{Y, _}|_] = T, {X, L}, Res) ->
+    aggregate(T, {Y, []}, [{X, {lists:min(L), avg(L), lists:max(L)}}|Res]).
+
+avg([_|_] = L) ->
+    lists:sum(L) / length(L).
 
 get_bench_x_var(BenchId, EnvName) ->
     #{config:= #{env:= Env}} = mzb_api_server:status(BenchId),
