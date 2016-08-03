@@ -184,8 +184,8 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
         Numbers = lists:seq(0, WNum - 1),
         StartTime = msnow(),
         lists:foreach(fun(N) ->
-                        worker_start_delay(StartDelay, NumNodes, N, StartTime),
                         WId = (StartingFrom + N) * NumNodes + Offset,
+                        worker_start_delay(StartDelay, NumNodes, WId, StartTime),
                         WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}]),
                         gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId })
                     end, Numbers)
@@ -280,13 +280,13 @@ worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, 
     % (http://en.wikipedia.org/wiki/Poisson_process)
     SleepTime = -(1000*Factor*math:log(random:uniform()))/Lambda,
     timer:sleep(erlang:round(SleepTime));
-worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, Factor, N, StartTime) ->
-    sleep_off(StartTime, (N * Factor * 1000) div RPS);
-worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, F, N, StartTime) ->
-    sleep_off(StartTime, erlang:round(T*F*(math:pow(N/W, 1/Y))));
+worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, _, WId, StartTime) ->
+    sleep_off(StartTime, (WId * 1000) div RPS);
+worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, _, WId, StartTime) ->
+    sleep_off(StartTime, erlang:round(T*(math:pow(WId/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0, _) -> ok;
-worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, F, N, StartTime) ->
-    sleep_off(StartTime, erlang:round(T*F*(math:log((N+1)/X) + 1))).
+worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, _, WId, StartTime) ->
+    sleep_off(StartTime, erlang:round(T*(math:log((WId+1)/X) + 1))).
 
 msnow() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
