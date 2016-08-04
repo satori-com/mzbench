@@ -17,7 +17,9 @@ normalize_test() ->
                start_time => 1437549842,
                finish_time => 1437549842,
                config => #{script => #{body => script_body1, name => "another_name.erl"},
-                           benchmark_name => "Test bench", nodes_arg => "1", cloud => "", vm_args => [], env => [], tags => ["tag1", "tag2"]}}}
+                           benchmark_name => "Test bench", nodes_arg => "1", cloud => "",
+                           vm_args => [], env => [], tags => ["tag1", "tag2"]},
+               results => [{key, value}]}}
     ],
 
     Normalized = mzb_api_ws_handler:normalize(BenchInfos),
@@ -25,7 +27,7 @@ normalize_test() ->
     ?assertEqual([
         #{finish_time => "2015-07-22T07:24:02Z",
           id => 2,
-          benchmark_name => "Test bench",
+          name => "Test bench",
           metrics => metrics,
           script_body => script_body1,
           script_name => "another_name.erl",
@@ -34,9 +36,10 @@ normalize_test() ->
           cloud => "",
           env => #{vm_args => []},
           status => success,
-          tags => [tag1, tag2]},
+          tags => [tag1, tag2],
+          results => #{key => value}},
         #{id => 1,
-          benchmark_name => "Test bench",
+          name => "Test bench",
           metrics => metrics,
           script_body => script_body,
           script_name => "script_name.erl",
@@ -45,7 +48,8 @@ normalize_test() ->
           cloud => "",
           env => #{vm_args => []},
           status => failed,
-          tags => []}],
+          tags => [],
+          results => #{}}],
         Normalized).
 
 filter_test() ->

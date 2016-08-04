@@ -143,29 +143,11 @@ handle(<<"GET">>, <<"/graphs">>, Req) ->
         {ok, cowboy_req:reply(302, Headers, <<>>, Req), #{}}
     end);
 
+%% obsolete endpoint, to be removed soon
 handle(<<"GET">>, <<"/report.json">>, Req) ->
-    BenchInfo = mzb_api_server:get_info(),
-    SortedBenchInfo = lists:sort(fun ({IdA, _}, {IdB, _}) ->
-                                         IdA >= IdB
-                                 end, BenchInfo),
-    Body = lists:map(
-             fun({Id, #{status:= Status, config:= Config, start_time:= StartTime, finish_time:= FinishTime}}) ->
-                     ScriptName = case Config of
-                                      #{script:= #{name:= SN}} -> SN;
-                                      #{script:= SN} -> SN
-                                  end,
-                     Duration = case FinishTime of
-                                    undefined ->
-                                        mzb_api_bench:seconds() - StartTime;
-                                    Time when is_number(Time) ->
-                                        FinishTime - StartTime
-                                end,
-                     [Id, list_to_binary(iso_8601_fmt(StartTime)), list_to_binary(ScriptName),
-                      Status, Duration];
-                ({Id, #{status:= failed, reason:= {crashed, _}}}) ->
-                     [Id, <<"n/a">>, <<"n/a">>, crashed, 0]
-             end, SortedBenchInfo),
-    {ok, reply_json(200, #{data => Body}, Req), #{}};
+    Filter = fun (I) -> mzb_api_ws_handler:normalize([I]) end,
+    {_BenchInfo, _, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, 1),
+    {ok, reply_json(200, #{}, Req), #{}};
 
 handle(<<"GET">>, <<"/clusters_info">>, Req) ->
     List = mzb_api_cloud:clusters_info(),

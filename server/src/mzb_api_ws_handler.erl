@@ -234,11 +234,11 @@ dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
     {BenchInfos0, Min, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, _MaxBenchsetSize = 200),
 
     Sets = lists:map(fun(Chart) ->
-              Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, undefined)),
-              Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, undefined)),
+              Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, <<"undefined">>)),
+              Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, <<"undefined">>)),
               Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
-              GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, undefined)),
-              XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, undefined)),
+              GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, <<"undefined">>)),
+              XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, <<"undefined">>)),
               benchset(BenchInfos0, Metric, Kind, Size, GroupEnv, XEnv)
              end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
 
@@ -441,8 +441,8 @@ get_all_tags() ->
 benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv) ->
     benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv, []).
 
-benchset(_, Metric, Kind, _, _, _, Acc) when (Metric == undefined) or (Kind == undefined) -> Acc;
-benchset(_, _, _, Size, _, _, Acc) when (Size > 0) and (size(Acc) >= Size) -> Acc;
+benchset(_, Metric, Kind, _, _, _, Acc) when (Metric == "undefined") or (Kind == "undefined") -> Acc;
+benchset(_, _, _, Size, _, _, Acc) when (Size > 0) and (length(Acc) >= Size) -> Acc;
 benchset([], _, _, _, _, _, Acc) -> Acc;
 benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, XEnv, Acc) ->
     NewAcc = case has_metric(Metric, Kind, BenchInfo) of
@@ -602,7 +602,7 @@ apply_filter(Query, BenchInfos) ->
     end.
 
 get_searchable_fields(BenchInfo) ->
-    SearchFields = mzb_bc:maps_with([id, status, benchmark_name, script_name, start_time, finish_time], BenchInfo),
+    SearchFields = mzb_bc:maps_with([id, status, name, script_name, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
     Tags = [ "#" ++ erlang:atom_to_list(T) || T <- mzb_bc:maps_get(tags, BenchInfo, [])],
     lists:map(fun (X) when is_atom(X) -> atom_to_list(X);

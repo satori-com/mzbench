@@ -82,7 +82,7 @@ def migrate(data_dir, jobs):
 
 def benchmarks(data_dir):
     for d in os.listdir(data_dir):
-        if d[0] != '.':
+        if d[0] != '.' and os.path.isdir(os.path.join(data_dir, d)):
             yield d
 
 def apply_migration(script_path, data_dir, jobs):
