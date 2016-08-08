@@ -228,7 +228,7 @@ eval_worker_number(Pool, Env, NumNodes, Offset) ->
                     erlang:error({not_enough_nodes})
             end,
 
-    Script2 = mzbl_ast:add_meta(Script, [{pool_size, Size2}]),
+    Script2 = mzbl_ast:add_meta(Script, [{pool_size, Size2}, {nodes_num, NumNodes}]),
     {Script2, mzb_utility:int_ceil((Size2 - Offset + 1)/NumNodes), StartDelay}.
 
 kill_some_workers(N, Tid) ->
