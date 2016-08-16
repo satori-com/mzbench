@@ -295,7 +295,7 @@ class Graph extends React.Component {
             area: false,
             brushing: false,
             brushing_history: false,
-            interpolate: 'monotone',
+            interpolate: ((this.props.kind == "group") || (this.props.kind == "regression")) ? "linear" : 'monotone',
             x_extended_ticks: true,
             y_extended_ticks: true,
             full_width: true,
