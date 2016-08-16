@@ -290,7 +290,7 @@ class Graph extends React.Component {
             buffer: 0,
             left: 65,
             right: 0,
-            height: 400,
+            height: this.props.height,
 
             area: false,
             brushing: false,
@@ -557,6 +557,8 @@ Graph.defaultProps = {
     isRunning: false,
     title: "",
     units: "",
+
+    height: 250,
 
     kind: "", // For cummulative benches
     x_env: "",

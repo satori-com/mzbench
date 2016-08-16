@@ -95,7 +95,7 @@ class DashboardOverview extends React.Component {
             return (<div key={idx}>
                         <p className="dashboard">{c.description}</p>
                         <Graph targets={targets} kind={c.kind} x_env={c.x_env}
-                            title={c.metric} benchset={benches} domPrefix={guid} />
+                            title={c.metric} benchset={benches} domPrefix={guid} height="400"/>
                         <Collapsible triggerText="Show benches" triggerTextWhenOpen="Hide benches">
                             {this.renderTable(c.metric, c.kind, groupEnv, xEnv, benches)}
                         </Collapsible>
