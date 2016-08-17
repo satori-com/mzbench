@@ -321,30 +321,40 @@ class Graph extends React.Component {
                 if (dataset.length > 0) return false;
                 else return prev;
             }, true);
-            graph_options.data = isEmpty ? [[{date: 0, value: 0, min: 0, max: 0}]] : this.state.data;
-            graph_options.legend = this.streams.map((stream) => { return stream.name; });
-            
-            graph_options.target = document.getElementById(this._graphDOMId());
-            
-            graph_options.show_confidence_band = ['min', 'max'];
-            
-            graph_options.xax_format = this._formatDate.bind(this);
-            graph_options.mouseover = this._formatRolloverText.bind(this);
-            graph_options.x_sort = false;
-            
-            graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
-            graph_options.max_x = this.state.maxDate;
-            
-            const data_min = this._calcDataMin();
-            graph_options.min_y = (data_min < 0)?data_min:0;
-            graph_options.max_y = this._calcDataMax();
-            
-            MG.data_graphic(graph_options);
+
+            if(isEmpty) {
+                graph_options.chart_type = 'missing-data';
+                graph_options.missing_text = this.props.title ? `${this.props.title} (no data)` : "No data";
+                graph_options.legend = this.streams.map((stream) => { return stream.name; });
+                graph_options.target = document.getElementById(this._graphDOMId());
+
+                MG.data_graphic(graph_options);
+            } else {
+                graph_options.data = isEmpty ? [[{date: 0, value: 0, min: 0, max: 0}]] : this.state.data;
+                graph_options.legend = this.streams.map((stream) => { return stream.name; });
+
+                graph_options.target = document.getElementById(this._graphDOMId());
+
+                graph_options.show_confidence_band = ['min', 'max'];
+
+                graph_options.xax_format = this._formatDate.bind(this);
+                graph_options.mouseover = this._formatRolloverText.bind(this);
+                graph_options.x_sort = false;
+
+                graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
+                graph_options.max_x = this.state.maxDate;
+
+                const data_min = this._calcDataMin();
+                graph_options.min_y = (data_min < 0)?data_min:0;
+                graph_options.max_y = this._calcDataMax();
+
+                MG.data_graphic(graph_options);
+            }
         } else {
             graph_options.chart_type = 'missing-data';
             graph_options.legend = this.streams.map((stream) => { return stream.name; });
             graph_options.target = document.getElementById(this._graphDOMId());
-            
+
             MG.data_graphic(graph_options);
         }
     }
