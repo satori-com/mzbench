@@ -382,19 +382,21 @@ build_metric_groups(Groups) ->
     lists:map(fun ({group, Name, Graphs}) ->
         NewGraphs = lists:flatmap(fun ({graph, Opts}) ->
             Metrics = mzb_bc:maps_get(metrics, Opts, []),
-            MetricsGroups = build_metric_graphs(Metrics),
-            [{graph, Opts#{metrics => MG}} || MG <- MetricsGroups]
+            {MetaType, MetricsGroups} = build_metric_graphs(Metrics),
+            [{graph, Opts#{metrics => MG, metatype => MetaType}} || MG <- MetricsGroups]
         end, Graphs),
         {group, Name, NewGraphs}
     end, Groups).
 
 build_metric_graphs(Group) ->
     NotCountersAndGauges = [M || M = {_Name, T, _Opts} <- Group, T /= counter, T /= gauge, T /= derived],
-    Policy = case NotCountersAndGauges of
-        [] -> counters_and_gauges;
-        _  -> all_in_one_group
+    NotHistograms = [M || M = {_Name, T, _Opts} <- Group, T /= histogram],
+    MetaType = case {NotCountersAndGauges, NotHistograms} of
+        {[], _} -> counters_and_gauges;
+        {_, []} -> histograms;
+        _  -> mixed
     end,
-    build_metric_graphs(Group, Policy).
+    {MetaType, build_metric_graphs(Group, MetaType)}.
 
 build_metric_graphs(Group, counters_and_gauges) ->
     Counters = [get_exometer_metrics(M) || M = {_Name, counter, _Opts} <- Group],
@@ -409,7 +411,8 @@ build_metric_graphs(Group, counters_and_gauges) ->
         _  -> [ Gauges ++ CntGr || CntGr <- CounterGroups]
     end;
 
-build_metric_graphs(Group, all_in_one_group) ->
+build_metric_graphs(Group, histograms) -> build_metric_graphs(Group, mixed);
+build_metric_graphs(Group, mixed) ->
     [flatten_exometer_metrics(Group)].
 
 flatten_exometer_metrics(BenchMetrics) ->

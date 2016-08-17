@@ -153,6 +153,7 @@ build_metric_groups_json(Groups) ->
     MetricGroups = mzb_metrics:build_metric_groups(Groups),
     lists:map(fun ({group, GroupName, Graphs}) ->
         NewGraphs = lists:map(fun ({graph, GraphOpts}) ->
+            Metatype = mzb_bc:maps_get(metatype, GraphOpts, undefined),
             Metrics = mzb_bc:maps_get(metrics, GraphOpts, []),
 
             MetricMap = lists:flatmap(fun({Name, _Type, Opts}) ->
@@ -162,7 +163,7 @@ build_metric_groups_json(Groups) ->
 
             GraphOpts1 = maybe_append_rps_units(GraphOpts, Metrics),
 
-            GraphOpts1#{metrics => MetricMap}
+            GraphOpts1#{metrics => MetricMap, metatype => Metatype}
         end, Graphs),
         #{name => GroupName, graphs => NewGraphs}
     end, MetricGroups).

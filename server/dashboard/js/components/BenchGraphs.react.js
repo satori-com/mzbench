@@ -90,7 +90,7 @@ class BenchGraphs extends React.Component {
                     return (
                         <div key={""+idx+"("+targets.length+")"} className="col-xs-12 col-md-6">
                             <a href={link} className="bs-link">
-                                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                                <Graph isRunning={this.props.bench.isRunning()} targets={targets} kind={graph.metatype}
                                     title={graph.title} units={graph.units} benchId={this.props.bench.id}
                                     benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
                                     />

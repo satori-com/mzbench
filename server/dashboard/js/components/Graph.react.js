@@ -368,53 +368,53 @@ class Graph extends React.Component {
         }
     }
 
-    _createStreams() {
-        if(this.props.renderFullscreen
-                || this.props.targets.length < MIN_GRAPHS_TO_BEGIN_COMPRESSION) {
-            if (this.props.kind == "") {
-                this.streams = this.props.targets.map((metric) => {
-                    let m = [];
-                    m.push(metric);
-                    return new _DataStream(metric, false, m, this.props.benchId, "ordinary", [], "");
-                });
-            } else {
-                this.props.targets.forEach((metric) => {
-                    let m = [];
-                    m.push(metric);
-                    if (this.props.kind == "compare") {
-                        this.props.benchset.forEach((B) => {
-                            let Id = B.benches[0].id;
-                            this.streams.push(new _DataStream(B.name+":"+Id, false, m, Id, this.props.kind, [], ""));
-                        });
-                    } else if ((this.props.kind == "group") || (this.props.kind == "regression")) {
-                        this.props.benchset.forEach((B) => {
-                            let Ids = B.benches.map((bench) => bench.id);
-                            this.streams.push(new _DataStream(B.name, false, m, undefined, this.props.kind, Ids, this.props.x_env));
-                        });
-                    }
-                });
-            }
+    _is_displayable_histogram_metric(metric) {
+        return (metric.endsWith(".95")   ||
+                metric.endsWith(".max")  ||
+                metric.endsWith(".min")  ||
+                metric.endsWith(".mean"));
+    }
 
-        } else {
-            this.streams = [];
-        
-            let metricsToAggregate = [];
-            for(let i = 0; i < this.props.targets.length; i++) {
-                if(this.props.targets[i].match("systemload.*mzb_worker") === null) {
-                    let m = [];
-                    m.push(this.props.targets[i]);
-                    this.streams.push(new _DataStream(this.props.targets[i], false, m, this.props.benchId, "ordinary", [], ""));
+    _createStreams() {
+        let need_aggregation = !this.props.renderFullscreen &&
+                               this.props.targets.length > MIN_GRAPHS_TO_BEGIN_COMPRESSION;
+
+        let metricsToAggregate = [];
+        this.props.targets.forEach((metric) => {
+            let m = [];
+            m.push(metric);
+            if (this.props.kind == "compare") {
+                this.props.benchset.forEach((B) => {
+                    let Id = B.benches[0].id;
+                    this.streams.push(new _DataStream(B.name+":"+Id, false, m, Id, this.props.kind, [], ""));
+                });
+            } else if ((this.props.kind == "group") || (this.props.kind == "regression")) {
+                this.props.benchset.forEach((B) => {
+                    let Ids = B.benches.map((bench) => bench.id);
+                    this.streams.push(new _DataStream(B.name, false, m, undefined, this.props.kind, Ids, this.props.x_env));
+                });
+            } else if (this.props.kind == "histograms") {
+                let m = [];
+                m.push(metric);
+                if (this.props.renderFullscreen || this._is_displayable_histogram_metric(metric)) {
+                    this.streams.push(new _DataStream(metric, false, m, this.props.benchId, "ordinary", [], ""));
+                }
+            } else {
+                let m = [];
+                m.push(metric);
+                if (need_aggregation && metric.match("systemload.*mzb_worker") !== null) {
+                    metricsToAggregate.push(metric);
                 } else {
-                    metricsToAggregate.push(this.props.targets[i]);
+                    this.streams.push(new _DataStream(metric, false, m, this.props.benchId, "ordinary", [], ""));
                 }
             }
-            
-            if(metricsToAggregate.length !== 0) {
-                let tmp = metricsToAggregate[0].split(".");
-                tmp.pop();
-                const metricName = tmp.join(".") + ".mzb_worker.aggregated";
-                this.streams.push(new _DataStream(metricName, true, metricsToAggregate, this.props.benchId, "ordinary", [], ""));
-            }
+        });
+
+        if(metricsToAggregate.length !== 0) {
+            let tmp = metricsToAggregate[0].split(".");
+            tmp.pop();
+            const metricName = tmp.join(".") + ".mzb_worker.aggregated";
+            this.streams.push(new _DataStream(metricName, true, metricsToAggregate, this.props.benchId, "ordinary", [], ""));
         }
     }
 
