@@ -212,6 +212,7 @@ class Graph extends React.Component {
     }
     
     _formatRolloverTextNormal(data, i) {
+        if(this.streams.length == 0) return;
         let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
         rolloverTextContainer.selectAll('*').remove();
         
@@ -471,11 +472,11 @@ class Graph extends React.Component {
 
     _resetState() {
         this.updatesCounter = 0;
-        
+
         this.setState({
-            maxDate: 0, 
-            data: this.streams.map((stream) => { return []; }), 
-            dataBatchs: this.streams.map((streams) => { return 0; }), 
+            maxDate: 0,
+            data: this.streams.map((stream) => { return []; }),
+            dataBatchs: this.streams.map((streams) => { return 0; }),
             isLoaded: false
         });
     }
@@ -483,7 +484,7 @@ class Graph extends React.Component {
     _resolveState() {
         const maxDate = this.streams.reduce((maxDate, stream) => {
             const metricMaxDate = stream.getMetricMaxDate();
-            
+
             if(metricMaxDate) {
                 if(metricMaxDate > maxDate) {
                     return metricMaxDate;

@@ -11,23 +11,17 @@ import moment from 'moment';
 class DashboardOverview extends React.Component {
     constructor(props) {
         super(props);
-        this.state = this._resolveState();
+        this.state = {};
         this.benchsetId = Misc.gen_guid();
-        this._onChange = this._onChange.bind(this);
     }
 
     componentDidMount() {
-        DashboardStore.onChange(this._onChange);
         MZBenchActions.getBenchset({criteria:this.props.item.criteria,
             charts: this.props.item.charts, benchset_id: this.benchsetId});
     }
 
-    componentWillUnmount() {
-        DashboardStore.off(this._onChange);
-    }
-
     render() {
-        if (this.state.benchsetId != this.benchsetId) {
+        if (this.props.benchsetId != this.benchsetId) {
             return (<h3>Loading...</h3>);
         } else {
             return (
@@ -64,18 +58,18 @@ class DashboardOverview extends React.Component {
     renderTable(name, kind, groupEnv, xEnv, benches) {
         if (kind == "compare") 
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th></tr>
-                {this.renderLegend(benches)}
+                <thead><tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th></tr></thead>
+                <tbody>{this.renderLegend(benches)}</tbody>
             </table>);
         if (kind == "group")
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{xEnv}</th><th>{name}</th></tr>
-                {this.renderLegend(benches)}
+                <thead><tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{xEnv}</th><th>{name}</th></tr></thead>
+                <tbody>{this.renderLegend(benches)}</tbody>
             </table>);
         if (kind == "regression")
             return (<table className="table table-striped">
-                <tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{name}</th></tr>
-                {this.renderLegend(benches)}
+                <thead><tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th><th>{name}</th></tr></thead>
+                <tbody>{this.renderLegend(benches)}</tbody>
             </table>);
     }
 
@@ -83,7 +77,7 @@ class DashboardOverview extends React.Component {
         return this.props.item.charts.map((c, idx) => {
             if (c.metric == "") return null;
 
-            let benches = this.state.benchset[idx];
+            let benches = this.props.benchset[idx];
             let targets = [c.metric];
 
             if (!benches || benches.length == 0) return (<h4 key={idx}>{c.metric} not found</h4>);
@@ -102,16 +96,7 @@ class DashboardOverview extends React.Component {
                     </div>);
         });
     }
-    _resolveState() {
-        return {
-            benchset : DashboardStore.getBenchset(),
-            benchsetId: DashboardStore.getBenchsetId()
-        };
-    }
 
-    _onChange() {
-        this.setState(this._resolveState());
-    }
 };
 
 DashboardOverview.propTypes = {

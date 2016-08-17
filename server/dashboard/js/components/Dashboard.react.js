@@ -28,7 +28,8 @@ class Dashboard extends React.Component {
                 component = <DashboardEdit item = {this.state.dashboard } />;
                 break;
             default:
-                component = <DashboardOverview item = {this.state.dashboard} activeGraph = {this.state.activeGraph}/>;
+                component = <DashboardOverview item = {this.state.dashboard} activeGraph = {this.state.activeGraph}
+                                               benchset = {this.state.benchset} benchsetId = {this.state.benchsetId}/>;
                 break;
 
         }
@@ -83,7 +84,9 @@ class Dashboard extends React.Component {
             isNewSelected: false,
             dashboard: DashboardStore.getSelected(),
             tab: DashboardStore.getActiveTab(),
-            activeGraph: DashboardStore.getSelectedGraph()
+            activeGraph: DashboardStore.getSelectedGraph(),
+            benchset : DashboardStore.getBenchset(),
+            benchsetId: DashboardStore.getBenchsetId()
         };
     }
 
