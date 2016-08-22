@@ -20,44 +20,44 @@ normalization_bc_test() ->
                                       {"counter2", counter}]])).
 
 graphite_visibility_metric_test() ->
-    ?assertEqual([
-        #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter", visibility => true}] },
-                      #{metrics => [#{name => "counter.rps", visibility => true}],
-                        units => "rps" }]}],
+    ?assertMatch([
+        #{ name:= "Default",
+           graphs:= [#{metrics:= [#{name:= "counter", visibility:= true}] },
+                      #{metrics:= [#{name:= "counter.rps", visibility:= true}],
+                        units:= "rps" }]}],
         build_graphite([{"counter", counter}])),
-    ?assertEqual([
-        #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter", rps_visibility => false, visibility => true}] },
-                      #{metrics => [#{name => "counter.rps", visibility => false}],
-                        units => "rps" }]}],
+    ?assertMatch([
+        #{ name:= "Default",
+           graphs:= [#{metrics:= [#{name:= "counter", rps_visibility:= false, visibility:= true}] },
+                      #{metrics:= [#{name:= "counter.rps", visibility:= false}],
+                        units:= "rps" }]}],
         build_graphite([{"counter", counter, #{rps_visibility => false}}])),
-    ?assertEqual([
-        #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter", rps_visibility => true, visibility => false}] },
-                      #{metrics => [#{name => "counter.rps", visibility => true}],
-                        units => "rps" }]}],
+    ?assertMatch([
+        #{ name:= "Default",
+           graphs:= [#{metrics:= [#{name:= "counter", rps_visibility:= true, visibility:= false}] },
+                      #{metrics:= [#{name:= "counter.rps", visibility:= true}],
+                        units:= "rps" }]}],
         build_graphite([{"counter", counter, #{visibility => false, rps_visibility => true}}])).
 
 graphite_one_metric_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter", visibility => true}] },
-                      #{metrics => [#{name => "counter.rps", visibility => true}],
+           graphs => [#{metrics => [#{name => "counter", visibility => true}], metatype => counters_and_gauges},
+                      #{metrics => [#{name => "counter.rps", visibility => true}], metatype => counters_and_gauges,
                         units => "rps" }]}],
         build_graphite([{"counter", counter}])).
 
 graphite_pass_options_test() ->
-    ?assertEqual([
-        #{ name => "Default",
-           graphs => [#{metrics => [#{name => "counter",
-                                      realtime => true,
-                                      visibility => true}],
-                        units   => "msg" },
-                      #{metrics => [#{name => "counter.rps",
-                                      realtime => true,
-                                      visibility => true}],
-                        units   => "msg/sec" }]}],
+    ?assertMatch([
+        #{ name:= "Default",
+           graphs:= [#{metrics:= [#{name:= "counter",
+                                    realtime:= true,
+                                    visibility:= true}],
+                        units:= "msg" },
+                      #{metrics:= [#{name:= "counter.rps",
+                                     realtime:= true,
+                                     visibility:= true}],
+                        units:= "msg/sec" }]}],
         build_graphite([{graph, #{ units => "msg",
                                    metrics => [{"counter", counter, #{realtime => true}}]}}])).
 
@@ -72,16 +72,16 @@ graphite_histogram_test() ->
                                      #{name => "bar.90", visibility => true},
                                      #{name => "bar.95", visibility => true},
                                      #{name => "bar.99", visibility => true},
-                                     #{name => "bar.999", visibility => true}]}]}],
+                                     #{name => "bar.999", visibility => true}], metatype => histograms}]}],
         build_graphite([{"bar", histogram}])).
 
 graphite_counter_with_gauge_test() ->
     ?assertEqual([
         #{ name => "Default",
            graphs => [#{metrics => [ #{name => "gauge", visibility => true},
-                                     #{name => "counter", visibility => true} ]},
+                                     #{name => "counter", visibility => true} ], metatype => counters_and_gauges},
                       #{metrics => [ #{name => "gauge", visibility => true},
-                                     #{name => "counter.rps", visibility => true}]}]}],
+                                     #{name => "counter.rps", visibility => true}], metatype => counters_and_gauges}]}],
         build_graphite([[{"counter", counter}, {"gauge", gauge}]])).
 
 graphite_all_in_one_group_test() ->
@@ -98,20 +98,20 @@ graphite_all_in_one_group_test() ->
                                      #{name => "histogram.90", visibility => true},
                                      #{name => "histogram.95", visibility => true},
                                      #{name => "histogram.99", visibility => true},
-                                     #{name => "histogram.999", visibility => true}]}]}],
+                                     #{name => "histogram.999", visibility => true}], metatype => mixed}]}],
         build_graphite([[{"counter", counter}, {"gauge", gauge}, {"histogram", histogram}]])).
 
 graphite_groups_test() ->
     ?assertEqual([
         #{ name => "Default",
-           graphs => [#{metrics => [ #{name => "gauge", visibility => true} ]}] },
+           graphs => [#{metrics => [ #{name => "gauge", visibility => true} ], metatype => counters_and_gauges }] },
         #{ name => "Group1",
-           graphs => [#{metrics => [ #{name => "counter1", visibility => true}]},
-                      #{metrics => [ #{name => "counter1.rps", visibility => true}],
+           graphs => [#{metrics => [ #{name => "counter1", visibility => true}], metatype => counters_and_gauges},
+                      #{metrics => [ #{name => "counter1.rps", visibility => true}], metatype => counters_and_gauges,
                         units   => "rps" }]},
         #{ name => "Group2",
-           graphs => [#{metrics => [ #{name => "counter2", visibility => true}]},
-                      #{metrics => [ #{name => "counter2.rps", visibility => true}],
+           graphs => [#{metrics => [ #{name => "counter2", visibility => true}], metatype => counters_and_gauges},
+                      #{metrics => [ #{name => "counter2.rps", visibility => true}], metatype => counters_and_gauges,
                         units   => "rps" }]}],
         build_graphite([{group, "Group1", [
                             {graph, #{metrics => [{"counter1", counter}]}}]},
