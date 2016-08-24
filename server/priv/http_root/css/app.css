@@ -40,7 +40,8 @@ a.bs-link {
 }
 
 .bs h6 {
-    margin: 5px 0;
+    margin: 5px 0 0 0;
+    padding-bottom: 5px;
 }
 .bs h6 span.label{
     margin-left: 5px;
