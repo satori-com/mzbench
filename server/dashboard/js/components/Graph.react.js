@@ -92,12 +92,27 @@ class Graph extends React.Component {
         this.currentZoom = undefined;
         this.previouslyRunning = undefined;
         this.updatesCounter = 0;
-        
-        this._createStreams();
-        
+
+        let visibility = new Map([]);
+        this.props.targets.forEach(
+            (metric) => {
+                if (this.props.kind == "histograms") {
+                    visibility.set(metric, this._is_displayable_histogram_metric(metric));
+                } else {
+                    visibility.set(metric, true)
+                }
+            });
+
         this.state = this._resolveState();
+        this.state.metrics_visibility = visibility;
+
+        this._createStreams();
+
+        this.state.isLoaded = false;
+
         this._onChange = this._onChange.bind(this);
         this._updateGraph = this._updateGraph.bind(this);
+        this._isVisibleMetric = this._isVisibleMetric.bind(this);
     }
     
     componentDidMount() {
@@ -115,7 +130,11 @@ class Graph extends React.Component {
     }
     
     shouldComponentUpdate(nextProps, nextState) {
-        if(nextProps.targets[0] != this.props.targets[0]) {
+        if (this.needUpdate) {
+            setTimeout(this._updateGraph, 1);
+            this.needUpdate = false;
+            return true;
+        } else if(nextProps.targets[0] != this.props.targets[0]) {
             // The change of the first target will change the DOM Ids
             // of the MetricsGraphics.js targets. Its the only case
             // when rendering should be done.
@@ -135,7 +154,27 @@ class Graph extends React.Component {
     }
     
     render() {
-        return (<div id={this._graphDOMId()}></div>);
+        let checkboxes = [];
+        if (this.props.renderFullscreen) {
+            checkboxes = this.props.targets.map((m, i) => {
+                            return (<div key={i} className="col-xs-6 col-md-4">
+                                <input type="checkbox" checked={this.state.metrics_visibility.get(m)} name={m} onChange={this._onCheckboxChange.bind(this, m)}/> {m}
+                            </div>);
+                        });
+            if (checkboxes.length > 8) {
+                checkboxes.push(
+                    <div className="col-xs-12 col-md-12" key="select-deselect">
+                      <a href="#" onClick={this._onCheckAll.bind(this)}>Select all</a>&nbsp; 
+                      <a href="#" onClick={this._onUncheckAll.bind(this)}>Deselect all</a>
+                    </div>)
+            }
+        }
+        return (<div>
+                    <div id={this._graphDOMId()}></div>
+                    <div className="col-md-12">
+                        {checkboxes.length > 1 ? checkboxes : null}
+                    </div>
+                </div>);
     }
     
     _graphDOMId() {
@@ -183,6 +222,7 @@ class Graph extends React.Component {
     }
     
     _formatRolloverTextFullscreen(data, i) {
+        if(this.streams.length == 0) return;
         let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
         rolloverTextContainer.selectAll('*').remove();
         
@@ -303,17 +343,17 @@ class Graph extends React.Component {
             aggregate_rollover: false,
             transition_on_update: false
         };
-        
+
         if(this.props.renderFullscreen) {
             graph_options.width = window.innerWidth - 100;
             graph_options.height = window.innerHeight - 200;
             graph_options.full_width = false;
-            
+
             graph_options.brushing = true;
             graph_options.brushing_history = true;
             graph_options.after_brushing = this._performZoom.bind(this);
             graph_options.brushing_manual_redraw = true;
-            graph_options.aggregate_rollover = this.streams.length > 1;
+            graph_options.aggregate_rollover = this.streams.filter(this._isVisibleMetric).length > 1;
         }
 
         if(this.state.isLoaded) {
@@ -325,13 +365,13 @@ class Graph extends React.Component {
             if(isEmpty) {
                 graph_options.chart_type = 'missing-data';
                 graph_options.missing_text = this.props.title ? `${this.props.title} (no data)` : "No data";
-                graph_options.legend = this.streams.map((stream) => { return stream.name; });
+                graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
                 graph_options.target = document.getElementById(this._graphDOMId());
 
                 MG.data_graphic(graph_options);
             } else {
-                graph_options.data = isEmpty ? [[{date: 0, value: 0, min: 0, max: 0}]] : this.state.data;
-                graph_options.legend = this.streams.map((stream) => { return stream.name; });
+                graph_options.data = this.state.data;
+                graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
 
                 graph_options.target = document.getElementById(this._graphDOMId());
 
@@ -352,7 +392,7 @@ class Graph extends React.Component {
             }
         } else {
             graph_options.chart_type = 'missing-data';
-            graph_options.legend = this.streams.map((stream) => { return stream.name; });
+            graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
             graph_options.target = document.getElementById(this._graphDOMId());
 
             MG.data_graphic(graph_options);
@@ -367,6 +407,10 @@ class Graph extends React.Component {
         if (this.previouslyRunning != this.props.isRunning) {
             this.previouslyRunning = this.props.isRunning;
             this._resetGraphs();
+        } else if (this.needGraphRedraw) {
+            this.needGraphRedraw = false;
+            //this._resetGraphs();
+            this._renderGraph();
         } else {
             const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b }, 0);
             let dataUpdated = newUpdatesCounter > this.updatesCounter;
@@ -388,7 +432,6 @@ class Graph extends React.Component {
     _createStreams() {
         let need_aggregation = !this.props.renderFullscreen &&
                                this.props.targets.length > MIN_GRAPHS_TO_BEGIN_COMPRESSION;
-
         let metricsToAggregate = [];
         this.props.targets.forEach((metric) => {
             let m = [];
@@ -433,6 +476,7 @@ class Graph extends React.Component {
         this._createStreams();
         this._resetState();
         this._createSubscriptions();
+        this.setState(this._resolveState());
     }
 
     _computeSubsamplingInterval() {
@@ -461,6 +505,7 @@ class Graph extends React.Component {
         this.streams.forEach((stream) => {
             stream.unsubscribeFromMetric();
         });
+
         this.streams = [];
     }
 
@@ -507,14 +552,15 @@ class Graph extends React.Component {
             }
         }, 0);
 
-        const metricData = this.streams.map((stream) => {
-            const data = stream.getMetricData();
-            if(data) {
-                return data;
-            } else {
-                return [];
-            }
-        });
+        const metricData =
+            this.streams.filter(this._isVisibleMetric).map((stream) => {
+                const data = stream.getMetricData();
+                if(data) {
+                    return data;
+                } else {
+                    return [];
+                }
+            });
 
         const metricBatchs = this.streams.map((stream) => {
             const batchCounter = stream.getBatchCounter();
@@ -526,9 +572,9 @@ class Graph extends React.Component {
         });
 
         const isLoaded = metricBatchs.reduce((prev, v) => {
-            if (v <= 0) return false;
-            else return prev;
-        }, true);
+                            if (v <= 0) return false;
+                            else return prev;
+                        }, true);
 
         return {
             maxDate: maxDate,
@@ -541,13 +587,55 @@ class Graph extends React.Component {
     _onChange() {
         this.setState(this._resolveState());
     }
+
+    _onCheckboxChange(metric) {
+        this.needUpdate = true;
+        this.needGraphRedraw = true;
+        let prevValue = this.state.metrics_visibility.get(metric);
+        this.setState({metrics_visibility: this.state.metrics_visibility.set(metric, !prevValue)});
+
+        return false;
+    }
+
+    _streamIndex(metric) {
+        return this.streams.reduce((acc, s, i) => {return (s.name == metric ? i : acc);}, -1);
+    }
+
+    deleteStream(index) {
+        this.streams[index].unsubscribeFromMetric();
+        var rest = this.streams.slice(index + 1 || this.streams.length);
+        this.streams.length = index < 0 ? this.streams.length + index : index;
+        return this.streams.push.apply(this.streams, rest);
+    };
+
+    _onCheckAll(event) {
+        event.preventDefault();
+        this.needUpdate = true;
+        this.needGraphRedraw = true;
+        this.props.targets.forEach((m) => {this.state.metrics_visibility.set(m, true)});
+        this.setState({metrics_visibility: this.state.metrics_visibility});
+    }
+
+    _onUncheckAll(event) {
+        event.preventDefault();
+        this.needUpdate = true;
+        this.needGraphRedraw = true;
+        this.props.targets.forEach((m) => {this.state.metrics_visibility.set(m, false)});
+        this.setState({metrics_visibility: this.state.metrics_visibility});
+    }
+
+    _isVisibleMetric(stream) {
+        let value = this.state.metrics_visibility.get(stream.name)
+        return value === undefined ? true : value;
+    }
 };
+
 
 Graph.propTypes = {
     benchId: React.PropTypes.number,
     benchStartTime: React.PropTypes.object,
     benchFinishTime: React.PropTypes.object,
-    
+
     targets: React.PropTypes.array.isRequired,
     isRunning: React.PropTypes.bool,
     title: React.PropTypes.string,
@@ -565,7 +653,7 @@ Graph.defaultProps = {
     benchId: undefined,
     benchStartTime: undefined,
     benchFinishTime: undefined,
-    
+
     isRunning: false,
     title: "",
     units: "",

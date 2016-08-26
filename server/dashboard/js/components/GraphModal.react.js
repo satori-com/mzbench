@@ -21,7 +21,7 @@ class GraphModal extends Modal {
             <div ref="modal" className="modal fade">
                 <div className="modal-dialog fullscreen-modal-dialog">
                     <div className="modal-content">
-                        <div className="modal-body">
+                        <div className="modal-body auto-overflow">
                             {this.props.children}
                         </div>
                         

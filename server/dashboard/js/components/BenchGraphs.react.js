@@ -53,7 +53,7 @@ class BenchGraphs extends React.Component {
             });
 
             return (
-                <Graph isRunning={this.props.bench.isRunning()} targets={targets}
+                <Graph isRunning={this.props.bench.isRunning()} targets={targets} kind={graph.metatype}
                     title={graph.title} units={graph.units} benchId={this.props.bench.id}
                     benchStartTime={this.props.bench.start_time_client} benchFinishTime={this.props.bench.finish_time_client}
                     domPrefix="modal-" renderFullscreen={true}/>

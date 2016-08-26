@@ -325,6 +325,10 @@ div.log-window pre{
     overflow: hidden;
 }
 
+.auto-overflow {
+    overflow: auto;
+}
+
 .favorite-star-character {
   color: #ece6ed;
   cursor: pointer;
