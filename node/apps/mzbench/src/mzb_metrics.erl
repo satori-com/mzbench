@@ -3,6 +3,7 @@
 -export([start_link/2,
          declare_metric/5,
          declare_metrics/1,
+         local_declare_metrics/1,
          notify/2,
          get_value/1,
          get_local_values/1,
@@ -57,14 +58,16 @@ notify(Name, Value) ->
     notify({Name, counter}, Value).
 
 declare_metric(Group, Title, Name, Type, Opts) ->
-    mzb_interconnect:call_director({declare_metrics,
-        [{declare_metrics, [
+    declare_metrics([
             {group, Group, [
                 {graph, Opts#{title => Title, metrics => [{Name, Type}]}}
             ]}
-        ]}]}).
+        ]).
 
 declare_metrics(Groups) ->
+    mzb_interconnect:call_director({declare_metrics, Groups}).
+
+local_declare_metrics(Groups) ->
     gen_server:call(?MODULE, {declare_metrics, Groups}).
 
 get_value(Metric) ->

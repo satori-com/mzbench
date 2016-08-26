@@ -47,6 +47,9 @@ handle(get_local_timestamp, _) ->
 handle(get_system_metrics, _) ->
     {reply, mzb_system_load_monitor:metric_names()};
 
+handle({declare_metrics, MetricGroups}, _) ->
+    {reply, mzb_metrics:local_declare_metrics(MetricGroups)};
+
 handle(Unhandled, _) ->
     system_log:error("Unhandled node message: ~p", [Unhandled]),
     erlang:error({unknown_message, Unhandled}).
