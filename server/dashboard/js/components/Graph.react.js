@@ -171,9 +171,7 @@ class Graph extends React.Component {
         }
         return (<div>
                     <div id={this._graphDOMId()}></div>
-                    <div className="col-md-12">
-                        {checkboxes.length > 1 ? checkboxes : null}
-                    </div>
+                    {checkboxes.length > 1 ? <div className="col-md-12">{checkboxes}</div> : null}
                 </div>);
     }
     
@@ -366,14 +364,9 @@ class Graph extends React.Component {
                 graph_options.chart_type = 'missing-data';
                 graph_options.missing_text = this.props.title ? `${this.props.title} (no data)` : "No data";
                 graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
-                graph_options.target = document.getElementById(this._graphDOMId());
-
-                MG.data_graphic(graph_options);
             } else {
                 graph_options.data = this.state.data;
                 graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
-
-                graph_options.target = document.getElementById(this._graphDOMId());
 
                 graph_options.show_confidence_band = ['min', 'max'];
 
@@ -388,15 +381,15 @@ class Graph extends React.Component {
                 graph_options.min_y = (data_min < 0)?data_min:0;
                 graph_options.max_y = this._calcDataMax();
 
-                MG.data_graphic(graph_options);
             }
         } else {
             graph_options.chart_type = 'missing-data';
             graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
-            graph_options.target = document.getElementById(this._graphDOMId());
 
-            MG.data_graphic(graph_options);
         }
+
+        graph_options.target = document.getElementById(this._graphDOMId());
+        MG.data_graphic(graph_options);
     }
 
     _updateGraph() {
@@ -596,17 +589,6 @@ class Graph extends React.Component {
 
         return false;
     }
-
-    _streamIndex(metric) {
-        return this.streams.reduce((acc, s, i) => {return (s.name == metric ? i : acc);}, -1);
-    }
-
-    deleteStream(index) {
-        this.streams[index].unsubscribeFromMetric();
-        var rest = this.streams.slice(index + 1 || this.streams.length);
-        this.streams.length = index < 0 ? this.streams.length + index : index;
-        return this.streams.push.apply(this.streams, rest);
-    };
 
     _onCheckAll(event) {
         event.preventDefault();
