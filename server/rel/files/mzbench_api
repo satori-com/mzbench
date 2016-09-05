@@ -140,7 +140,9 @@ get_pid() {
     return 0
 }
 
-export ORIG_PATH=$PATH
+if [ -z "$ORIG_PATH" ]; then
+    export ORIG_PATH=$PATH
+fi
 
 # Check the first argument for instructions
 case "$1" in
