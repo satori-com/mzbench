@@ -127,20 +127,23 @@ handle_info(trigger,
 
     NewState = try
         NetStat = network_usage(),
-        lists:foreach(fun ({IfName, PL}) ->
-            case proplists:get_value(IfName, OldNetStat) of
-                undefined -> ok;
-                OldPL ->
-                    CurrentRX = proplists:get_value(ibytes, PL),
-                    OldRX = proplists:get_value(ibytes, OldPL),
-                    CurrentTX = proplists:get_value(obytes, PL),
-                    OldTX = proplists:get_value(obytes, OldPL),
-                    RXRate = (CurrentRX - OldRX) / (LastIntervalDuration / 1000),
-                    TXRate = (CurrentTX - OldTX) / (LastIntervalDuration / 1000),
+        lists:foreach(fun
+            ({"lo", _}) -> ok;
+            ({"lo0", _}) -> ok;
+            ({IfName, PL}) ->
+                case proplists:get_value(IfName, OldNetStat) of
+                    undefined -> ok;
+                    OldPL ->
+                        CurrentRX = proplists:get_value(ibytes, PL),
+                        OldRX = proplists:get_value(ibytes, OldPL),
+                        CurrentTX = proplists:get_value(obytes, PL),
+                        OldTX = proplists:get_value(obytes, OldPL),
+                        RXRate = (CurrentRX - OldRX) / (LastIntervalDuration / 1000),
+                        TXRate = (CurrentTX - OldTX) / (LastIntervalDuration / 1000),
 
-                    ok = mzb_metrics:notify({metric_name("netrx."++IfName), gauge}, RXRate),
-                    ok = mzb_metrics:notify({metric_name("nettx."++IfName), gauge}, TXRate)
-            end
+                        ok = mzb_metrics:notify({metric_name("netrx."++IfName), gauge}, RXRate),
+                        ok = mzb_metrics:notify({metric_name("nettx."++IfName), gauge}, TXRate)
+                end
         end, NetStat),
 
         State#state{net_stat_state = NetStat}
@@ -217,7 +220,7 @@ network_usage() ->
     end.
 
 local_interfaces() ->
-    [If || {If, _} <- network_usage()].
+    [If || {If, _} <- network_usage(), If /= "lo", If /= "lo0"].
 
 network_load_for_arch({_, darwin}) ->
     parse_darwin_netstat_output(os:cmd("netstat -ibn"));
