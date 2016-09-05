@@ -21,8 +21,7 @@
 -export([parse_darwin_netstat_output/1, parse_linux_netstat_output/1]).
 
 -record(state, {
-    last_rx_bytes :: integer() | not_available,
-    last_tx_bytes :: integer() | not_available,
+    net_stat_state :: [{Name :: string(), Props :: [term()]}],
     last_trigger_timestamp :: erlang:timestamp() | not_available,
     interval_ms :: undefined | integer()
     }).
@@ -44,16 +43,16 @@ metric_names() ->
 
         {graph, #{title => "RAM",
                   units => "%",
-                  metrics => [{metric_name("ram"), gauge}]}},
+                  metrics => [{metric_name("ram"), gauge}]}}] ++
 
-        {graph, #{title => "Network transmit",
+        [{graph, #{title => "Network transmit - " ++ I,
                   units => "bytes",
-                  metrics => [{metric_name("nettx"), gauge}]}},
+                  metrics => [{metric_name("nettx." ++ I), gauge}]}} || I <- local_interfaces() ] ++
 
-        {graph, #{title => "Network receive",
+        [{graph, #{title => "Network receive - " ++ I,
                   units => "bytes",
-                  metrics => [{metric_name("netrx"), gauge}]}}
-                  ]},
+                  metrics => [{metric_name("netrx." ++ I), gauge}]}} || I <- local_interfaces() ]
+                  },
      {group, "MZBench Internals", [
         {graph, #{title => "Mailbox messages",
                   metrics => [{metric_name("message_queue"), gauge}]}},
@@ -80,8 +79,7 @@ init([IntervalMs]) ->
     _ = spawn_link(fun () -> mailbox_len_reporter(IntervalMs) end),
     erlang:send_after(IntervalMs, self(), trigger),
     {ok, #state{
-            last_rx_bytes = not_available,
-            last_tx_bytes = not_available,
+            net_stat_state = [],
             last_trigger_timestamp = not_available,
             interval_ms = IntervalMs}}.
 
@@ -93,10 +91,9 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(trigger,
-    #state{last_rx_bytes = LastRXBytes,
-        last_tx_bytes = LastTXBytes,
-        last_trigger_timestamp = LastTriggerTimestamp,
-        interval_ms = IntervalMs} = State) ->
+    #state{net_stat_state = OldNetStat,
+           last_trigger_timestamp = LastTriggerTimestamp,
+           interval_ms = IntervalMs} = State) ->
 
     Now = os:timestamp(),
 
@@ -129,23 +126,24 @@ handle_info(trigger,
     end,
 
     NewState = try
-        {CurrentRXBytes, CurrentTXBytes} = network_usage(),
+        NetStat = network_usage(),
+        lists:foreach(fun ({IfName, PL}) ->
+            case proplists:get_value(IfName, OldNetStat) of
+                undefined -> ok;
+                OldPL ->
+                    CurrentRX = proplists:get_value(ibytes, PL),
+                    OldRX = proplists:get_value(ibytes, OldPL),
+                    CurrentTX = proplists:get_value(obytes, PL),
+                    OldTX = proplists:get_value(obytes, OldPL),
+                    RXRate = (CurrentRX - OldRX) / (LastIntervalDuration / 1000),
+                    TXRate = (CurrentTX - OldTX) / (LastIntervalDuration / 1000),
 
-        case LastRXBytes of
-            not_available -> ok;
-            _ ->
-                RXRate = (CurrentRXBytes - LastRXBytes) / (LastIntervalDuration / 1000),
-                ok = mzb_metrics:notify({metric_name("netrx"), gauge}, RXRate)
-        end,
+                    ok = mzb_metrics:notify({metric_name("netrx."++IfName), gauge}, RXRate),
+                    ok = mzb_metrics:notify({metric_name("nettx."++IfName), gauge}, TXRate)
+            end
+        end, NetStat),
 
-        case LastTXBytes of
-            not_available -> ok;
-            _ ->
-                TXRate = (CurrentTXBytes - LastTXBytes) / (LastIntervalDuration / 1000),
-                ok = mzb_metrics:notify({metric_name("nettx"), gauge}, TXRate)
-        end,
-
-        State#state{last_rx_bytes = CurrentRXBytes, last_tx_bytes = CurrentTXBytes}
+        State#state{net_stat_state = NetStat}
     catch
         C:E -> system_log:error("Exception while getting net stats: ~p~nStacktrace: ~p", [{C,E}, erlang:get_stacktrace()]),
         State
@@ -218,6 +216,9 @@ network_usage() ->
             {0, 0}
     end.
 
+local_interfaces() ->
+    [If || {If, _} <- network_usage()].
+
 network_load_for_arch({_, darwin}) ->
     parse_darwin_netstat_output(os:cmd("netstat -ibn"));
 network_load_for_arch({_, linux}) ->
@@ -230,19 +231,32 @@ parse_darwin_netstat_output(Str) ->
             fun (Values) ->
                 try lists:zip(Headers, Values) of
                     Proplist ->
-                        {true, [{H, V} || {H, V} <- Proplist,
-                                               N <- ["Name", "Ibytes", "Obytes"],
-                                          N == H]}
+                        Name = proplists:get_value("Name", Proplist),
+                        IBytes = proplists:get_value("Ibytes", Proplist),
+                        OBytes = proplists:get_value("Obytes", Proplist),
+                        {true, {Name, [{ibytes, list_to_integer(IBytes)}, {obytes, list_to_integer(OBytes)}]}}
                 catch
                     _:_ -> false
                 end
             end, Tokens),
-        lists:foldl(
-            fun ([_, {"Ibytes", I}, {"Obytes", O}], {IAcc, OAcc}) ->
-                {erlang:list_to_integer(I) + IAcc, erlang:list_to_integer(O) + OAcc}
-            end, {0, 0}, lists:usort(Data))
+        Sorted = lists:usort(Data), % need to remove duplicates
+        % MacOS shortens interface names hence long interface names might look the same
+        % It is needed to add postfixes so we can distinguish them
+        enumerate_shortened(Sorted, [])
     catch
         _:E -> erlang:error({parse_netstat_output_error, E, Str})
+    end.
+
+enumerate_shortened([], Res) -> lists:reverse(Res);
+enumerate_shortened([{Name, Data} | Tail], Res) ->
+    Add = fun (N, I) -> N ++ "-" ++ integer_to_list(I) end,
+    {NewTail, Num} = lists:mapfoldl(
+        fun ({N, D}, Acc) when N == Name -> {{Add(N, Acc + 1), D}, Acc + 1};
+            (E, Acc) -> {E, Acc}
+        end, 0, Tail),
+    case Num > 0 of
+        true  -> enumerate_shortened(NewTail, [{Add(Name, 0), Data}|Res]);
+        false -> enumerate_shortened(NewTail, [{Name, Data}|Res])
     end.
 
 parse_linux_netstat_output(Str) ->
@@ -258,9 +272,7 @@ parse_linux_netstat_output(Str) ->
                 end
             end, Sections),
         (Parsed == []) andalso erlang:error(no_info),
-        In  = lists:sum([I || {_, I, _} <- Parsed]),
-        Out = lists:sum([O || {_, _, O} <- Parsed]),
-        {In, Out}
+        Parsed
     catch
         _:E -> erlang:error({parse_netstat_output_error, E, Str})
     end.
@@ -289,7 +301,7 @@ parse_netstat_sectionV1(Str) ->
             {match, [OutStr]} -> erlang:list_to_integer(OutStr);
             nomatch -> error({wrong_format, Str})
         end,
-    {Name, In, Out}.
+    {Name, [{ibytes, In}, {obytes, Out}]}.
 
 parse_netstat_sectionV2(Str) ->
     Name =
@@ -309,5 +321,6 @@ parse_netstat_sectionV2(Str) ->
             {match, [OutStr]} -> erlang:list_to_integer(OutStr);
             nomatch -> error({wrong_format, Str})
         end,
-    {Name, In, Out}.
+
+    {Name, [{ibytes, In}, {obytes, Out}]}.
 
