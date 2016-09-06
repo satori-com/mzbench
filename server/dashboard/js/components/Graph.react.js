@@ -461,6 +461,7 @@ class Graph extends React.Component {
         this.streams.forEach((stream) => {
             stream.unsubscribeFromMetric();
         });
+        this.streams = [];
     }
 
     _subscribeToMetric(stream) {
