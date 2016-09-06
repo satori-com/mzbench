@@ -25,7 +25,7 @@
     "react-ace": "~2.5.0",
     "react-collapsible": "~0.3.0",
     "brace": "~0.5.1",
-    "react-categorized-tag-input": "~2.*.*",
+    "react-categorized-tag-input": "~2.0.*",
     "keymirror": "~0.*.*"
   },
   "scripts": {
