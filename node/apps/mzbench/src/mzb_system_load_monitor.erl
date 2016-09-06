@@ -216,7 +216,7 @@ network_usage() ->
     catch
         _:E ->
             system_log:error("Error parsing network info: ~p", [E]),
-            {0, 0}
+            []
     end.
 
 local_interfaces() ->

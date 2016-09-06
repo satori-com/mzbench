@@ -114,7 +114,7 @@ handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super
         {mzb_metrics,
          {mzb_metrics, start_link, [Env, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
-    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics),
+    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
     SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
     WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
     mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),

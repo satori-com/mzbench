@@ -40,7 +40,11 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 
 ",
-    ?assertEqual({75253,70086}, mzb_system_load_monitor:parse_linux_netstat_output(Output)).
+    ?assertEqual([{"docker0", [{ibytes, 0}, {obytes, 0}]},
+                  {"enp0s3",  [{ibytes, 66976}, {obytes, 60243}]},
+                  {"enp0s8",  [{ibytes, 0}, {obytes, 1566}]},
+                  {"lo",      [{ibytes, 8277}, {obytes, 8277}]}],
+                 mzb_system_load_monitor:parse_linux_netstat_output(Output)).
 
 netstat_linux2_parse_test() ->
     Output =
@@ -64,7 +68,9 @@ lo        Link encap:Local Loopback
           RX bytes:9170812056 (8.5 GiB)  TX bytes:9170812056 (8.5 GiB)
 
 ",
-    ?assertEqual({25704632968,137286896623}, mzb_system_load_monitor:parse_linux_netstat_output(Output)).
+    ?assertEqual([{"eth0", [{ibytes, 16533820912}, {obytes, 128116084567}]},
+                  {"lo", [{ibytes, 9170812056}, {obytes, 9170812056}]}],
+                 mzb_system_load_monitor:parse_linux_netstat_output(Output)).
 
 netstat_darwin_parse_test() ->
     Output =
@@ -88,5 +94,13 @@ bridg 1500  <Link#9>    7a:31:c1:eb:5a:00        0     0          0        1    
 tun0  1500  <Link#10>                         3893     0    1604324     5336     0    1195731     0
 tun0  1500  192.168.2.6/3 192.168.2.6         3893     -    1604324     5336     -    1195731     -
 ",
-    ?assertEqual({160545572,19404499}, mzb_system_load_monitor:parse_darwin_netstat_output(Output)).
-
+    ?assertEqual([{"awdl0",   [{ibytes, 0}, {obytes, 3151}]},
+                  {"bridg-0", [{ibytes, 0}, {obytes, 342}]},
+                  {"bridg-1", [{ibytes, 3}, {obytes, 346}]},
+                  {"en0",     [{ibytes, 158702977}, {obytes, 17967004}]},
+                  {"en1",     [{ibytes, 0}, {obytes, 0}]},
+                  {"en2",     [{ibytes, 0}, {obytes, 0}]},
+                  {"lo0",     [{ibytes, 238271}, {obytes, 238271}]},
+                  {"p2p0",    [{ibytes, 0}, {obytes, 0}]},
+                  {"tun0",    [{ibytes, 1604324}, {obytes, 1195731}]}],
+                 mzb_system_load_monitor:parse_darwin_netstat_output(Output)).
