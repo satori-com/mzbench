@@ -1,6 +1,6 @@
 -module(mzb_api_endpoints).
 
--export([init/2, info/3, terminate/3]).
+-export([init/2, info/3, terminate/3, format_results/1]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -316,10 +316,23 @@ format_status(#{status:= Status, start_time:= StartTime, finish_time:= FinishTim
 
 format_results(#{results:= undefined}) ->
     #{};
+% BC code start
+format_results(#{results:= [{_, _}|_] = Results}) ->
+    maps:from_list([{list_to_binary(Name), #{type => undefined, value => Value}} || {Name, Value} <- Results]);
+% BC code end
 format_results(#{results:= Results}) ->
-    maps:from_list([{list_to_binary(Name), Value} || {Name, Value} <- Results]);
+    Formated = lists:map(
+        fun ({Name, counter, {Val, Percentiles}}) ->
+            {list_to_binary(Name), #{type => counter, value => Val, rps => format_percentiles(Percentiles)}};
+            ({Name, Type, Percentiles}) ->
+            {list_to_binary(Name), #{type => Type, percentiles => format_percentiles(Percentiles)}}
+        end, Results),
+    maps:from_list(Formated);
 format_results(#{}) ->
     #{}.
+
+format_percentiles(Percentiles) ->
+    maps:from_list([{list_to_binary(Name), Value} || {Name, Value} <- Percentiles]).
 
 check_severity(<<"debug">>) -> {true, debug};
 check_severity(<<"info">>) -> {true, info};

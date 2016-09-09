@@ -932,25 +932,26 @@ aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
                 FileRPS = mzb_api_bench:metrics_file(Name ++ ".rps", Config),
                 Data = metric_file_fold(FileRPS, fun (_, Value, Acc) -> [Value|Acc] end, []),
                 RPSFinal = statistics(Data, Percentiles),
-                [{Name, FinalValue}] ++ [{Name ++ ".rps." ++ N, V} || {N, V} <- RPSFinal];
+                [{Name, counter, {FinalValue, RPSFinal}}];
             ({Name, Type, _}) when Type == gauge; Type == derived ->
                 File = mzb_api_bench:metrics_file(Name, Config),
                 Data = metric_file_fold(File, fun (_, Value, Acc) -> [Value|Acc] end, []),
                 Final = statistics(Data, Percentiles),
-                [{Name ++ "." ++ N, V} || {N, V} <- Final];
+                [{Name, gauge, Final}];
             ({Name, histogram, _}) ->
                 case proplists:get_value(Name, Histograms, undefined) of
                     undefined -> [];
                     Values ->
                         {ok, Ref} = hdr_histogram:from_binary(Values),
                         try
-                            lists:map(
-                                fun (min) -> {Name ++ ".min", hdr_histogram:min(Ref)};
-                                    (max) -> {Name ++ ".max", hdr_histogram:max(Ref)};
-                                    (mean) -> {Name ++ ".mean", hdr_histogram:mean(Ref)};
-                                    (median) -> {Name ++ ".median", hdr_histogram:median(Ref)};
-                                    (N) when N =< 100 -> {Name ++ "." ++ integer_to_list(N), hdr_histogram:percentile(Ref, erlang:float(N))}
-                                end, Percentiles)
+                            PValues = lists:map(
+                                fun (min) -> {"min", hdr_histogram:min(Ref)};
+                                    (max) -> {"max", hdr_histogram:max(Ref)};
+                                    (mean) -> {"mean", hdr_histogram:mean(Ref)};
+                                    (median) -> {"median", hdr_histogram:median(Ref)};
+                                    (N) when N =< 100 -> {integer_to_list(N), hdr_histogram:percentile(Ref, erlang:float(N))}
+                                end, Percentiles),
+                            [{Name, histogram, PValues}]
                         after
                             hdr_histogram:close(Ref)
                         end
@@ -958,9 +959,6 @@ aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
         end, Flatten),
     info("Bench final metrics: ~p", [Res], State),
     Res.
-
-%percentile2str(A) when is_atom(A) -> atom_to_list(A);
-%percentile2str(N) when is_integer(N) -> integer_to_list(N).
 
 statistics([], _) -> [];
 statistics(Data, Percentiles) ->

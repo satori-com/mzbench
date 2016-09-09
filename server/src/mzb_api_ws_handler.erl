@@ -554,9 +554,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
       cloud:=          Cloud,
       vm_args:=        VMArgs,
       env:=            Env} = Config,
-    Results = case mzb_bc:maps_get(results, Status, undefined) of
-                undefined -> [];
-                R -> R end,
+    Results = mzb_api_endpoints:format_results(Status),
     DefaultVMArgs = application:get_env(mzbench_api, vm_args, undefined),
     EnvMap = mzb_bc:maps_without(["mzb_script_name", "nodes_num", "bench_workers_dir", "bench_script_dir", "worker_hosts"], maps:from_list(Env)),
     EnvMap2 = if VMArgs =/= DefaultVMArgs -> maps:put(vm_args, VMArgs, EnvMap);
@@ -567,7 +565,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      nodes => Nodes,
                      cloud => Cloud,
                      env => EnvMap2,
-                     results => maps:from_list(Results),
+                     results => Results,
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags]
                      },
 
