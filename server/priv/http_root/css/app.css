@@ -471,3 +471,7 @@ a.Collapsible__trigger {
   display: inline-block;
   margin-bottom: 20px;
 }
+
+h4.bench-results {
+  word-spacing: 5px;
+}
