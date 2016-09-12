@@ -19,7 +19,7 @@ normalize_test() ->
                config => #{script => #{body => script_body1, name => "another_name.erl"},
                            benchmark_name => "Test bench", nodes_arg => "1", cloud => "",
                            vm_args => [], env => [], tags => ["tag1", "tag2"]},
-               results => [{key, value}]}}
+               results => [{"m1", counter, {51, [{"max", 20}, {"50", 10}]}}, {"m2", gauge, [{"max", 100}, {"50", 40}]}]}}
     ],
 
     Normalized = mzb_api_ws_handler:normalize(BenchInfos),
@@ -37,7 +37,8 @@ normalize_test() ->
           env => #{vm_args => []},
           status => success,
           tags => [tag1, tag2],
-          results => #{key => value}},
+          results => #{<<"m1">> => #{type => counter, value => 51, rps => #{<<"50">> => 10, <<"max">> => 20}},
+                       <<"m2">> => #{type => gauge, percentiles => #{<<"50">> => 40, <<"max">> => 100}}}},
         #{id => 1,
           name => "Test bench",
           metrics => metrics,

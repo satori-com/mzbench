@@ -166,6 +166,48 @@ def data_endpoint_test():
     assert 'print' in\
         [metric['target'] for metric in json.loads(json_out)]
 
+def bench_results_test():
+    bench_id = run_successful_bench(scripts_dir + 'data_script.erl')
+
+    json_results_process = subprocess.Popen(
+        [mzbench_script,
+            '--host=localhost:4800',
+            'results',
+            str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    log_process = subprocess.Popen(
+        [mzbench_script,
+            '--host=localhost:4800',
+            'log',
+            str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    lout, lerr = log_process.communicate()
+    print 'Log collector stdout'
+    print lout
+    print 'Log collector stderr'
+    print lerr
+
+    json_out, json_err = json_results_process.communicate()
+    print 'JSON results collector stdout'
+    print json_out
+    print 'JSON results collector stderr'
+    print json_err
+
+    time.sleep(3)
+
+    json_data_ret_code = json_results_process.poll()
+
+    assert json_data_ret_code == 0
+    results = json.loads(json_out)
+
+    assert results["dummy"]["type"] == "histogram"
+    assert results["dummy"]["percentiles"]["max"] > 0
+    assert results["print"]["type"] == "counter"
+    assert results["print"]["value"] == 1
 
 def restart_test():
     bench_id = run_successful_bench(scripts_dir + 'correct_script.erl')

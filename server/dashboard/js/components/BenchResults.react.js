@@ -32,7 +32,7 @@ class BenchResults extends React.Component {
         let decimalPlaces = 2;
         let isCounter = data.type == "counter";
         let percentiles = isCounter ? data.rps : data.percentiles;
-        if (percentiles == undefined || Object.keys(percentiles).length == 0) return <span>undefined</span>;
+        if (percentiles == undefined || Object.keys(percentiles).length == 0) return <span className="text-muted">no percentile data</span>;
         return (<table className="table">
                 <thead>
                  <tr>
