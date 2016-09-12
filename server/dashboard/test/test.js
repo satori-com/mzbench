@@ -90,7 +90,7 @@ page.open("http://localhost:4800", function(status){
             // Start and wait until complete
             ['wait', ['a[href="#/new"]'], biggerTimeout], ['click', ['a[href="#/new"]']],
             ['wait', ['button.btn', 'Run']], ['click', ['button.btn', 'Run']],
-            ['wait', ['span.label', 'running'], biggerTimeout], ['wait', ['div.bs-complete.bs-selected'], biggerTimeout],
+            ['wait', ['span.label', 'running'], biggerTimeout*10], ['wait', ['div.bs-complete.bs-selected'], biggerTimeout*10],
 
             // Check that "scenario" tab is accessible
             ['wait', ['li > a', 'Scenario']], ['click', ['li > a', 'Scenario']],
