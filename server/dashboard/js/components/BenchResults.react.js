@@ -9,14 +9,18 @@ class BenchResults extends React.Component {
                 return this.render_metric_result_value(key, data);
             });
 
-        return (
-            <div>
-                <h3>Results</h3>
-                <div className="row">
-                    {metricValues}
+        if (metricValues.length > 0) {
+            return (
+                <div>
+                    <h3>Results</h3>
+                    <div className="row">
+                        {metricValues}
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        } else {
+            return null;
+        }
     }
 
     render_metric_result_value(name, data) {
