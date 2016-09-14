@@ -109,18 +109,16 @@ handle_cast(start_pools, #state{nodes = []} = State) ->
     system_log:error("[ director ] There are no alive nodes to start workers"),
     {stop, empty_nodes, State};
 
-handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid} = State) ->
-    {ok, _} = supervisor:start_child(SuperPid,
-        {mzb_metrics,
-         {mzb_metrics, start_link, [Env, Nodes]},
-         transient, 5000, worker, [mzb_metrics]}),
-    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
-    SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
-    WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
-    mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),
-    {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
-    StartedPools = start_pools(NewScript, Env, Nodes, []),
-    maybe_stop(State#state{pools = StartedPools});
+handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes} = State) ->
+    try start_metrics(State) of
+        ok ->
+            {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
+            StartedPools = start_pools(NewScript, Env, Nodes, []),
+            maybe_stop(State#state{pools = StartedPools})
+    catch
+        _:E ->
+            maybe_stop(State#state{stop_reason = {start_metrics_failed, E}})
+    end;
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
     NewState = handle_pool_report(Info, State),
@@ -171,6 +169,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+start_metrics(#state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid}) ->
+    {ok, _} = supervisor:start_child(SuperPid,
+        {mzb_metrics,
+         {mzb_metrics, start_link, [Env, Nodes]},
+         transient, 5000, worker, [mzb_metrics]}),
+    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
+    SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
+    WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
+    mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),
+    ok.
 
 start_pools([], _, _, Acc) ->
     system_log:info("[ director ] Started all pools"),
@@ -257,7 +266,10 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
-    {error, {asserts_failed, length(FailedAsserts)}, Str, get_stats_data()}.
+    {error, {asserts_failed, length(FailedAsserts)}, Str, get_stats_data()};
+format_results(#state{stop_reason = {start_metrics_failed, E}}) ->
+    Str = mzb_string:format("FAILED~nstart metrics subsystem failed: ~p", [E]),
+    {error, start_metrics_failed, Str, get_stats_data()}.
 
 get_stats_data() ->
     try

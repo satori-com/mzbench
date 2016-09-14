@@ -114,11 +114,17 @@ init([Env, Nodes]) ->
         }}.
 
 handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
-    NewGroups = mzb_script_metrics:normalize(OldGroups ++ Groups),
-    mzb_metric_reporter:new_metrics(NewGroups),
-    NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
-    [ mzb_metrics:notify({N, counter}, 0) || N <- NewCounters],
-    {reply, ok, State#s{metric_groups = NewGroups}};
+    try mzb_script_metrics:normalize(OldGroups ++ Groups) of
+        NewGroups ->
+            mzb_metric_reporter:new_metrics(NewGroups),
+            NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
+            [ mzb_metrics:notify({N, counter}, 0) || N <- NewCounters],
+            {reply, ok, State#s{metric_groups = NewGroups}}
+    catch
+        error:Error ->
+            system_log:error("Metrics declaration error: ~s", [mzb_script_metrics:format_error(Error)]),
+            {reply, {error, Error}, State}
+    end;
 
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),

@@ -1,18 +1,14 @@
 -module(mzb_script_metrics).
 
--export([script_metrics/2, normalize/1, build_metric_groups_json/1]).
+-export([script_metrics/2, normalize/1, format_error/1, build_metric_groups_json/1]).
 
 -include_lib("mzbench_language/include/mzbl_types.hrl").
 
 script_metrics(Pools, _WorkerNodes) ->
-    PoolMetrics = pool_metrics(Pools),
 
     WorkerStatusGraphs = lists:map(fun (P) ->
         {graph, #{title => mzb_string:format("Worker status (~s)", [pool_name(P)]),
                   metrics => [{mzb_string:format("workers.~s.~s", [pool_name(P), X]), counter} || X <- ["started", "ended", "failed"]]
-                             %++ [{mzb_string:format("workers.~s.~s.~s", [pool_name(P), mzb_utility:hostname_str(N), X]), counter} ||
-                             %       X <- ["started", "ended", "failed"],
-                             %       N <- WorkerNodes]
                             }}
         end, Pools),
 
@@ -30,7 +26,15 @@ script_metrics(Pools, _WorkerNodes) ->
                                     units => "ms",
                                     metrics => [{"metric_merging_time", gauge}]}}
                         ]}],
-    normalize(PoolMetrics ++ MZBenchInternal).
+    try
+        PoolMetrics = pool_metrics(Pools),
+        normalize(PoolMetrics ++ MZBenchInternal)
+    catch
+        _:Error ->
+            ST = erlang:get_stacktrace(),
+            system_log:error("Metrics declaration error: ~s", [mzb_script_metrics:format_error(Error)]),
+            erlang:raise(error, Error, ST)
+    end.
 
 pool_metrics(Pools) ->
     PoolWorkers = [mzbl_script:extract_worker(PoolOpts) ||
@@ -49,7 +53,7 @@ pool_name(Pool) ->
     #operation{name = pool, meta = Meta} = Pool,
     proplists:get_value(pool_name, Meta).
 
-normalize(Seq) ->
+normalize(Seq) when is_list(Seq) ->
     {Grouped, Groupless} = lists:partition(fun (X) ->
                                                    is_tuple(X) andalso element(1, X) == group
                                            end, Seq),
@@ -63,7 +67,9 @@ normalize(Seq) ->
 
     NormalizedGroup = [normalize_group(G) || G <- Grouped],
 
-    merge_groups(DefaultGroups ++ NormalizedGroup).
+    merge_groups(DefaultGroups ++ NormalizedGroup);
+normalize(Seq) ->
+    erlang:error({metrics_not_list, Seq}).
 
 merge_groups(Groups) -> merge_groups(lists:reverse(Groups), []).
 
@@ -74,9 +80,12 @@ merge_groups([{group, Name, Graphs} = G | T], Res) ->
             merge_groups(T, [{group, Name, merge_graphs(Graphs ++ MoreGraphs)}|Res2]);
         false ->
             merge_groups(T, [G|Res])
-    end.
+    end;
+merge_groups([G|_], _) ->
+    erlang:error({invalid_group_format, G}).
 
-merge_graphs(Metrics) -> merge_graphs(lists:reverse(Metrics), []).
+merge_graphs(Metrics) when is_list(Metrics) -> merge_graphs(lists:reverse(Metrics), []);
+merge_graphs(Metrics) -> erlang:error({graphs_not_list, Metrics}).
 
 merge_graphs([], Res) -> Res;
 merge_graphs([{graph, #{title:= Title, metrics:= Metrics} = Opts} = G|T], Res) ->
@@ -87,21 +96,29 @@ merge_graphs([{graph, #{title:= Title, metrics:= Metrics} = Opts} = G|T], Res) -
                 end, OldMetrics),
             merge_graphs(T, [{graph, maps:put(metrics, Metrics ++ OldMetricsFiltered, Opts)}|NewRes]);
         not_found -> merge_graphs(T, [G|Res])
-    end.
+    end;
+merge_graphs([G|_], _) ->
+    erlang:error({invalid_graph_format, G}).
 
 take_metric(_Title, [], _Acc) -> not_found;
 take_metric(Title, [{graph, #{title:= Title}} = M | T], Acc) ->
     {M, lists:reverse(Acc) ++ T};
 take_metric(Title, [M | T], Acc) -> take_metric(Title, T, [M|Acc]).
 
-normalize_group({group, Name, Graphs}) ->
+normalize_group({group, Name, Graphs}) when is_list(Graphs) ->
+    is_str(Name) orelse erlang:error({invalid_group_name, Name}),
     NormalizedGraphs = [normalize_graph(G) || G <- Graphs],
     {group, Name, NormalizedGraphs};
 normalize_group(UnknownFormat) ->
-    erlang:error({unknown_group_format, UnknownFormat}).
+    erlang:error({invalid_group_format, UnknownFormat}).
 
 normalize_graph({graph, Opts}) when is_map(Opts) ->
+    Title = mzb_bc:maps_get(title, Opts, "undefined"),
+    is_str(Title) orelse erlang:error({invalid_graph_title, Title}),
+    Units = mzb_bc:maps_get(units, Opts, "undefined"),
+    is_str(Units) orelse erlang:error({invalid_graph_units, Units}),
     Metrics = mzb_bc:maps_get(metrics, Opts, []),
+    is_list(Metrics) orelse erlang:error({metrics_not_list, Metrics}),
     NormalizedMetrics = [normalize_metric(M) || M <- Metrics],
     {graph, Opts#{metrics => NormalizedMetrics}};
 normalize_graph(OneMetric) when is_tuple(OneMetric) ->
@@ -110,21 +127,36 @@ normalize_graph(SeveralMetric) when is_list(SeveralMetric) ->
     NormalizedMetrics = [normalize_metric(M) || M <- SeveralMetric],
     {graph, #{metrics => NormalizedMetrics}};
 normalize_graph(UnknownFormat) ->
-    erlang:error({unknown_graph_format, UnknownFormat}).
+    erlang:error({invalid_graph_format, UnknownFormat}).
 
 normalize_metric({Name, Type}) when is_list(Name), is_list(Type) ->
     normalize_metric({Name, list_to_atom(Type)});
 normalize_metric({Name, Type, Opts}) when is_list(Name), is_list(Type) ->
-    {Name, list_to_atom(Type), normalize_metric_opts(Opts)};
+    normalize_metric({Name, list_to_atom(Type), Opts});
 normalize_metric({Name, Type}) when is_list(Name),
                                     is_atom(Type) ->
-    {Name, Type, normalize_metric_opts(#{})};
+    normalize_metric({Name, Type, #{}});
 normalize_metric({Name, Type, Opts}) when is_list(Name),
-                                                   is_atom(Type),
-                                                   is_map(Opts) ->
-    {Name, Type, normalize_metric_opts(Opts)};
+                                          is_atom(Type) ->
+    is_str(Name) orelse erlang:error({invalid_metric_name, Name}),
+    NewOpts = normalize_metric_opts(Opts),
+    case Type of
+        counter -> ok;
+        gauge -> ok;
+        histogram -> ok;
+        derived ->
+            case maps:find(resolver, Opts) of
+                {ok, FunctionName} when is_atom(FunctionName),
+                                        FunctionName =/= undefined -> ok;
+                {ok, FunctionName} -> erlang:error({invalid_resolver_function, FunctionName});
+                error -> erlang:error({missing_resolver_function, Name})
+            end;
+        Invalid ->
+            erlang:error({invalid_metric_type, Invalid})
+    end,
+    {Name, Type, NewOpts};
 normalize_metric(UnknownFormat) ->
-    erlang:error({unknown_metric_format, UnknownFormat}).
+    erlang:error({invalid_metric_format, UnknownFormat}).
 
 normalize_metric_opts(#{} = Opts) ->
     Visibility =
@@ -135,7 +167,9 @@ normalize_metric_opts(#{} = Opts) ->
     maps:from_list(lists:map(
         fun ({K, V}) when is_list(K) -> {list_to_atom(K), V};
             ({K, V}) when is_atom(K) -> {K, V}
-        end, maps:to_list(maps:put(visibility, Visibility,  Opts)))).
+        end, maps:to_list(maps:put(visibility, Visibility,  Opts))));
+normalize_metric_opts(Opts) ->
+    erlang:error({opts_not_map, Opts}).
 
 maybe_append_rps_units(GraphOpts, Metrics) ->
     IsRPSGraph = ([] == [M || M = {_,_, Opts} <- Metrics, not mzb_bc:maps_get(rps, Opts, false)]),
@@ -167,3 +201,21 @@ build_metric_groups_json(Groups) ->
         end, Graphs),
         #{name => GroupName, graphs => NewGraphs}
     end, MetricGroups).
+
+is_str(S) ->
+    io_lib:printable_list(S).
+
+format_error({metrics_not_list, Seq}) -> mzb_string:format("Metrics should be a list: ~p", [Seq]);
+format_error({invalid_group_format, G}) -> mzb_string:format("Invalid group format: ~p", [G]);
+format_error({graphs_not_list, Grpahs}) -> mzb_string:format("Graphs should be a list: ~p", [Grpahs]);
+format_error({invalid_graph_format, G}) -> mzb_string:format("Invalid graph format: ~p", [G]);
+format_error({invalid_group_name, Name}) -> mzb_string:format("Invalid group name: ~p", [Name]);
+format_error({invalid_graph_title, Title}) -> mzb_string:format("Invalid graph title: ~p", [Title]);
+format_error({invalid_graph_units, Units}) -> mzb_string:format("Invalid graph units: ~p", [Units]);
+format_error({invalid_metric_name, Name}) -> mzb_string:format("Invalid metric name: ~p", [Name]);
+format_error({invalid_resolver_function, FunctionName}) -> mzb_string:format("Invalid resolver function: ~p", [FunctionName]);
+format_error({missing_resolver_function, Name}) -> mzb_string:format("Missing resolver function for derived metric: ~p", [Name]);
+format_error({invalid_metric_type, Invalid}) -> mzb_string:format("Invalid metric type: ~p", [Invalid]);
+format_error({invalid_metric_format, UnknownFormat}) -> mzb_string:format("Invalid metric format: ~p", [UnknownFormat]);
+format_error({opts_not_map, Opts}) -> mzb_string:format("Metric options should be a map: ~p", [Opts]);
+format_error(E) -> mzb_string:format("~p", [E]).
