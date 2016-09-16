@@ -1,3 +1,6 @@
+
+from __future__ import print_function
+
 from contextlib import contextmanager
 import sys
 import os
@@ -16,7 +19,7 @@ def spit(path, content):
         f.write(content)
 
 def info(msg, logs=None, **kw):
-    print "[ INFO ] %s" % msg
+    print("[ INFO ] {0}".format(msg))
     if logs is not None:
         new_log = {
             'text': msg,
@@ -26,7 +29,7 @@ def info(msg, logs=None, **kw):
         logs.append(new_log)
 
 def error(msg, logs=None, **kw):
-    print >> sys.stderr, ("[ ERROR ] " + msg)
+    print("[ ERROR ] " + msg, file=sys.stderr)
     if "DEBUG" in os.environ:
         traceback.print_exc(file=sys.stderr)
     if logs is not None:
@@ -58,7 +61,7 @@ def check_output(*popenargs, **kwargs):
             cmd = popenargs[0]
         error = subprocess.CalledProcessError(retcode, cmd)
         error.output = "Stdout+Stderr:\n{0}".format(output)
-        print error.output
+        print(error.output)
         raise error
     return output
 
@@ -74,7 +77,7 @@ def draw_dots():
         dots = dots + 1
         if dots % 7 == 0:
             if clean:
-                print
+                print()
             sys.stdout.write(".")
             sys.stdout.flush()
             clean = 0
@@ -89,13 +92,13 @@ def cmd(command):
         try:
             p.start()
             output = check_output(args)
-            print
+            print()
             return output
         finally:
             p.terminate()
 
     else:
-        print 'Executing', command
+        print('Executing', command)
         return check_output(args)
 
 def remote_cmd(host, command, ssh_opts = ""):

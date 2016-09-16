@@ -415,7 +415,7 @@ def data_default(gen):
             result[name]=[]
         result[name].append([value, timestamp])
 
-    pretty_print(map(lambda (k,v): {'target':k, 'datapoints':v}, result.iteritems()))
+    pretty_print(map(lambda kv: {'target':kv[0], 'datapoints':kv[1]}, result.items()))
 
 def clusters_info(host):
     response = api.clusters_info(host)

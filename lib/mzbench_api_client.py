@@ -1,5 +1,11 @@
 
-from urllib import urlencode
+from __future__ import print_function
+
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+
 import json
 import os
 import sys
@@ -86,7 +92,7 @@ def start(host, script_file, script_content,
         params += [('node_commit', node_commit)]
 
     params += [('email', email) for email in emails]
-    params += [(k, v) for k, v in env.iteritems()]
+    params += [(k, v) for k, v in env.items()]
 
     files = [('bench',
         {'filename': os.path.basename(script_file),
@@ -102,8 +108,8 @@ def start(host, script_file, script_content,
                     files.append(('include',
                         {'filename': incurl, 'content': fi.read()}))
             except IOError as e:
-                print >>sys.stderr, "Failed to get content for resource ({0}, {1}): {2}".format(
-                        incname, incurl, e)
+                print("Failed to get content for resource ({0}, {1}): {2}".format(
+                        incname, incurl, e), file=sys.stderr)
                 raise
 
     body, headers = multipart.encode_multipart({}, files)
@@ -298,7 +304,7 @@ def stream_lines(host, endpoint, args):
             try:
                 yield line
             except ValueError:
-                print line
+                print(line)
 
         if response.status_code == 200:
             pass
