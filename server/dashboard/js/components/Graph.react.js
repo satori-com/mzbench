@@ -6,6 +6,7 @@ import BenchStore from '../stores/BenchStore';
 const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
 const MIN_GRAPHS_TO_BEGIN_COMPRESSION = 20;
+const RERENDER_WITHOUT_NEW_DATA_MIN_INTERVAL = 9000;
 
 class _DataStream {
     constructor(name, aggregated, metrics, benchId, kind, benchIds, x_env) {
@@ -17,6 +18,7 @@ class _DataStream {
         this.kind = kind;
         this.benchIds = benchIds;
         this.x_env = x_env;
+        this.lastTimeRendered = moment();
     }
     
     subscribeToEntireMetric(subsamplingInterval, continueStreamingAfterEnd) {
@@ -301,7 +303,7 @@ class Graph extends React.Component {
                 if(acc === undefined || value.min < acc) return value.min;
                 else return acc;
             }, undefined);
-            
+
             if(acc === undefined || stream_min < acc) return stream_min;
             else return acc;
         }, undefined);
@@ -313,7 +315,7 @@ class Graph extends React.Component {
                 if(acc === undefined || value.max > acc) return value.max;
                 else return acc;
             }, undefined);
-            
+
             if(acc === undefined || stream_max > acc) return stream_max;
             else return acc;
         }, undefined);
@@ -342,6 +344,8 @@ class Graph extends React.Component {
             transition_on_update: false
         };
 
+        this.lastTimeRendered = moment();
+
         if(this.props.renderFullscreen) {
             graph_options.width = window.innerWidth - 100;
             graph_options.height = window.innerHeight - 200;
@@ -363,19 +367,31 @@ class Graph extends React.Component {
             if(isEmpty) {
                 graph_options.chart_type = 'missing-data';
                 graph_options.missing_text = this.props.title ? `${this.props.title} (no data)` : "No data";
-                graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
+                graph_options.target = document.getElementById(this._graphDOMId());
+                MG.data_graphic(graph_options);
             } else {
                 graph_options.data = this.state.data;
-                graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
-
+                graph_options.target = document.getElementById(this._graphDOMId());
                 graph_options.show_confidence_band = ['min', 'max'];
 
                 graph_options.xax_format = this._formatDate.bind(this);
                 graph_options.mouseover = this._formatRolloverText.bind(this);
                 graph_options.x_sort = false;
 
-                graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?this.state.maxDate - RUNNING_GRAPH_SHOWED_DURATION*60:0;
-                graph_options.max_x = this.state.maxDate;
+                if (this.currentZoom) {
+                    graph_options.max_x = this.currentZoom.max_x;
+                    graph_options.min_x = this.currentZoom.min_x;
+                } else {
+                    const lastActiveTime = this.props.isRunning ? moment() : this.props.benchFinishTime;
+                    graph_options.max_x = (lastActiveTime - this.props.benchStartTime) / 1000;
+                    graph_options.min_x = (this.props.isRunning && !this.props.renderFullscreen)?graph_options.max_x - RUNNING_GRAPH_SHOWED_DURATION*60:0;
+
+                    // metrics_graphics treats 0 as undefined and shows graph begining from wrong place
+                    // as a workaround set min_x = 1 to prevent that behavior
+                    if (graph_options.min_x == 0) {
+                        graph_options.min_x = 1;
+                    }
+                }
 
                 const data_min = this._calcDataMin();
                 graph_options.min_y = (data_min < 0)?data_min:0;
@@ -384,7 +400,11 @@ class Graph extends React.Component {
             }
         } else {
             graph_options.chart_type = 'missing-data';
+<<<<<<< 84fd2c1e1e48a23cf6c65c8be3cf1fce35bc7bc3
             graph_options.legend = this.streams.filter(this._isVisibleMetric).map((stream) => { return stream.name; });
+=======
+            graph_options.target = document.getElementById(this._graphDOMId());
+>>>>>>> Proper handling for absent of data on graphs
 
         }
 
@@ -396,7 +416,6 @@ class Graph extends React.Component {
         if (!this.state.isLoaded) {
             return;
         }
-
         if (this.previouslyRunning != this.props.isRunning) {
             this.previouslyRunning = this.props.isRunning;
             this._resetGraphs();
@@ -406,7 +425,10 @@ class Graph extends React.Component {
             this._renderGraph();
         } else {
             const newUpdatesCounter = this.state.dataBatchs.reduce((a, b) => { return a + b }, 0);
-            let dataUpdated = newUpdatesCounter > this.updatesCounter;
+            const sinceLastRender = moment() - this.lastTimeRendered;
+            let dataUpdated = (newUpdatesCounter > this.updatesCounter) ||
+                              (this.props.isRunning && !this.props.renderFullscreen &&
+                               sinceLastRender >= RERENDER_WITHOUT_NEW_DATA_MIN_INTERVAL);
 
             if(dataUpdated) {
                 this._renderGraph();
@@ -523,7 +545,6 @@ class Graph extends React.Component {
         this.updatesCounter = 0;
 
         this.setState({
-            maxDate: 0,
             data: this.streams.map((stream) => { return []; }),
             dataBatchs: this.streams.map((streams) => { return 0; }),
             isLoaded: false
@@ -570,7 +591,6 @@ class Graph extends React.Component {
                         }, true);
 
         return {
-            maxDate: maxDate,
             data: metricData,
             dataBatchs: metricBatchs,
             isLoaded: isLoaded

@@ -206,7 +206,6 @@ aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = H
             ({N, V, gauge})   -> global_set(N, gauge, V)
         end, Aggregated),
 
-
     NewHistograms = lists:foldl(
         fun ({{Name, histogram}, DataList}, Acc) ->
                 Ref = proplists:get_value(Name, Acc),
@@ -430,7 +429,7 @@ flatten_exometer_metrics(BenchMetrics) ->
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
 report_metrics() ->
-    [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- global_metrics()],
+    [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- global_metrics(), Value /= undefined],
     ok.
 
 datapoints(histogram) -> [min, max, mean, 50, 75, 90, 95, 99, 999];

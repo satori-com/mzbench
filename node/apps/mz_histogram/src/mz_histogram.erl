@@ -76,17 +76,22 @@ merge_histograms(DataList, Datapoints) ->
     {ok, Ref} = hdr_histogram:open(?HIGHEST_VALUE, ?SIGNIFICANT_FIGURES),
     try
         lists:foreach(fun (Values) -> import_hdr_data(Ref, Values) end, DataList),
-        Stats = lists:map(
-            fun (min) -> hdr_histogram:min(Ref);
-                (max) -> hdr_histogram:max(Ref);
-                (mean) -> hdr_histogram:mean(Ref);
-                (median) -> hdr_histogram:median(Ref);
-                (N) when N =< 100 ->
-                    hdr_histogram:percentile(Ref, erlang:float(N));
-                (N) when N =< 1000 ->
-                    hdr_histogram:percentile(Ref, N / 10)
-            end, Datapoints),
-        lists:zip(Datapoints, Stats)
+        case hdr_histogram:get_total_count(Ref) of
+            K when K > 0 ->
+                Stats = lists:map(
+                    fun (min) -> hdr_histogram:min(Ref);
+                        (max) -> hdr_histogram:max(Ref);
+                        (mean) -> hdr_histogram:mean(Ref);
+                        (median) -> hdr_histogram:median(Ref);
+                        (N) when N =< 100 ->
+                            hdr_histogram:percentile(Ref, erlang:float(N));
+                        (N) when N =< 1000 ->
+                            hdr_histogram:percentile(Ref, N / 10)
+                    end, Datapoints),
+                lists:zip(Datapoints, Stats);
+            0 ->
+                [{DP, undefined} || DP <- Datapoints]
+        end
     after
         hdr_histogram:close(Ref)
     end.

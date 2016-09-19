@@ -183,7 +183,7 @@ class MetricsStore extends EventEmitter {
     subscribeToMetricSubset(benchId, metric, subsamplingInterval, beginTime, endTime) {
         const startingDate = moment(BenchStore.findById(benchId).start_time).unix();
         const streamId = MZBenchActions.startStream(benchId, metric, subsamplingInterval, undefined, 
-                                                    startingDate + beginTime, startingDate + endTime, false);
+                                                    startingDate + Math.floor(beginTime), Math.ceil(startingDate + endTime), false);
         let elem = new _StreamElement(benchId, NORMAL_STREAM);
         data.streams.set(streamId, elem);
         return streamId;
