@@ -168,11 +168,18 @@ normalize_positive_test() ->
         ]}], NormalizedMetrics2).
 
 normalizetion_negative_test() ->
-    ?assertError({unknown_group_format, {group, foo, bar, zoh}},
+    ?assertError({invalid_metric_name, atom_name},
+                 mzb_script_metrics:normalize([{atom_name, counter}])),
+    ?assertError({invalid_metric_type, unknown},
+                 mzb_script_metrics:normalize([{"name", unknown}])),
+    ?assertError({missing_resolver_function, "name"},
+                 mzb_script_metrics:normalize([{"name", derived}])),
+    ?assertError({invalid_resolver_function, 1},
+                 mzb_script_metrics:normalize([{"name", derived, #{resolver => 1}}])),
+    ?assertError({invalid_group_format, {group, foo, bar, zoh}},
                  mzb_script_metrics:normalize([{group, foo, bar, zoh}])),
-    ?assertError({unknown_graph_format, #{foo := bar}},
+    ?assertError({invalid_graph_format, #{foo := bar}},
                  mzb_script_metrics:normalize([#{foo => bar}])).
-
 
 build_graphite(Metrics) ->
     Normalized = mzb_script_metrics:normalize(Metrics),

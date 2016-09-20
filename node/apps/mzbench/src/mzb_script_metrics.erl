@@ -129,15 +129,13 @@ normalize_graph(SeveralMetric) when is_list(SeveralMetric) ->
 normalize_graph(UnknownFormat) ->
     erlang:error({invalid_graph_format, UnknownFormat}).
 
-normalize_metric({Name, Type}) when is_list(Name), is_list(Type) ->
+normalize_metric({Name, Type}) when is_list(Type) ->
     normalize_metric({Name, list_to_atom(Type)});
-normalize_metric({Name, Type, Opts}) when is_list(Name), is_list(Type) ->
+normalize_metric({Name, Type, Opts}) when is_list(Type) ->
     normalize_metric({Name, list_to_atom(Type), Opts});
-normalize_metric({Name, Type}) when is_list(Name),
-                                    is_atom(Type) ->
+normalize_metric({Name, Type}) when is_atom(Type) ->
     normalize_metric({Name, Type, #{}});
-normalize_metric({Name, Type, Opts}) when is_list(Name),
-                                          is_atom(Type) ->
+normalize_metric({Name, Type, Opts}) when is_atom(Type) ->
     is_str(Name) orelse erlang:error({invalid_metric_name, Name}),
     NewOpts = normalize_metric_opts(Opts),
     case Type of
