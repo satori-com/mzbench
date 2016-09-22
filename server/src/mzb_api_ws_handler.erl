@@ -240,7 +240,7 @@ dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State) ->
               GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, <<"undefined">>)),
               XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, <<"undefined">>)),
               benchset(BenchInfos0, Metric, Kind, Size, GroupEnv, XEnv)
-             end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
+            end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
 
     Event = #{
                type => "BENCHSET",

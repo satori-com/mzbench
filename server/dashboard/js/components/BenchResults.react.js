@@ -25,9 +25,12 @@ class BenchResults extends React.Component {
 
     render_metric_result_value(name, data) {
         if (name.startsWith("systemload.")) return null;
+        if (name.startsWith("metric_merging_time")) return null;
+        if (name.startsWith("logs.")) return null;
+        if (name.startsWith("workers.pool")) return null;
 
         return (<div key={name} className="col-md-6">
-                    <h4 className="bench-results">{name} <small>{data.type}</small> <big>{data.value != undefined ? data.value : null}</big></h4>
+                    <h4 className="bench-results">{name} <small>{data.type}</small> <big>{data.value != undefined ? +data.value.toFixed(2) : null}</big></h4>
                     {this.render_percentiles(data)}
                 </div>);
     }
@@ -36,7 +39,7 @@ class BenchResults extends React.Component {
         let decimalPlaces = 2;
         let isCounter = data.type == "counter";
         let percentiles = isCounter ? data.rps : data.percentiles;
-        if (percentiles == undefined || Object.keys(percentiles).length == 0) return <span className="text-muted">no percentile data</span>;
+        if (percentiles == undefined || Object.keys(percentiles).length == 0) return null;
         return (<table className="table">
                 <thead>
                  <tr>

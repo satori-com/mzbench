@@ -318,11 +318,13 @@ format_results(#{results:= undefined}) ->
     #{};
 % BC code start
 format_results(#{results:= [{_, _}|_] = Results}) ->
-    maps:from_list([{list_to_binary(Name), #{type => undefined, value => Value}} || {Name, Value} <- Results]);
+    maps:from_list([{list_to_binary(Name), #{type => undefined, value => Value}} || {Name, Value} <- Results, Value /= undefined]);
 % BC code end
 format_results(#{results:= Results}) ->
     Formated = lists:map(
-        fun ({Name, counter, {Val, Percentiles}}) ->
+        fun ({Name, counter, {undefined, Percentiles}}) ->
+            {list_to_binary(Name), #{type => counter, rps => format_percentiles(Percentiles)}};
+            ({Name, counter, {Val, Percentiles}}) ->
             {list_to_binary(Name), #{type => counter, value => Val, rps => format_percentiles(Percentiles)}};
             ({Name, Type, Percentiles}) ->
             {list_to_binary(Name), #{type => Type, percentiles => format_percentiles(Percentiles)}}

@@ -49,14 +49,14 @@ class DashboardOverview extends React.Component {
                             <td><a href={link}>{bb.id}</a></td>
                             <td><a href={link}>{time}</a></td>
                             {bb.x ? (<td><a href={link}>{bb.x}</a></td>) : null}
-                            {bb.final ? (<td><a href={link}>{bb.final}</a></td>) : null}
+                            {bb.final ? (<td><a href={link}>{+bb.final.toFixed(2)}</a></td>) : null}
                         </tr>);
             });
         });
     }
 
     renderTable(name, kind, groupEnv, xEnv, benches) {
-        if (kind == "compare") 
+        if (kind == "compare")
             return (<table className="table table-striped">
                 <thead><tr><th></th><th>{groupEnv}</th><th>Bench Id</th><th>Time</th></tr></thead>
                 <tbody>{this.renderLegend(benches)}</tbody>
