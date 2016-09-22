@@ -81,7 +81,7 @@ function runTest(actions) {
 }
 
 page.open("http://localhost:4800", function(status){
-    var biggerTimeout = 60000;
+    var biggerTimeout = 120000;
     if (status !== "success") {
         console.log("Unable to access network");
         phantom.exit(1);
