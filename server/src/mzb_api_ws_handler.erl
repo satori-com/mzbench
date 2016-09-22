@@ -290,7 +290,7 @@ dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State) ->
         <<"kind">> := Kind,
         <<"x_env">> := XEnv} = Cmd,
     Self = self(),
-    spawn(fun() -> get_finals(Self, StreamId, BenchIds, binary_to_list(MetricName), Kind, XEnv) end),
+    spawn(fun() -> get_finals(Self, StreamId, BenchIds, MetricName, Kind, XEnv) end),
     {ok, State};
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State) ->
@@ -458,10 +458,39 @@ has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}}) ->
         lists:any(fun(#{metrics:= Metrics}) ->
             lists:any(fun(#{name:= Name}) when Name == Metric -> true; (_) -> false end, Metrics)
                 end, Graphs) end, Groups);
-has_metric(Metric, _, #{results:= Res}) ->
-    mzb_bc:maps_get(Metric, Res, false);
+has_metric(Metric, _, #{results:= Res}) when is_map(Res) ->
+    find_result_metric(list_to_binary(Metric), Res, false);
 has_metric(_, _, _) ->
     false.
+
+find_result_metric(Metric, Map, Default) when is_map(Map) -> find_result_metric(Metric, maps:to_list(Map), Default);
+find_result_metric(_, [], Default) -> Default;
+find_result_metric(<<C1:16, _/binary>> = Metric, [{<<C1:16, _/binary>>, _} = R | T], Default) ->
+    case find_result_datapoint(Metric, R) of
+        undefined -> find_result_metric(Metric, T, Default);
+        Value -> Value
+    end;
+find_result_metric(Metric, [_ | T], Default) ->
+    find_result_metric(Metric, T, Default).
+
+find_result_datapoint(Metric, {Metric, #{value:= Value}}) -> Value;
+find_result_datapoint(Metric, {Name,   #{type:= counter, rps:= Percentiles}}) ->
+    fun F([]) -> undefined;
+        F([{P, V}|T]) ->
+        case <<Name/binary,".rps.", P/binary>> of
+            Metric -> V;
+            _ -> F(T)
+        end
+    end(maps:to_list(Percentiles));
+find_result_datapoint(Metric, {Name, #{type:= _Type, percentiles:= Percentiles}}) ->
+    fun F([]) -> undefined;
+        F([{P, V}|T]) ->
+            case <<Name/binary, ".", P/binary>> of
+                Metric -> V;
+                _ -> F(T)
+            end
+    end(maps:to_list(Percentiles));
+find_result_datapoint(_, _) -> undefined.
 
 get_bench_env(EnvName, #{env:= Env}) ->
     mzb_bc:maps_get(EnvName, Env, []).
@@ -524,10 +553,7 @@ get_bench_x_var(BenchId, EnvName) ->
 get_last_value(BenchId, MetricName) ->
     Status = mzb_api_server:status(BenchId),
     Time = mzb_bc:maps_get(finish_time, Status, 0),
-    {Time, case mzb_bc:maps_get(results, Status, undefined) of
-      undefined -> 0;
-      Proplist -> proplists:get_value(MetricName, Proplist, 0)
-    end}.
+    {Time, find_result_metric(MetricName, mzb_api_endpoints:format_results(Status), 0)}.
 
 %% Normalization
 
