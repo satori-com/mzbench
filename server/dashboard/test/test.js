@@ -59,7 +59,7 @@ function runTest(actions) {
     try {
         if (actions.length === 0) phantom.exit(0);
         var current = actions.shift();
-
+        console.log(".");
         if (current[0] == 'wait') {
             waitFor(function() {return page.evaluate(makeFun(current[1]), current[1]);},
                     function() { runTest(actions); },

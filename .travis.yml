@@ -43,7 +43,7 @@ script:
      error-messages) pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      dashboard-tests) pip install -r requirements.txt &&
                       cd server/dashboard && npm install &&
-                      ../../bin/mzbench start_server && node test/start.js;;
+                      ../../bin/mzbench start_server && make -C ../../node local_tgz && node test/start.js;;
      http-worker-tests) pip install -r requirements.txt &&
                        export NODE_COMMIT=`git rev-parse HEAD` &&
                        export MZBENCH_REPO=`pwd` &&
