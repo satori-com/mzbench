@@ -233,7 +233,7 @@ class Graph extends React.Component {
             data.values.forEach((value) => {
                 let label = rolloverTextContainer.append('tspan')
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
-                            .text(`${this.streams[value.line_id - 1].name}: ${value.value}`)
+                            .text(`${this.streams.filter(this._isVisibleMetric)[value.line_id - 1].name}: ${value.value}`)
                             .classed('mg-area' + value.line_id + '-color', true);
                 
                 ++lineCount;
@@ -244,7 +244,7 @@ class Graph extends React.Component {
             
             let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
-                        .text(`${this.streams[data.line_id - 1].name}: ${data.value}`)
+                        .text(`${this.streams.filter(this._isVisibleMetric)[data.line_id - 1].name}: ${data.value}`)
                         .classed(`mg-area${data.line_id}-color`, true);
         }
     }
