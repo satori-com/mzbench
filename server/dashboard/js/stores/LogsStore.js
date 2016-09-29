@@ -15,6 +15,9 @@ let data = {
 function _performUpdate(arrayRef, rawData) {
     const Reg = /(\d{2}:\d{2}:\d{2}.\d{3})\s(\[[^\]]*\])/
     var parts;
+
+    if (!rawData.split) return;
+
     if (arrayRef.length > 0) {
         parts = (arrayRef[arrayRef.length - 1].text + rawData).split(Reg);
         arrayRef[arrayRef.length - 1].text = parts[0];
