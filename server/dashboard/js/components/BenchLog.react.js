@@ -226,7 +226,7 @@ class BenchLog extends React.Component {
         }
         MZBenchRouter.navigate("/bench/" + this.props.bench.id + "/logs/" +
             (this.state.tempK ? "system": "user") + "/" +
-            (this.state.tempE ? "errors": "all") + (this.state.tempQ ? "/" + encodeURIComponent(this.state.tempQ) : ""), {});
+            (this.state.tempE ? "errors": "all") + (this.state.tempQ ? "/" + encodeURIComponent(this.state.tempQ).replace(/'/g, "%27") : ""), {});
     }
 
     _onKeyDown(event) {
