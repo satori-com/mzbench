@@ -54,7 +54,7 @@ class BenchSummary extends React.Component {
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
-                    <div className="col-xs-10">
+                    <div className="col-xs-9">
                         <table className="table">
                             <tbody>
                                 <tr>
@@ -98,7 +98,7 @@ class BenchSummary extends React.Component {
                         </table>
                     </div>
 
-                    <div className="bench-actions col-xs-2">
+                    <div className="bench-actions col-xs-3">
                         <div className="text-right">
                             <a type="button" ref="stop" className="btn btn-sm btn-danger" href={MZBenchRouter.buildLink("/stop", {id: this.props.bench.id})}
                                     disabled={!this.props.bench.isRunning()} onClick={this._onClick}>

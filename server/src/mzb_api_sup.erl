@@ -24,7 +24,8 @@ init([main]) ->
         {cloud_plugins, {mzb_api_cloud, start_link, []}, permanent, 10000, worker, [mzb_api_cloud]},
         {server, {mzb_api_server, start_link, []}, permanent, 10000, worker, [mzb_api_server]},
         {benchmarks, {?MODULE, start_benchmarks_sup, []}, permanent, infinity, supervisor, [?MODULE]},
-        {gc, {mzb_gc, start_link, [GCSleep]}, permanent, 10000, worker, [mzb_gc]}
+        {gc, {mzb_gc, start_link, [GCSleep]}, permanent, 10000, worker, [mzb_gc]},
+        {auth, {mzb_api_auth, start_link, []}, permanent, 10000, worker, [mzb_api_auth]}
     ],
     {ok, {{one_for_all, 10, 10}, Procs}};
 

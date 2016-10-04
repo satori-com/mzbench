@@ -479,3 +479,15 @@ a.Collapsible__trigger {
 h4.bench-results {
   word-spacing: 5px;
 }
+
+.signed-in-user-table {
+  position: absolute;
+  top: 6px;
+  right: 0px;
+  margin-right: 7%;
+}
+.signed-in-user-name {
+  padding: 4px;
+  line-height: 1;
+  border-top: 0px;
+}
