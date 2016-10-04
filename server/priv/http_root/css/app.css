@@ -484,3 +484,15 @@ div.equals {
   font-size: 24px;
   padding-left: 28px;
 }
+
+.signed-in-user-table {
+  position: absolute;
+  top: 6px;
+  right: 0px;
+  margin-right: 7%;
+}
+.signed-in-user-name {
+  padding: 4px;
+  line-height: 1;
+  border-top: 0px;
+}

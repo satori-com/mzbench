@@ -20,8 +20,51 @@
           timeline_items = [] :: [integer()],
           dashboard_items = [] :: [integer()],
           dashboard_query = undefined :: undefined | map(),
-          tags = [] :: [string()]
+          tags = [] :: [string()],
+          auth_state = init :: init | req_sent | authenticated
        }).
+
+%%                   User authentication procedure
+%%                   -----------------------------
+%%
+%%     Dashboard                  Server               Google
+%%        |                         |                     |
+%%        | Establish WS connection |                     |
+%%        | ----------------------> |                     |
+%%        |                    State:=init                |
+%%        |                         |                     |
+%%        |                         |                     |
+%%        |       Auth Req          |                     |
+%%        | <---------------------- |                     |
+%%        |                   State:=req_sent             |
+%%        |                         |                     |
+%%        |               grantOfflineAccess              |
+%%        | --------------------------------------------> |
+%%        |                 one-time-code                 |
+%%        | <-------------------------------------------- |
+%%        |                         |                     |
+%%        |  Google one-time-code   |                     |
+%%        | ----------------------> |                     |
+%%        |                         |                     |
+%%        |                  generate new Ref             |
+%%        |                         |                     |
+%%        |                         |    get tokens       |
+%%        |                         | ------------------> |
+%%        |                         |       tokens        |
+%%        |                         | <------------------ |
+%%        |                         |                     |
+%%        |                 save association              |
+%%        |                    Ref -> Token               |
+%%        |                         |                     |
+%%        |      Authenticated      |                     |
+%%        |    (UserName, UserPic)  |                     |
+%%        | <---------------------- |                     |
+%%        |                 State:=authenticated          |
+%%        |                         |                     |
+%%        |                         |                     |
+%%
+
+
 
 -record(stream_parameters, {
     subsampling_interval = 0 :: non_neg_integer(),
@@ -33,9 +76,12 @@
 }).
 
 init(Req, _Opts) ->
-    Ref = erlang:make_ref(),
+    self() ! authenticate,
+    {cowboy_websocket, Req, #state{}}.
+
+init_connection(Ref, State) ->
     ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
-    {cowboy_websocket, Req, #state{ref = Ref}}.
+    State#state{ref = Ref}.
 
 terminate(_Reason, _Req, #state{ref = Ref}) ->
     gen_event:delete_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
@@ -61,6 +107,15 @@ websocket_info(Message, Req, State) ->
         {ok, NewState} ->
             {ok, Req, NewState}
     end.
+
+dispatch_info(authenticate, State = #state{auth_state = init}) ->
+    case mzb_api_auth:auth_connection("anonymous", undefined) of
+        {ok, Ref} ->
+            {ok, init_connection(Ref, State#state{auth_state = authenticated})};
+        {error, {forbidden, {use, Methods}}} ->
+            {reply, #{type => "AUTH_REQ", support => Methods},
+                State#state{auth_state = req_sent}}
+    end;
 
 dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
     {ok, State};
@@ -174,6 +229,45 @@ dispatch_info({'DOWN', _, process, _, _}, State) ->
 dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
+
+dispatch_request(#{<<"cmd">> := <<"one-time-code">>, <<"type">> := Type, <<"data">> := Code}, #state{auth_state = req_sent} = State) ->
+    case mzb_api_auth:auth_connection(binary_to_list(Type), Code) of
+        {ok, Ref} ->
+            {ok, UserInfo} = mzb_api_auth:get_user_info(Ref),
+            {reply, #{type => "AUTHENTICATED",
+                      login => maps:get(login, UserInfo),
+                      login_type => binary_to_list(Type),
+                      name => maps:get(name, UserInfo),
+                      picture_url => maps:get(picture_url, UserInfo),
+                      ref => Ref
+                     },
+                init_connection(Ref, State#state{auth_state = authenticated})};
+        {error, Reason} ->
+            lager:error("Authentication error: ~p", [Reason]),
+            self() ! authenticate,
+            {reply, #{type => "AUTH_ERROR", reason => Reason}, State#state{auth_state = init}}
+    end;
+
+dispatch_request(#{<<"cmd">> := <<"my-ref">>, <<"data">> := BinaryRef}, #state{auth_state = req_sent} = State) ->
+    Ref = binary_to_list(BinaryRef),
+    case mzb_api_auth:get_user_info(BinaryRef) of
+        {ok, #{login:= Login, login_type:= Type, name:= UserName, picture_url:= UserPic}} ->
+            {reply, #{type => "AUTHENTICATED",
+                      login => Login,
+                      login_type => Type,
+                      name => UserName,
+                      picture_url => UserPic,
+                      ref => Ref},
+                init_connection(Ref, State#state{auth_state = authenticated})};
+        {error, Reason} ->
+            self() ! authenticate,
+            {reply, #{type => "AUTH_ERROR", reason => Reason}, State#state{auth_state = init}}
+    end;
+
+dispatch_request(#{<<"cmd">> := <<"sign-out">>}, #state{auth_state = authenticated, ref = Ref} = State) ->
+    self() ! authenticate,
+    mzb_api_auth:sign_out_connection(Ref),
+    {ok, State#state{auth_state = init}};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
@@ -388,7 +482,7 @@ dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{} = State) ->
     {ok, State};
 
 dispatch_request(Cmd, State) ->
-    lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
+    lager:warning("~p has received unexpected info: ~p~n~p", [?MODULE, Cmd, State]),
     {ok, State}.
 
 disk_status() ->
