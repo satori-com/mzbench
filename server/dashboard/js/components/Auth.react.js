@@ -80,13 +80,14 @@ class Auth extends React.Component {
     }
 
     render() {
+        let login = this.state.userLogin;
         return (
             <div>
-                {this.state.userLogin ?
+                { (login != "") && (login != "anonymous") ?
                   <table className="signed-in-user-table"><tbody>
-                    <tr><td>{this.state.userPic ? <img src={this.state.userPic} height="38px"/> : null}</td>
+                    <tr><td>{this.state.userPic != "" ? <img src={this.state.userPic} height="38px"/> : null}</td>
                     <td className="signed-in-user-name">
-                      <div>{this.state.userName ? this.state.userName : null}</div>
+                      <div>{this.state.userName != "" ? this.state.userName : this.state.userLogin}</div>
                       <div><a href="#" onClick={this.onSignOut.bind(this)}>Sign out</a></div>
                     </td></tr>
                   </tbody></table> : null}
@@ -103,6 +104,7 @@ class Auth extends React.Component {
                         </div>
                     </div>
                 </div>
+                {login != "" ? this.props.children : null}
             </div>
         );
     }

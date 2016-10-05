@@ -13,17 +13,6 @@ export default {
         let notify = undefined;
         MZBenchWS.connect("/ws", {
             onopen: () => {
-                let opts = {};
-
-                let benchId = BenchStore.getSelectedId();
-                if (benchId) { opts.bench_id = benchId; }
-
-                if (GlobalStore.isDashboardModeOn())
-                    this.getDashboards(opts);
-                else
-                    this.getTimeline(opts);
-
-                this.getServerInfo();
 
                 if (notify) {
                     notify.update({message: 'The board has connected to the server', type: 'success'});
@@ -69,7 +58,7 @@ export default {
 
     turnOffDashboardMode(mode) {
         if (!BenchStore.isLoaded()) {
-            this.getTimeline({});
+            this.getTimeline();
         }
         Dispatcher.dispatch({ type: Constants.TURN_OFF_DASHBOARD_MODE});
     },
@@ -121,7 +110,12 @@ export default {
         MZBenchWS.send(opts);
     },
 
-    getTimeline(opts, timelineId) {
+    getTimeline(timelineId) {
+        let opts = {};
+
+        let benchId = BenchStore.getSelectedId();
+        if (benchId) { opts.bench_id = benchId; }
+
         Object.assign(opts, {cmd: "get_timeline"});
 
         if (timelineId) {
@@ -141,13 +135,17 @@ export default {
     saveSelectedDashboard() {
         if (DashboardStore.isNewSelected()) {
             MZBenchWS.send({cmd: "create_dashboard", data: DashboardStore.getNew()});
-            this.getDashboards({});
+            this.getDashboards();
         } else {
             MZBenchWS.send({cmd: "update_dashboard", data: DashboardStore.getSelected()});
         }
     },
 
-    getDashboards(opts) {
+    getDashboards() {
+        let opts = {};
+
+        let benchId = BenchStore.getSelectedId();
+        if (benchId) { opts.bench_id = benchId; }
         Object.assign(opts, {cmd: "get_dashboards"});
 
         opts.q = DashboardStore.getFilter();

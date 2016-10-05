@@ -7,6 +7,7 @@ import TimelineFilter from './TimelineFilter.react';
 import Duration from './Duration.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import MZBenchRouter from '../utils/MZBenchRouter'
+import MZBenchActions from '../actions/MZBenchActions';
 
 class Timeline extends React.Component {
     constructor(props) {
@@ -19,6 +20,13 @@ class Timeline extends React.Component {
         BenchStore.onChange(this._onChange);
         GlobalStore.onChange(this._onChange);
         DashboardStore.onChange(this._onChange);
+
+        if (GlobalStore.isDashboardModeOn())
+            MZBenchActions.getDashboards();
+        else
+            MZBenchActions.getTimeline();
+
+        MZBenchActions.getServerInfo();
     }
 
     componentWillUnmount() {

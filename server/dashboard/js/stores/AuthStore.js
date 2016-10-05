@@ -9,7 +9,7 @@ const CHANGE_EVENT = 'auth_change';
 class AuthStore extends EventEmitter {
     constructor() {
         super();
-        this.ref = "";
+        this.resetUserData();
         this.authMethods = {};
     }
 
@@ -51,10 +51,7 @@ class AuthStore extends EventEmitter {
 
     handle_auth_req(support) {
         if (this.ref == "") {
-            this.type = null;
-            this.login = null;
-            this.picture = null;
-            this.name = null;
+            this.resetUserData();
             this.authMethods = support;
         } else {
             MZBenchWS.send({cmd: "my-ref", data: this.ref});
@@ -71,16 +68,23 @@ class AuthStore extends EventEmitter {
     }
 
     handle_auth_error(reason) {
+        if (reason == "unknown_ref") {
+            this.resetUserData();
+        }
         console.error(`Auth error: ${reason}`);
     }
 
     signOut() {
-        this.ref = "";
-        this.type = null;
-        this.login = null;
-        this.picture = null;
-        this.name = null;
+        this.resetUserData();
         MZBenchWS.send({cmd: "sign-out"});
+    }
+
+    resetUserData() {
+        this.type = "";
+        this.ref = "";
+        this.login = "";
+        this.picture = "";
+        this.name = "";
     }
 }
 
