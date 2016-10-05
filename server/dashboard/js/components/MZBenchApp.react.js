@@ -17,15 +17,16 @@ class MZBenchApp extends React.Component {
     render() {
         return (
             <div className="fluid-container">
-                <Auth title="Please Sign-in" />
-                <div className="row">
-                    <div className="col-xs-3 timeline-pane">
-                        <Timeline />
+                <Auth title="Please Sign-in">
+                    <div className="row">
+                        <div className="col-xs-3 timeline-pane">
+                            <Timeline />
+                        </div>
+                        <div className="col-xs-8 bench-pane">
+                            <Details />
+                        </div>
                     </div>
-                    <div className="col-xs-8 bench-pane">
-                        <Details />
-                    </div>
-                </div>
+                </Auth>
             </div>
         );
     }
