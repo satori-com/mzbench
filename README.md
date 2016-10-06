@@ -35,6 +35,16 @@ $ git clone https://github.com/machinezone/mzbench
 $ sudo pip install -r mzbench/requirements.txt 
 ```
 
+If you want to use virtualenv (optional) to isolate Python dependencies:
+
+```bash
+$ git clone https://github.com/machinezone/mzbench
+$ cd mzbench
+$ virtualenv venv
+$ source venv/bin/activate
+$ pip install -r requirements.txt
+```
+
 ## Quickstart
 
 Start the MZBench server on localhost:
