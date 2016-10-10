@@ -706,6 +706,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      cloud => Cloud,
                      env => EnvMap2,
                      results => Results,
+                     author => mzb_bc:maps_get(author, Config, "anonymous"),
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags]
                      },
 

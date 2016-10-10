@@ -4,6 +4,7 @@ import BenchStore from '../stores/BenchStore';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import MZBenchActions from '../actions/MZBenchActions';
 import BenchChecker from '../utils/BenchChecker';
+import AuthStore from '../stores/AuthStore';
 
 require('brace/mode/python');
 require('brace/theme/github');
@@ -181,6 +182,9 @@ class NewBench extends React.Component {
         $.ajax({url: query, type : 'POST',
             processData: false,
             contentType: false,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+            },
             data: formData,
             success: (data) => {
                 notify.update({message: `Started benchmark`, type: 'success'});

@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, auth_connection/2, get_user_info/1, sign_out_connection/1]).
+-export([start_link/0, auth_connection/2, get_user_info/1, sign_out_connection/1, auth_api_call/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -62,6 +62,16 @@ auth_connection("google" = Type, Code) ->
     catch
         {google_api, Method, Error} ->
             {error, mzb_string:format("Google ~p return error ~p", [Method, Error])}
+    end.
+
+auth_api_call(_Method, _Path, Ref) ->
+    case get_methods() of
+        [] -> "anonymous";
+        _ ->
+            case get_user_info(Ref) of
+                {ok, UserInfo} -> maps:get(login, UserInfo);
+                {error, unknown_ref} -> erlang:error(forbidden)
+            end
     end.
 
 sign_out_connection(Ref) ->

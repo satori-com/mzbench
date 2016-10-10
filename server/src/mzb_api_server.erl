@@ -7,8 +7,8 @@
     start_link/0,
     deactivate/0,
     start_bench/1,
-    restart_bench/1,
-    stop_bench/1,
+    restart_bench/2,
+    stop_bench/2,
     change_env/2,
     bench_foldl/2,
     get_info/5,
@@ -61,8 +61,8 @@ start_bench(Params) ->
         {error, Reason} -> erlang:error(Reason)
     end.
 
-restart_bench(Id) ->
-    case gen_server:call(?MODULE, {restart_bench, Id}, infinity) of
+restart_bench(Id, Login) ->
+    case gen_server:call(?MODULE, {restart_bench, Id, Login}, infinity) of
         {ok, Resp} -> Resp;
         {error, {exception, {C,E,ST}}} -> erlang:raise(C,E,ST);
         {error, not_found} ->
@@ -70,11 +70,13 @@ restart_bench(Id) ->
         {error, Reason} -> erlang:error(Reason)
     end.
 
-stop_bench(Id) ->
-    case gen_server:call(?MODULE, {stop_bench, Id}, infinity) of
+stop_bench(Id, Login) ->
+    case gen_server:call(?MODULE, {stop_bench, Id, Login}, infinity) of
         ok -> ok;
         {error, not_found} ->
-            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
+        {error, Reason} ->
+            erlang:error(Reason)
     end.
 
 change_env(Id, Env) ->
@@ -295,7 +297,7 @@ handle_call({start_bench, Params}, _From, #{status:= inactive} = State) ->
     lager:info("[ SERVER ] Start of bench failed because server is inactive ~p", [Params]),
     {reply, {error, server_inactive}, State};
 
-handle_call({restart_bench, RestartId}, _From, #{status:= active, data_dir:= DataDir} = State) ->
+handle_call({restart_bench, RestartId, Login}, _From, #{status:= active, data_dir:= DataDir} = State) ->
     lager:info("[ SERVER ] Restarting bench #~b", [RestartId]),
     RestartIdStr = erlang:integer_to_list(RestartId),
     ParamsFile = filename:join([DataDir, RestartIdStr, "params.bin"]),
@@ -309,7 +311,7 @@ handle_call({restart_bench, RestartId}, _From, #{status:= active, data_dir:= Dat
                     P -> P
                 end,
 
-            case start_bench_child(Params, State) of
+            case start_bench_child(Params#{author => Login}, State) of
                 {ok, Id, NewState} ->
                     {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
                 {error, Reason, NewState} ->
@@ -331,15 +333,14 @@ handle_call(deactivate, _From, #{} = State) ->
             (_, Acc) -> Acc
         end, [], benchmarks),
     lager:info("[ SERVER ] Stopping all benchmarks due to server stop: ~p", [Unfinished]),
-    [ok = mzb_api_bench:interrupt_bench(P) || P <- Unfinished],
+    [ok = mzb_api_bench:interrupt_bench(P, root) || P <- Unfinished],
     {reply, ok, State#{status:= inactive}};
 
-handle_call({stop_bench, Id}, _, #{} = State) ->
+handle_call({stop_bench, Id, Login}, _, #{} = State) ->
     lager:info("[ SERVER ] Stop bench #~b request received", [Id]),
     case ets:lookup(benchmarks, Id) of
         [{_, BenchPid, undefined}] ->
-            ok = mzb_api_bench:interrupt_bench(BenchPid),
-            {reply, ok, State};
+            {reply, mzb_api_bench:interrupt_bench(BenchPid, Login), State};
         [{_, _, _}] ->
             {reply, ok, State};
         [] ->
