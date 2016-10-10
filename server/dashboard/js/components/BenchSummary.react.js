@@ -5,6 +5,7 @@ import moment from 'moment';
 import 'moment-duration-format';
 import BenchStore from '../stores/BenchStore';
 import TagInput from 'react-categorized-tag-input';
+import AuthStore from '../stores/AuthStore';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -51,6 +52,9 @@ class BenchSummary extends React.Component {
 
         var tags = this.state.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
 
+        var canStop = AuthStore.isAnonymousServer() ||
+                      (this.props.bench.author == AuthStore.userLogin())
+
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
@@ -60,6 +64,10 @@ class BenchSummary extends React.Component {
                                 <tr>
                                     <th scope="row" className="col-xs-2">Scenario</th>
                                     <td>#{bench.id} {bench.name}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" className="col-xs-2">Author</th>
+                                    <td>{bench.author}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row" className="col-xs-2">Cloud</th>
@@ -101,7 +109,7 @@ class BenchSummary extends React.Component {
                     <div className="bench-actions col-xs-3">
                         <div className="text-right">
                             <a type="button" ref="stop" className="btn btn-sm btn-danger" href={MZBenchRouter.buildLink("/stop", {id: this.props.bench.id})}
-                                    disabled={!this.props.bench.isRunning()} onClick={this._onClick}>
+                                    disabled={!this.props.bench.isRunning() || !canStop} onClick={this._onClick}>
                                 <span className="glyphicon glyphicon-minus-sign"></span> Stop
                             </a>
                         </div>
@@ -153,7 +161,11 @@ class BenchSummary extends React.Component {
 
         let anchor = $(event.target).closest('a');
         if (!anchor.attr('disabled')) {
-            $.ajax({url: anchor.attr('href')});
+            $.ajax({url: anchor.attr('href'),
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                    }
+                   });
         }
     }
 };

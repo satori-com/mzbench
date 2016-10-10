@@ -33,6 +33,10 @@ class AuthStore extends EventEmitter {
         return this.authMethods;
     }
 
+    isAnonymousServer() {
+        return this.authMethods.length == 0;
+    }
+
     userLogin() {
         return this.login;
     }
@@ -47,6 +51,10 @@ class AuthStore extends EventEmitter {
 
     authType() {
         return this.type;
+    }
+
+    getRef() {
+        return this.ref;
     }
 
     handle_auth_req(support) {

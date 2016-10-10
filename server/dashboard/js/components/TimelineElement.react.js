@@ -71,6 +71,7 @@ class TimelineElement extends React.Component {
                     {tags}
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
                     <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time_client} /></div>
+                    by {bench.author}
                 </div>
             </a>
         );
