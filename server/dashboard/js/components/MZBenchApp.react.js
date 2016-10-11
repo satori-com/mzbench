@@ -17,7 +17,7 @@ class MZBenchApp extends React.Component {
     render() {
         return (
             <div className="fluid-container">
-                <Auth title="Please Sign-in">
+                <Auth title="Please Sign In">
                     <div className="row">
                         <div className="col-xs-3 timeline-pane">
                             <Timeline />

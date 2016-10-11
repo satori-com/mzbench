@@ -99,7 +99,7 @@ class Auth extends React.Component {
                             </div>
 
                             <div className="modal-body">
-                                <a href="#" onClick={this.onGoogleSigninReq.bind(this)}>Sign-in with Google</a>
+                                <button type="button" className="btn btn-primary btn-lg btn-block" onClick={this.onGoogleSigninReq.bind(this)}>Google</button>
                             </div>
                         </div>
                     </div>
