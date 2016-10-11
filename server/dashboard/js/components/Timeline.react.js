@@ -21,10 +21,14 @@ class Timeline extends React.Component {
         GlobalStore.onChange(this._onChange);
         DashboardStore.onChange(this._onChange);
 
+        let opts = {};
+
+        let benchId = BenchStore.getSelectedId();
+        if (benchId) { opts.bench_id = benchId; }
         if (GlobalStore.isDashboardModeOn())
-            MZBenchActions.getDashboards();
+            MZBenchActions.getDashboards(opts);
         else
-            MZBenchActions.getTimeline();
+            MZBenchActions.getTimeline(opts);
 
         MZBenchActions.getServerInfo();
     }

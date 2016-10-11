@@ -58,7 +58,7 @@ export default {
 
     turnOffDashboardMode(mode) {
         if (!BenchStore.isLoaded()) {
-            this.getTimeline();
+            this.getTimeline({});
         }
         Dispatcher.dispatch({ type: Constants.TURN_OFF_DASHBOARD_MODE});
     },
@@ -110,11 +110,7 @@ export default {
         MZBenchWS.send(opts);
     },
 
-    getTimeline(timelineId) {
-        let opts = {};
-
-        let benchId = BenchStore.getSelectedId();
-        if (benchId) { opts.bench_id = benchId; }
+    getTimeline(opts, timelineId) {
 
         Object.assign(opts, {cmd: "get_timeline"});
 
@@ -135,17 +131,13 @@ export default {
     saveSelectedDashboard() {
         if (DashboardStore.isNewSelected()) {
             MZBenchWS.send({cmd: "create_dashboard", data: DashboardStore.getNew()});
-            this.getDashboards();
+            this.getDashboards({});
         } else {
             MZBenchWS.send({cmd: "update_dashboard", data: DashboardStore.getSelected()});
         }
     },
 
-    getDashboards() {
-        let opts = {};
-
-        let benchId = BenchStore.getSelectedId();
-        if (benchId) { opts.bench_id = benchId; }
+    getDashboards(opts) {
         Object.assign(opts, {cmd: "get_dashboards"});
 
         opts.q = DashboardStore.getFilter();
