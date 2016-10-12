@@ -16,7 +16,8 @@
 start(_Name, Opts) ->
     Opts.
 
--spec create_cluster(#{}, NumNodes :: pos_integer(), Config :: #{}) -> {ok, term(), string(), [string()]}.
+% couldn't satisfy both erl 18 and 19 dialyzers, spec commented
+%-spec create_cluster(#{config:=[any()], instance_spec:=[any()], instance_user:=_, _=>_}, NumNodes :: pos_integer(), Config :: #{}) -> {ok, {map(),[any()]}, string(), [string()]}.
 create_cluster(Opts = #{instance_user:= UserName}, NumNodes, Config) when is_integer(NumNodes), NumNodes > 0 ->
     Overhead = mzb_bc:maps_get(overhead, Opts, 0),
     {ok, Data} = erlcloud_ec2:run_instances(instance_spec(NumNodes, Overhead, Opts), get_config(Opts)),
@@ -60,7 +61,9 @@ get_IPs(Ids, Data, [H | T]) ->
         _ -> get_IPs(Ids, Data, T)
     end.
 
--spec destroy_cluster({#{}, [term()]}) -> ok.
+% couldn't satisfy both erl 18 and 19 dialyzers, spec commented
+%-spec destroy_cluster({#{config:=[any()], _=>_}, [term()]}) -> ok.
+
 destroy_cluster({Opts, Ids}) ->
     R = erlcloud_ec2:terminate_instances(Ids, get_config(Opts)),
     lager:info("Deallocating ids: ~p, result: ~p", [Ids, R]),
