@@ -190,13 +190,14 @@ start_pools([Pool | Pools], Env, Nodes, Acc) ->
     SizeU = mzbl_interpreter:eval_std(SizeExpr, Env),
     Size = mzb_utility:to_integer_with_default(SizeU, undefined),
     NumberedNodes = lists:zip(lists:seq(1, length(Nodes)), Nodes),
-    Results = mzb_lists:pmap(fun({Num, Node}) ->
-            mzb_interconnect:call(Node,
+    Self = self(),
+    NewRef = mzb_lists:pmap(fun({Num, Node}) ->
+            mzb_interconnect:spawn_monitor(Node, Self,
                 {start_pool, Pool, Env, length(Nodes), Num})
         end, NumberedNodes),
-    system_log:info("Start pool results: ~p", [Results]),
-    NewRef = lists:map(fun({ok, Pid}) -> {Pid, mzb_interconnect:monitor(process, Pid)} end, Results),
-    start_pools(Pools, Env, shift(Nodes, Size), NewRef ++ Acc).
+    system_log:info("Start pool monitors: ~p", [NewRef]),
+    Results = [{Pid, Mon} || {_, Pid, _} = Mon <- NewRef],
+    start_pools(Pools, Env, shift(Nodes, Size), Results ++ Acc).
 
 stop_pools(Pools) ->
     _ = [catch mzb_interconnect:demonitor(Mon, [flush]) || {_, Mon} <- Pools],

@@ -9,6 +9,7 @@
     nodes/0,
     set_director/1,
     set_handler/1,
+    spawn_monitor/3,
     call/2,
     call/3,
     cast/2,
@@ -73,6 +74,9 @@ call_director(Req, Timeout) ->
         {exception, {C, E, ST}} -> erlang:raise(C, E, ST);
         {error, Reason} -> erlang:error(Reason)
     end.
+
+spawn_monitor(Node, Owner, Req) ->
+    gen_server:call(?MODULE, {spawn_monitor, Node, Owner, Req}, infinity).
 
 call(Node, Req) -> call(Node, Req, infinity).
 
@@ -148,6 +152,16 @@ handle_call({set_handler, Handler}, _From, State) ->
 
 handle_call(nodes, _From, #s{nodes = Nodes} = State) ->
     {reply, maps:keys(Nodes), State};
+
+handle_call({spawn_monitor, Node, Owner, Req}, _From, State) when Node == node() ->
+    {reply, {ok, Pid}} = handle_message(Req, State),
+    Ref = erlang:monitor(process, Pid),
+    {reply, {interconnect_monitor, Pid, Ref},
+            add_lmon(Ref, Owner, Pid, add_rmon(Ref, Owner, Pid, State))};
+
+handle_call({spawn_monitor, Node, Owner, Req}, From, State) ->
+    send_to(Node, {spawn_monitor, {node(), From}, Owner, Req}, State),
+    {noreply, State};
 
 handle_call({call, Node, Req}, From, State) when Node == node() ->
     try handle_message(Req, fun (R) -> gen_server:reply(From, {ok, R}), ok end, State) of
@@ -230,6 +244,12 @@ handle_cast({from_remote, {cast, Msg}}, State) ->
 handle_cast({from_remote, {abcast, Nodes, Msg}}, State) ->
     handle_abcast(Nodes, Msg, State),
     {noreply, State};
+
+handle_cast({from_remote, {spawn_monitor, {FromNode, From}, Owner, Msg}}, State) ->
+    {reply, {ok, Pid}} = handle_message(Msg, State),
+    Ref = erlang:monitor(process, Pid),
+    send_to(FromNode, {monitor_res, From, {node(), Owner, Pid, Ref}}, State),
+    {noreply, add_lmon(Ref, Owner, Pid, State)};
 
 handle_cast({from_remote, {call, {FromNode, From}, Msg}}, State) ->
     ReplyFun = fun (R) -> send_to(FromNode, {reply, From, {ok, R}}, State), ok end,
