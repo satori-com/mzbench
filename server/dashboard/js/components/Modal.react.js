@@ -34,7 +34,7 @@ class Modal extends React.Component {
                         
                         <div className="modal-footer">
                             <button type="button" className="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="button" className="btn btn-primary" onClick={this.props.onOk}>Submit</button>
+                            {this.props.onOk ? <button type="button" className="btn btn-primary" onClick={this.props.onOk}>Submit</button> : null}
                         </div>
                     </div>
                 </div>
@@ -45,7 +45,7 @@ class Modal extends React.Component {
 
 Modal.propTypes = {
     title: React.PropTypes.string,
-    onOk: React.PropTypes.func.isRequired
+    onOk: React.PropTypes.func
 };
 
 Modal.defaultProps = {

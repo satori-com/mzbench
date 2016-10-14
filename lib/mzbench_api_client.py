@@ -12,6 +12,7 @@ import sys
 import re
 import requests
 import multipart
+import string
 
 class MZBenchAPIException(Exception):
     pass
@@ -331,7 +332,7 @@ def stream_lines(host, endpoint, args, no_cert_check = False):
     try:
         response = requests.get(
             addproto(host) + endpoint + '?' + urlencode(args),
-            stream=True, verify = not no_cert_check)
+            stream=True, verify = not no_cert_check, headers=get_auth_headers())
 
         for line in fast_iter_lines(response, chunk_size=1024):
             try:
@@ -402,7 +403,7 @@ def assert_successful_request(perform_request):
 def assert_successful_get(host, endpoint, args, no_cert_check = False):
     return requests.get(
         addproto(host) + endpoint + '?' + urlencode(args),
-        verify=not no_cert_check)
+        verify=not no_cert_check, headers=get_auth_headers())
 
 
 @assert_successful_request
@@ -410,6 +411,25 @@ def assert_successful_post(host, endpoint, args, data=None, headers=None, no_cer
     return requests.post(
         addproto(host) + endpoint + '?' + urlencode(args),
         data=data,
-        headers=headers,
+        headers=add_auth_headers(headers),
         verify=not no_cert_check)
+
+def add_auth_headers(headers):
+    auth_headers = get_auth_headers();
+    if (headers is None):
+        return auth_headers;
+
+    if (auth_headers is None):
+        return headers;
+
+    return headers.update(auth_headers)
+
+def get_auth_headers():
+    token_file = os.path.expanduser("~/.config/mzbench/token")
+    if (os.path.isfile(token_file)):
+        with open(token_file) as f:
+            token = f.read()
+            return {"Authorization": "Bearer {}".format(string.rstrip(token, " \n\r"))}
+    else:
+        return None
 

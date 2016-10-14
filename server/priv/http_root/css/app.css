@@ -496,3 +496,7 @@ div.equals {
   line-height: 1;
   border-top: 0px;
 }
+
+.auth-token-modal {
+  padding: 20px;
+}
