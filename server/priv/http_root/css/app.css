@@ -491,11 +491,6 @@ div.equals {
   right: 0px;
   margin-right: 7%;
 }
-.signed-in-user-name {
-  padding: 4px;
-  line-height: 1;
-  border-top: 0px;
-}
 
 .auth-token-modal {
   padding: 20px;

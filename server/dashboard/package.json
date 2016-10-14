@@ -30,7 +30,8 @@
     "reactify": "^0.15",
     "indent-adder": "0.1.1",
     "pegjs": "~0.10.0",
-    "watchify": "~3.0.0"
+    "watchify": "~3.0.0",
+    "rc-menu": "~5.0.*"
   },
   "scripts": {
     "start": "watchify -o ../priv/http_root/js/bundle.js -v -d .",
