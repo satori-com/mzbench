@@ -108,14 +108,14 @@ class Auth extends React.Component {
                     </td></tr>
                   </tbody></table> : null}
                 <div ref="authModal" className="modal fade">
-                    <div className="modal-dialog">
+                    <div className="modal-sign-in-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h4 className="modal-title">{this.props.title}</h4>
+                                <h4 className="modal-title sign-in-header">{this.props.title}</h4>
                             </div>
 
                             <div className="modal-body">
-                                <button type="button" className="btn btn-primary btn-lg btn-block" onClick={this.onGoogleSigninReq.bind(this)}>Google</button>
+                                <button type="button" className="btn btn-block btn-social btn-google" onClick={this.onGoogleSigninReq.bind(this)}>Google</button>
                             </div>
                         </div>
                     </div>
