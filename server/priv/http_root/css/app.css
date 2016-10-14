@@ -495,3 +495,12 @@ div.equals {
 .auth-token-modal {
   padding: 20px;
 }
+
+.modal-sign-in-dialog {
+  width: 250px;
+  margin: 150px auto;
+}
+
+.sign-in-header {
+  text-align: center;
+}
