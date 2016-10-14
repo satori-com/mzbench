@@ -28,7 +28,8 @@
     "brace": "~0.5.1",
     "react-categorized-tag-input": "~2.0.*",
     "reactify": "^0.15",
-    "watchify": "~3.0.0"
+    "watchify": "~3.0.0",
+    "rc-menu": "~5.0.*"
   },
   "scripts": {
     "start": "watchify -o ../priv/http_root/js/bundle.js -v -d .",

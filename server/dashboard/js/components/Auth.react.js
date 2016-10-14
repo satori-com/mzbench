@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import AuthStore from '../stores/AuthStore';
 import MZBenchWS from '../utils/MZBenchWS';
 import Modal from './Modal.react';
+import Menu, {SubMenu, MenuItem} from 'rc-menu';
+
 
 class Auth extends React.Component {
     constructor(props) {
@@ -92,10 +94,17 @@ class Auth extends React.Component {
                 { (login != "") && (login != "anonymous") ?
                   <table className="signed-in-user-table"><tbody>
                     <tr><td>{this.state.userPic != "" ? <img src={this.state.userPic} height="38px"/> : null}</td>
-                    <td className="signed-in-user-name">
-                      <div>{this.state.userName != "" ? this.state.userName : this.state.userLogin}</div>
-                      <div><a href="#" onClick={this.onSignOut.bind(this)}>Sign out</a></div>
-                      <div><a href="#" onClick={this.onCreateToken.bind(this)}>Create token</a></div>
+                    <td>
+                        <Menu mode='horizontal' openAnimation='slide-up'>
+                           <SubMenu title={this.state.userName != "" ? this.state.userName : this.state.userLogin}>
+                            <MenuItem>
+                                <div><a href="#" onClick={this.onCreateToken.bind(this)}>Generate token</a></div>
+                            </MenuItem>
+                            <MenuItem>
+                                <div><a href="#" onClick={this.onSignOut.bind(this)}>Sign out</a></div>
+                            </MenuItem>
+                          </SubMenu>
+                        </Menu>
                     </td></tr>
                   </tbody></table> : null}
                 <div ref="authModal" className="modal fade">
