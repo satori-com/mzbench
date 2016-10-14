@@ -3,7 +3,9 @@
 -export([init/2,
          terminate/3,
          websocket_handle/3,
-         websocket_info/3]).
+         websocket_info/3,
+         reauth/1,
+         close/2]).
 
 % export for tests
 -export([normalize/1,
@@ -83,6 +85,12 @@ init_connection(Ref, State) ->
     ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
     State#state{ref = Ref}.
 
+reauth(Pid) ->
+    Pid ! reauth.
+
+close(Pid, Reason) ->
+    Pid ! {close, Reason}.
+
 terminate(_Reason, _Req, #state{ref = Ref}) ->
     gen_event:delete_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
     ok.
@@ -105,13 +113,14 @@ websocket_info(Message, Req, State) ->
             JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply), [force_utf8]),
             {reply, {text, JsonReply}, Req, NewState};
         {ok, NewState} ->
-            {ok, Req, NewState}
+            {ok, Req, NewState};
+        {stop, NewState} ->
+            {stop, Req, NewState}
     end.
 
 dispatch_info(authenticate, State = #state{auth_state = init}) ->
-    case mzb_api_auth:auth_connection("anonymous", undefined) of
-        {ok, Ref} ->
-            {ok, UserInfo} = mzb_api_auth:get_user_info(Ref),
+    case mzb_api_auth:auth_connection(self(), "anonymous", undefined) of
+        {ok, Ref, UserInfo} ->
             {reply, #{type => "AUTHENTICATED",
                       login => maps:get(login, UserInfo),
                       login_type => maps:get(login_type, UserInfo),
@@ -124,6 +133,10 @@ dispatch_info(authenticate, State = #state{auth_state = init}) ->
             {reply, #{type => "AUTH_REQ", support => Methods},
                 State#state{auth_state = req_sent}}
     end;
+
+dispatch_info(reauth, State) ->
+    self() ! authenticate,
+    {reply, #{type => "AUTH_TOKEN_EXPIRED"}, State#state{auth_state = init}};
 
 dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
     {ok, State};
@@ -234,14 +247,17 @@ dispatch_info({'DOWN', MonRef, process, MonPid, Reason},
 dispatch_info({'DOWN', _, process, _, _}, State) ->
     {ok, State};
 
+dispatch_info({close, Reason}, State) ->
+    lager:info("Closing ~p ws connection because of ~p", [self(), Reason]),
+    {stop, State};
+
 dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
 
 dispatch_request(#{<<"cmd">> := <<"one-time-code">>, <<"type">> := Type, <<"data">> := Code}, #state{auth_state = req_sent} = State) ->
-    case mzb_api_auth:auth_connection(binary_to_list(Type), Code) of
-        {ok, Ref} ->
-            {ok, UserInfo} = mzb_api_auth:get_user_info(Ref),
+    case mzb_api_auth:auth_connection(self(), binary_to_list(Type), Code) of
+        {ok, Ref, UserInfo} ->
             {reply, #{type => "AUTHENTICATED",
                       login => maps:get(login, UserInfo),
                       login_type => binary_to_list(Type),
@@ -258,7 +274,7 @@ dispatch_request(#{<<"cmd">> := <<"one-time-code">>, <<"type">> := Type, <<"data
 
 dispatch_request(#{<<"cmd">> := <<"my-ref">>, <<"data">> := BinaryRef}, #state{auth_state = req_sent} = State) ->
     Ref = binary_to_list(BinaryRef),
-    case mzb_api_auth:get_user_info(BinaryRef) of
+    case mzb_api_auth:auth_connection_by_ref(self(), BinaryRef) of
         {ok, #{login:= Login, login_type:= Type, name:= UserName, picture_url:= UserPic}} ->
             {reply, #{type => "AUTHENTICATED",
                       login => Login,
@@ -276,6 +292,10 @@ dispatch_request(#{<<"cmd">> := <<"sign-out">>}, #state{auth_state = authenticat
     self() ! authenticate,
     mzb_api_auth:sign_out_connection(Ref),
     {ok, State#state{auth_state = init}};
+
+dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime, <<"ref">> := Ref}, State) ->
+    Token = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Ref),
+    {reply, #{type => "GENERATED_TOKEN", token => Token}, State};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};

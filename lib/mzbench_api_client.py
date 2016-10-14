@@ -12,6 +12,7 @@ import sys
 import re
 import requests
 import multipart
+import string
 
 class MZBenchAPIException(Exception):
     pass
@@ -298,7 +299,7 @@ def stream_lines(host, endpoint, args):
     try:
         response = requests.get(
             'http://' + host + endpoint + '?' + urlencode(args),
-            stream=True)
+            stream=True, headers=get_auth_headers())
 
         for line in fast_iter_lines(response, chunk_size=1024):
             try:
@@ -368,7 +369,7 @@ def assert_successful_request(perform_request):
 @assert_successful_request
 def assert_successful_get(host, endpoint, args):
     return requests.get(
-        'http://' + host + endpoint + '?' + urlencode(args))
+        'http://' + host + endpoint + '?' + urlencode(args), headers=get_auth_headers())
 
 
 @assert_successful_request
@@ -376,5 +377,24 @@ def assert_successful_post(host, endpoint, args, data=None, headers=None):
     return requests.post(
         'http://' + host + endpoint + '?' + urlencode(args),
         data=data,
-        headers=headers)
+        headers=add_auth_headers(headers))
+
+def add_auth_headers(headers):
+    auth_headers = get_auth_headers();
+    if (headers is None):
+        return auth_headers;
+
+    if (auth_headers is None):
+        return headers;
+
+    return headers.update(auth_headers)
+
+def get_auth_headers():
+    token_file = os.path.expanduser("~/.config/mzbench/token")
+    if (os.path.isfile(token_file)):
+        with open(token_file) as f:
+            token = f.read()
+            return {"Authorization": "Bearer {}".format(string.rstrip(token, " \n\r"))}
+    else:
+        return None
 

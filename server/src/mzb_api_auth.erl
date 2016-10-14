@@ -3,15 +3,24 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, auth_connection/2, get_user_info/1, sign_out_connection/1, auth_api_call/3]).
+-export([
+    start_link/0,
+    auth_connection/3,
+    auth_connection_by_ref/2,
+    sign_out_connection/1,
+    auth_api_call/3,
+    generate_token/2
+]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(s, {}).
+-record(s, {start_id = undefined :: string()}).
 
 -define(REF_SIZE, 32).
+-define(DEFAULT_EXPIRATION_TIME_S, 259200). % 3 days
+-define(VALIDATE_TOKENS_TIMEOUT_MS, 5000).
 
 %%%===================================================================
 %%% API
@@ -20,7 +29,7 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-auth_connection("anonymous", _) ->
+auth_connection(ConnectionPid, "anonymous", _) ->
     case get_methods() of
         [] ->
             UserInfo =
@@ -31,14 +40,14 @@ auth_connection("anonymous", _) ->
                     picture_url => "",
                     email => ""
                 },
-            Ref = add_connection(UserInfo),
-            {ok, Ref};
+            Ref = add_connection(ConnectionPid, UserInfo),
+            {ok, Ref, UserInfo};
         List when is_list(List) ->
             AuthTypes = [{Type, mzb_bc:maps_get(client_id, Opts, undefined)} || {Type, Opts} <- List],
             {error, {forbidden, {use, maps:from_list(AuthTypes)}}}
     end;
 
-auth_connection("google" = Type, Code) ->
+auth_connection(ConnectionPid, "google" = Type, Code) ->
     try
         Tokens = google_tokens(Code, get_opts(Type)),
         IdToken = maps:get(<<"id_token">>, Tokens),
@@ -55,14 +64,17 @@ auth_connection("google" = Type, Code) ->
                         picture_url => binary_to_list(Picture),
                         email => binary_to_list(Email)
                     },
-                Ref = add_connection(UserInfo),
-                {ok, Ref};
+                Ref = add_connection(ConnectionPid, UserInfo),
+                {ok, Ref, UserInfo};
             error -> {error, "no_user_email"}
         end
     catch
         {google_api, Method, Error} ->
             {error, mzb_string:format("Google ~p return error ~p", [Method, Error])}
     end.
+
+auth_connection_by_ref(ConnectionPid, Ref) ->
+    gen_server:call(?MODULE, {auth_connection_by_ref, ConnectionPid, Ref}).
 
 auth_api_call(_Method, _Path, Ref) ->
     case get_methods() of
@@ -77,15 +89,15 @@ auth_api_call(_Method, _Path, Ref) ->
 sign_out_connection(Ref) ->
     gen_server:call(?MODULE, {remove_connection, Ref}).
 
-add_connection(UserInfo) ->
-    Ref = generate_connection_ref(),
-    ok = gen_server:call(?MODULE, {add_connection, Ref, UserInfo}),
+add_connection(ConnectionPid, UserInfo) ->
+    Ref = generate_ref(),
+    ok = gen_server:call(?MODULE, {add_connection, ConnectionPid, Ref, UserInfo}),
     Ref.
 
-get_user_info(Ref) ->
-    case ets:lookup(auth_connections, Ref) of
-        [{_, UserInfo}] -> {ok, UserInfo};
-        [] -> {error, unknown_ref}
+generate_token(Lifetime, Ref) ->
+    case gen_server:call(?MODULE, {generate_token, Lifetime, Ref}) of
+        {ok, Token} -> Token;
+        {error, Reason} -> erlang:error(Reason)
     end.
 
 %%%===================================================================
@@ -93,22 +105,53 @@ get_user_info(Ref) ->
 %%%===================================================================
 
 init([]) ->
-    auth_connections = ets:new(auth_connections, [protected, named_table]),
-    {ok, #s{}}.
+    DetsFile = filename:join(mzb_api_server:server_data_dir(), ".tokens.dets"),
+    {ok, _} = dets:open_file(auth_tokens, [{file, DetsFile}, {type, set}]),
+    erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
+    {ok, #s{start_id = generate_ref()}}.
 
-handle_call({add_connection, Ref, UserInfo}, _From, State) ->
-    ets:insert_new(auth_connections, {Ref, UserInfo}),
+handle_call({add_connection, ConnectionPid, Ref, UserInfo}, _From, State = #s{start_id = StartId}) ->
+    insert(ConnectionPid, Ref, UserInfo, StartId),
     {reply, ok, State};
+
+handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{start_id = StartId}) ->
+    case get_user_info(Ref) of
+        {ok, UserInfo} ->
+            insert(ConnectionPid, Ref, UserInfo, StartId),
+            {reply, {ok, UserInfo}, State};
+        {error, Reason} ->
+            {reply, {error, Reason}, State}
+    end;
 
 handle_call({remove_connection, Ref}, _From, State) ->
-    ets:delete(auth_connections, Ref),
+    dets:delete(auth_tokens, Ref),
     {reply, ok, State};
+
+handle_call({generate_token, Lifetime, Ref}, _From, State = #s{start_id = StartId}) ->
+    case get_user_info(Ref) of
+        {ok, UserInfo} ->
+            Token = generate_ref(),
+            insert(cli, Token, UserInfo, StartId, Lifetime),
+            {reply, {ok, Token}, State};
+        {error, unknown_ref} ->
+            {reply, {error, forbidden}, State}
+    end;
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
+
+handle_info(validate, State = #s{start_id = StartId}) ->
+    CurrentTime = mzb_api_bench:seconds(),
+    ExpiredRefs = dets:foldl(
+        fun ({Ref, #{expiratioin_ts:= Expiration}}, Acc) when CurrentTime > Expiration -> [Ref|Acc];
+            ({_, _}, Acc) -> Acc
+        end, [], auth_tokens),
+    [remove(Ref, StartId) || Ref <- ExpiredRefs],
+    erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
+    {noreply, State};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -123,7 +166,33 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-generate_connection_ref() ->
+get_user_info(Ref) ->
+    case dets:lookup(auth_tokens, Ref) of
+        [{_, #{user_info:= UserInfo}}] -> {ok, UserInfo};
+        [] -> {error, unknown_ref}
+    end.
+
+remove(Ref, StartId) ->
+    case dets:lookup(auth_tokens, Ref) of
+        [] -> ok;
+        [{_, #{connection_pid:= Pid, incarnation_id:= Id}}] ->
+            (Id == StartId) andalso mzb_api_ws_handler:reauth(Pid),
+            dets:delete(auth_tokens, Ref)
+    end.
+
+insert(ConnectionPid, Ref, UserInfo, StartId) ->
+    insert(ConnectionPid, Ref, UserInfo, StartId, ?DEFAULT_EXPIRATION_TIME_S).
+insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
+    CreationTS = mzb_api_bench:seconds(),
+    ExpirationTS = CreationTS + Lifetime,
+    remove(Ref, StartId),
+    dets:insert(auth_tokens, {Ref, #{user_info => UserInfo,
+                                     connection_pid => ConnectionPid,
+                                     creation_ts => CreationTS,
+                                     expiratioin_ts => ExpirationTS,
+                                     incarnation_id => StartId}}).
+
+generate_ref() ->
     base64:encode(crypto:rand_bytes(?REF_SIZE)).
 
 google_tokens(Code, Opts) ->

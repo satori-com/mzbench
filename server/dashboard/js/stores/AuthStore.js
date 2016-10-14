@@ -57,7 +57,7 @@ class AuthStore extends EventEmitter {
         return this.ref;
     }
 
-    handle_auth_req(support) {
+    handleAuthReq(support) {
         if (this.ref == "") {
             this.resetUserData();
             this.authMethods = support;
@@ -67,7 +67,7 @@ class AuthStore extends EventEmitter {
 
     }
 
-    handle_auth_ok(login, type, name, picture, ref) {
+    handleAuthOk(login, type, name, picture, ref) {
         this.type = type;
         this.login = login;
         this.name = name;
@@ -75,16 +75,32 @@ class AuthStore extends EventEmitter {
         this.ref = ref;
     }
 
-    handle_auth_error(reason) {
+    handleAuthError(reason) {
         if (reason == "unknown_ref") {
             this.resetUserData();
         }
         console.error(`Auth error: ${reason}`);
     }
 
+    handleTokenExpired() {
+        this.resetUserData();
+    }
+
     signOut() {
         this.resetUserData();
         MZBenchWS.send({cmd: "sign-out"});
+    }
+
+    requestToken(tokenLifetime) {
+        MZBenchWS.send({cmd: "generate-token", lifetime: tokenLifetime.toString(), ref: this.ref})
+    }
+
+    handleGeneratedToken(token) {
+        this.generatedToken = token;
+    }
+
+    getGeneratedToken() {
+        return this.generatedToken;
     }
 
     resetUserData() {
@@ -93,6 +109,7 @@ class AuthStore extends EventEmitter {
         this.login = "";
         this.picture = "";
         this.name = "";
+        this.generatedToken = "";
     }
 }
 
@@ -102,18 +119,28 @@ export default _AuthStore;
 _AuthStore.dispatchToken = Dispatcher.register((action) => {
     switch (action.type) {
         case ActionTypes.AUTH_REQ:
-            _AuthStore.handle_auth_req(action.support);
+            _AuthStore.handleAuthReq(action.support);
             _AuthStore.emitChange();
             break;
         case ActionTypes.AUTHENTICATED:
-            _AuthStore.handle_auth_ok(action.login, action.login_type,
+            _AuthStore.handleAuthOk(action.login, action.login_type,
                                       action.name, action.picture_url,
                                       action.ref);
             _AuthStore.emitChange();
             break;
 
         case ActionTypes.AUTH_ERROR:
-            _AuthStore.handle_auth_error(action.reason);
+            _AuthStore.handleAuthError(action.reason);
+            _AuthStore.emitChange();
+            break;
+
+        case ActionTypes.AUTH_TOKEN_EXPIRED:
+            _AuthStore.handleTokenExpired();
+            _AuthStore.emitChange();
+            break;
+
+        case ActionTypes.GENERATED_TOKEN:
+            _AuthStore.handleGeneratedToken(action.token);
             _AuthStore.emitChange();
             break;
 

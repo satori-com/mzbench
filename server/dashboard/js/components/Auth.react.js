@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import AuthStore from '../stores/AuthStore';
 import MZBenchWS from '../utils/MZBenchWS';
+import Modal from './Modal.react';
 
 class Auth extends React.Component {
     constructor(props) {
@@ -79,6 +80,11 @@ class Auth extends React.Component {
         AuthStore.signOut();
     }
 
+    onCreateToken() {
+        $(ReactDOM.findDOMNode(this.refs.createTokenModal)).modal("show");
+        this.setState({generatedToken: ""});
+    }
+
     render() {
         let login = this.state.userLogin;
         return (
@@ -89,6 +95,7 @@ class Auth extends React.Component {
                     <td className="signed-in-user-name">
                       <div>{this.state.userName != "" ? this.state.userName : this.state.userLogin}</div>
                       <div><a href="#" onClick={this.onSignOut.bind(this)}>Sign out</a></div>
+                      <div><a href="#" onClick={this.onCreateToken.bind(this)}>Create token</a></div>
                     </td></tr>
                   </tbody></table> : null}
                 <div ref="authModal" className="modal fade">
@@ -104,9 +111,33 @@ class Auth extends React.Component {
                         </div>
                     </div>
                 </div>
+                <Modal ref="createTokenModal" title="Generate a token for CLI utilites">
+                    {this.state.generatedToken ?
+                        <div className="auth-token-modal">
+                            <p>Here is your secret token:</p> <pre>{this.state.generatedToken}</pre>
+                            <p>Please copy-paste it to ~/.config/mzbench/token file in your home directory</p>
+                        </div> :
+                        <div className="auth-token-modal">
+                            How long do you want the token to be valid:
+                            <select ref="validTime" defaultValue="86400">
+                                <option value="3600">an hour</option>
+                                <option value="86400">a day</option>
+                                <option value="2592000">a month</option>
+                                <option value="31536000">a year</option>
+                                <option value="0">forever</option>
+                            </select>&nbsp;
+                            <button type="button" className="btn btn-primary btn-sm" onClick={this.onGenerateToken.bind(this)}>Generate</button>
+                        </div>
+                    }
+                </Modal>
                 {login != "" ? this.props.children : null}
             </div>
         );
+    }
+
+    onGenerateToken() {
+        let tokenLifetime = this.refs.validTime.value;
+        AuthStore.requestToken(tokenLifetime);
     }
 
     _resolveState() {
@@ -119,12 +150,14 @@ class Auth extends React.Component {
         if (support.google) {
             this.ensureGAPILoaded(support.google);
         }
+
         return {
             authRequired: needShowSignIn,
             supportedMethods: support,
             userLogin: AuthStore.userLogin(),
             userName: AuthStore.userName(),
-            userPic: AuthStore.userPic()
+            userPic: AuthStore.userPic(),
+            generatedToken: AuthStore.getGeneratedToken()
         };
     }
 
