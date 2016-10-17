@@ -1,7 +1,7 @@
 -module(simple_http_worker).
 
 -export([initial_state/0, metrics/0,
-         get/3]).
+         get/3, get/4]).
 
 -type state() :: term().
 -type meta() :: [{Key :: atom(), Value :: any()}].
@@ -24,8 +24,13 @@ metrics() ->
 
 -spec get(state(), meta(), string()) -> {nil, state()}.
 get(State, _Meta, URL) ->
+    get(State, _Meta, URL, []).
+
+-spec get(state(), meta(), string(), [{atom(), term()}]) -> {nil, state()}.
+get(State, _Meta, URL, Options) ->
     StartTime = os:timestamp(),
-    Response = hackney:request(get, list_to_binary(URL), [], <<"">>, []),
+    HackneyOptions = parse_options(Options),
+    Response = hackney:request(get, list_to_binary(URL), [], <<"">>, HackneyOptions),
 
     case Response of
         {ok, _, _, BodyRef} -> hackney:skip_body(BodyRef);
@@ -46,3 +51,9 @@ get(State, _Meta, URL) ->
             mzb_metrics:notify({"other_fail", counter}, 1)
     end,
     {nil, State}.
+
+parse_options(Options) -> parse_options(Options, []).
+parse_options([], Acc) -> lists:reverse(Acc);
+parse_options([{basic_auth, {Name, Pass}}|T], Acc) ->
+    parse_options(T, [{basic_auth, {list_to_binary(Name), list_to_binary(Pass)}}|Acc]).
+
