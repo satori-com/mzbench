@@ -125,7 +125,7 @@ class NewBench extends React.Component {
             contentType: false,
             data: formData,
             success: (data) => {
-                notify.update({message: `Benchmark has been started`, type: 'success'});
+                notify.update({message: `Started benchmark`, type: 'success'});
                 MZBenchActions.resetNewBench();
                 MZBenchActions.selectBenchById(data.id);
                 MZBenchRouter.navigate("#/bench/" + data.id + "/overview", {});

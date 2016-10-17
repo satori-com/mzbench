@@ -1,18 +1,22 @@
-# Welcome to MZBench [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Issue stats](http://issuestats.com/github/machinezone/mzbench/badge/issue?style=flat-square)](http://issuestats.com/github/machinezone/mzbench) [![Pull Requests stats](http://issuestats.com/github/machinezone/mzbench/badge/pr?style=flat-square)](http://issuestats.com/github/machinezone/mzbench)
+# MZBench
 
 ***Expressive, scalable load testing tool***
 
 ---
 
+[![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Issue stats](http://issuestats.com/github/machinezone/mzbench/badge/issue?style=flat-square)](http://issuestats.com/github/machinezone/mzbench) [![Pull Requests stats](http://issuestats.com/github/machinezone/mzbench/badge/pr?style=flat-square)](http://issuestats.com/github/machinezone/mzbench)
+
+---
+
 ![Graphs](doc/images/graphs.gif)
 
-MZBench helps software testers and developers test their products under huge load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload. 
+MZBench helps software testers and developers test their products under high real life load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload.
 
 MZBench runs test scenarios on many machines simultaneous, maintaining millions of connections, which make it suitable even for large scale products.
 
 MZBench is:
 
- - **Cloud-aware:** MZBench allocates nodes directly from Amazon EC2. 
+ - **Cloud-aware:** MZBench can allocates nodes directly from Amazon EC2 or run on a local machine.
  - **Scalable:** tested with 100 nodes and millions of connections.
  - **Extendable:** write your own [cloud plugins](doc/cloud_plugins.md#how-to-write-a-cloud-plugin) and [workers](doc/workers.md#how-to-write-a-worker). 
  - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
@@ -24,7 +28,7 @@ MZBench is:
 
 To use MZBench, you'll need:
 
- - Erlang R17
+ - Erlang R17+
  - C++ compiler
  - Python 2.6 or 2.7 with pip
 

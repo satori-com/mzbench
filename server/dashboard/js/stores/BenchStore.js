@@ -18,7 +18,7 @@ const defaultData = {
     isNewActive: false,
     clouds: [],
     newBench: {
-        name: "Something",
+        name: "My benchmark",
         script_name: "generic.erl",
         script_body: "#!benchDL\n" +
                      "# the simplest example\n" +
