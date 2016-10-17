@@ -2,11 +2,7 @@
 
 ***Expressive, scalable load testing tool***
 
----
-
 [![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Issue stats](http://issuestats.com/github/machinezone/mzbench/badge/issue?style=flat-square)](http://issuestats.com/github/machinezone/mzbench) [![Pull Requests stats](http://issuestats.com/github/machinezone/mzbench/badge/pr?style=flat-square)](http://issuestats.com/github/machinezone/mzbench)
-
----
 
 ![Graphs](doc/images/graphs.gif)
 
