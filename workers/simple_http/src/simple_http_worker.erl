@@ -1,7 +1,7 @@
 -module(simple_http_worker).
 
 -export([initial_state/0, metrics/0,
-         get/3, get/4]).
+         get/3, get/4, random_get/3]).
 
 -type state() :: term().
 -type meta() :: [{Key :: atom(), Value :: any()}].
@@ -51,6 +51,18 @@ get(State, _Meta, URL, Options) ->
             mzb_metrics:notify({"other_fail", counter}, 1)
     end,
     {nil, State}.
+
+random_get(State, Meta, List) ->
+    {URL, Options} = weighted_choose(List),
+    get(State, Meta, URL, Options).
+
+weighted_choose(List) ->
+    Sum = lists:sum([W || {_, W} <- List]),
+    R = random:uniform(Sum),
+    choose(R, List).
+
+choose(R, [{E, W}|_]) when R =< W -> E;
+choose(R, [{_, W}|T]) -> choose(R - W, T).
 
 parse_options(Options) -> parse_options(Options, []).
 parse_options([], Acc) -> lists:reverse(Acc);
