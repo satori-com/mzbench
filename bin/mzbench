@@ -11,7 +11,7 @@ except ImportError:
 doc_acc = """MZBench command-line interface
 
 Usage:
-  mzbench [--host=<host>] (start|run)
+  mzbench [--host=<host>] [--no_cert_check] (start|run)
     [--nodes=<nodes>|--workers_per_node=<workers_per_node>]
     [--nodes_file=<filename>]
     [(--email=<email> ...)]
@@ -24,19 +24,19 @@ Usage:
     [--cloud=<cloud_provider_name>]
     [--tags=<tags>]
     <script_file>
-  mzbench [--host=<host>] restart <bench_id>
-  mzbench [--host=<host>] status [--wait] <bench_id>
-  mzbench [--host=<host>] stop <bench_id>
-  mzbench [--host=<host>] results [--wait] <bench_id>
-  mzbench [--host=<host>] log <bench_id>
-  mzbench [--host=<host>] userlog <bench_id>
-  mzbench [--host=<host>] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
-  mzbench [--host=<host>] change_env [(--env=<name=value>...)] <bench_id>
-  mzbench [--host=<host>] clusters_info
-  mzbench [--host=<host>] remove_cluster_info <cluster_id>
-  mzbench [--host=<host>] deallocate_cluster <cluster_id>
-  mzbench [--host=<host>] add_tags <bench_id> <tags>
-  mzbench [--host=<host>] remove_tags <bench_id> <tags>"""
+  mzbench [--host=<host>] [--no_cert_check] restart <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] status [--wait] <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] stop <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] results [--wait] <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] log <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] userlog <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] data [(--target=<name>...)] [--format=(csv|json)] <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] change_env [(--env=<name=value>...)] <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] clusters_info
+  mzbench [--host=<host>] [--no_cert_check] remove_cluster_info <cluster_id>
+  mzbench [--host=<host>] [--no_cert_check] deallocate_cluster <cluster_id>
+  mzbench [--host=<host>] [--no_cert_check] add_tags <bench_id> <tags>
+  mzbench [--host=<host>] [--no_cert_check] remove_tags <bench_id> <tags>"""
 
 if server_functions:
     doc_acc += """
@@ -55,8 +55,9 @@ doc_acc += """
 
 Options:
     -h, --help       Show this help
-    --host <host>    Specify host providing mzbench api. Alternatively,
+    --host <host>    Specify host and port providing mzbench api. Alternatively,
                      you can set environment variable MZBENCH_API_HOST.
+    --no_cert_check    Don't check the server HTTPS certificate.
     --nodes <nodes>  Specify either an amount of nodes to be allocated or a
                      comma-separated list of hostnames of preallocated nodes.
                      Beware that one additional node will be allocated for
@@ -285,18 +286,18 @@ def pretty_print(data):
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,
-        name, cloud, tags, env):
+        name, cloud, tags, env, no_cert_check = False):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
-        exclusive_node_usage, name, cloud, tags, env)
-    response = status(host, bench_id, wait=True)
+        exclusive_node_usage, name, cloud, tags, env, no_cert_check = no_cert_check)
+    response = status(host, bench_id, wait=True, no_cert_check = no_cert_check)
     if response[u'status'] == u'failed':
         print('Bench failed')
         sys.exit(3)
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          exclusive_node_usage, name, cloud, tags, env):
+          exclusive_node_usage, name, cloud, tags, env, no_cert_check = False):
     try:
         response = api.start(host,
             script_file,
@@ -311,20 +312,21 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             tags=tags,
             env=env,
             nodes=nodes,
-            workers_per_node=workers_per_node)
+            workers_per_node=workers_per_node,
+            no_cert_check=no_cert_check)
         pretty_print(response)
         return response['id']
     except erl_terms.ParseError as e:
         print('Syntax error: {0}'.format(e))
         sys.exit(7)
 
-def restart(host, bench_id):
-    response = api.restart(host, bench_id)
+def restart(host, bench_id, no_cert_check = False):
+    response = api.restart(host, bench_id, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def status(host, bench_id, wait):
+def status(host, bench_id, wait, no_cert_check = False):
     if not wait:
-        response = api.status(host, bench_id, wait)
+        response = api.status(host, bench_id, wait, no_cert_check = no_cert_check)
         pretty_print(response)
         return response
     else:
@@ -333,7 +335,7 @@ def status(host, bench_id, wait):
         try:
             # server doesn't support 'wait' flag yet
             while True:
-                response = api.status(host, bench_id, wait)
+                response = api.status(host, bench_id, wait, no_cert_check = no_cert_check)
                 if 'DEBUG' in os.environ:
                     pretty_print(response)
 
@@ -363,9 +365,9 @@ def status(host, bench_id, wait):
                 stop(host, bench_id)
             sys.exit(130)
 
-def results(host, bench_id, wait):
+def results(host, bench_id, wait, no_cert_check = False):
     if not wait:
-        response = api.results(host, bench_id, wait)
+        response = api.results(host, bench_id, wait, no_cert_check = no_cert_check)
         pretty_print(response)
         return response
     else:
@@ -395,35 +397,35 @@ def results(host, bench_id, wait):
             sys.stdout.flush()
             time.sleep(3)
 
-def stop(host, bench_id):
-    response = api.stop(host, bench_id)
+def stop(host, bench_id, no_cert_check = False):
+    response = api.stop(host, bench_id, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def log(host, bench_id):
+def log(host, bench_id, no_cert_check = False):
     print('Start of log for bench {0}'.format(bench_id))
-    for line in api.log(host, bench_id):
+    for line in api.log(host, bench_id, no_cert_check = no_cert_check):
         if '[error]' in line:
             color_terminal.print_red(line)
         else:
             print(line)
     print('End of log for bench {0}'.format(bench_id))
 
-def userlog(host, bench_id):
+def userlog(host, bench_id, no_cert_check = False):
     print('Start of user log for bench {0}'.format(bench_id))
-    for line in api.userlog(host, bench_id):
+    for line in api.userlog(host, bench_id, no_cert_check = no_cert_check):
         if '[error]' in line:
             color_terminal.print_red(line)
         else:
             print(line)
     print('End of user log for bench {0}'.format(bench_id))
 
-def change_env(host, bench_id, env):
-    response = api.change_env(host, bench_id, env)
+def change_env(host, bench_id, env, no_cert_check = False):
+    response = api.change_env(host, bench_id, env, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def data(host, bench_id, target, format):
+def data(host, bench_id, target, format, no_cert_check = False):
     def data_generator():
-        for line in api.data(host, bench_id):
+        for line in api.data(host, bench_id, no_cert_check = no_cert_check):
             L = line.split("\t")
             if len(L) == 3:
                 worker_timestamp, name, value = L
@@ -462,24 +464,24 @@ def data_default(gen):
 
     pretty_print(map(lambda kv: {'target':kv[0], 'datapoints':kv[1]}, result.items()))
 
-def clusters_info(host):
-    response = api.clusters_info(host)
+def clusters_info(host, no_cert_check = False):
+    response = api.clusters_info(host, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def deallocate_cluster(host, cluster_id):
-    response = api.deallocate_cluster(host, cluster_id)
+def deallocate_cluster(host, cluster_id, no_cert_check = False):
+    response = api.deallocate_cluster(host, cluster_id, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def remove_cluster_info(host, cluster_id):
-    response = api.remove_cluster_info(host, cluster_id)
+def remove_cluster_info(host, cluster_id, no_cert_check = False):
+    response = api.remove_cluster_info(host, cluster_id, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def add_tags(host, bench_id, tags):
-    response = api.add_tags(host, bench_id, tags)
+def add_tags(host, bench_id, tags, no_cert_check = False):
+    response = api.add_tags(host, bench_id, tags, no_cert_check = no_cert_check)
     pretty_print(response)
 
-def remove_tags(host, bench_id, tags):
-    response = api.remove_tags(host, bench_id, tags)
+def remove_tags(host, bench_id, tags, no_cert_check = False):
+    response = api.remove_tags(host, bench_id, tags, no_cert_check = no_cert_check)
     pretty_print(response)
 
 #=================================================================================================
@@ -595,7 +597,7 @@ def augment_args(args):
             sys.exit(2)
         with open(args['--nodes_file']) as fi:
             args['--nodes'] = fi.read().split('\n')
-    
+
     if args['--workers_per_node'] is not None:
         try:
             args['--workers_per_node'] = int(args['--workers_per_node'])

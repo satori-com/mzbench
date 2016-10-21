@@ -130,6 +130,18 @@ Specify the port to access the dashboard.
 
 Default value: `4800`.
 
+### protocol
+
+By default protocol is set to `http`, but `https` is also available. MZBench generates self-signed certificates on first start. If you need to replace them, please use the following configuration parameters:
+
+```erlang
+{protocol, https},
+{cacertfile, none},
+{certfile, "~/.local/share/mzbench_api/server.crt"},
+{keyfile, "~/.local/share/mzbench_api/server.key"},
+```
+
+CA certificate is not required unless you use custom CA.
 
 ### bench_log_file
 

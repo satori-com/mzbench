@@ -31,10 +31,23 @@ start_http_server() ->
     {ok, CowboyInterfaceStr} = application:get_env(mzbench_api, network_interface),
     {ok, CowboyInterface} = inet_parse:address(CowboyInterfaceStr),
     {ok, CowboyPort} = application:get_env(mzbench_api, listen_port),
-    lager:info("Starting cowboy listener on ~p:~p", [CowboyInterface, CowboyPort]),
-    {ok, _} = cowboy:start_http(http, 100,
-        [{port, CowboyPort}, {ip, CowboyInterface}],
-        [{env, [{dispatch, Dispatch}]}]),
+    {ok, Protocol} =  application:get_env(mzbench_api, protocol),
+    lager:info("Starting cowboy ~p listener on ~p:~p", [Protocol, CowboyInterface, CowboyPort]),
+    Params = [{port, CowboyPort}, {ip, CowboyInterface}],
+    Env = [{env, [{dispatch, Dispatch}]}],
+    {ok, _} = case Protocol of
+        http -> cowboy:start_http(http, 100, Params, Env);
+        https ->
+            {ok, CertFile} = application:get_env(mzbench_api, certfile),
+            {ok, KeyFile} = application:get_env(mzbench_api, keyfile),
+            CACertInList =  case application:get_env(mzbench_api, certfile, none) of
+                                none -> [];
+                                F -> [{cacertfile, mzb_file:expand_filename(F)}]
+                            end,
+            cowboy:start_https(https, 100, Params ++ CACertInList
+                                ++ [{certfile, mzb_file:expand_filename(CertFile)},
+                                    {keyfile, mzb_file:expand_filename(KeyFile)}], Env)
+        end,
     ok.
 
 prep_stop(State) ->

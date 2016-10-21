@@ -19,7 +19,7 @@ class MZBenchAPIException(Exception):
 def start(host, script_file, script_content,
           node_commit = None, nodes = None, workers_per_node = None, deallocate_after_bench = None,
           provision_nodes = None, exclusive_node_usage = None, benchmark_name = None,
-          cloud = None, tags = None, emails=[], includes=[], env={}
+          cloud = None, tags = None, emails=[], includes=[], env={}, no_cert_check = False
         ):
     """Starts a bench
 
@@ -47,6 +47,8 @@ def start(host, script_file, script_content,
     :type cloud: str or unicode
     :param tags: Benchmark tags
     :type tags: str
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :param emails: Emails to notify on bench results
     :type emails: List of strings
     :param env: Dictionary of environment variables to substitute
@@ -118,85 +120,97 @@ def start(host, script_file, script_content,
         host,
         '/start',
         params,
-        data=body, headers=headers)
+        data=body, headers=headers, no_cert_check = no_cert_check)
 
 
-def restart(host, bench_id):
+def restart(host, bench_id, no_cert_check = False):
     """Creates a copy of a bench
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id to copy
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: operation status
     :rtype: dict
     """
     return assert_successful_get(host, '/restart', {'id': bench_id})
 
 
-def log(host, bench_id):
+def log(host, bench_id, no_cert_check = False):
     """Outputs log for a bench
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: log
     :rtype: generator of str
     """
-    for x in stream_lines(host, '/log', {'id': bench_id}):
+    for x in stream_lines(host, '/log', {'id': bench_id}, no_cert_check = no_cert_check):
         yield x
 
 
-def userlog(host, bench_id):
+def userlog(host, bench_id, no_cert_check = False):
     """Outputs user log for a bench
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: log
     :rtype: generator of str
     """
-    for x in stream_lines(host, '/userlog', {'id': bench_id}):
+    for x in stream_lines(host, '/userlog', {'id': bench_id}, no_cert_check = no_cert_check):
         yield x
 
 
-def change_env(host, bench_id, env):
+def change_env(host, bench_id, env, no_cert_check = False):
     """Changes environment variables for existing benchmark on the fly
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :param env: Dictionary of environment variables to substitute
     :type env: Dictionary
     """
     env['id'] = bench_id
-    return assert_successful_get(host, '/change_env', env)
+    return assert_successful_get(host, '/change_env', env, no_cert_check = no_cert_check)
 
 
-def data(host, bench_id):
+def data(host, bench_id, no_cert_check = False):
     """Outputs CSV data for a bench
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: CSV data
     :rtype: generator of str
     """
-    for x in stream_lines(host, '/data', {'id': bench_id}):
+    for x in stream_lines(host, '/data', {'id': bench_id}, no_cert_check = no_cert_check):
         yield x
 
 
-def status(host, bench_id, wait=False):
+def status(host, bench_id, wait=False, no_cert_check = False):
     """Get bench status
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: benchmark status
     :rtype: dict
     """
@@ -204,16 +218,18 @@ def status(host, bench_id, wait=False):
         host,
         '/status',
         {'id': bench_id,
-         'wait': 'true' if wait else 'false'})
+         'wait': 'true' if wait else 'false'}, no_cert_check = no_cert_check)
 
 
-def results(host, bench_id, wait=False):
+def results(host, bench_id, wait=False, no_cert_check = False):
     """Get bench results
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: benchmark resulting metric values
     :rtype: dict
     """
@@ -221,55 +237,63 @@ def results(host, bench_id, wait=False):
         host,
         '/results',
         {'id': bench_id,
-         'wait': 'true' if wait else 'false'})
+         'wait': 'true' if wait else 'false'}, no_cert_check = no_cert_check)
 
 
-def stop(host, bench_id):
+def stop(host, bench_id, no_cert_check = False):
     """Stop a bench
 
     :param host: MZBench API server host with port
     :type host: str
     :param bench_id: benchmark run id
     :type bench_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     :returns: operation status
     :rtype: dict
     """
     return assert_successful_get(
         host,
         '/stop',
-        {'id': bench_id})
+        {'id': bench_id}, no_cert_check = no_cert_check)
 
-def clusters_info(host):
+def clusters_info(host, no_cert_check = False):
     """Get info about currenlty allocated clusters
 
     :param host: MZBench API server host with port
     :type host: str
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     """
-    return assert_successful_get(host, '/clusters_info', {})
+    return assert_successful_get(host, '/clusters_info', {}, no_cert_check = no_cert_check)
 
-def deallocate_cluster(host, cluster_id):
+def deallocate_cluster(host, cluster_id, no_cert_check = False):
     """Deallocate cluster
 
     :param host: MZBench API server host with port
     :type host: str
     :param cluster_id: id of target cluster
     :type cluster_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     """
 
-    return assert_successful_get(host, '/deallocate_cluster', {'id': cluster_id})
+    return assert_successful_get(host, '/deallocate_cluster', {'id': cluster_id}, no_cert_check = no_cert_check)
 
-def remove_cluster_info(host, cluster_id):
+def remove_cluster_info(host, cluster_id, no_cert_check = False):
     """Remove cluster record from the table of current allocated cluster info
 
     :param host: MZBench API server host with port
     :type host: str
     :param cluster_id: id of target cluster
     :type cluster_id: int
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     """
 
-    return assert_successful_get(host, '/remove_cluster_info', {'id': cluster_id})
+    return assert_successful_get(host, '/remove_cluster_info', {'id': cluster_id}, no_cert_check = no_cert_check)
 
-def add_tags(host, bench_id, tags):
+def add_tags(host, bench_id, tags, no_cert_check = False):
     """Add tags to an existing benchmark
     :param host: MZBench API server host with port
     :type host: str
@@ -277,11 +301,13 @@ def add_tags(host, bench_id, tags):
     :type bench_id: int
     :param tags: Tags to add
     :type tags: str
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     """
 
-    return assert_successful_get(host, '/add_tags', {'id': bench_id, 'tags': tags})
+    return assert_successful_get(host, '/add_tags', {'id': bench_id, 'tags': tags}, no_cert_check = no_cert_check)
 
-def remove_tags(host, bench_id, tags):
+def remove_tags(host, bench_id, tags, no_cert_check = False):
     """Remove tags from an existing benchmark
     :param host: MZBench API server host with port
     :type host: str
@@ -289,16 +315,23 @@ def remove_tags(host, bench_id, tags):
     :type bench_id: int
     :param tags: Tags to remove
     :type tags: str
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
     """
 
-    return assert_successful_get(host, '/remove_tags', {'id': bench_id, 'tags': tags})
+    return assert_successful_get(host, '/remove_tags', {'id': bench_id, 'tags': tags}, no_cert_check = no_cert_check)
 
 
-def stream_lines(host, endpoint, args):
+def addproto(host):
+    if host.startswith("http://") or host.startswith("https://"):
+        return host
+    return "http://" + host
+
+def stream_lines(host, endpoint, args, no_cert_check = False):
     try:
         response = requests.get(
-            'http://' + host + endpoint + '?' + urlencode(args),
-            stream=True)
+            addproto(host) + endpoint + '?' + urlencode(args),
+            stream=True, verify = not no_cert_check)
 
         for line in fast_iter_lines(response, chunk_size=1024):
             try:
@@ -366,15 +399,17 @@ def assert_successful_request(perform_request):
 
 
 @assert_successful_request
-def assert_successful_get(host, endpoint, args):
+def assert_successful_get(host, endpoint, args, no_cert_check = False):
     return requests.get(
-        'http://' + host + endpoint + '?' + urlencode(args))
+        addproto(host) + endpoint + '?' + urlencode(args),
+        verify=not no_cert_check)
 
 
 @assert_successful_request
-def assert_successful_post(host, endpoint, args, data=None, headers=None):
+def assert_successful_post(host, endpoint, args, data=None, headers=None, no_cert_check = False):
     return requests.post(
-        'http://' + host + endpoint + '?' + urlencode(args),
+        addproto(host) + endpoint + '?' + urlencode(args),
         data=data,
-        headers=headers)
+        headers=headers,
+        verify=not no_cert_check)
 

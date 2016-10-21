@@ -40,7 +40,11 @@ clean:
 	rm -rf .make
 
 .PHONY: generate
-generate: $(RELEASE_BINARY)
+generate: $(RELEASE_BINARY) ~/.local/share/mzbench_api/server.crt
+
+~/.local/share/mzbench_api/server.crt:
+	mkdir -p ~/.local/share/mzbench_api/
+	openssl req -subj '/CN=domain.com/O=My Company Name LTD./C=US' -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout ~/.local/share/mzbench_api/server.key -out ~/.local/share/mzbench_api/server.crt
 
 .make/compilation-up-to-date: rebar.config $(SOURCES) .make/git-rev-$(GIT_HEAD) $(MZBENCH_COMMON_SOURCES)
 	$(REBAR) compile
