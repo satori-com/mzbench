@@ -29,6 +29,10 @@ get(State, _Meta, URL) ->
 -spec get(state(), meta(), string(), [{atom(), term()}]) -> {nil, state()}.
 get(State, _Meta, URL, Options) ->
     StartTime = os:timestamp(),
+    ShouldLog = proplists:get_value(log, Options, false),
+
+    ShouldLog andalso lager:info("GET ~s", [URL]),
+
     HackneyOptions = parse_options(Options),
     Response = hackney:request(get, list_to_binary(URL), [], <<"">>, HackneyOptions),
 
@@ -67,5 +71,7 @@ choose(R, [{_, W}|T]) -> choose(R - W, T).
 parse_options(Options) -> parse_options(Options, []).
 parse_options([], Acc) -> lists:reverse(Acc);
 parse_options([{basic_auth, {Name, Pass}}|T], Acc) ->
-    parse_options(T, [{basic_auth, {list_to_binary(Name), list_to_binary(Pass)}}|Acc]).
+    parse_options(T, [{basic_auth, {list_to_binary(Name), list_to_binary(Pass)}}|Acc]);
+parse_options([_|T], Acc) ->
+    parse_options(T, Acc).
 
