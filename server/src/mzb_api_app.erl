@@ -68,6 +68,7 @@ wait_benchmarks_finish(Attempts) ->
 load_config(AppName) ->
     case init:get_argument(config_file) of
         {ok, [[Config]]} ->
+            ok = application:set_env(mzbench_api, active_config, Config),
             load_config(Config, AppName);
         _ ->
             {ok, Configs} = application:get_env(mzbench_api, server_configs),
@@ -75,6 +76,7 @@ load_config(AppName) ->
                 fun (Cfg) ->
                     try
                         load_config(Cfg, AppName),
+                        ok = application:set_env(mzbench_api, active_config, Cfg),
                         false
                     catch
                         _:{config_read_error, _, enoent} -> true

@@ -147,6 +147,7 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
 sys.dont_write_bytecode = True
 server_rel_dir = dirname + "/../server/_build/default/rel/mzbench_api/"
+server_error_log = dirname + "/../server/log/error.log"
 
 import color_terminal
 import util
@@ -192,6 +193,27 @@ def install_projects(projects):
 def clean():
     clean_projects(NODE_PROJECTS + SERVER_PROJECTS)
 
+def is_server_started():
+    with util.silent_stdout():
+        try:
+            return util.check_output([server_rel_dir + "bin/mzbench_api","rpcterms", "mzb_api_server", "ensure_started"]).strip() == "ok"
+        except subprocess.CalledProcessError:
+            return False
+
+def print_server_config():
+    print(util.check_output([server_rel_dir + "bin/mzbench_api","rpcterms", "mzb_api_server", "config_info"]))
+
+def ensure_server_started(attempts):
+    if attempts <= 0:
+       return False
+    if not is_server_started():
+       time.sleep(1)
+       sys.stdout.write(".")
+       sys.stdout.flush()
+       ensure_server_started(attempts - 1)
+    print
+    return True
+
 #=================================================================================================
 # API server startup and stop
 #=================================================================================================
@@ -202,7 +224,30 @@ def start_server(config):
         config_arg = '-config_file {0}'.format(os.path.abspath(config))
     else:
         config_arg = ''
-    cmd(server_rel_dir + 'bin/mzbench_api start {0}'.format(config_arg))
+
+    if is_server_started():
+        print("Server is already running, config info:")
+        print_server_config()
+        sys.exit(8)
+
+    try:
+        start_environ = os.environ
+        start_environ['CODE_LOADING_MODE'] = 'interactive'
+        if 'ORIG_PATH' not in start_environ:
+            start_environ['ORIG_PATH'] = start_environ['PATH']
+        subprocess.check_call([server_rel_dir + 'bin/mzbench_api', 'start', config_arg], env=start_environ)
+    except subprocess.CalledProcessError as e:
+        print("Failed to execute server start command")
+        sys.exit(e.returncode)
+
+    print("Waiting for server application start")
+
+    if not ensure_server_started(30):
+        print("Server has failed to start, timeout")
+        print("Check " + server_error_log + " for details")
+        sys.exit(9)
+
+    print_server_config()
 
 def stop_server():
     require('escript')

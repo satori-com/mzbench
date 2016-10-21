@@ -8,7 +8,6 @@ local-tests:
 
 .PHONY: basic-tests
 basic-tests:
-	./check_default_conf.erl
 	./mzb_basic_tests.py -v --process-timeout=1200
 
 .PHONY: migrations-tests
