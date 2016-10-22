@@ -5,7 +5,8 @@
     expand_filename/1,
     wildcard/1,
     del_dir/1,
-    tmp_filename/0
+    tmp_filename/0,
+    tmp_filename/1
    ]).
 
 expand_filename("~/" ++ Filename) ->
@@ -34,7 +35,9 @@ del_dir(Dir) ->
             {error, Reason}
     end.
 
-tmp_filename() ->
+
+tmp_filename() -> tmp_filename("/tmp").
+tmp_filename(Dir) ->
     {N1,N2,N3} = erlang:now(),
     SafeNodeName = string:join(string:tokens(atom_to_list(node()), "@"), "_"),
-    filename:join(["/", "tmp", io_lib:format("bench_~s_~b_~b_~b", [SafeNodeName, N1, N2, N3])]).
+    filename:join([Dir, io_lib:format("bench_~s_~b_~b_~b", [SafeNodeName, N1, N2, N3])]).

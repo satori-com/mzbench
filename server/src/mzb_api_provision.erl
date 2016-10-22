@@ -204,7 +204,11 @@ download_file(User, Host, FromFile, ToFile, Logger) ->
                     undefined -> "";
                     _ -> io_lib:format("~s@", [User])
                 end,
-            TmpFile = mzb_file:tmp_filename(),
+            % we can't copy to target file directly because there might be several processes doing it
+            % instead we copy to tmp file and after that we atomically rename it to target file
+            % also we can't create tmp file in /tmp because it is often being
+            % mounted to a different fs than target file and it makes file:rename to fail
+            TmpFile = mzb_file:tmp_filename(filename:dirname(ToFile)),
             _ = mzb_subprocess:exec_format("scp -o StrictHostKeyChecking=no ~s~s:~s ~s",
                 [UserNameParam, [Host], FromFile, TmpFile], [stderr_to_stdout], Logger),
             Logger(info, "[ MV ] ~s -> ~s", [TmpFile, ToFile]),
