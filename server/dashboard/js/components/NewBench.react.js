@@ -93,7 +93,7 @@ class NewBench extends React.Component {
     _onChangeEnv(event) {
         MZBenchActions.withNewBench((b) => {
             b.env = {};
-            event.target.value.split(/[\n,;]+/).reduce((acc, x) => {
+            event.target.value.split(/[\n,]+/).reduce((acc, x) => {
                 var d = x.split("=");
                 if (d.length >= 2) {
                     var key = d.shift().trim();
