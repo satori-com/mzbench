@@ -33,8 +33,8 @@ get(State, _Meta, URL, Options) ->
 
     ShouldLog andalso lager:info("GET ~s", [URL]),
 
-    HackneyOptions = parse_options(Options),
-    Response = hackney:request(get, list_to_binary(URL), [], <<"">>, HackneyOptions),
+    {HackneyOptions, Headers} = parse_options(Options),
+    Response = hackney:request(get, list_to_binary(URL), Headers, <<"">>, HackneyOptions),
 
     case Response of
         {ok, _, _, BodyRef} -> hackney:skip_body(BodyRef);
@@ -68,10 +68,13 @@ weighted_choose(List) ->
 choose(R, [{E, W}|_]) when R =< W -> E;
 choose(R, [{_, W}|T]) -> choose(R - W, T).
 
-parse_options(Options) -> parse_options(Options, []).
-parse_options([], Acc) -> lists:reverse(Acc);
-parse_options([{basic_auth, {Name, Pass}}|T], Acc) ->
-    parse_options(T, [{basic_auth, {list_to_binary(Name), list_to_binary(Pass)}}|Acc]);
-parse_options([_|T], Acc) ->
-    parse_options(T, Acc).
+parse_options(Options) -> parse_options(Options, [], []).
+parse_options([], OptionsAcc, HeadersAcc) -> {lists:reverse(OptionsAcc), lists:reverse(HeadersAcc)};
+parse_options([{header, Header}|T], OAcc, HAcc) ->
+    [N, V] = string:tokens(Header, ":"),
+    parse_options(T, OAcc, [{list_to_binary(N), list_to_binary(V)}|HAcc]);
+parse_options([{basic_auth, {Name, Pass}}|T], OAcc, HAcc) ->
+    parse_options(T, [{basic_auth, {list_to_binary(Name), list_to_binary(Pass)}}|OAcc], HAcc);
+parse_options([_|T], OAcc, HAcc) ->
+    parse_options(T, OAcc, HAcc).
 
