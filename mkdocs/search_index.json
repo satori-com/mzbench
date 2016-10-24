@@ -57,8 +57,33 @@
         }, 
         {
             "location": "/scenarios/spec/#top-level-directives", 
-            "text": "All top-level directives are optional.  make_install  make_install(git =  URL , branch =  Branch , dir =  Dir )  Install an external worker from a remote git repository on the test nodes before running the benchmark.  MZBench downloads the worker and builds a .tgz archive, which is then distributed among the nodes and used in future provisions.  The following actions are executed during  make_install :  $ git clone  URL  temp_dir\n$ cd temp_dir\n$ git checkout  Branch \n$ cd  Dir \n$ make generate_tgz  If  branch  is not specified, the default git branch is used.  If  dir  is not specified,  .  is used.  defaults  defaults( VarName1  =  Value1 ,  VarName2  =  Value2 , ...)  Allows to define the default values for environment variables, i.e. the values used if no value was provided for this variable on the command line.  See  Environment Variables  for additional information.  include_resource  include_resource( ResourceName ,  FileName ,  Type )\ninclude_resource( ResourceName ,  FileURL ,  Type )`  Register a  resource file  as  ResourceName .  If the file is on your local machine, put it in the same directory where you invoke  mzbench run .  Type  is one of the following atoms:   text  Plain text file, interpreted as a single string.  json  JSON file. Lists are interpreted as  Erlang lists , objects are interpreted as  Erlang maps .  tsv  File with tabulation separated values, interpreted as a list of lists.  erlang  Erlang source file, interpreted directly as an  Erlang term .  binary  Custom binary (image, executable, archive, etc.), not interpreted.   pre_hook and post_hook  pre_hook():\n     Actions \npost_hook():\n     Actions   Run actions before and after the benchmark. Two kinds of actions are supported:  exec commands  and  worker calls :  Actions = Action1\n          Action2\n          ...\nAction = exec(Target, BashCommand)\n    | worker_call(WorkerMethod, WorkerModule)\n    | worker_call(WorkerMethod, WorkerModule, WorkerType)\nTarget = all | director  Exec commands  let you to run any shell command on all nodes or only on the director node.  Worker calls  are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the  environment variables  used in the benchmark.  assert  assert(always,  Condition )\nassert( Time ,  Condition )  Check if the condition  Condition  is satisfied throughout the entire benchmark or at least for the amount of time  Time .  Condition  is a comparison of two value and is defined as a tuple  Operand1   Operation   Operand2 .  Operation  is one of four atoms:    Less than.   Greater than.  =  Less than or equal to.  =  Greater than or equal to.   Operand1  and  Operand2  are the values to compare. They can be integers, floats, or  metrics  values.  Metrics  are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:  http_ok    20  The  http_ok  metric is provided by the  simple_http  worker. This condition passes if the number of successful HTTP responses is greater than 20.", 
+            "text": "All top-level directives are optional.", 
             "title": "Top-Level Directives"
+        }, 
+        {
+            "location": "/scenarios/spec/#make_install", 
+            "text": "make_install(git =  URL , branch =  Branch , dir =  Dir )  Install an external worker from a remote git repository on the test nodes before running the benchmark.  MZBench downloads the worker and builds a .tgz archive, which is then distributed among the nodes and used in future provisions.  The following actions are executed during  make_install :  $ git clone  URL  temp_dir\n$ cd temp_dir\n$ git checkout  Branch \n$ cd  Dir \n$ make generate_tgz  If  branch  is not specified, the default git branch is used.  If  dir  is not specified,  .  is used.", 
+            "title": "make_install"
+        }, 
+        {
+            "location": "/scenarios/spec/#defaults", 
+            "text": "defaults( VarName1  =  Value1 ,  VarName2  =  Value2 , ...)  Allows to define the default values for environment variables, i.e. the values used if no value was provided for this variable on the command line.  See  Environment Variables  for additional information.", 
+            "title": "defaults"
+        }, 
+        {
+            "location": "/scenarios/spec/#include_resource", 
+            "text": "include_resource( ResourceName ,  FileName ,  Type )\ninclude_resource( ResourceName ,  FileURL ,  Type )`  Register a  resource file  as  ResourceName .  If the file is on your local machine, put it in the same directory where you invoke  mzbench run .  Type  is one of the following atoms:   text  Plain text file, interpreted as a single string.  json  JSON file. Lists are interpreted as  Erlang lists , objects are interpreted as  Erlang maps .  tsv  File with tabulation separated values, interpreted as a list of lists.  erlang  Erlang source file, interpreted directly as an  Erlang term .  binary  Custom binary (image, executable, archive, etc.), not interpreted.", 
+            "title": "include_resource"
+        }, 
+        {
+            "location": "/scenarios/spec/#pre_hook-and-post_hook", 
+            "text": "pre_hook():\n     Actions \npost_hook():\n     Actions   Run actions before and after the benchmark. Two kinds of actions are supported:  exec commands  and  worker calls :  Actions = Action1\n          Action2\n          ...\nAction = exec(Target, BashCommand)\n    | worker_call(WorkerMethod, WorkerModule)\n    | worker_call(WorkerMethod, WorkerModule, WorkerType)\nTarget = all | director  Exec commands  let you to run any shell command on all nodes or only on the director node.  Worker calls  are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the  environment variables  used in the benchmark.", 
+            "title": "pre_hook and post_hook"
+        }, 
+        {
+            "location": "/scenarios/spec/#assert", 
+            "text": "assert(always,  Condition )\nassert( Time ,  Condition )  Check if the condition  Condition  is satisfied throughout the entire benchmark or at least for the amount of time  Time .  Condition  is a comparison of two value and is defined as a tuple  Operand1   Operation   Operand2 .  Operation  is one of four atoms:    Less than.   Greater than.  =  Less than or equal to.  =  Greater than or equal to.   Operand1  and  Operand2  are the values to compare. They can be integers, floats, or  metrics  values.  Metrics  are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:  http_ok    20  The  http_ok  metric is provided by the  simple_http  worker. This condition passes if the number of successful HTTP responses is greater than 20.", 
+            "title": "assert"
         }, 
         {
             "location": "/scenarios/spec/#pools", 
@@ -67,8 +92,33 @@
         }, 
         {
             "location": "/scenarios/spec/#pool-options", 
-            "text": "size  required  size =  NumberOfJobs `  How many times you want the pool executed.  If there s enough nodes and  worker_start  is not set, MZBench will start the jobs simultaneously and run them in parallel.  NumberOfJobs  is any positive number.  worker_type  required  worker_type =  WorkerName   The worker that provides statements for the jobs.   Hint  A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.   worker_start  worker_start = linear( Rate )\nworker_start = poisson( Rate )\nworker_start = exp( Scale ,  Time )\nworker_start = pow( Exponent ,  Scale ,  Time )  Start the jobs with a given rate:   linear  Constant rate  Rate , e.g. 10 per minute.  poisson  Rate defined by a  Poisson process  with \u03bb =  Rate .  exp   Start jobs with  exponentially growing  rate with the scale factor  Scale :  Scale \u00d7 e Time   pow   Start jobs with rate growing as a  power function  with the exponent  Exponent  and the scale factor  Scale :  Scale \u00d7 Time Exponent    You can customize and combine rates:  ramp  ramp(linear,  StartRate ,  EndRate )  Linearly change the rate from  StartRate  at the beginning of the pool to  EndRate  at its end.  comb  comb( Rate1 ,  Time1 ,  Rate2 ,  Time2 , ...)  Start jobs with rate  Rate1  for  Time1 , then switch to  Rate2  for  Time2 , etc.", 
+            "text": "", 
             "title": "Pool Options"
+        }, 
+        {
+            "location": "/scenarios/spec/#size", 
+            "text": "required  size =  NumberOfJobs `  How many times you want the pool executed.  If there s enough nodes and  worker_start  is not set, MZBench will start the jobs simultaneously and run them in parallel.  NumberOfJobs  is any positive number.", 
+            "title": "size"
+        }, 
+        {
+            "location": "/scenarios/spec/#worker_type", 
+            "text": "required  worker_type =  WorkerName   The worker that provides statements for the jobs.   Hint  A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.", 
+            "title": "worker_type"
+        }, 
+        {
+            "location": "/scenarios/spec/#worker_start", 
+            "text": "worker_start = linear( Rate )\nworker_start = poisson( Rate )\nworker_start = exp( Scale ,  Time )\nworker_start = pow( Exponent ,  Scale ,  Time )  Start the jobs with a given rate:   linear  Constant rate  Rate , e.g. 10 per minute.  poisson  Rate defined by a  Poisson process  with \u03bb =  Rate .  exp   Start jobs with  exponentially growing  rate with the scale factor  Scale :  Scale \u00d7 e Time   pow   Start jobs with rate growing as a  power function  with the exponent  Exponent  and the scale factor  Scale :  Scale \u00d7 Time Exponent    You can customize and combine rates:", 
+            "title": "worker_start"
+        }, 
+        {
+            "location": "/scenarios/spec/#ramp", 
+            "text": "ramp(linear,  StartRate ,  EndRate )  Linearly change the rate from  StartRate  at the beginning of the pool to  EndRate  at its end.", 
+            "title": "ramp"
+        }, 
+        {
+            "location": "/scenarios/spec/#comb", 
+            "text": "comb( Rate1 ,  Time1 ,  Rate2 ,  Time2 , ...)  Start jobs with rate  Rate1  for  Time1 , then switch to  Rate2  for  Time2 , etc.", 
+            "title": "comb"
         }, 
         {
             "location": "/scenarios/spec/#loops", 
@@ -77,8 +127,38 @@
         }, 
         {
             "location": "/scenarios/spec/#loop-options", 
-            "text": "time  required  time =  Time   Run the loop for  Time .  rate  rate =  Rate   Repeat the loop with the  Rate  rate.  think_time  think_time = [ Time ,  Rate ]  Start jobs with rate  Rate  for a second, then sleep for  Time  and repeat.  parallel  parallel =  N   Run  N  iterations of the loop in parallel.  iterator  iterator =  IterName   Define a variable named  IterName  inside the loop that contains the current iteration number. It can be accessed with  var( IterName ) .  spawn  spawn = (true|false)  If  true , every iteration runs in a separate, spawned process. Default is  false .", 
+            "text": "", 
             "title": "Loop options"
+        }, 
+        {
+            "location": "/scenarios/spec/#time", 
+            "text": "required  time =  Time   Run the loop for  Time .", 
+            "title": "time"
+        }, 
+        {
+            "location": "/scenarios/spec/#rate", 
+            "text": "rate =  Rate   Repeat the loop with the  Rate  rate.", 
+            "title": "rate"
+        }, 
+        {
+            "location": "/scenarios/spec/#think_time", 
+            "text": "think_time = [ Time ,  Rate ]  Start jobs with rate  Rate  for a second, then sleep for  Time  and repeat.", 
+            "title": "think_time"
+        }, 
+        {
+            "location": "/scenarios/spec/#parallel", 
+            "text": "parallel =  N   Run  N  iterations of the loop in parallel.", 
+            "title": "parallel"
+        }, 
+        {
+            "location": "/scenarios/spec/#iterator", 
+            "text": "iterator =  IterName   Define a variable named  IterName  inside the loop that contains the current iteration number. It can be accessed with  var( IterName ) .", 
+            "title": "iterator"
+        }, 
+        {
+            "location": "/scenarios/spec/#spawn", 
+            "text": "spawn = (true|false)  If  true , every iteration runs in a separate, spawned process. Default is  false .", 
+            "title": "spawn"
         }, 
         {
             "location": "/scenarios/spec/#resource-files", 
@@ -92,38 +172,118 @@
         }, 
         {
             "location": "/scenarios/spec/#environment-variables", 
-            "text": "Environment variables  are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.  To set an environment variable, call  mzbench  with the  --env  param:  $ ./bin/mzbench run --env foo=bar --env n=42  var  var( VarName )  To get the value of a variable, refer to it by the name:  var(\" VarName \") .  var( foo ) # returns  bar \nvar( n ) # returns  42 , a string  If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable, see  defaults top-level directive .  numvar  numvar( VarName )  By default, variable values are considered strings. To get a numerical value (integer or float), use  numvar(\"VarName\") :  numvar( n ) # returns 42, an integer.", 
+            "text": "Environment variables  are global values that can be accessed at any point of the benchmark. They are useful to store the benchmark global state like its total duration, or global params like the execution speed.  To set an environment variable, call  mzbench  with the  --env  param:  $ ./bin/mzbench run --env foo=bar --env n=42", 
             "title": "Environment Variables"
         }, 
         {
+            "location": "/scenarios/spec/#var", 
+            "text": "var( VarName )  To get the value of a variable, refer to it by the name:  var(\" VarName \") .  var( foo ) # returns  bar \nvar( n ) # returns  42 , a string  If you refer to an undefined variable, the benchmark crashes. You can avoid this by setting a default value for the variable, see  defaults top-level directive .", 
+            "title": "var"
+        }, 
+        {
+            "location": "/scenarios/spec/#numvar", 
+            "text": "numvar( VarName )  By default, variable values are considered strings. To get a numerical value (integer or float), use  numvar(\"VarName\") :  numvar( n ) # returns 42, an integer.", 
+            "title": "numvar"
+        }, 
+        {
             "location": "/scenarios/spec/#parallelization-and-syncing", 
-            "text": "parallel  parallel():\n    thread():\n         Statement1 \n    thread():\n         Statement2 \n    ...  Execute multiple statements in parallel. Unlike executing statements in a pool, this way all statements are executed on the same node.  set_signal  set_signal( SignalName )\nset_signal( SignalName ,  Count )  Emit a global signal  SignalName .  If  Count  is specified, the signal is emitted  Count  times.  SignalName  is a string, atom, number, or, in fact, any  Erlang term .  wait_signal  wait_signal( SignalName )\nwait_signal( SignalName ,  Count )  Wait for the global signal  SignalName  to be emitted. If  Count  is specified, wait for the signal to be emitted  Count  times.", 
+            "text": "", 
             "title": "Parallelization and Syncing"
         }, 
         {
+            "location": "/scenarios/spec/#parallel_1", 
+            "text": "parallel():\n    thread():\n         Statement1 \n    thread():\n         Statement2 \n    ...  Execute multiple statements in parallel. Unlike executing statements in a pool, this way all statements are executed on the same node.", 
+            "title": "parallel"
+        }, 
+        {
+            "location": "/scenarios/spec/#set_signal", 
+            "text": "set_signal( SignalName )\nset_signal( SignalName ,  Count )  Emit a global signal  SignalName .  If  Count  is specified, the signal is emitted  Count  times.  SignalName  is a string, atom, number, or, in fact, any  Erlang term .", 
+            "title": "set_signal"
+        }, 
+        {
+            "location": "/scenarios/spec/#wait_signal", 
+            "text": "wait_signal( SignalName )\nwait_signal( SignalName ,  Count )  Wait for the global signal  SignalName  to be emitted. If  Count  is specified, wait for the signal to be emitted  Count  times.", 
+            "title": "wait_signal"
+        }, 
+        {
             "location": "/scenarios/spec/#errors-handling", 
-            "text": "ignore_failure  ignore_failure():\n     Statement   Execute the statement  Statement  and continue with the benchmark even if it fails.  If the statement succeeds, its result is returned; otherwise, the failure reason is returned.", 
+            "text": "", 
             "title": "Errors Handling"
         }, 
         {
+            "location": "/scenarios/spec/#ignore_failure", 
+            "text": "ignore_failure():\n     Statement   Execute the statement  Statement  and continue with the benchmark even if it fails.  If the statement succeeds, its result is returned; otherwise, the failure reason is returned.", 
+            "title": "ignore_failure"
+        }, 
+        {
             "location": "/scenarios/spec/#randomization", 
-            "text": "random_number  random_number( Min ,  Max )\nrandom_number( Max )  Return a random number between  Min  and  Max , including  Min  and not including  Max .  random_number( Max )  is equivalent to  random_number(0,  Max )  random_list  random_list( Size )  Return a list of random integer of length  Size .  random_binary  random_binary( Size )  Return a binary sequence of  Size  random bytes.  choose  choose( N ,  List )\nchoose( List )  Return a list of  N  random elements of the list  List .  choose( List )  is equivalent to  choose(1,  List ) .  round_robin  round_robin( List )  Pick the next element of the list. When the last one is picked, start over from the first one.  BEWARE:  The  round_robin  function complexity is  O(n)  when  n  is the length of the  List , so it is extremely slow for big lists. You should consider to cache the value somehow if it is the case.", 
+            "text": "", 
             "title": "Randomization"
         }, 
         {
+            "location": "/scenarios/spec/#random_number", 
+            "text": "random_number( Min ,  Max )\nrandom_number( Max )  Return a random number between  Min  and  Max , including  Min  and not including  Max .  random_number( Max )  is equivalent to  random_number(0,  Max )", 
+            "title": "random_number"
+        }, 
+        {
+            "location": "/scenarios/spec/#random_list", 
+            "text": "random_list( Size )  Return a list of random integer of length  Size .", 
+            "title": "random_list"
+        }, 
+        {
+            "location": "/scenarios/spec/#random_binary", 
+            "text": "random_binary( Size )  Return a binary sequence of  Size  random bytes.", 
+            "title": "random_binary"
+        }, 
+        {
+            "location": "/scenarios/spec/#choose", 
+            "text": "choose( N ,  List )\nchoose( List )  Return a list of  N  random elements of the list  List .  choose( List )  is equivalent to  choose(1,  List ) .", 
+            "title": "choose"
+        }, 
+        {
+            "location": "/scenarios/spec/#round_robin", 
+            "text": "round_robin( List )  Pick the next element of the list. When the last one is picked, start over from the first one.  BEWARE:  The  round_robin  function complexity is  O(n)  when  n  is the length of the  List , so it is extremely slow for big lists. You should consider to cache the value somehow if it is the case.", 
+            "title": "round_robin"
+        }, 
+        {
             "location": "/scenarios/spec/#logging", 
-            "text": "dump  dump( Text )  Write  Text  to the benchmark log.  sprintf  sprintf( Format , [ Value1 ,  Value2 , ...])  Return  formatted text  with a given format and placeholder values.", 
+            "text": "", 
             "title": "Logging"
         }, 
         {
+            "location": "/scenarios/spec/#dump", 
+            "text": "dump( Text )  Write  Text  to the benchmark log.", 
+            "title": "dump"
+        }, 
+        {
+            "location": "/scenarios/spec/#sprintf", 
+            "text": "sprintf( Format , [ Value1 ,  Value2 , ...])  Return  formatted text  with a given format and placeholder values.", 
+            "title": "sprintf"
+        }, 
+        {
             "location": "/scenarios/spec/#data-conversion", 
-            "text": "t  t( List )  Convert  List  to a tuple.  term_to_binary  term_to_binary( term )  Convert an Erlang term to a binary object.  Learn more  in the Erlang docs.", 
+            "text": "", 
             "title": "Data Conversion"
         }, 
         {
+            "location": "/scenarios/spec/#t", 
+            "text": "t( List )  Convert  List  to a tuple.", 
+            "title": "t"
+        }, 
+        {
+            "location": "/scenarios/spec/#term_to_binary", 
+            "text": "term_to_binary( term )  Convert an Erlang term to a binary object.  Learn more  in the Erlang docs.", 
+            "title": "term_to_binary"
+        }, 
+        {
             "location": "/scenarios/spec/#pause", 
-            "text": "wait  wait( Time )  Pause the current job for  Time .", 
+            "text": "", 
             "title": "Pause"
+        }, 
+        {
+            "location": "/scenarios/spec/#wait", 
+            "text": "wait( Time )  Pause the current job for  Time .", 
+            "title": "wait"
         }, 
         {
             "location": "/scenarios/spec/#conventions", 
@@ -152,18 +312,93 @@
         }, 
         {
             "location": "/cli/#server-control", 
-            "text": "start_server  $ ./bin/mzbench start_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Start the MZBench server.  Optional params:   --config  config_file  Path to the  server config  file.   stop_server  $ ./bin/mzbench stop_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Stop the MZBench server.  restart_server  $ ./bin/mzbench restart_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Restart the MZBench server, i.e.  stop  +  start .  Optional params:   --config  config_file  Path to the  server config  file.", 
+            "text": "", 
             "title": "Server Control"
         }, 
         {
+            "location": "/cli/#start_server", 
+            "text": "$ ./bin/mzbench start_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Start the MZBench server.  Optional params:   --config  config_file  Path to the  server config  file.", 
+            "title": "start_server"
+        }, 
+        {
+            "location": "/cli/#stop_server", 
+            "text": "$ ./bin/mzbench stop_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Stop the MZBench server.", 
+            "title": "stop_server"
+        }, 
+        {
+            "location": "/cli/#restart_server", 
+            "text": "$ ./bin/mzbench restart_server\nExecuting make -C /path/to/mzbench/bin/../server generate\n...  Restart the MZBench server, i.e.  stop  +  start .  Optional params:   --config  config_file  Path to the  server config  file.", 
+            "title": "restart_server"
+        }, 
+        {
             "location": "/cli/#benchmark-control", 
-            "text": "start  $ mzbench start --env foo=bar --nodes=5 foo.bdl\n{\n     status :  pending , \n     id : 86\n}  Start the benchmark from the given scenario file.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   Optional params:   --name  benchmark_name  Benchmark name.  --nodes  nodes  Number of nodes or a comma-separated list of node hostnames to run the benchmark on.  --nodes_file  filename  Path to a file with node hostnames separated by newlines.  --env  name=value  ...  Environment variable  definitions.  --cloud  cloud_provider_name  Name of the cloud provider from the  server config . If not specified, the first one on the list is used.  --email  email  ...  Emails for notifications. When the benchmark finishes, the results will be sent to these emails.  --deallocate_after_bench false  Skip node deallocation after the benchmark.  --provision_nodes false  Skip MZBench installation on the nodes.  --exclusive_node_usage false  Allow multiple nodes to be hosted on the same physical machine, i.e. do not allocate a physical machine exclusively for each node.  --node_commit= commit  Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.   run  $ mzbench run --env foo=bar --nodes=5 foo.bdl\n{\n     status :  pending , \n     id : 86\n}  Same as  start , but blocks until the benchmark is complete.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   run_local  $ mzbench run_local --env foo=bar foo.bdl\nExecuting make -C /path/to/mzbench/bin/../node compile\n...  Run the benchmark without a server. The logs are printed to stdout.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   Optional param:   --env  name=value  ...  Environment variable  definitions.   validate  $ mzbench validate foo.bdl\nok  Validate the scenario file without executing it.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   status  $ mzbench status 86\n{\n     status :  provisioning , \n     start_time :  2015-11-18T13:52:04Z \n}  Get the status, start time, and, when completed, finish time of the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   stop  $ ./bin/mzbench stop 89\n{\n     status :  stopped \n}  Stop the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   log  $ ./bin/mzbench log 89\nStart of log for bench 89\n13:52:05.001 [info] [ API ] Node repo: {git_install_spec,\n...  View the benchmark logs.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   data  $ ./bin/mzbench data 89\n[\n    {\n         target :  workers.pool1.km.ended.rps.value , \n         datapoints : [\n...  View the metrics data collected during the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   change_env  $ mzbench change_env 86 --env foo=baz\n{\n     status :  set \n}  Redefine an environment variable without interrupting the benchmark:  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   Optional param:   --env  name=value  ...  Environment variable  definitions.", 
+            "text": "", 
             "title": "Benchmark Control"
         }, 
         {
+            "location": "/cli/#start", 
+            "text": "$ mzbench start --env foo=bar --nodes=5 foo.bdl\n{\n     status :  pending , \n     id : 86\n}  Start the benchmark from the given scenario file.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   Optional params:   --name  benchmark_name  Benchmark name.  --nodes  nodes  Number of nodes or a comma-separated list of node hostnames to run the benchmark on.  --nodes_file  filename  Path to a file with node hostnames separated by newlines.  --env  name=value  ...  Environment variable  definitions.  --cloud  cloud_provider_name  Name of the cloud provider from the  server config . If not specified, the first one on the list is used.  --email  email  ...  Emails for notifications. When the benchmark finishes, the results will be sent to these emails.  --deallocate_after_bench false  Skip node deallocation after the benchmark.  --provision_nodes false  Skip MZBench installation on the nodes.  --exclusive_node_usage false  Allow multiple nodes to be hosted on the same physical machine, i.e. do not allocate a physical machine exclusively for each node.  --node_commit= commit  Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.", 
+            "title": "start"
+        }, 
+        {
+            "location": "/cli/#run", 
+            "text": "$ mzbench run --env foo=bar --nodes=5 foo.bdl\n{\n     status :  pending , \n     id : 86\n}  Same as  start , but blocks until the benchmark is complete.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.", 
+            "title": "run"
+        }, 
+        {
+            "location": "/cli/#run_local", 
+            "text": "$ mzbench run_local --env foo=bar foo.bdl\nExecuting make -C /path/to/mzbench/bin/../node compile\n...  Run the benchmark without a server. The logs are printed to stdout.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.   Optional param:   --env  name=value  ...  Environment variable  definitions.", 
+            "title": "run_local"
+        }, 
+        {
+            "location": "/cli/#validate", 
+            "text": "$ mzbench validate foo.bdl\nok  Validate the scenario file without executing it.  Positional param:   scenario_file  The path to the  scenario  file for the benchmark.", 
+            "title": "validate"
+        }, 
+        {
+            "location": "/cli/#status", 
+            "text": "$ mzbench status 86\n{\n     status :  provisioning , \n     start_time :  2015-11-18T13:52:04Z \n}  Get the status, start time, and, when completed, finish time of the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .", 
+            "title": "status"
+        }, 
+        {
+            "location": "/cli/#stop", 
+            "text": "$ ./bin/mzbench stop 89\n{\n     status :  stopped \n}  Stop the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .", 
+            "title": "stop"
+        }, 
+        {
+            "location": "/cli/#log", 
+            "text": "$ ./bin/mzbench log 89\nStart of log for bench 89\n13:52:05.001 [info] [ API ] Node repo: {git_install_spec,\n...  View the benchmark logs.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .", 
+            "title": "log"
+        }, 
+        {
+            "location": "/cli/#data", 
+            "text": "$ ./bin/mzbench data 89\n[\n    {\n         target :  workers.pool1.km.ended.rps.value , \n         datapoints : [\n...  View the metrics data collected during the benchmark.  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .", 
+            "title": "data"
+        }, 
+        {
+            "location": "/cli/#change_env", 
+            "text": "$ mzbench change_env 86 --env foo=baz\n{\n     status :  set \n}  Redefine an environment variable without interrupting the benchmark:  Positional param:   benchmark_id  The ID of the benchmark as returned by  start  or  run .   Optional param:   --env  name=value  ...  Environment variable  definitions.", 
+            "title": "change_env"
+        }, 
+        {
             "location": "/cli/#misc", 
-            "text": "selfcheck  $ mzbench selfcheck\nExecuting /path/to/mzbench/bin/lint.py /path/to/mzbench/bin/../  Run the tests on MZBench.  list_templates  $ mzbench list_templates\namqp\nempty\npython_empty\ntcp  List the available worker templates to base  new workers  on.  new_worker  $ mzbench new_worker --template python_empty bar\nnew worker bar has been created  Create a new worker directory for  development purposes .  Positional param:   worker_name  The name of the new worker.   Optional params:   --template  template_name  The template for the new worker. See the full list of available templates with  list_templates .", 
+            "text": "", 
             "title": "Misc"
+        }, 
+        {
+            "location": "/cli/#selfcheck", 
+            "text": "$ mzbench selfcheck\nExecuting /path/to/mzbench/bin/lint.py /path/to/mzbench/bin/../  Run the tests on MZBench.", 
+            "title": "selfcheck"
+        }, 
+        {
+            "location": "/cli/#list_templates", 
+            "text": "$ mzbench list_templates\namqp\nempty\npython_empty\ntcp  List the available worker templates to base  new workers  on.", 
+            "title": "list_templates"
+        }, 
+        {
+            "location": "/cli/#new_worker", 
+            "text": "$ mzbench new_worker --template python_empty bar\nnew worker bar has been created  Create a new worker directory for  development purposes .  Positional param:   worker_name  The name of the new worker.   Optional params:   --template  template_name  The template for the new worker. See the full list of available templates with  list_templates .", 
+            "title": "new_worker"
         }, 
         {
             "location": "/api/", 
@@ -212,7 +447,7 @@
         }, 
         {
             "location": "/deployment/", 
-            "text": "A complete MZBench installation consists of two parts:\n\n\n\n\nMZBench API server that accepts client requests and provides the dashboard.\n\n\nA set of hosts operating as a worker nodes.\n\n\n\n\nOnce launched, the API server is permanent, whereas the worker nodes are dynamically\nallocated on demand on AWS or another cloud provider.\n\n\nHere\ns how you install and configure MZBench for real-life use.\n\n\nInstallation\n\n\nRequirements:\n\n\n\n\nErlang R17\n\n\nC++ compiler (preinstalled on most UNIX-based systems)\n\n\nPython\n 2.6 or 2.7\n\n\nPip\n Python package manager\n\n\n\n\nInstall and start the MZBench API server:\n\n\n# Clone the current MZBench source code:\ngit clone https://github.com/machinezone/mzbench.git\n\n# Install Python requirements:\nsudo pip install -r mzbench/requirements.txt\n\n# Start the server\n./mzbench/bin/mzbench start_server\n\n\n\n\nConfiguration\n\n\n\n\nNote\n\n\nEvery time you update the configuration, \nrestart the server\n.\n\n\n\n\nFormat\n\n\nThe MZBench server parameters are defined in the configuration file.\n\n\nBy default, the server tries to load configuration from \n~/.config/mzbench/server.config\n and \n/etc/mzbench/server.config\n.\n\n\nTo specify a configuration file from a different location, use the \n--config\n param:\n\n\n$ ./bin/mzbench start_server --config /path/to/server.config\n\n\n\n\nThe configuration file is an Erlang list with the \nmzbench_api\n tuple. This tuple holds the list of the server \nparameters\n:\n\n\n[\n    {mzbench_api, [\n        {network_interface, \n127.0.0.1\n},\n        {listen_port, 80}\n    ]}\n].\n\n\n\n\nHere, two parameters are specified: \nnetwork_interface\n and \nlisten_port\n.\n\n\nAll parameters are optional.\n\n\nParameters\n\n\ncloud_plugins\n\n\n{cloud_plugins: [\n    {\nPluginName\n, #{module =\n \nModuleName\n,\n                    \nOption1\n =\n \nValue1\n,\n                    \nOption2\n =\n \nValue2\n,\n                    ...\n                    }\n    },\n    ...\n    ]\n}\n\n\n\n\nList of \ncloud plugins\n that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.\n\n\nPluginName\n is an atom identifying a plugin instance.\n\n\nModuleName\n is the name of the plugin module. Each module has its specific \nOptions\n. \n\n\nThere are four built-in plugins:\n\n\n\n\nmzb_api_ec2_plugin\n\n\nAllocate hosts from the Amazon EC2 cloud.\n\n\nmzb_staticcloud_plugin\n\n\nAllocates hosts from a static pool.\n\n\nmzb_dummycloud_plugin\n\n\nDummy provider, doesn\nt really do anything, but can be used as a reference during \ncloud plugin development\n.\n\n\nmzb_multicloud_plugin\n\n\nAllocate hosts from multiple sources with the given ratio.\n\n\n\n\nnetwork_interface\n\n\n{network_interface, \nip address\n}\n\n\n\n\nSpecify the IP address for the dashboard to run on. By default it\ns \n\"127.0.0.1\"\n, so the dashboard is unavailable for external connections. \n\n\nTo open the dashboard to the public, set this param to \n\"0.0.0.0\"\n.\n\n\n\n\nWarning\n\n\nMZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.\n\n\nTo protect your server, use an external auth proxy server like Nginx.\n\n\n\n\nlisten_port\n\n\n{listen_port, \nport\n}\n\n\n\n\nSpecify the port to access the dashboard.\n\n\nDefault value: \n4800\n.\n\n\nbench_log_file\n\n\n{bench_log_file, \nfilename\n}\n\n\n\n\nThe name of the benchmark log files. The files are stored in \nbench_data_dir\n/\nbench_id\n where \nbench_data_dir\n is defined in the \nbench_data_dir\n param and \nid\n is the ID of a particular benchmark.\n\n\nDefault value: \n\"log.txt\"\n\n\nbench_log_compression\n\n\n{bench_log_compression, (deflate|none)}\n\n\n\n\nEnable or disable log compression with the \nDEFLATE\n algorithm.\n\n\nDefault value: \ndeflate\n\n\nbench_metrics_file\n\n\n{bench_metrics_file, \nfilename\n}\n\n\n\n\nThe name of the benchmark metrics data files. The files are stored in \nbench_data_dir\n/\nbench_id\n where \nbench_data_dir\n is defined in the \nbench_data_dir\n param and \nid\n is the ID of a particular benchmark.\n\n\nDefault value: \n\"metrics.txt\"\n\n\nbench_metrics_compression\n\n\n{bench_metrics_compression, (none|deflate)}\n\n\n\n\nEnable or disable metrics data compression with the \nDEFLATE\n algorithm.\n\n\nDefault value: \nnone\n\n\nnode_git\n\n\n{node_git, \nurl\n}\n\n\n\n\nThe MZBench git repository used to deploy worker nodes.\n\n\nBy default, the MZBench source code is taken from \nhttps://github.com/machinezone/mzbench.git\n.\n\n\nnode_commit\n\n\n{node_commit, \nstring\n}\n\n\n\n\nThe git commit SHA or branch name used to deploy worker nodes.\n\n\nBy default, the latest revision is used.\n\n\nnode_deployment_path\n\n\n{node_deployment_path, \npath\n}\n\n\n\n\nThe path to the MZBench installation on node machines.\n\n\nDefault value: \n\"/.local/share\"\n\n\nworker_deployment_path\n\n\n{worker_deployment_path, \npath\n}\n\n\n\n\nThe to the \nworkers\n installation on node machines.\n\n\nDefault value: \n\"~/.local/share/mzbench_workers\"\n\n\nplugins_dir\n\n\n{plugins_dir, \npath\n}\n\n\n\n\nDirectory with additional \ncloud plugins\n.\n\n\nDefault value: \n\"../../../../plugins\"\n\n\nbench_data_dir\n\n\n{bench_data_dir, \npath\n}\n\n\n\n\nThe location to store the data generated during the benchmark.\n\n\nDefault value: \n\"~/.local/share/mzbench_api/data\"\n.\n\n\ntgz_packages_dir\n\n\n{tgz_packages_dir, \npath\n}\n\n\n\n\nThe location to store prebuilt worker archives.\n\n\nDefault value: \n\"~/.local/cache/mzbench_api/packages\"\n.\n\n\nmax_bench_num\n\n\n{max_bench_num, \ninteger\n}\n\n\n\n\nMaximal number of benchmarks running at the same time.\n\n\nDefault value: \n1000\n.\n\n\nvm_args\n\n\n{vm_args, \nargs\n}\n\n\n\n\nAdditional arguments for the [Erlang VM](Additional arguments for the \nErlang VM\n.\n\n\nDefault value: \n[]\n.\n\n\nntp_max_timediff\n\n\n{ntp_max_timediff, \nfloat\n}\n\n\n\n\nMaximum timeout between node creation in seconds.\n\n\nThis check is optional and only prints a warning if fails.\n\n\nDefault value: \n0.1\n.\n\n\nDev Parameters\n\n\nSet these params only if you are an MZBench developer.\n\n\nbench_read_at_once\n\n\n{bench_read_at_once, \ninteger\n}\n\n\n\n\nThe number of bytes to read from the logs and metrics feed per request.\n\n\nDefault value: \n1024\n\n\nbench_poll_timeout\n\n\n{bench_poll_timeout, \ninteger\n}\n\n\n\n\nThe timeout between requests to logs and metrics feeds in milliseconds.\n\n\nDefault value: \n1000\n\n\nnode_log_port\n\n\n{node_log_port, \ninteger\n}\n\n\n\n\nThe TCP port for the logs feed.\n\n\nDefault value: \n4801\n.\n\n\nnode_management_port\n\n\n{node_management_port, \ninteger\n}\n\n\n\n\nThe TCP port used to control the server internally.\n\n\nDefault value: \n4802\n.", 
+            "text": "A complete MZBench installation consists of two parts:\n\n\n\n\nMZBench API server that accepts client requests and provides the dashboard.\n\n\nA set of hosts operating as a worker nodes.\n\n\n\n\nOnce launched, the API server is permanent, whereas the worker nodes are dynamically\nallocated on demand on AWS or another cloud provider.\n\n\nHere\ns how you install and configure MZBench for real-life use.\n\n\nInstallation\n\n\nRequirements:\n\n\n\n\nErlang R17\n\n\nC++ compiler (preinstalled on most UNIX-based systems)\n\n\nPython\n 2.6 or 2.7\n\n\nPip\n Python package manager\n\n\n\n\nInstall and start the MZBench API server:\n\n\n# Clone the current MZBench source code:\ngit clone https://github.com/machinezone/mzbench.git\n\n# Install Python requirements:\nsudo pip install -r mzbench/requirements.txt\n\n# Start the server\n./mzbench/bin/mzbench start_server\n\n\n\n\nConfiguration\n\n\n\n\nNote\n\n\nEvery time you update the configuration, \nrestart the server\n.\n\n\n\n\nFormat\n\n\nThe MZBench server parameters are defined in the configuration file.\n\n\nBy default, the server tries to load configuration from \n~/.config/mzbench/server.config\n and \n/etc/mzbench/server.config\n.\n\n\nTo specify a configuration file from a different location, use the \n--config\n param:\n\n\n$ ./bin/mzbench start_server --config /path/to/server.config\n\n\n\n\nThe configuration file is an Erlang list with the \nmzbench_api\n tuple. This tuple holds the list of the server \nparameters\n:\n\n\n[\n    {mzbench_api, [\n        {network_interface, \n127.0.0.1\n},\n        {listen_port, 80}\n    ]}\n].\n\n\n\n\nHere, two parameters are specified: \nnetwork_interface\n and \nlisten_port\n.\n\n\nAll parameters are optional.\n\n\nParameters\n\n\ncloud_plugins\n\n\n{cloud_plugins: [\n    {\nPluginName\n, #{module =\n \nModuleName\n,\n                    \nOption1\n =\n \nValue1\n,\n                    \nOption2\n =\n \nValue2\n,\n                    ...\n                    }\n    },\n    ...\n    ]\n}\n\n\n\n\nList of \ncloud plugins\n that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.\n\n\nPluginName\n is an atom identifying a plugin instance.\n\n\nModuleName\n is the name of the plugin module. Each module has its specific \nOptions\n. \n\n\nThere are four built-in plugins:\n\n\n\n\nmzb_api_ec2_plugin\n\n\nAllocate hosts from the Amazon EC2 cloud.\n\n\nmzb_staticcloud_plugin\n\n\nAllocates hosts from a static pool.\n\n\nmzb_dummycloud_plugin\n\n\nDummy provider, doesn\nt really do anything, but can be used as a reference during \ncloud plugin development\n.\n\n\nmzb_multicloud_plugin\n\n\nAllocate hosts from multiple sources with the given ratio.\n\n\n\n\nnetwork_interface\n\n\n{network_interface, \nip address\n}\n\n\n\n\nSpecify the IP address for the dashboard to run on. By default it\ns \n\"127.0.0.1\"\n, so the dashboard is unavailable for external connections. \n\n\nTo open the dashboard to the public, set this param to \n\"0.0.0.0\"\n.\n\n\n\n\nWarning\n\n\nMZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.\n\n\nTo protect your server, use an external auth proxy server like Nginx.\n\n\n\n\nlisten_port\n\n\n{listen_port, \nport\n}\n\n\n\n\nSpecify the port to access the dashboard.\n\n\nDefault value: \n4800\n.\n\n\nprotocol\n\n\nBy default protocol is set to \nhttp\n, but \nhttps\n is also available. MZBench generates self-signed certificates on first start. If you need to replace them, please use the following configuration parameters:\n\n\n{protocol, https},\n{cacertfile, none},\n{certfile, \n~/.local/share/mzbench_api/server.crt\n},\n{keyfile, \n~/.local/share/mzbench_api/server.key\n},\n\n\n\n\nCA certificate is not required unless you use custom CA.\n\n\nbench_log_file\n\n\n{bench_log_file, \nfilename\n}\n\n\n\n\nThe name of the benchmark log files. The files are stored in \nbench_data_dir\n/\nbench_id\n where \nbench_data_dir\n is defined in the \nbench_data_dir\n param and \nid\n is the ID of a particular benchmark.\n\n\nDefault value: \n\"log.txt\"\n\n\nbench_log_compression\n\n\n{bench_log_compression, (deflate|none)}\n\n\n\n\nEnable or disable log compression with the \nDEFLATE\n algorithm.\n\n\nDefault value: \ndeflate\n\n\nbench_metrics_file\n\n\n{bench_metrics_file, \nfilename\n}\n\n\n\n\nThe name of the benchmark metrics data files. The files are stored in \nbench_data_dir\n/\nbench_id\n where \nbench_data_dir\n is defined in the \nbench_data_dir\n param and \nid\n is the ID of a particular benchmark.\n\n\nDefault value: \n\"metrics.txt\"\n\n\nbench_metrics_compression\n\n\n{bench_metrics_compression, (none|deflate)}\n\n\n\n\nEnable or disable metrics data compression with the \nDEFLATE\n algorithm.\n\n\nDefault value: \nnone\n\n\nnode_git\n\n\n{node_git, \nurl\n}\n\n\n\n\nThe MZBench git repository used to deploy worker nodes.\n\n\nBy default, the MZBench source code is taken from \nhttps://github.com/machinezone/mzbench.git\n.\n\n\nnode_commit\n\n\n{node_commit, \nstring\n}\n\n\n\n\nThe git commit SHA or branch name used to deploy worker nodes.\n\n\nBy default, the latest revision is used.\n\n\nnode_deployment_path\n\n\n{node_deployment_path, \npath\n}\n\n\n\n\nThe path to the MZBench installation on node machines.\n\n\nDefault value: \n\"/.local/share\"\n\n\nworker_deployment_path\n\n\n{worker_deployment_path, \npath\n}\n\n\n\n\nThe to the \nworkers\n installation on node machines.\n\n\nDefault value: \n\"~/.local/share/mzbench_workers\"\n\n\nplugins_dir\n\n\n{plugins_dir, \npath\n}\n\n\n\n\nDirectory with additional \ncloud plugins\n.\n\n\nDefault value: \n\"../../../../plugins\"\n\n\nbench_data_dir\n\n\n{bench_data_dir, \npath\n}\n\n\n\n\nThe location to store the data generated during the benchmark.\n\n\nDefault value: \n\"~/.local/share/mzbench_api/data\"\n.\n\n\ntgz_packages_dir\n\n\n{tgz_packages_dir, \npath\n}\n\n\n\n\nThe location to store prebuilt worker archives.\n\n\nDefault value: \n\"~/.local/cache/mzbench_api/packages\"\n.\n\n\nmax_bench_num\n\n\n{max_bench_num, \ninteger\n}\n\n\n\n\nMaximal number of benchmarks running at the same time.\n\n\nDefault value: \n1000\n.\n\n\nvm_args\n\n\n{vm_args, \nargs\n}\n\n\n\n\nAdditional arguments for the [Erlang VM](Additional arguments for the \nErlang VM\n.\n\n\nDefault value: \n[]\n.\n\n\nntp_max_timediff\n\n\n{ntp_max_timediff, \nfloat\n}\n\n\n\n\nMaximum timeout between node creation in seconds.\n\n\nThis check is optional and only prints a warning if fails.\n\n\nDefault value: \n0.1\n.\n\n\nDev Parameters\n\n\nSet these params only if you are an MZBench developer.\n\n\nbench_read_at_once\n\n\n{bench_read_at_once, \ninteger\n}\n\n\n\n\nThe number of bytes to read from the logs and metrics feed per request.\n\n\nDefault value: \n1024\n\n\nbench_poll_timeout\n\n\n{bench_poll_timeout, \ninteger\n}\n\n\n\n\nThe timeout between requests to logs and metrics feeds in milliseconds.\n\n\nDefault value: \n1000\n\n\nnode_log_port\n\n\n{node_log_port, \ninteger\n}\n\n\n\n\nThe TCP port for the logs feed.\n\n\nDefault value: \n4801\n.\n\n\nnode_management_port\n\n\n{node_management_port, \ninteger\n}\n\n\n\n\nThe TCP port used to control the server internally.\n\n\nDefault value: \n4802\n.", 
             "title": "Deployment"
         }, 
         {
@@ -232,17 +467,127 @@
         }, 
         {
             "location": "/deployment/#parameters", 
-            "text": "cloud_plugins  {cloud_plugins: [\n    { PluginName , #{module =   ModuleName ,\n                     Option1  =   Value1 ,\n                     Option2  =   Value2 ,\n                    ...\n                    }\n    },\n    ...\n    ]\n}  List of  cloud plugins  that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.  PluginName  is an atom identifying a plugin instance.  ModuleName  is the name of the plugin module. Each module has its specific  Options .   There are four built-in plugins:   mzb_api_ec2_plugin  Allocate hosts from the Amazon EC2 cloud.  mzb_staticcloud_plugin  Allocates hosts from a static pool.  mzb_dummycloud_plugin  Dummy provider, doesn t really do anything, but can be used as a reference during  cloud plugin development .  mzb_multicloud_plugin  Allocate hosts from multiple sources with the given ratio.   network_interface  {network_interface,  ip address }  Specify the IP address for the dashboard to run on. By default it s  \"127.0.0.1\" , so the dashboard is unavailable for external connections.   To open the dashboard to the public, set this param to  \"0.0.0.0\" .   Warning  MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.  To protect your server, use an external auth proxy server like Nginx.   listen_port  {listen_port,  port }  Specify the port to access the dashboard.  Default value:  4800 .  bench_log_file  {bench_log_file,  filename }  The name of the benchmark log files. The files are stored in  bench_data_dir / bench_id  where  bench_data_dir  is defined in the  bench_data_dir  param and  id  is the ID of a particular benchmark.  Default value:  \"log.txt\"  bench_log_compression  {bench_log_compression, (deflate|none)}  Enable or disable log compression with the  DEFLATE  algorithm.  Default value:  deflate  bench_metrics_file  {bench_metrics_file,  filename }  The name of the benchmark metrics data files. The files are stored in  bench_data_dir / bench_id  where  bench_data_dir  is defined in the  bench_data_dir  param and  id  is the ID of a particular benchmark.  Default value:  \"metrics.txt\"  bench_metrics_compression  {bench_metrics_compression, (none|deflate)}  Enable or disable metrics data compression with the  DEFLATE  algorithm.  Default value:  none  node_git  {node_git,  url }  The MZBench git repository used to deploy worker nodes.  By default, the MZBench source code is taken from  https://github.com/machinezone/mzbench.git .  node_commit  {node_commit,  string }  The git commit SHA or branch name used to deploy worker nodes.  By default, the latest revision is used.  node_deployment_path  {node_deployment_path,  path }  The path to the MZBench installation on node machines.  Default value:  \"/.local/share\"  worker_deployment_path  {worker_deployment_path,  path }  The to the  workers  installation on node machines.  Default value:  \"~/.local/share/mzbench_workers\"  plugins_dir  {plugins_dir,  path }  Directory with additional  cloud plugins .  Default value:  \"../../../../plugins\"  bench_data_dir  {bench_data_dir,  path }  The location to store the data generated during the benchmark.  Default value:  \"~/.local/share/mzbench_api/data\" .  tgz_packages_dir  {tgz_packages_dir,  path }  The location to store prebuilt worker archives.  Default value:  \"~/.local/cache/mzbench_api/packages\" .  max_bench_num  {max_bench_num,  integer }  Maximal number of benchmarks running at the same time.  Default value:  1000 .  vm_args  {vm_args,  args }  Additional arguments for the [Erlang VM](Additional arguments for the  Erlang VM .  Default value:  [] .  ntp_max_timediff  {ntp_max_timediff,  float }  Maximum timeout between node creation in seconds.  This check is optional and only prints a warning if fails.  Default value:  0.1 .", 
+            "text": "", 
             "title": "Parameters"
         }, 
         {
+            "location": "/deployment/#cloud_plugins", 
+            "text": "{cloud_plugins: [\n    { PluginName , #{module =   ModuleName ,\n                     Option1  =   Value1 ,\n                     Option2  =   Value2 ,\n                    ...\n                    }\n    },\n    ...\n    ]\n}  List of  cloud plugins  that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.  PluginName  is an atom identifying a plugin instance.  ModuleName  is the name of the plugin module. Each module has its specific  Options .   There are four built-in plugins:   mzb_api_ec2_plugin  Allocate hosts from the Amazon EC2 cloud.  mzb_staticcloud_plugin  Allocates hosts from a static pool.  mzb_dummycloud_plugin  Dummy provider, doesn t really do anything, but can be used as a reference during  cloud plugin development .  mzb_multicloud_plugin  Allocate hosts from multiple sources with the given ratio.", 
+            "title": "cloud_plugins"
+        }, 
+        {
+            "location": "/deployment/#network_interface", 
+            "text": "{network_interface,  ip address }  Specify the IP address for the dashboard to run on. By default it s  \"127.0.0.1\" , so the dashboard is unavailable for external connections.   To open the dashboard to the public, set this param to  \"0.0.0.0\" .   Warning  MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.  To protect your server, use an external auth proxy server like Nginx.", 
+            "title": "network_interface"
+        }, 
+        {
+            "location": "/deployment/#listen_port", 
+            "text": "{listen_port,  port }  Specify the port to access the dashboard.  Default value:  4800 .", 
+            "title": "listen_port"
+        }, 
+        {
+            "location": "/deployment/#protocol", 
+            "text": "By default protocol is set to  http , but  https  is also available. MZBench generates self-signed certificates on first start. If you need to replace them, please use the following configuration parameters:  {protocol, https},\n{cacertfile, none},\n{certfile,  ~/.local/share/mzbench_api/server.crt },\n{keyfile,  ~/.local/share/mzbench_api/server.key },  CA certificate is not required unless you use custom CA.", 
+            "title": "protocol"
+        }, 
+        {
+            "location": "/deployment/#bench_log_file", 
+            "text": "{bench_log_file,  filename }  The name of the benchmark log files. The files are stored in  bench_data_dir / bench_id  where  bench_data_dir  is defined in the  bench_data_dir  param and  id  is the ID of a particular benchmark.  Default value:  \"log.txt\"", 
+            "title": "bench_log_file"
+        }, 
+        {
+            "location": "/deployment/#bench_log_compression", 
+            "text": "{bench_log_compression, (deflate|none)}  Enable or disable log compression with the  DEFLATE  algorithm.  Default value:  deflate", 
+            "title": "bench_log_compression"
+        }, 
+        {
+            "location": "/deployment/#bench_metrics_file", 
+            "text": "{bench_metrics_file,  filename }  The name of the benchmark metrics data files. The files are stored in  bench_data_dir / bench_id  where  bench_data_dir  is defined in the  bench_data_dir  param and  id  is the ID of a particular benchmark.  Default value:  \"metrics.txt\"", 
+            "title": "bench_metrics_file"
+        }, 
+        {
+            "location": "/deployment/#bench_metrics_compression", 
+            "text": "{bench_metrics_compression, (none|deflate)}  Enable or disable metrics data compression with the  DEFLATE  algorithm.  Default value:  none", 
+            "title": "bench_metrics_compression"
+        }, 
+        {
+            "location": "/deployment/#node_git", 
+            "text": "{node_git,  url }  The MZBench git repository used to deploy worker nodes.  By default, the MZBench source code is taken from  https://github.com/machinezone/mzbench.git .", 
+            "title": "node_git"
+        }, 
+        {
+            "location": "/deployment/#node_commit", 
+            "text": "{node_commit,  string }  The git commit SHA or branch name used to deploy worker nodes.  By default, the latest revision is used.", 
+            "title": "node_commit"
+        }, 
+        {
+            "location": "/deployment/#node_deployment_path", 
+            "text": "{node_deployment_path,  path }  The path to the MZBench installation on node machines.  Default value:  \"/.local/share\"", 
+            "title": "node_deployment_path"
+        }, 
+        {
+            "location": "/deployment/#worker_deployment_path", 
+            "text": "{worker_deployment_path,  path }  The to the  workers  installation on node machines.  Default value:  \"~/.local/share/mzbench_workers\"", 
+            "title": "worker_deployment_path"
+        }, 
+        {
+            "location": "/deployment/#plugins_dir", 
+            "text": "{plugins_dir,  path }  Directory with additional  cloud plugins .  Default value:  \"../../../../plugins\"", 
+            "title": "plugins_dir"
+        }, 
+        {
+            "location": "/deployment/#bench_data_dir", 
+            "text": "{bench_data_dir,  path }  The location to store the data generated during the benchmark.  Default value:  \"~/.local/share/mzbench_api/data\" .", 
+            "title": "bench_data_dir"
+        }, 
+        {
+            "location": "/deployment/#tgz_packages_dir", 
+            "text": "{tgz_packages_dir,  path }  The location to store prebuilt worker archives.  Default value:  \"~/.local/cache/mzbench_api/packages\" .", 
+            "title": "tgz_packages_dir"
+        }, 
+        {
+            "location": "/deployment/#max_bench_num", 
+            "text": "{max_bench_num,  integer }  Maximal number of benchmarks running at the same time.  Default value:  1000 .", 
+            "title": "max_bench_num"
+        }, 
+        {
+            "location": "/deployment/#vm_args", 
+            "text": "{vm_args,  args }  Additional arguments for the [Erlang VM](Additional arguments for the  Erlang VM .  Default value:  [] .", 
+            "title": "vm_args"
+        }, 
+        {
+            "location": "/deployment/#ntp_max_timediff", 
+            "text": "{ntp_max_timediff,  float }  Maximum timeout between node creation in seconds.  This check is optional and only prints a warning if fails.  Default value:  0.1 .", 
+            "title": "ntp_max_timediff"
+        }, 
+        {
             "location": "/deployment/#dev-parameters", 
-            "text": "Set these params only if you are an MZBench developer.  bench_read_at_once  {bench_read_at_once,  integer }  The number of bytes to read from the logs and metrics feed per request.  Default value:  1024  bench_poll_timeout  {bench_poll_timeout,  integer }  The timeout between requests to logs and metrics feeds in milliseconds.  Default value:  1000  node_log_port  {node_log_port,  integer }  The TCP port for the logs feed.  Default value:  4801 .  node_management_port  {node_management_port,  integer }  The TCP port used to control the server internally.  Default value:  4802 .", 
+            "text": "Set these params only if you are an MZBench developer.", 
             "title": "Dev Parameters"
         }, 
         {
+            "location": "/deployment/#bench_read_at_once", 
+            "text": "{bench_read_at_once,  integer }  The number of bytes to read from the logs and metrics feed per request.  Default value:  1024", 
+            "title": "bench_read_at_once"
+        }, 
+        {
+            "location": "/deployment/#bench_poll_timeout", 
+            "text": "{bench_poll_timeout,  integer }  The timeout between requests to logs and metrics feeds in milliseconds.  Default value:  1000", 
+            "title": "bench_poll_timeout"
+        }, 
+        {
+            "location": "/deployment/#node_log_port", 
+            "text": "{node_log_port,  integer }  The TCP port for the logs feed.  Default value:  4801 .", 
+            "title": "node_log_port"
+        }, 
+        {
+            "location": "/deployment/#node_management_port", 
+            "text": "{node_management_port,  integer }  The TCP port used to control the server internally.  Default value:  4802 .", 
+            "title": "node_management_port"
+        }, 
+        {
             "location": "/cloud_plugins/", 
-            "text": "Built-in Cloud Plugins\n\n\nAmazon EC2\n\n\nmzb_api_ec2_plugin\n\n\nThe module allocates nodes in an Amazon EC2 cloud.\n\n\nThe AWS node images must have Erlang R17, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put \nDefaults !requiretty\n in \n/etc/sudoers\n. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.\n\n\nThere\ns a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:\n\n\nus-west-2       ami-ee8d718e\nus-east-1       ami-61f11f0c\nus-west-1       ami-fc28509c\neu-west-1       ami-4554c136\neu-central-1    ami-8d48a5e2\nap-northeast-1  ami-78a24419\nap-northeast-2  ami-ef579f81\nap-southeast-1  ami-66fd2b05\nap-southeast-2  ami-21634c42\nsa-east-1       ami-7798101b\n\n\n\n\nTo use one of these images, specify it in the cloud plugin config as \nimage_id\n:\n\n\n{image_id, \nami-ee8d718e\n\n\n\n\n\nYou can, of course, build your own image based on the requirements listed above. \nLearn more\n in the official Amazon docs.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{ec2, #{module =\n mzb_api_ec2_plugin,\n                         instance_spec =\n [\n                          {image_id, \nami-ee8d718e\n},\n                          {group_set, \n},\n                          {key_name, \n-\n},\n                          {subnet_id, \n-\n},\n                          {instance_type, \nt2.micro\n},\n                          {availability_zone, \nus-west-2a\n}\n                        ],\n                        config =\n [\n                          {ec2_host, \nec2.us-west-2.amazonaws.com\n},\n                          {access_key_id, \n-\n},\n                          {secret_access_key, \n-\n}\n                         ]\n                        instance_user =\n \nec2-user\n,\n                    }}]},\n\n\n\n\nMinimally, the config requires \ninstance_spec\n and \nconfig\n keys specified. Learn more about AWS-specific config in the \nerlcloud documentation\n.\n\n\nStatic Cloud\n\n\nmzb_staticcloud_plugin\n\n\nThe module allocated nodes from a list of hosts.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{static, #{module =\n mzb_staticcloud_plugin,\n                           hosts =\n [\n123.45.67.89\n, \nhostname\n]\n                           }}]}\n\n\n\n\nDummy\n\n\nmzb_dummycloud_plugin\n\n\nThe module does not allocate any hosts; localhost is used instead.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{dummy, #{module =\n mzb_dummycloud_plugin}}]}\n\n\n\n\nMulticloud\n\n\nmzb_multicloud_plugin\n\n\nCombine multiple plugins to allocate hosts from multiple sources.\n\n\nConfigration example:\n\n\n{cloud_plugins, [\n        {some_cloud_provider1, ...},\n        {some_cloud_provider2, ...},\n        {cloud_multi, #{module =\n mzb_multicloud_plugin,\n                          clouds =\n [\n                              {some_cloud_provider1, 3},\n                              {some_cloud_provider2, 10}\n                      ]}}\n]}\n\n\n\n\nHere, if the cluster is allocated using \ncloud_multi\n, it will contain 3 nodes from \nsome_cloud_provider1\n for every 10 nodes from \nsome_cloud_provider2\n.\n\n\nHow to Write a Cloud Plugin\n\n\nCloud plugin is an Erlang module with at least three methods:\n\n\n-spec start(Name, Opts) -\n PluginRef when\n    Name :: atom(),\n    Opts :: #{},\n    PluginRef :: term().\n\n-spec create_cluster(PluginRef, NumNodes, Config) -\n {ok, ClusterID, UserName, [Host]} when\n    PluginRef :: term(),\n    NumNodes :: pos_integer(),\n    Config :: #{},\n    ClusterID :: term()\n    UserName :: string(),\n    Host :: string().\n\n-spec destroy_cluster(ClusterID) -\n ok when\n    ClusterID :: term().\n\n\n\n\n\n\nstart\n\n\n\n\nStart a particular instance of the plugin and get an instance reference.\n\n\n\n\nName\n\n\nThe name of the particular instance of the plugin specified in the \nconfiguration file\n.\n\n\nOpts\n\n\nOptions passed from the server \nconfiguration file\n for the particular plugin instance.\n\n\n\n\n\n\ncreate_cluster\n\n\n\n\nAllocate the required number of nodes and return a tuple: \n{ok, ClusterID, UserName, HostList}\n.   \n\n\n\n\nNumNodes\n\n\nNumber of nodes to allocate.\n\n\nConfig\n\n\nMap with keys \nuser\n, \nname\n, \ndescription\n, and \nexclusive_node_usage\n.\n\n\nClusterID\n\n\nThis term will be passed to \ndestroy_cluster/1\n when it\ns time it deallocate the nodes. Its content is up to the plugin developer.\n\n\nUserName\n\n\nSSH username to connect to the allocated nodes.\n\n\nHostList\n\n\nList of hostnames or IPs of the allocated nodes.\n\n\n\n\n\n\ndestroy_cluster\n\n\n\n\nDeallocate the required number of nodes and return \nok\n.\n\n\n\n\nClusterID\n\n\nTerm returned by \ncreate_cluster/1\n.\n\n\n\n\n\n\n\n\nUsing the Cloud Plugin\n\n\nSpecify the \nplugin module\n and the \npath to it\n in the MZBench config file in the \nmzbench_api\n section:\n\n\n    [\n      {mzbench_api, [\n        {cloud_plugins, [{my_cloud1, #{module =\n mycloud_plugin,\n                                       Opt1 =\n Value1,\n                                       Opt2 =\n Value2, ...}},\n                         ...\n                        ]},\n        {plugins_dir, \n/path/to/my/plugin\n}\n        ]},\n    ].\n\n\n\n\nThe plugin binaries must be placed in a subdirectory inside \nplugins_dir\n, e.g. \n/mycloud-0.1.1/ebin/mycloud.ebin\n.\n\n\n\n\nNote\n\n\nPlugin will be started using \napplication:ensure_all_started/1\n just before the benchmark start.", 
+            "text": "Built-in Cloud Plugins\n\n\nAmazon EC2\n\n\nmzb_api_ec2_plugin\n\n\nThe module allocates nodes in an Amazon EC2 cloud.\n\n\nThe AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put \nDefaults !requiretty\n in \n/etc/sudoers\n. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.\n\n\nThere\ns a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:\n\n\nErlang 19:\nus-west-2       ami-da24ffba\nus-west-1       ami-77571c17\nus-east-2       ami-86055fe3\nus-east-1       ami-d0efb2c7\neu-west-1       ami-ab8ec7d8\neu-central-1    ami-bdaa52d2\nap-northeast-1  ami-7a25841b\nap-northeast-2  ami-99eb3ff7\nap-southeast-1  ami-65c36206\nap-southeast-2  ami-11fac772\nap-south-1      ami-615e2a0e\nsa-east-1       ami-a5c955c9\n\nErlang 18:\nus-west-2       ami-ee8d718e\nus-east-1       ami-61f11f0c\nus-west-1       ami-fc28509c\neu-west-1       ami-4554c136\neu-central-1    ami-8d48a5e2\nap-northeast-1  ami-78a24419\nap-northeast-2  ami-ef579f81\nap-southeast-1  ami-66fd2b05\nap-southeast-2  ami-21634c42\nsa-east-1       ami-7798101b\n\n\n\n\nTo use one of these images, specify it in the cloud plugin config as \nimage_id\n:\n\n\n{image_id, \nami-ee8d718e\n\n\n\n\n\nYou can, of course, build your own image based on the requirements listed above. \nLearn more\n in the official Amazon docs.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{ec2, #{module =\n mzb_api_ec2_plugin,\n                         instance_spec =\n [\n                          {image_id, \nami-ee8d718e\n},\n                          {group_set, \n},\n                          {key_name, \n-\n},\n                          {subnet_id, \n-\n},\n                          {instance_type, \nt2.micro\n},\n                          {availability_zone, \nus-west-2a\n}\n                        ],\n                        config =\n [\n                          {ec2_host, \nec2.us-west-2.amazonaws.com\n},\n                          {access_key_id, \n-\n},\n                          {secret_access_key, \n-\n}\n                         ]\n                        instance_user =\n \nec2-user\n,\n                    }}]},\n\n\n\n\nMinimally, the config requires \ninstance_spec\n and \nconfig\n keys specified. Learn more about AWS-specific config in the \nerlcloud documentation\n.\n\n\nStatic Cloud\n\n\nmzb_staticcloud_plugin\n\n\nThe module allocated nodes from a list of hosts.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{static, #{module =\n mzb_staticcloud_plugin,\n                           hosts =\n [\n123.45.67.89\n, \nhostname\n]\n                           }}]}\n\n\n\n\nDummy\n\n\nmzb_dummycloud_plugin\n\n\nThe module does not allocate any hosts; localhost is used instead.\n\n\nConfiguration example:\n\n\n{cloud_plugins, [{dummy, #{module =\n mzb_dummycloud_plugin}}]}\n\n\n\n\nMulticloud\n\n\nmzb_multicloud_plugin\n\n\nCombine multiple plugins to allocate hosts from multiple sources.\n\n\nConfigration example:\n\n\n{cloud_plugins, [\n        {some_cloud_provider1, ...},\n        {some_cloud_provider2, ...},\n        {cloud_multi, #{module =\n mzb_multicloud_plugin,\n                          clouds =\n [\n                              {some_cloud_provider1, 3},\n                              {some_cloud_provider2, 10}\n                      ]}}\n]}\n\n\n\n\nHere, if the cluster is allocated using \ncloud_multi\n, it will contain 3 nodes from \nsome_cloud_provider1\n for every 10 nodes from \nsome_cloud_provider2\n.\n\n\nHow to Write a Cloud Plugin\n\n\nCloud plugin is an Erlang module with at least three methods:\n\n\n-spec start(Name, Opts) -\n PluginRef when\n    Name :: atom(),\n    Opts :: #{},\n    PluginRef :: term().\n\n-spec create_cluster(PluginRef, NumNodes, Config) -\n {ok, ClusterID, UserName, [Host]} when\n    PluginRef :: term(),\n    NumNodes :: pos_integer(),\n    Config :: #{},\n    ClusterID :: term()\n    UserName :: string(),\n    Host :: string().\n\n-spec destroy_cluster(ClusterID) -\n ok when\n    ClusterID :: term().\n\n\n\n\n\n\nstart\n\n\n\n\nStart a particular instance of the plugin and get an instance reference.\n\n\n\n\nName\n\n\nThe name of the particular instance of the plugin specified in the \nconfiguration file\n.\n\n\nOpts\n\n\nOptions passed from the server \nconfiguration file\n for the particular plugin instance.\n\n\n\n\n\n\ncreate_cluster\n\n\n\n\nAllocate the required number of nodes and return a tuple: \n{ok, ClusterID, UserName, HostList}\n.   \n\n\n\n\nNumNodes\n\n\nNumber of nodes to allocate.\n\n\nConfig\n\n\nMap with keys \nuser\n, \nname\n, \ndescription\n, and \nexclusive_node_usage\n.\n\n\nClusterID\n\n\nThis term will be passed to \ndestroy_cluster/1\n when it\ns time it deallocate the nodes. Its content is up to the plugin developer.\n\n\nUserName\n\n\nSSH username to connect to the allocated nodes.\n\n\nHostList\n\n\nList of hostnames or IPs of the allocated nodes.\n\n\n\n\n\n\ndestroy_cluster\n\n\n\n\nDeallocate the required number of nodes and return \nok\n.\n\n\n\n\nClusterID\n\n\nTerm returned by \ncreate_cluster/1\n.\n\n\n\n\n\n\n\n\nUsing the Cloud Plugin\n\n\nSpecify the \nplugin module\n and the \npath to it\n in the MZBench config file in the \nmzbench_api\n section:\n\n\n    [\n      {mzbench_api, [\n        {cloud_plugins, [{my_cloud1, #{module =\n mycloud_plugin,\n                                       Opt1 =\n Value1,\n                                       Opt2 =\n Value2, ...}},\n                         ...\n                        ]},\n        {plugins_dir, \n/path/to/my/plugin\n}\n        ]},\n    ].\n\n\n\n\nThe plugin binaries must be placed in a subdirectory inside \nplugins_dir\n, e.g. \n/mycloud-0.1.1/ebin/mycloud.ebin\n.\n\n\n\n\nNote\n\n\nPlugin will be started using \napplication:ensure_all_started/1\n just before the benchmark start.", 
             "title": "Cloud Plugins"
         }, 
         {
@@ -252,7 +597,7 @@
         }, 
         {
             "location": "/cloud_plugins/#amazon-ec2", 
-            "text": "mzb_api_ec2_plugin  The module allocates nodes in an Amazon EC2 cloud.  The AWS node images must have Erlang R17, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put  Defaults !requiretty  in  /etc/sudoers . The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.  There s a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:  us-west-2       ami-ee8d718e\nus-east-1       ami-61f11f0c\nus-west-1       ami-fc28509c\neu-west-1       ami-4554c136\neu-central-1    ami-8d48a5e2\nap-northeast-1  ami-78a24419\nap-northeast-2  ami-ef579f81\nap-southeast-1  ami-66fd2b05\nap-southeast-2  ami-21634c42\nsa-east-1       ami-7798101b  To use one of these images, specify it in the cloud plugin config as  image_id :  {image_id,  ami-ee8d718e   You can, of course, build your own image based on the requirements listed above.  Learn more  in the official Amazon docs.  Configuration example:  {cloud_plugins, [{ec2, #{module =  mzb_api_ec2_plugin,\n                         instance_spec =  [\n                          {image_id,  ami-ee8d718e },\n                          {group_set,  },\n                          {key_name,  - },\n                          {subnet_id,  - },\n                          {instance_type,  t2.micro },\n                          {availability_zone,  us-west-2a }\n                        ],\n                        config =  [\n                          {ec2_host,  ec2.us-west-2.amazonaws.com },\n                          {access_key_id,  - },\n                          {secret_access_key,  - }\n                         ]\n                        instance_user =   ec2-user ,\n                    }}]},  Minimally, the config requires  instance_spec  and  config  keys specified. Learn more about AWS-specific config in the  erlcloud documentation .", 
+            "text": "mzb_api_ec2_plugin  The module allocates nodes in an Amazon EC2 cloud.  The AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put  Defaults !requiretty  in  /etc/sudoers . The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.  There s a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:  Erlang 19:\nus-west-2       ami-da24ffba\nus-west-1       ami-77571c17\nus-east-2       ami-86055fe3\nus-east-1       ami-d0efb2c7\neu-west-1       ami-ab8ec7d8\neu-central-1    ami-bdaa52d2\nap-northeast-1  ami-7a25841b\nap-northeast-2  ami-99eb3ff7\nap-southeast-1  ami-65c36206\nap-southeast-2  ami-11fac772\nap-south-1      ami-615e2a0e\nsa-east-1       ami-a5c955c9\n\nErlang 18:\nus-west-2       ami-ee8d718e\nus-east-1       ami-61f11f0c\nus-west-1       ami-fc28509c\neu-west-1       ami-4554c136\neu-central-1    ami-8d48a5e2\nap-northeast-1  ami-78a24419\nap-northeast-2  ami-ef579f81\nap-southeast-1  ami-66fd2b05\nap-southeast-2  ami-21634c42\nsa-east-1       ami-7798101b  To use one of these images, specify it in the cloud plugin config as  image_id :  {image_id,  ami-ee8d718e   You can, of course, build your own image based on the requirements listed above.  Learn more  in the official Amazon docs.  Configuration example:  {cloud_plugins, [{ec2, #{module =  mzb_api_ec2_plugin,\n                         instance_spec =  [\n                          {image_id,  ami-ee8d718e },\n                          {group_set,  },\n                          {key_name,  - },\n                          {subnet_id,  - },\n                          {instance_type,  t2.micro },\n                          {availability_zone,  us-west-2a }\n                        ],\n                        config =  [\n                          {ec2_host,  ec2.us-west-2.amazonaws.com },\n                          {access_key_id,  - },\n                          {secret_access_key,  - }\n                         ]\n                        instance_user =   ec2-user ,\n                    }}]},  Minimally, the config requires  instance_spec  and  config  keys specified. Learn more about AWS-specific config in the  erlcloud documentation .", 
             "title": "Amazon EC2"
         }, 
         {
@@ -292,18 +637,103 @@
         }, 
         {
             "location": "/workers/#command-line-utilities", 
-            "text": "MZBench distribution provides  command line utilities  to assist you during your development effort.   Note  All command examples below are executed in the MZBench directory. To run them from a different location, specify the full path to MZBench:  $ /path/to/mzbench/bin/mzbench   Generate  First, generate an  Erlang  empty worker application with  new_worker :  $ ./bin/mzbench new_worker  worker_name   It creates a new directory  worker_name  with a minimalistic but fully functional MZBench worker named  worker_name . Particularly interesting files are  src/ worker_name .erl , which holds the worker source code, and  examples/ worker_name .erl , which contains a simple MZBench  scenario  using it.  If the worker you develop works over a common protocol like TCP or you wish to develop it using a different programming language, the  new_worker  command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with  list_templates :  $ ./bin/mzbench list_templates  Then generate your worker with the additional  --template  parameter:  $ ./bin/mzbench new_worker --template  protocol   worker_name   For instance, you can generate a  Python  based worker using the following command:  $ ./bin/mzbench new_worker --template python_empty  worker_name   The worker entry point is contained in the file  src/ worker_name .py  in this case.  Compile and Debug  MZBench lets you quickly build a worker and launch a local instance of a benchmarking scenario without running a server.  In the worker directory, run  run_local  script , where  script  is the path to the scenario to run:  $ ./bin/mzbench run_local  script   You can define environment variables with the  --env  option.   Note  All  make_install  top-level statements are ignored in this execution mode.   Execute  After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker s git address in your benchmark scenario with  make_install(git =  URL , branch =  Branch , dir =  Dir ) .  Simple HTTP worker example \u2192", 
+            "text": "MZBench distribution provides  command line utilities  to assist you during your development effort.   Note  All command examples below are executed in the MZBench directory. To run them from a different location, specify the full path to MZBench:  $ /path/to/mzbench/bin/mzbench", 
             "title": "Command Line Utilities"
         }, 
         {
+            "location": "/workers/#generate", 
+            "text": "First, generate an  Erlang  empty worker application with  new_worker :  $ ./bin/mzbench new_worker  worker_name   It creates a new directory  worker_name  with a minimalistic but fully functional MZBench worker named  worker_name . Particularly interesting files are  src/ worker_name .erl , which holds the worker source code, and  examples/ worker_name .erl , which contains a simple MZBench  scenario  using it.  If the worker you develop works over a common protocol like TCP or you wish to develop it using a different programming language, the  new_worker  command can generate your a more elaborate worker already containing the usual boilerplate code for this type of services. List available protocol templates with  list_templates :  $ ./bin/mzbench list_templates  Then generate your worker with the additional  --template  parameter:  $ ./bin/mzbench new_worker --template  protocol   worker_name   For instance, you can generate a  Python  based worker using the following command:  $ ./bin/mzbench new_worker --template python_empty  worker_name   The worker entry point is contained in the file  src/ worker_name .py  in this case.", 
+            "title": "Generate"
+        }, 
+        {
+            "location": "/workers/#compile-and-debug", 
+            "text": "MZBench lets you quickly build a worker and launch a local instance of a benchmarking scenario without running a server.  In the worker directory, run  run_local  script , where  script  is the path to the scenario to run:  $ ./bin/mzbench run_local  script   You can define environment variables with the  --env  option.   Note  All  make_install  top-level statements are ignored in this execution mode.", 
+            "title": "Compile and Debug"
+        }, 
+        {
+            "location": "/workers/#execute", 
+            "text": "After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker s git address in your benchmark scenario with  make_install(git =  URL , branch =  Branch , dir =  Dir ) .  Simple HTTP worker example \u2192", 
+            "title": "Execute"
+        }, 
+        {
             "location": "/workers/#how-to-write-an-erlang-worker", 
-            "text": "Note  You need basic Erlang knowledge to understand this tutorial. Refer to  Getting Started with Erlang User s Guide  or to the  Learn You Some Erlang for great good!  book for an introduction to Erlang.   The Erlang Worker Structure  A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.  To understand the general structure of a worker, let s see the source code of the  simple_http_worker  provided with the MZBench distribution:  -module(simple_http_worker).\n\n-export([initial_state/0, metrics/0,\n         get/3]).\n\ninitial_state() -  [].\n\nmetrics() - \n    [\n        {group,  Summary , [\n            {graph, #{title =   HTTP Response ,\n                      units =   N ,\n                      metrics =  [{ http_ok , counter}, { http_fail , counter}, { other_fail , counter}]}},\n            {graph, #{title =   Latency ,\n                      units =   microseconds ,\n                      metrics =  [{ latency , histogram}]}}\n        ]}\n    ].\n\nget(State, _Meta, URL) - \n    StartTime = os:timestamp(),\n    Response = hackney:request(get, list_to_binary(URL), [],  , []),\n\n    case Response of\n        {ok, _, _, BodyRef} -  hackney:skip_body(BodyRef);\n        _ -  ok\n    end,\n\n    Latency = timer:now_diff(os:timestamp(), StartTime),\n    mzb_metrics:notify({ latency , histogram}, Latency),\n\n    case Response of\n        {ok, 200, _, _} - \n            mzb_metrics:notify({ http_ok , counter}, 1);\n        {ok, _, _, _} = Reply - \n            lager:error( GET failed: ~p , [Reply]),\n            mzb_metrics:notify({ http_fail , counter}, 1);\n        E - \n            lager:error( hackney:request failed: ~p , [E]),\n            mzb_metrics:notify({ other_fail , counter}, 1)\n    end,\n    {nil, State}.  It exports three functions:  initial_state/0 ,  metrics/0 , and  get/3 . The first two are mandatory for any worker.    initial_state/0  Set the worker s initial state. Each parallel job has its own state, so this function will be called once per job start.  metrics/0  Return a group of metrics generated by this worker.  Declaring Metrics .   The rest of the exported functions define the BDL statements provided by this worker. You can, of course, provide none, although such a worker wouldn t be very useful. The  simple_http_worker , for instance, provides the  get  statement to fetch particular HTTP document.  How to Define Statements  To define a BDL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:  statement_name (State, Meta, [ Param1 , [ Param2 , ...]]) - \n    {ReturnValue, NewState}.  The function has the same name as the statement it defines. It accepts at least two parameters: the worker internal state at the moment the statement is executed and  meta  information proplist. The function can also accept any number of other parameters. They correspond to the parameters of the statement.  For example, this function:  foo(State, Meta, X, Y) - \n    {nil, State}.  is called as  foo(X, Y)  from a benchmarking scenario.  If you want to use key arguments at your function call as  foo(x = 1, y = 2) , you need to declare three argument function foo and expect third parameter to be  proplist . For example:  foo(State, Meta, Proplist) - \n    1 = proplists:get_value(x, Proplist),\n    2 = proplists:get_value(y, Proplist),\n    {nil, State}.  The statement function must return a tuple of two values:   the return value of statement; return  nil  if your statement has no return value  the next worker state   Statements are processed sequentially; each statement receives the state from the previous one and passes it further.  Two exceptions are the statements within the  parallel  section and iterations within a  loop  with  parallel   1 . In these cases the statements within the same thread share the same sequence of statements, which parallel threads don t. The final state of the whole  parallel  or  loop  statement is the one from the first  thread ; other threads  states don t affect the final state.  Metrics  Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.  Metric Types  MZBench currently support four types of metrics:   counter  A single additive value. New values are simply added to the current one.  gauge  A single non-additive value. New value replaces the previous one.  histogram  A set of numerical values that quantify a distribution of values. New values are added to the distribution.  derived  Evaluated periodically using user-defined function based on another metric values.  Learn more .   For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use  counter . If you are interested in its distribution\u2013mean size, 50 percentile, and so on\u2013you need a  histogram .  Declaring Metrics  Declare the groups of metrics collected by your worker in the list returned by  metrics/0 . Each group corresponds to a structure with following spec:  graph_group() :: {group, Name :: string(), [graph()]}\n               | graph().\ngraph()       :: {graph, Opts :: #{metrics =  [metric()],\n                                   units =  string(),\n                                   title =  string()}}\n               | [metric()]\n               | metric().\nmetric()      :: {Name :: string(), Type :: metric_type() }\n               | {Name :: string(), Type :: metric_type(), Opts :: map()}.\nmetric_type() :: counter | gauge | histogram.  This structure has a three-level hierarchy:   Group of graphs is placed on the top of this hierarchy. It consists of one or more graphs and defines a group of graphs under the same name.  Graph consists of one or more metrics that will be plotted on the same chart. Furthermore, you could specify additional options for the chart: units, title, etc.  Metric is the lowest unit of this hierarchy. It specifies the name and type of the user-defined metric.   Let s see the following metrics declaration:  metrics() -  [{group,  HTTP Requests , [\n                {graph, #{metrics =  [{ success_requests , counter}, { failed_requests , counter}]}},\n                {graph, #{title =   Request's latency ,\n                          units =   ms ,\n                          metrics =  [{ latency , histogram}]}}]}].  In this example, a group of graphs with the name  HTTP Requests  is created. It consists of several graphs representing the number of successful and failed requests and the request latencies.  A graph can produce several charts. In the example above, the graph for successful and failed request produces two charts: absolute counters and their rps.  Derived Metrics  Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric, specify the  resolver  function in the metric opts dictionary. This function is used to evaluate the metric value.  Typical example of a derived metric is the current number of pending requests. We specify a function ( pending_requests ) to calculate the metric value in the metric options and then define the function as simple difference between the number of sent requests and received responses:  metrics() -  [{group,  Requests , [\n                {graph, #{metrics =  [\n                    { requests_sent , counter},\n                    { responses_received , counter},\n                    { pending_requests , derived, #{resolver =  pending_requests}}]}},\n                ]}].\n\npending_requests() - \n    mzb_metrics:get_value( requests_sent ) - mzb_metrics:get_value( responses_received ).  Hooks  Pre and post hooks  let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.  Scenario:  pre_hook():\n    exec(all,  yum install mylib )\n    worker_call(fetch_url, simple_http_worker)\n\npool(size = 3, worker_type = simple_http_worker):\n    loop(time = 1 sec,\n         rate = ramp(linear, 10 rps, 50 rps)):\n        get(var( url ,  http://mydomain.com ))  Worker:  fetch_url(Env) - \n    {ok, [{ url ,  http://mycdn.com/myresource } | Env]}.  Updating Metrics  You can update a metric from anywhere inside your worker. Simply call the following function:  mzb_metrics:notify({ metric_name ,  metric_type },  value )  The tuple  {\" metric_name \",  metric_type }  is the same that was used during the metric declaration and identifies the metric to update.  value  is the value to add to the metric.", 
+            "text": "Note  You need basic Erlang knowledge to understand this tutorial. Refer to  Getting Started with Erlang User s Guide  or to the  Learn You Some Erlang for great good!  book for an introduction to Erlang.", 
             "title": "How to write an Erlang worker"
         }, 
         {
+            "location": "/workers/#the-erlang-worker-structure", 
+            "text": "A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.  To understand the general structure of a worker, let s see the source code of the  simple_http_worker  provided with the MZBench distribution:  -module(simple_http_worker).\n\n-export([initial_state/0, metrics/0,\n         get/3]).\n\ninitial_state() -  [].\n\nmetrics() - \n    [\n        {group,  Summary , [\n            {graph, #{title =   HTTP Response ,\n                      units =   N ,\n                      metrics =  [{ http_ok , counter}, { http_fail , counter}, { other_fail , counter}]}},\n            {graph, #{title =   Latency ,\n                      units =   microseconds ,\n                      metrics =  [{ latency , histogram}]}}\n        ]}\n    ].\n\nget(State, _Meta, URL) - \n    StartTime = os:timestamp(),\n    Response = hackney:request(get, list_to_binary(URL), [],  , []),\n\n    case Response of\n        {ok, _, _, BodyRef} -  hackney:skip_body(BodyRef);\n        _ -  ok\n    end,\n\n    Latency = timer:now_diff(os:timestamp(), StartTime),\n    mzb_metrics:notify({ latency , histogram}, Latency),\n\n    case Response of\n        {ok, 200, _, _} - \n            mzb_metrics:notify({ http_ok , counter}, 1);\n        {ok, _, _, _} = Reply - \n            lager:error( GET failed: ~p , [Reply]),\n            mzb_metrics:notify({ http_fail , counter}, 1);\n        E - \n            lager:error( hackney:request failed: ~p , [E]),\n            mzb_metrics:notify({ other_fail , counter}, 1)\n    end,\n    {nil, State}.  It exports three functions:  initial_state/0 ,  metrics/0 , and  get/3 . The first two are mandatory for any worker.    initial_state/0  Set the worker s initial state. Each parallel job has its own state, so this function will be called once per job start.  metrics/0  Return a group of metrics generated by this worker.  Declaring Metrics .   The rest of the exported functions define the BDL statements provided by this worker. You can, of course, provide none, although such a worker wouldn t be very useful. The  simple_http_worker , for instance, provides the  get  statement to fetch particular HTTP document.", 
+            "title": "The Erlang Worker Structure"
+        }, 
+        {
+            "location": "/workers/#how-to-define-statements", 
+            "text": "To define a BDL statement provided by your worker, export an Erlang function that will be called when this statement is encountered:  statement_name (State, Meta, [ Param1 , [ Param2 , ...]]) - \n    {ReturnValue, NewState}.  The function has the same name as the statement it defines. It accepts at least two parameters: the worker internal state at the moment the statement is executed and  meta  information proplist. The function can also accept any number of other parameters. They correspond to the parameters of the statement.  For example, this function:  foo(State, Meta, X, Y) - \n    {nil, State}.  is called as  foo(X, Y)  from a benchmarking scenario.  If you want to use key arguments at your function call as  foo(x = 1, y = 2) , you need to declare three argument function foo and expect third parameter to be  proplist . For example:  foo(State, Meta, Proplist) - \n    1 = proplists:get_value(x, Proplist),\n    2 = proplists:get_value(y, Proplist),\n    {nil, State}.  The statement function must return a tuple of two values:   the return value of statement; return  nil  if your statement has no return value  the next worker state   Statements are processed sequentially; each statement receives the state from the previous one and passes it further.  Two exceptions are the statements within the  parallel  section and iterations within a  loop  with  parallel   1 . In these cases the statements within the same thread share the same sequence of statements, which parallel threads don t. The final state of the whole  parallel  or  loop  statement is the one from the first  thread ; other threads  states don t affect the final state.", 
+            "title": "How to Define Statements"
+        }, 
+        {
+            "location": "/workers/#metrics", 
+            "text": "Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.", 
+            "title": "Metrics"
+        }, 
+        {
+            "location": "/workers/#metric-types", 
+            "text": "MZBench currently support four types of metrics:   counter  A single additive value. New values are simply added to the current one.  gauge  A single non-additive value. New value replaces the previous one.  histogram  A set of numerical values that quantify a distribution of values. New values are added to the distribution.  derived  Evaluated periodically using user-defined function based on another metric values.  Learn more .   For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use  counter . If you are interested in its distribution\u2013mean size, 50 percentile, and so on\u2013you need a  histogram .", 
+            "title": "Metric Types"
+        }, 
+        {
+            "location": "/workers/#declaring-metrics", 
+            "text": "Declare the groups of metrics collected by your worker in the list returned by  metrics/0 . Each group corresponds to a structure with following spec:  graph_group() :: {group, Name :: string(), [graph()]}\n               | graph().\ngraph()       :: {graph, Opts :: #{metrics =  [metric()],\n                                   units =  string(),\n                                   title =  string()}}\n               | [metric()]\n               | metric().\nmetric()      :: {Name :: string(), Type :: metric_type() }\n               | {Name :: string(), Type :: metric_type(), Opts :: map()}.\nmetric_type() :: counter | gauge | histogram.  This structure has a three-level hierarchy:   Group of graphs is placed on the top of this hierarchy. It consists of one or more graphs and defines a group of graphs under the same name.  Graph consists of one or more metrics that will be plotted on the same chart. Furthermore, you could specify additional options for the chart: units, title, etc.  Metric is the lowest unit of this hierarchy. It specifies the name and type of the user-defined metric.   Let s see the following metrics declaration:  metrics() -  [{group,  HTTP Requests , [\n                {graph, #{metrics =  [{ success_requests , counter}, { failed_requests , counter}]}},\n                {graph, #{title =   Request's latency ,\n                          units =   ms ,\n                          metrics =  [{ latency , histogram}]}}]}].  In this example, a group of graphs with the name  HTTP Requests  is created. It consists of several graphs representing the number of successful and failed requests and the request latencies.  A graph can produce several charts. In the example above, the graph for successful and failed request produces two charts: absolute counters and their rps.", 
+            "title": "Declaring Metrics"
+        }, 
+        {
+            "location": "/workers/#derived-metrics", 
+            "text": "Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric, specify the  resolver  function in the metric opts dictionary. This function is used to evaluate the metric value.  Typical example of a derived metric is the current number of pending requests. We specify a function ( pending_requests ) to calculate the metric value in the metric options and then define the function as simple difference between the number of sent requests and received responses:  metrics() -  [{group,  Requests , [\n                {graph, #{metrics =  [\n                    { requests_sent , counter},\n                    { responses_received , counter},\n                    { pending_requests , derived, #{resolver =  pending_requests}}]}},\n                ]}].\n\npending_requests() - \n    mzb_metrics:get_value( requests_sent ) - mzb_metrics:get_value( responses_received ).", 
+            "title": "Derived Metrics"
+        }, 
+        {
+            "location": "/workers/#hooks", 
+            "text": "Pre and post hooks  let you run custom code before and after a benchmark. Hooks can be applied on every node or only on the director node. You can change any environment variable in your hook handler and use it in your scenario.  Scenario:  pre_hook():\n    exec(all,  yum install mylib )\n    worker_call(fetch_url, simple_http_worker)\n\npool(size = 3, worker_type = simple_http_worker):\n    loop(time = 1 sec,\n         rate = ramp(linear, 10 rps, 50 rps)):\n        get(var( url ,  http://mydomain.com ))  Worker:  fetch_url(Env) - \n    {ok, [{ url ,  http://mycdn.com/myresource } | Env]}.", 
+            "title": "Hooks"
+        }, 
+        {
+            "location": "/workers/#updating-metrics", 
+            "text": "You can update a metric from anywhere inside your worker. Simply call the following function:  mzb_metrics:notify({ metric_name ,  metric_type },  value )  The tuple  {\" metric_name \",  metric_type }  is the same that was used during the metric declaration and identifies the metric to update.  value  is the value to add to the metric.", 
+            "title": "Updating Metrics"
+        }, 
+        {
             "location": "/workers/#how-to-write-a-python-worker", 
-            "text": "Note  You need a basic knowledge about the Python programming language to understand this tutorial. Refer to  The Python Tutorial  for an introduction to Python.   The Python Worker Structure  A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.  To understand the general structure of a worker, let s see the source code of the  python_empty  worker template provided with the MZBench distribution:  import random\nimport mzbench\n\ndef initial_state():\n    pass\n\n\ndef metrics():\n    return [\n        [\n            ('print', 'counter'),\n            ('print_2', 'counter')\n        ],\n        ('dummy', 'histogram')\n    ]\n\n\ndef my_print(msg):\n    mzbench.notify(('print', 'counter'), 1)\n    mzbench.notify(('print_2', 'counter'), 2)\n\n    print  {0} .format(msg)\n\n    mzbench.notify(('dummy', 'histogram'), random.uniform(0, 1000000000)/7)  It contains three functions:  initial_state() ,  metrics() , and  my_print() . The first two are mandatory for any worker.    initial_state()  Useful to initialize the worker s initial state. Each parallel job has its own separate Python interpreter process, so this function will be called once per job start.  metrics()  Return a group of metrics generated by this worker.  Declaring Metrics in Python .   The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn t be very useful. The  python_empty  worker, for instance, provides the  my_print  statement to output a string to the standard output.  How to Define Statements  To define a DSL statement provided by your worker, write a Python function that will be called when this statement is encountered:  def  statement_name ([ Param1 , [ Param2 , ...]]):\n    [return  ReturnValue ]  The function has the same name as the statement it defines. It can accept any number of parameters, they correspond to the parameters of the statement.  For example, this function:  def foo(X, Y):\n    pass  is called as  foo(X, Y)  from a benchmarking scenario.  The statement function may return a value corresponding to the return value of the statement or nothing if the statement has no return value.  Statements are processed sequentially in the same interpreter, so the values of the global variables are conserved between calls.   Note  Please beware that the  parallel  section and  parallel   1  option of the  loop  \ncan t and shouldn t be used with the Python based workers.   Metrics  Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.  Metric Types  MZBench currently support three types of metrics with the Python based workers:   counter  A single additive value. New values are simply added to the current one.  gauge  A single non-additive value. New value replaces the previous one.  histogram  A set of numerical values that quantify a distribution of values. New values are added to the distribution.   For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use  counter . If you are interested in its distribution\u2013mean size, 50 percentile, and so on\u2013you need a  histogram .  Declaring Metrics in Python  Declare the metrics and the groups of metrics collected by your worker in the list returned by the  metrics()  function. Each metric is a tuple  ( Name ,  Type )  where  Name  is the name of the metric and  Type  is the metric type. Each group is a list of metrics tuples. A group corresponds to metrics that will be plotted on the same chart.  Let s see the following metrics declaration:  def metrics():\n    return [\n        [\n            ('print', 'counter'),\n            ('print_2', 'counter')\n        ],\n        ('dummy', 'histogram')\n    ]  In this example, three metrics are declared.  print  and  print_2  are  counters  and  dummy  is a  histogram . Moreover, the metrics  print  and  print_2  will be plotted on the same graph.  Updating Metrics  You can update a metric from anywhere inside your worker. Simply call the following function:  mzbench.notify((' metric_name ', ' metric_type '),  value )  The tuple  (' metric_name ', ' metric_type ')  is the same that was used during the metric declaration and identifies the metric to update.  value  is the value to add to the metric.", 
+            "text": "Note  You need a basic knowledge about the Python programming language to understand this tutorial. Refer to  The Python Tutorial  for an introduction to Python.", 
             "title": "How to write a Python worker"
+        }, 
+        {
+            "location": "/workers/#the-python-worker-structure", 
+            "text": "A worker provides DSL statements and metrics. The statements need not to be independent as the worker can have internal state.  To understand the general structure of a worker, let s see the source code of the  python_empty  worker template provided with the MZBench distribution:  import random\nimport mzbench\n\ndef initial_state():\n    pass\n\n\ndef metrics():\n    return [\n        [\n            ('print', 'counter'),\n            ('print_2', 'counter')\n        ],\n        ('dummy', 'histogram')\n    ]\n\n\ndef my_print(msg):\n    mzbench.notify(('print', 'counter'), 1)\n    mzbench.notify(('print_2', 'counter'), 2)\n\n    print  {0} .format(msg)\n\n    mzbench.notify(('dummy', 'histogram'), random.uniform(0, 1000000000)/7)  It contains three functions:  initial_state() ,  metrics() , and  my_print() . The first two are mandatory for any worker.    initial_state()  Useful to initialize the worker s initial state. Each parallel job has its own separate Python interpreter process, so this function will be called once per job start.  metrics()  Return a group of metrics generated by this worker.  Declaring Metrics in Python .   The rest of the exported functions define the DSL statements provided by this worker. You can, of course, provide none, although such a worker wouldn t be very useful. The  python_empty  worker, for instance, provides the  my_print  statement to output a string to the standard output.", 
+            "title": "The Python Worker Structure"
+        }, 
+        {
+            "location": "/workers/#how-to-define-statements_1", 
+            "text": "To define a DSL statement provided by your worker, write a Python function that will be called when this statement is encountered:  def  statement_name ([ Param1 , [ Param2 , ...]]):\n    [return  ReturnValue ]  The function has the same name as the statement it defines. It can accept any number of parameters, they correspond to the parameters of the statement.  For example, this function:  def foo(X, Y):\n    pass  is called as  foo(X, Y)  from a benchmarking scenario.  The statement function may return a value corresponding to the return value of the statement or nothing if the statement has no return value.  Statements are processed sequentially in the same interpreter, so the values of the global variables are conserved between calls.   Note  Please beware that the  parallel  section and  parallel   1  option of the  loop  \ncan t and shouldn t be used with the Python based workers.", 
+            "title": "How to Define Statements"
+        }, 
+        {
+            "location": "/workers/#metrics_1", 
+            "text": "Metrics are numerical values collected during the scenario execution. They are the main result of your worker and represent the values you want to evaluate with your benchmark.", 
+            "title": "Metrics"
+        }, 
+        {
+            "location": "/workers/#metric-types_1", 
+            "text": "MZBench currently support three types of metrics with the Python based workers:   counter  A single additive value. New values are simply added to the current one.  gauge  A single non-additive value. New value replaces the previous one.  histogram  A set of numerical values that quantify a distribution of values. New values are added to the distribution.   For example, if you are consuming TCP packets of various sizes and you want to track overall amount of data being transferred, use  counter . If you are interested in its distribution\u2013mean size, 50 percentile, and so on\u2013you need a  histogram .", 
+            "title": "Metric Types"
+        }, 
+        {
+            "location": "/workers/#declaring-metrics-in-python", 
+            "text": "Declare the metrics and the groups of metrics collected by your worker in the list returned by the  metrics()  function. Each metric is a tuple  ( Name ,  Type )  where  Name  is the name of the metric and  Type  is the metric type. Each group is a list of metrics tuples. A group corresponds to metrics that will be plotted on the same chart.  Let s see the following metrics declaration:  def metrics():\n    return [\n        [\n            ('print', 'counter'),\n            ('print_2', 'counter')\n        ],\n        ('dummy', 'histogram')\n    ]  In this example, three metrics are declared.  print  and  print_2  are  counters  and  dummy  is a  histogram . Moreover, the metrics  print  and  print_2  will be plotted on the same graph.", 
+            "title": "Declaring Metrics in Python"
+        }, 
+        {
+            "location": "/workers/#updating-metrics_1", 
+            "text": "You can update a metric from anywhere inside your worker. Simply call the following function:  mzbench.notify((' metric_name ', ' metric_type '),  value )  The tuple  (' metric_name ', ' metric_type ')  is the same that was used during the metric declaration and identifies the metric to update.  value  is the value to add to the metric.", 
+            "title": "Updating Metrics"
         }
     ]
 }

@@ -12,7 +12,7 @@
 	<title>Deployment - MZBench Docs</title>
 
         <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="../css/font-awesome-4.0.3.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
         <link href="../css/base.css" rel="stylesheet">
         <link rel="stylesheet" href="../css/highlight.css">
         <link href="../css/custom.css" rel="stylesheet">
@@ -262,6 +262,15 @@ sudo pip install -r mzbench/requirements.txt
 
 <p>Specify the port to access the dashboard.</p>
 <p>Default value: <code>4800</code>.</p>
+<h3 id="protocol">protocol<a class="headerlink" href="#protocol" title="Permanent link">&para;</a></h3>
+<p>By default protocol is set to <code>http</code>, but <code>https</code> is also available. MZBench generates self-signed certificates on first start. If you need to replace them, please use the following configuration parameters:</p>
+<pre><code class="erlang">{protocol, https},
+{cacertfile, none},
+{certfile, &quot;~/.local/share/mzbench_api/server.crt&quot;},
+{keyfile, &quot;~/.local/share/mzbench_api/server.key&quot;},
+</code></pre>
+
+<p>CA certificate is not required unless you use custom CA.</p>
 <h3 id="bench_log_file">bench_log_file<a class="headerlink" href="#bench_log_file" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{bench_log_file, &quot;&lt;filename&gt;&quot;}
 </code></pre>
