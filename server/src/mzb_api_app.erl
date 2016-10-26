@@ -79,11 +79,8 @@ wait_benchmarks_finish(Attempts) ->
     end.
 
 load_config(AppName) ->
-    case init:get_argument(config_file) of
-        {ok, [[Config]]} ->
-            ok = application:set_env(mzbench_api, active_config, Config),
-            load_config(Config, AppName);
-        _ ->
+    case os:getenv("MZBENCH_CONFIG_FILE") of
+        false ->
             {ok, Configs} = application:get_env(mzbench_api, server_configs),
             _ = lists:dropwhile(
                 fun (Cfg) ->
@@ -95,7 +92,10 @@ load_config(AppName) ->
                         _:{config_read_error, _, enoent} -> true
                     end
                 end, Configs),
-            ok
+            ok;
+        Config ->
+            ok = application:set_env(mzbench_api, active_config, Config),
+            load_config(Config, AppName)
     end.
 
 load_config(File, AppName) ->

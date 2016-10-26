@@ -221,10 +221,6 @@ def ensure_server_started(attempts):
 def start_server(config):
     require('escript')
     execute_make(SERVER_PROJECTS, 'generate')
-    if config is not None:
-        config_arg = '-config_file {0}'.format(os.path.abspath(config))
-    else:
-        config_arg = ''
 
     if is_server_started():
         print("Server is already running, config info:")
@@ -236,7 +232,9 @@ def start_server(config):
         start_environ['CODE_LOADING_MODE'] = 'interactive'
         if 'ORIG_PATH' not in start_environ:
             start_environ['ORIG_PATH'] = start_environ['PATH']
-        subprocess.check_call([server_rel_dir + 'bin/mzbench_api', 'start', config_arg], env=start_environ)
+        if config is not None:
+            start_environ['MZBENCH_CONFIG_FILE'] = os.path.abspath(config)
+        subprocess.check_call([server_rel_dir + 'bin/mzbench_api', 'start'], env=start_environ)
     except subprocess.CalledProcessError as e:
         print("Failed to execute server start command")
         sys.exit(e.returncode)
