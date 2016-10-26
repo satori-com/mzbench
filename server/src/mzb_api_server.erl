@@ -258,7 +258,7 @@ autogenerate_config() ->
     ok = filelib:ensure_dir(Filename),
     Config = lists:foldl(fun proplists:delete/2,
         application:get_all_env(mzbench_api), XList),
-    file:write_file(Filename,io_lib:fwrite("~p.\n",[Config])).
+    file:write_file(Filename,io_lib:fwrite("[{mzbench_api,~n~p~n}].\n",[Config])).
 
 
 init([]) ->
