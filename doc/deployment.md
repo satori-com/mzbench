@@ -208,6 +208,14 @@ The git commit SHA or branch name used to deploy worker nodes.
 
 By default, the latest revision is used.
 
+### node_rsync
+
+```erlang
+{node_rsync, "<folder>"}
+```
+
+Use local folder when deploying worker nodes. This option has a precedency over node_git.
+
 
 ### node_deployment_path
 
