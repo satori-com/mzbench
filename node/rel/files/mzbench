@@ -172,7 +172,7 @@ case "$1" in
                     echo "Node start failed"
                     exit 1;
                 fi
-                attempts=$[$attempts-1]
+                attempts=$(echo "$attempts-1" | bc)
                 sleep 5
             else
                 break
@@ -191,7 +191,7 @@ case "$1" in
                     echo "Node start failed"
                     exit 1;
                 fi
-                attempts=$[$attempts-1]
+                attempts=$(echo "$attempts-1" | bc)
                 sleep 5
             fi
         done
