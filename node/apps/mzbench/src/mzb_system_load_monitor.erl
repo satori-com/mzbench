@@ -264,7 +264,7 @@ enumerate_shortened([{Name, Data} | Tail], Res) ->
 
 parse_linux_netstat_output(Str) ->
     try
-        Bin = list_to_binary(Str),
+        Bin = unicode:characters_to_binary(Str),
         [_Header, Data] = binary:split(Bin, <<"\n">>),
         Sections = [binary_to_list(B) || B <- binary:split(Data, <<"\n\n">>, [global]), B /= <<>>],
         Parsed = lists:filtermap(
