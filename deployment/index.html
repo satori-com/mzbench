@@ -307,6 +307,11 @@ sudo pip install -r mzbench/requirements.txt
 
 <p>The git commit SHA or branch name used to deploy worker nodes.</p>
 <p>By default, the latest revision is used.</p>
+<h3 id="node_rsync">node_rsync<a class="headerlink" href="#node_rsync" title="Permanent link">&para;</a></h3>
+<pre><code class="erlang">{node_rsync, &quot;&lt;folder&gt;&quot;}
+</code></pre>
+
+<p>Use local folder when deploying worker nodes. This option has a precedency over node_git.</p>
 <h3 id="node_deployment_path">node_deployment_path<a class="headerlink" href="#node_deployment_path" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{node_deployment_path, &quot;&lt;path&gt;&quot;}
 </code></pre>

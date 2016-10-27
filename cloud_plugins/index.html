@@ -175,7 +175,7 @@
 <h2 id="amazon-ec2">Amazon EC2<a class="headerlink" href="#amazon-ec2" title="Permanent link">&para;</a></h2>
 <p><code>mzb_api_ec2_plugin</code></p>
 <p>The module allocates nodes in an Amazon EC2 cloud.</p>
-<p>The AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put <code>Defaults !requiretty</code> in <code>/etc/sudoers</code>. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.</p>
+<p>The AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put <code>Defaults !requiretty</code> in <code>/etc/sudoers</code>. The SSH and TCP ports 4801-4803 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.</p>
 <p>There&rsquo;s a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:</p>
 <pre><code>Erlang 19:
 us-west-2       ami-da24ffba
