@@ -100,14 +100,14 @@ class BenchSummary extends React.Component {
 
                     <div className="bench-actions col-xs-2">
                         <div className="text-right">
-                            <a type="button" ref="stop" className="btn btn-sm btn-danger" href={MZBenchRouter.buildLink("/stop", {id: this.props.bench.id})}
+                            <a type="button" data-msg="stopped" className="btn btn-sm btn-danger" href={MZBenchRouter.buildLink("/stop", {id: this.props.bench.id})}
                                     disabled={!this.props.bench.isRunning()} onClick={this._onClick}>
                                 <span className="glyphicon glyphicon-minus-sign"></span> Stop
                             </a>
                         </div>
                         <div className="text-right">
                             <div className="btn-group">
-                                <a ref="restart" className="btn btn-sm btn-primary pre-dropdown" href={MZBenchRouter.buildLink("/restart", {id: this.props.bench.id})}
+                                <a data-msg="restarted" className="btn btn-sm btn-primary pre-dropdown" href={MZBenchRouter.buildLink("/restart", {id: this.props.bench.id})}
                                         disabled={this.props.bench.isRunning()} onClick={this._onClick}>
                                     <span className="glyphicon glyphicon-refresh"></span> Restart
                                 </a>
@@ -152,8 +152,12 @@ class BenchSummary extends React.Component {
         event.preventDefault();
 
         let anchor = $(event.target).closest('a');
+        let action_message = 'Benchmark ' + anchor.data('msg');
         if (!anchor.attr('disabled')) {
-            $.ajax({url: anchor.attr('href')});
+            $.ajax({url: anchor.attr('href'),
+                    complete: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
+                    error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});}
+                });
         }
     }
 };
