@@ -6,7 +6,7 @@
 
 The module allocates nodes in an Amazon EC2 cloud.
 
-The AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put `Defaults !requiretty` in `/etc/sudoers`. The SSH and TCP ports 4801 and 4802 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.
+The AWS node images must have Erlang R17+, gcc, gcc-c++, git, and sudo installed. Sudo must be available for non-tty execution; put `Defaults !requiretty` in `/etc/sudoers`. The SSH and TCP ports 4801-4803 must be open; MZBench uses them internally to send logs and metrics data from nodes to the server.
 
 There's a set of ready-to-use Amazon Linux images with all necessary dependencies for all availability zones:
 
