@@ -34,7 +34,7 @@ def start_mzbench_server(custom_data_location=None):
         custom_data_location_param = ''
 
     with open(dirname + "/test_server.config", "w") as config:
-        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_log_user_port, 0}}, {{node_management_port, 0}}]}}].'
+        config.write('[{{mzbench_api, [{0} {1} {{node_log_port, 0}}, {{node_log_user_port, 0}}, {{node_management_port, 0}}, {{node_interconnect_port, 0}}]}}].'
                      .format(node_location_param, custom_data_location_param))
 
     with open('{0}/test_server.config'.format(dirname), 'r') as f:

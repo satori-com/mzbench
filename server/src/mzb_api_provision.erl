@@ -52,18 +52,25 @@ provision_nodes(Config, Logger) ->
         io_lib:format("cd ~s && ~s/mzbench/bin/mzbench start", [RootDir, NodeDeployPath]),
         [],
         Logger),
+    InterconnectPorts = mzb_lists:pmap(fun({H, N}) ->
+        [Res] = nodetool_rpcterms(UserName, H, N, "mzb_interconnect_sup", "get_port", Logger),
+        erlang:list_to_integer(Res) end, lists:zip(WorkerHosts, WorkerNodes)),
 
-    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), get_management_port(Config, Logger)}.
+    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), InterconnectPorts, get_management_port(Config, Logger)}.
 
 get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->
-    [Res] = mzb_subprocess:remote_cmd(
-                UserName,
-                [DirectorHost],
-                io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
-                ["-name", nodename(director_sname(Config), 0), "rpcterms", "mzb_management_tcp_protocol", "get_port", "\\\"\\\""],
-                Logger, []),
+    [Res] = nodetool_rpcterms(UserName, DirectorHost, nodename(director_sname(Config), 0),
+        "mzb_management_tcp_protocol", "get_port", Logger),
     Logger(info, "Management port: ~s", [Res]),
     erlang:list_to_integer(Res).
+
+nodetool_rpcterms(UserName, Host, NodeName, Module, Function, Logger) ->
+    mzb_subprocess:remote_cmd(
+        UserName,
+        [Host],
+        io_lib:format("~s/mzbench/bin/nodetool", [mzb_api_paths:node_deployment_path()]),
+        ["-name", NodeName, "rpcterms", Module, Function, "\\\"\\\""],
+        Logger, []).
 
 % couldn't satisfy both erl 18 and 19 dialyzers, spec commented
 %-spec clean_nodes(#{director_host:=_, purpose:=atom() | binary() | [atom() | [any()] | char()], user_name:=_, worker_hosts:=_, _=>_}, fun((_,_,_) -> any())) -> ok.
@@ -167,13 +174,15 @@ director_sname(#{id:= Id}) -> "mzb_director" ++ integer_to_list(Id).
 worker_sname(#{id:= Id})   -> "mzb_worker" ++ integer_to_list(Id).
 
 vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port,
-    vm_args:= ConfigArgs, node_log_user_port:= LogUserPort} = Config) ->
+    vm_args:= ConfigArgs, node_log_user_port:= LogUserPort,
+    node_interconnect_port:= InterconnectPort} = Config) ->
     UpdateIntervalMs = mzb_bc:maps_get(metric_update_interval_ms, Config, undefined),
     NewArgs =
         [mzb_string:format("-name ~s", [NodeName]),
          mzb_string:format("-mzbench node_management_port ~b", [Port]),
          mzb_string:format("-mzbench node_log_port ~b", [LogPort]),
-         mzb_string:format("-mzbench node_log_user_port ~b", [LogUserPort])] ++
+         mzb_string:format("-mzbench node_log_user_port ~b", [LogUserPort]),
+         mzb_string:format("-mzbench node_interconnect_port ~b", [InterconnectPort])] ++
         [mzb_string:format("-mzbench metric_update_interval_ms ~b", [UpdateIntervalMs]) || UpdateIntervalMs /= undefined],
 
     io_lib:format(string:join([A ++ "~n" || A <- NewArgs ++ ConfigArgs], ""), []).

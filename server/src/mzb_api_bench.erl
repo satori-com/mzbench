@@ -109,6 +109,7 @@ init([Id, Params]) ->
         cloud => Cloud,
         node_log_port => application:get_env(mzbench_api, node_log_port, undefined),
         node_log_user_port => application:get_env(mzbench_api, node_log_user_port, undefined),
+        node_interconnect_port => application:get_env(mzbench_api, node_interconnect_port, undefined),
         metric_update_interval_ms => extract_metric_update_interval(Params),
         node_management_port => application:get_env(mzbench_api, node_management_port, undefined),
         tags => Tags
@@ -138,6 +139,7 @@ init([Id, Params]) ->
         log_file_handler => LogHandler,
         log_user_file_handler => LogUserHandler,
         collectors => [],
+        interconnect_ports => [],
         cluster_connection => undefined,
         deallocator => undefined,
         metrics => #{},
@@ -208,17 +210,19 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     end;
 
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
-    {[{DirectorNode, _}|_] = Nodes, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
+    {[{DirectorNode, _}|_] = Nodes, InterconnectPorts, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     #{director_host:= DirectorHost} = Config,
     Connection = mzb_api_connection:start_and_link_with(
                     Self, management, DirectorHost, Port,
                     fun (Msg, S) -> handle_management_msg(Msg, Self, S) end,
                     #{config => Config, handlers => #{}}),
-    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection, nodes => Nodes} end;
+    fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection,
+                  nodes => Nodes, interconnect_ports => InterconnectPorts} end;
 
-handle_stage(pipeline, connect_nodes, #{cluster_connection:= Connection, config:= Config}) ->
+handle_stage(pipeline, connect_nodes, #{cluster_connection:= Connection, config:= Config,
+                                        interconnect_ports:= InterconnectPorts}) ->
     #{worker_hosts:= WorkerHosts} = Config,
-    case director_call(Connection, {connect_nodes, WorkerHosts}) of
+    case director_call(Connection, {connect_nodes, lists:zip(WorkerHosts, InterconnectPorts)}) of
         ok -> ok;
         {error, Error} -> erlang:error({connect_cluster_error, Error})
     end;

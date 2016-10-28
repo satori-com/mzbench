@@ -62,13 +62,12 @@ handle_message(get_results, ReplyFun) ->
 handle_message({read_and_validate, Path, Env}, _) ->
     {reply, mzb_bench_sup:read_and_validate(Path, Env)};
 
-handle_message({connect_nodes, Hosts}, ReplyFun) ->
-    {ok, Port} = application:get_env(mzbench, node_interconnect_port),
+handle_message({connect_nodes, HostsAndPorts}, ReplyFun) ->
     try
-        mzb_interconnect:set_director([{Host, Port} || Host <- Hosts]),
+        mzb_interconnect:set_director(HostsAndPorts),
         fun Wait (0) -> ReplyFun({error, timeout});
             Wait (N) ->
-                case (length(mzb_interconnect:nodes()) == length(Hosts)) of
+                case (length(mzb_interconnect:nodes()) == length(HostsAndPorts)) of
                     true  -> ReplyFun(ok);
                     false ->
                         timer:sleep(_Timeout = 2000),
