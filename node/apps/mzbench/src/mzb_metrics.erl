@@ -114,7 +114,7 @@ init([Env, Nodes]) ->
         }}.
 
 handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
-    try mzb_script_metrics:normalize(OldGroups ++ Groups) of
+    try mzb_script_metrics:normalize(Groups ++ OldGroups) of
         NewGroups ->
             mzb_metric_reporter:new_metrics(NewGroups),
             NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
