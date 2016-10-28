@@ -24,7 +24,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 All top-level directives are optional.
 
-### make_install
+### make_install git
 
 ```python
 make_install(git = "<URL>", branch = "<Branch>", dir = "<Dir>")
@@ -47,6 +47,14 @@ $ make generate_tgz
 If `branch` is not specified, the default git branch is used.
 
 If `dir` is not specified, `.` is used.
+
+### make_install rsync
+
+```python
+make_install(rsync = "<location>", exclude = "<subdir>")
+```
+
+Install an external worker with rsync on the test nodes before running the benchmark. Unlike git `make_install`, rsync does not cache worker code.
 
 ### defaults
 
