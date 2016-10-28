@@ -39,6 +39,7 @@
         {node_log_port, 4801},
         {node_log_user_port, 4802},
         {node_management_port, 4803},
+        {node_interconnect_port, 4804},
         {bench_metrics_file, "metrics_~s.txt"},
         {bench_metrics_compression, none},
         {bench_read_at_once, 1024},
