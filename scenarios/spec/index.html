@@ -212,7 +212,7 @@
 <p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
 <h2 id="top-level-directives">Top-Level Directives<a class="headerlink" href="#top-level-directives" title="Permanent link">&para;</a></h2>
 <p>All top-level directives are optional.</p>
-<h3 id="make_install">make_install<a class="headerlink" href="#make_install" title="Permanent link">&para;</a></h3>
+<h3 id="make_install-git">make_install git<a class="headerlink" href="#make_install-git" title="Permanent link">&para;</a></h3>
 <pre><code class="python">make_install(git = &quot;&lt;URL&gt;&quot;, branch = &quot;&lt;Branch&gt;&quot;, dir = &quot;&lt;Dir&gt;&quot;)
 </code></pre>
 
@@ -228,6 +228,11 @@ $ make generate_tgz
 
 <p>If <code>branch</code> is not specified, the default git branch is used.</p>
 <p>If <code>dir</code> is not specified, <code>.</code> is used.</p>
+<h3 id="make_install-rsync">make_install rsync<a class="headerlink" href="#make_install-rsync" title="Permanent link">&para;</a></h3>
+<pre><code class="python">make_install(rsync = &quot;&lt;location&gt;&quot;, exclude = &quot;&lt;subdir&gt;&quot;)
+</code></pre>
+
+<p>Install an external worker with rsync on the test nodes before running the benchmark. Unlike git <code>make_install</code>, rsync does not cache worker code.</p>
 <h3 id="defaults">defaults<a class="headerlink" href="#defaults" title="Permanent link">&para;</a></h3>
 <pre><code class="python">defaults(&quot;&lt;VarName1&gt;&quot; = &lt;Value1&gt;, &quot;&lt;VarName2&gt;&quot; = &lt;Value2&gt;, ...)
 </code></pre>
