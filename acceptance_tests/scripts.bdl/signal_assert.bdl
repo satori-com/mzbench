@@ -1,0 +1,9 @@
+#!benchDL
+assert(always, "mysignal" > 0)
+pool(size = 1,
+     worker_type = dummy_worker):
+        set_signal("mysignal", 1)
+        loop(time = 1 min,
+             rate = 1 rps):
+            set_signal("mysignal", 1)
+        wait_signal("mysignal", 10)
