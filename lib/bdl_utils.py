@@ -51,7 +51,7 @@ def add_indents(text):
             if comma != None and char == comma:
                 comma = None
             elif char in ['"', "'"]:
-                comma = tline[0]
+                comma = char
 
             if comma == None:
                 if (char == "]" and brackets[-1] == "[") or (char == ")" and brackets[-1] == "("):
