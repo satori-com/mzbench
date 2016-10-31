@@ -266,8 +266,13 @@ check_signals(#s{nodes = Nodes} = State) ->
         end, lists:usort([erlang:node()] ++ Nodes)),
     GroupedSignals = groupby(lists:flatten(RawSignals)),
     Signals = [{N, lists:max(Counts)} || {N, Counts} <- GroupedSignals],
+    _ = [signal_to_metric(N, Value) || {N, Value} <- Signals],
     system_log:info("List of currently registered signals:~n~s", [format_signals_count(Signals)]),
     State.
+
+signal_to_metric(Name, Value) when is_atom(Name) ->
+    signal_to_metric(atom_to_list(Name), Value);
+signal_to_metric(Name, Value) -> global_set(Name, gauge, Value).
 
 format_global_metrics() ->
     Metrics = global_metrics(),

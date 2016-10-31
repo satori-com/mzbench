@@ -23,6 +23,9 @@ def signal_count_test():
     run_successful_bench(mzbench_dir + 'examples/signal_count.erl', env={})
     run_successful_bench(mzbench_dir + 'examples.bdl/signal_count.bdl', env={})
 
+def signal_assert_test():
+    run_successful_bench(scripts_bdl_dir + 'signal_assert.bdl', env={})
+
 def signal_parallel_test():
     run_successful_bench(scripts_dir + 'signal_parallel.erl', env={})
     run_successful_bench(scripts_bdl_dir + 'signal_parallel.bdl', env={})

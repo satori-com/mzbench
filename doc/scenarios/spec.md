@@ -150,8 +150,9 @@ Check if the condition `<Condition>` is satisfied throughout the entire benchmar
 "http_ok" > 20
 ```
 
-The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
+The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.
 
+Please note that signals are automatically converted to gauges and could be also used for asserts.
 
 # Pools
 
