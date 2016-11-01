@@ -70,7 +70,7 @@ See [Environment Variables](#environment-variables) for additional information.
 
 ```python
 include_resource(<ResourceName>, "<FileName>", <Type>)
-include_resource(<ResourceName>, "<FileURL>", <Type>)`
+include_resource(<ResourceName>, "<FileURL>", <Type>)
 ```
 
 Register a [resource file](#resource-files) as `<ResourceName>`.
