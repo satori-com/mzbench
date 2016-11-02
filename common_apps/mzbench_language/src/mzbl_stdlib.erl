@@ -9,6 +9,7 @@
          random_list/4,
          random_number/4,
          random_number/5,
+         random_string/4,
          sprintf/5,
          var/4,
          var/5,
@@ -81,6 +82,15 @@ random_binary(State, _Env, _Meta, N) ->
          List :: [integer()].
 random_list(State, _Env, _Meta, N) ->
     {mzb_utility:random_list(N), State}.
+
+-spec random_string(State, Env, Meta, N) -> {String, State}
+    when State :: any(),
+         Env :: [proplists:property()],
+         Meta :: meta(),
+         N :: pos_integer(),
+         String :: string().
+random_string(State, _Env, _Meta, N) ->
+    {mzb_utility:random_string(N), State}.
 
 -spec random_number(State, Env, Meta, N) -> {Res, State}
     when State :: any(),

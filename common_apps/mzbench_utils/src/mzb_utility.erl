@@ -6,6 +6,7 @@
     random_list/1,
     random_number/1,
     random_number/2,
+    random_string/1,
     to_integer_with_default/2,
     int_ceil/1,
     any_to_num/1,
@@ -16,6 +17,8 @@
 random_binary(N) -> crypto:rand_bytes(N).
 
 random_list(N) -> erlang:binary_to_list(crypto:rand_bytes(N)).
+
+random_string(N) -> base64:encode(crypto:strong_rand_bytes(N)).
 
 random_number(N) -> crypto:rand_uniform(0, N).
 
