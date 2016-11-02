@@ -159,6 +159,8 @@
         
             <li><a href="#how-to-write-a-python-worker">How to write a Python worker</a></li>
         
+            <li><a href="#importing-external-metrics">Importing external metrics</a></li>
+        
     
     </ul>
 </div></div>
@@ -473,7 +475,9 @@ can&rsquo;t and shouldn&rsquo;t be used with the Python based workers.</p>
 <pre><code class="python">mzbench.notify(('&lt;metric_name&gt;', '&lt;metric_type&gt;'), &lt;value&gt;)
 </code></pre>
 
-<p>The tuple <code>('&lt;metric_name&gt;', '&lt;metric_type&gt;')</code> is the same that was used during the metric declaration and identifies the metric to update. <code>&lt;value&gt;</code> is the value to add to the metric.</p></div>
+<p>The tuple <code>('&lt;metric_name&gt;', '&lt;metric_type&gt;')</code> is the same that was used during the metric declaration and identifies the metric to update. <code>&lt;value&gt;</code> is the value to add to the metric.</p>
+<h2 id="importing-external-metrics">Importing external metrics<a class="headerlink" href="#importing-external-metrics" title="Permanent link">&para;</a></h2>
+<p>It could be useful to have an external data at MZBench dashboard. For this purpose a worker could fetch metrics from outside or implement statsd server and push all the data to MZBench API server. Please refer to <a href="https://github.com/machinezone/mzbench/blob/master/workers/tcpkali/src/tcpkali_worker.erl">tcpkali</a> worker code as an example.</p></div>
             
         </div>
 
