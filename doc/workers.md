@@ -415,3 +415,7 @@ mzbench.notify(('<metric_name>', '<metric_type>'), <value>)
 ```
 
 The tuple `('<metric_name>', '<metric_type>')` is the same that was used during the metric declaration and identifies the metric to update. `<value>` is the value to add to the metric.
+
+## Importing external metrics
+
+It could be useful to have an external data at MZBench dashboard. For this purpose a worker could fetch metrics from outside or implement statsd server and push all the data to MZBench API server. Please refer to [tcpkali](https://github.com/machinezone/mzbench/blob/master/workers/tcpkali/src/tcpkali_worker.erl) worker code as an example.
