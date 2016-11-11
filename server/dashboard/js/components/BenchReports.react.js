@@ -19,7 +19,22 @@ class BenchReports extends React.Component {
         });
     }
 
+    renderNoReportAvailable() {
+        const link = `#/bench/${this.props.bench.id}/logs`;
+        return (
+            <div className="alert alert-warning" role="alert">
+                Report is not available because this bench has not recordered any metrics. See <a href={link}>Logs</a> for the additional information.
+            </div>
+        );
+    }
+
     renderDownloadReportPanel() {
+        const groups = this.props.bench.metrics.groups || [];
+
+        if (0 == groups.length) {
+            return this.renderNoReportAvailable();
+        }
+
         return (
             <div className="panel panel-default panel-report">
                 <div className="panel-heading">
