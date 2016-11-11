@@ -206,12 +206,13 @@ def print_server_config():
 
 def ensure_server_started(attempts):
     if attempts <= 0:
+       print
        return False
     if not is_server_started():
        time.sleep(1)
        sys.stdout.write(".")
        sys.stdout.flush()
-       ensure_server_started(attempts - 1)
+       return ensure_server_started(attempts - 1)
     print
     return True
 
