@@ -263,6 +263,9 @@ format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped 
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = Stopped}) ->
     {error, {workers_failed, NOk},
         mzb_string:format("FAILED~n~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped]), get_stats_data()};
+format_results(#state{stop_reason = {assertions_failed, dynamic_deadlock}}) ->
+    Str = mzb_string:format("FAILED~nDynamic deadlock detected~n", []),
+    {error, {asserts_failed, 1}, Str, get_stats_data()};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
     Str = mzb_string:format("FAILED~n~b assertions failed~n~s",

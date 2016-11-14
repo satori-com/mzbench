@@ -57,6 +57,9 @@ def nobody_sets_signal_in_loop_test():
     run_failing_bench(scripts_bdl_dir + 'signal_error4.bdl',
         expected_log_message_regex=r'Nobody waits for signal')
 
+def dynamic_deadlock_test():
+    run_failing_bench(scripts_bdl_dir + 'signal_dyn_deadlock.bdl',
+        expected_log_message_regex=r'Dynamic deadlock detected')
 
 def main():
     from nose.plugins.multiprocess import MultiProcess

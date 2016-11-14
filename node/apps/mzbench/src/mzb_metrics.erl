@@ -184,8 +184,9 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State2 = evaluate_derived_metrics(State1),
             State3 = check_assertions(TimeSinceTick, State2),
             State4 = check_signals(State3),
+            State5 = check_dynamic_deadlock(State4),
             ok = report_metrics(),
-            State4#s{last_tick_time = Now}
+            State5#s{last_tick_time = Now}
     end.
 
 aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = Histograms} = State) ->
@@ -237,6 +238,19 @@ evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
     end, DerivedMetrics),
     system_log:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
+
+check_dynamic_deadlock(#s{} = State) ->
+    Blocked = global_get("blocked.workers"),
+    if Blocked == 0 -> State;
+        true ->
+            WorkerMetrics = [{lists:reverse(N), V} || {[$w, $o, $r, $k, $e, $r, $s, $., $p, $o, $o, $l | _] = N, counter, V} <- global_metrics()],
+            Started = lists:sum([V || {[$d, $e, $t, $r, $a, $t, $s | _], V} <- WorkerMetrics]),
+            Ended = lists:sum([V || {[$d, $e, $d, $n, $e | _], V} <- WorkerMetrics]),
+            if Blocked >= Started - Ended -> mzb_director:notify({assertions_failed, dynamic_deadlock});
+                true -> ok
+            end,
+            State
+    end.
 
 check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
     system_log:info("[ metrics ] CHECK ASSERTIONS:"),

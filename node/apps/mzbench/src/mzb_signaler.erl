@@ -94,12 +94,14 @@ handle_call({set_nodes, Nodes}, _From, #s{} = State) ->
 handle_call({check, Name}, From, #s{queue = Q} = State) ->
     case length(ets:lookup(?MODULE, {signal, Name})) > 0 of
         true -> {reply, ok, State};
-        _ -> {noreply, State#s{queue = [{Name, From, 1} | Q]}}
+        _ -> _ = mzb_metrics:notify({"blocked.workers", counter}, 1),
+             {noreply, State#s{queue = [{Name, From, 1} | Q]}}
     end;
 handle_call({check, Name, Count}, From, #s{queue = Q} = State) ->
     case ets:lookup(?MODULE, {signal, Name}) of
         [{Name, Cn}] when Cn >= Count -> {reply, ok, State};
-        _ -> {noreply, State#s{queue = [{Name, From, Count} | Q]}}
+        _ -> _ = mzb_metrics:notify({"blocked.workers", counter}, 1),
+             {noreply, State#s{queue = [{Name, From, Count} | Q]}}
     end;
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
@@ -111,6 +113,7 @@ handle_cast({add_local, Name, Count}, #s{queue = Q} = State) ->
         _ -> ets:insert(?MODULE, {{signal, Name}, Count}), Count
     end,
     W = [F || {N, F, C} <- Q, N == Name, C =< NewC],
+    _ = mzb_metrics:notify({"blocked.workers", counter}, -length(W)),
     _ = lists:map(fun(From) -> gen_server:reply(From, ok) end, W),
     {noreply, State#s{queue = [{N, F, C} || {N, F, C} <- Q, (N =/= Name) or (C > NewC)]}};
 handle_cast(Msg, State) ->

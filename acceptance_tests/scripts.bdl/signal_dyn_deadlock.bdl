@@ -1,0 +1,9 @@
+#!benchDL
+pool(size = var("nodes_num"),
+     worker_type = dummy_worker):
+    error("waldo")
+    set_signal("B")
+
+pool(size = var("nodes_num"),
+    worker_type = dummy_worker):
+    wait_signal("B")

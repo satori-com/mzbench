@@ -15,8 +15,9 @@ script_metrics(Pools, _WorkerNodes) ->
     MZBenchInternal = [{group, "MZBench Internals",
                         WorkerStatusGraphs ++
                         [
-                          {graph, #{title => "Errors",
-                                    metrics => [{"errors", counter}]}},
+                          {graph, #{title => "Errors and Blocked workers",
+                                    metrics => [{"errors", counter},
+                                                {"blocked.workers", counter}]}},
                           {graph, #{title => "Logs",
                                     metrics => [{"logs.written", counter},
                                                 {"logs.dropped.mailbox_overflow", counter},
