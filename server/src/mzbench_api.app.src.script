@@ -15,6 +15,7 @@
         mzbench_utils,
         gen_smtp,
         observer,
+        os_mon,
         runtime_tools,
         hdr_histogram
     ]},
@@ -57,6 +58,7 @@
                     active_config]},
         {max_bench_num, 1000},
         {metric_update_interval_ms, 10000},
+        {warn_free_disk_kb, 100000},
         {ntp_max_timediff_s, undefined},
         {vm_args, []},
         {final_metrics_percentiles, [min, 50, 90, 95, max]},

@@ -180,7 +180,8 @@ dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
 
 dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State) ->
     Tags = get_all_tags(),
-    Data = #{clouds => mzb_api_cloud:list_clouds(), tags => Tags},
+    {IsFree, KBLeft} = disk_status(),
+    Data = #{clouds => mzb_api_cloud:list_clouds(), disk_is_free => IsFree, disk_left_kb => KBLeft, tags => Tags},
     {reply, #{type => "SERVER_INFO", data => Data}, State#state{tags = Tags}};
 
 dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, State) ->
@@ -389,6 +390,16 @@ dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{} = State) ->
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Cmd]),
     {ok, State}.
+
+disk_status() ->
+  FreeRequired = application:get_env(mzbench_api, warn_free_disk_kb, 0),
+  case disksup:get_disk_data() of
+      [{"none",0,0}] -> {1, 0};
+      DiskUsage -> Free = lists:sum([(100 - Percent) * Size / 100||{_, Size, Percent} <- DiskUsage]),
+          if Free < FreeRequired -> {0, Free};
+              true -> {1, Free}
+          end
+  end.
 
 add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = Streams} = State) ->
     #stream_parameters{

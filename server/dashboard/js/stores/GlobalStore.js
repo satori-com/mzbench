@@ -6,6 +6,8 @@ const CHANGE_EVENT = 'global_change';
 
 let data = {
     dashboardMode:false,
+    disk_is_free:1,
+    disk_left_kb:0,
     tags:[]
 };
 
@@ -24,6 +26,14 @@ class GlobalStore extends EventEmitter {
 
     isDashboardModeOn() {
         return data.dashboardMode;
+    }
+
+    isDiskFree() {
+        return data.disk_is_free;
+    }
+
+    diskLeftKB() {
+        return data.disk_left_kb;
     }
 
     getAllTags() {
@@ -62,6 +72,8 @@ _GlobalStore.dispatchToken = Dispatcher.register((action) => {
             break;
         case ActionTypes.SERVER_INFO:
             data.tags = action.data.tags;
+            data.disk_is_free = action.data.disk_is_free;
+            data.disk_left_kb = action.data.disk_left_kb;
             _GlobalStore.emitChange();
             break;
         default:

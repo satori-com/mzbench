@@ -71,6 +71,15 @@ class Timeline extends React.Component {
         );
     }
 
+    renderDiskWarnIfNeeded() {
+        if (this.state.isDiskFree) return null;
+        return (
+            <div className="alert alert-warning" role="alert">
+                Low disk space, currently <b>{this.state.diskLeftKB} KB</b> left.
+            </div>
+        );
+    }
+
     renderEmptyTimeline() {
         if (this.state.isTimelineLoading || this.state.filter) {
             return (
@@ -152,6 +161,7 @@ class Timeline extends React.Component {
             <div>
                 <TimelineFilter filter={this.state.filter} dashboardMode={this.state.dashboardMode}/>
                 {this.renderClearSearchQueryIfNeeded()}
+                {this.renderDiskWarnIfNeeded()}
                 {this.renderNewIfNeeded()}
                 {this.renderTimeline()}
                 <nav>
@@ -182,6 +192,8 @@ class Timeline extends React.Component {
             newName: store.getNew().name,
             isTimelineLoading: store.isShowTimelineLoadingMask(),
             dashboardMode : dashboardMode,
+            isDiskFree: GlobalStore.isDiskFree(),
+            diskLeftKB: GlobalStore.diskLeftKB(),
             isLoaded: true
         };
     }
