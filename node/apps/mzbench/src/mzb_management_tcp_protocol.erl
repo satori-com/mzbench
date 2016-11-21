@@ -84,6 +84,9 @@ handle_message({connect_nodes, HostsAndPorts}, ReplyFun) ->
 handle_message({change_env, Env}, _) ->
     {reply, mzb_director:change_env(Env)};
 
+handle_message({run_command, Pool, Percent, Command}, _) ->
+    {reply, mzb_director:run_command(Pool, Percent, Command)};
+
 handle_message({get_log_port, Node}, _) ->
     case mzb_interconnect:call(Node, get_system_log_port) of
         {badrpc, Reason} -> {reply, {error, {badrpc, Node, Reason}}};

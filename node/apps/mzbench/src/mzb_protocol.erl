@@ -29,6 +29,12 @@ handle({pool_report, PoolPid, Info, IsFinal}, _) ->
 handle({compile_env, Script, Env}, _) ->
     {reply, mzb_director:compile_and_load(Script, Env)};
 
+handle({run_command, Pool, Percent, Command}, _) ->
+    AST = mzbl_script:read_from_string("#!benchDL\n" ++ binary_to_list(Command)),
+    Res = [gen_server:cast(C, {run_command, Pool, Percent, AST}) ||
+            {_, C, _, M} <- supervisor:which_children(mzb_bench_sup), M == [mzb_pool]],
+    {reply, Res};
+
 handle({get_local_metrics_values, Metrics}, _) ->
     {reply, mzb_metrics:get_local_values(Metrics)};
 

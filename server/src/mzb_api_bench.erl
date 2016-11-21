@@ -7,6 +7,7 @@
     interrupt_bench/1,
     get_status/1,
     change_env/2,
+    run_command/4,
     seconds/0,
     send_email_report/2,
     request_report/2,
@@ -45,6 +46,12 @@ change_env(Pid, Env) ->
     end.
 
 interrupt_bench(Pid) -> mzb_pipeline:stop(Pid).
+
+run_command(Pid, Pool, Percent, Command) ->
+    case mzb_pipeline:call(Pid, {run_command, Pool, Percent, Command}, 30000) of
+        ok -> ok;
+        {error, Reason} -> erlang:error(Reason)
+    end.
 
 request_report(Pid, Emails) ->
     mzb_pipeline:call(Pid, {request_report, Emails}).
@@ -420,6 +427,22 @@ handle_call({change_env, Env}, From, #{status:= running, config:= Config, cluste
 
 handle_call({change_env, _Env}, _From, #{} = State) ->
     {reply, {error, not_running}, State};
+
+handle_call({run_command, Pool, Percent, Command}, From, #{status:= running, cluster_connection:= Connection} = State) ->
+    info("Command run req received: ~p pool~p ~p%", [Command, Pool, Percent], State),
+    director_async_call(Connection, {run_command, Pool, Percent, Command},
+        fun ({result, Res}) ->
+                info("Received run_command response: ~p", [Res], State),
+                mzb_pipeline:reply(From, Res);
+            ({exception, {C, E, ST}}) ->
+                error("Run command exception ~p:~p~n~p", [C, E, ST], State),
+                mzb_pipeline:reply(From, {error, E})
+        end),
+    {noreply, State};
+
+handle_call({run_command, _, _, _}, _From, #{} = State) ->
+    {reply, {error, not_running}, State};
+
 
 handle_call({add_tags, Tags}, _From, #{config:= Config} = State) ->
     info("Add tags: ~p / ~p", [Tags, mzb_bc:maps_get(tags, Config, [])], State),

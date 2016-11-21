@@ -130,7 +130,8 @@ auth_api_call_ref(Path, {token, Token}, BenchId) ->
         {error, unknown_ref} -> erlang:error(forbidden)
     end;
 auth_api_call_ref(Path, {cookie, Cookie, Token}, BenchId) when (Path == <<"/stop">>)
-                    or (Path == <<"/restart">>) or (Path == <<"/change_env">>) ->
+                    or (Path == <<"/restart">>) or (Path == <<"/change_env">>)
+                    or (Path == <<"/run_command">>) ->
     case dets:lookup(auth_tokens, Cookie) of
         [{_, #{user_info:= #{login := Login}, connection_pids:= Pids}}] ->
                 case lists:member(Token, maps:values(Pids)) of
@@ -147,7 +148,8 @@ auth_api_call_ref(Path, {cookie, Cookie, _}, BenchId) ->
 
 auth_login_access(Path, Login, BenchId) when
                     (Path == <<"/stop">>) or (Path == <<"/change_env">>) or
-                    (Path == <<"/add_tag">>) or (Path == <<"/remove_tag">>) ->
+                    (Path == <<"/add_tag">>) or (Path == <<"/remove_tag">>) or
+                    (Path == <<"/run_command">>) ->
     case check_admin_listed(Login) of
         true -> Login;
         false -> _ = check_listed_or_fail(Login),

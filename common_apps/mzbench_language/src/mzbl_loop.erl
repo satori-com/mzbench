@@ -183,6 +183,12 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
         false -> {nil, State};
         _ ->
 
+    State = receive
+        {run_command, AST} ->
+                {_, NewState} = mzbl_interpreter:eval(AST, OldState, Env, WorkerProvider),
+                NewState
+        after 0 -> OldState
+    end,
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),

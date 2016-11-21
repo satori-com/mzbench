@@ -42,6 +42,7 @@ Usage:
   mzbench [--host=<host>] [--no_cert_check] restart <bench_id>
   mzbench [--host=<host>] [--no_cert_check] status [--wait] <bench_id>
   mzbench [--host=<host>] [--no_cert_check] stop <bench_id>
+  mzbench [--host=<host>] [--no_cert_check] run_command [--pool=<pool_number>] [--percent=<percent>] <bench_id> <bdl_command>
   mzbench [--host=<host>] [--no_cert_check] results [--wait] <bench_id>
   mzbench [--host=<host>] [--no_cert_check] log <bench_id>
   mzbench [--host=<host>] [--no_cert_check] userlog <bench_id>
@@ -117,6 +118,12 @@ Options:
                      Benchmarks with the same label couldn't be executed
                      simultaneously, any further benches with this label
                      will be blocked until its execution finishes.
+    --pool <pool_number>
+                     Specify pool number to execute a command, pools are enumerated
+                     starting from the top of a script, first is 1.
+    --percent <percent>
+                     Specify percent of workers to execute a command, should be
+                     greater then 0 and less or equal to 100.
     --env <name=value>
                      Pass a variable to script"""
 
@@ -448,6 +455,10 @@ def change_env(host, bench_id, env, no_cert_check = False):
     response = api.change_env(host, bench_id, env, no_cert_check = no_cert_check)
     pretty_print(response)
 
+def run_command(host, bench_id, pool, percent, bdl_command, no_cert_check = False):
+    response = api.run_command(host, bench_id, pool, percent, bdl_command, no_cert_check = no_cert_check)
+    pretty_print(response)
+
 def data(host, bench_id, target, format, no_cert_check = False):
     def data_generator():
         for line in api.data(host, bench_id, no_cert_check = no_cert_check):
@@ -618,6 +629,26 @@ def new_worker(template, name):
 def augment_args(args):
     if not args['--host']:
         args['--host'] = os.environ.get('MZBENCH_API_HOST') or 'localhost:4800'
+
+    if args['--pool'] is not None:
+        try:
+            args['--pool'] = int(args['--pool'])
+        except ValueError:
+            print("invalid value for --pool: {0}".format(args['--pool']))
+            sys.exit(4)
+    else:
+        args['--pool'] = 1
+
+    if args['--percent'] is not None:
+        try:
+            args['--percent'] = int(args['--percent'])
+            if (args['--percent'] <= 0) or (args['--percent'] > 100):
+                raise ValueError
+        except ValueError:
+            print("invalid value for --percent: {0}".format(args['--percent']))
+            sys.exit(4)
+    else:
+        args['--percent'] = 100
 
     if args['--nodes'] is not None:
         try:

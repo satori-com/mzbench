@@ -194,6 +194,22 @@ handle(<<"GET">>, <<"/change_env">>, Login, Req) ->
         {ok, reply_json(200, #{status => <<"set">>}, Req), #{}}
     end);
 
+handle(<<"GET">>, <<"/run_command">>, _Login, Req) ->
+    with_bench_id(Req, fun (Id) ->
+        try
+            #{command:= Command, pool:= Pool, percent:= Percent} =
+                cowboy_req:match_qs([{command, nonempty},
+                    {pool, int}, {percent, int}], Req),
+            ok = mzb_api_server:run_command(Id, Pool, Percent, Command)
+        catch
+            error:bad_key ->
+                erlang:error({badarg, "Command, pool and percent are mandatory arguments"});
+            error:{case_clause, _} ->
+                erlang:error({badarg, "Provided percent or pool is not an int"})
+        end,
+        {ok, reply_json(200, #{status => <<"ok">>}, Req), #{}}
+    end);
+
 handle(<<"GET">>, <<"/status">>, _Login, Req) ->
     with_bench_id(Req, fun(Id) ->
         {ok, reply_json(200, format_status(mzb_api_server:status(Id)), Req), #{}}

@@ -187,6 +187,33 @@ def change_env(host, bench_id, env, no_cert_check = False):
     env['id'] = bench_id
     return assert_successful_get(host, '/change_env', env, no_cert_check = no_cert_check)
 
+def run_command(host, bench_id, pool, percent, bdl_command, no_cert_check = False):
+    """Executes worker operation on a given percent of a pool on the fly
+
+    :param host: MZBench API server host with port
+    :type host: str
+    :param bench_id: benchmark run id
+    :type bench_id: int
+    :param pool: pool number from the top of the script, starting from 1
+    :type pool: int
+    :param percent: percent of workers 0 < percent <= 100
+    :type percent: int
+    :param command: BDL statement to be executed
+    :type command: string
+    :param no_cert_check: Don't check server HTTPS certificate
+    :type no_cert_check: boolean
+    """
+    import bdl_utils
+    bdl_utils.convert("#!benchDL\n" + bdl_command, {}) # To check syntax
+
+    return assert_successful_get(
+        host,
+        '/run_command',
+        {'id': bench_id,
+         'pool': pool,
+         'percent': percent,
+         'command': bdl_command}, no_cert_check = no_cert_check)
+
 
 def data(host, bench_id, no_cert_check = False):
     """Outputs CSV data for a bench

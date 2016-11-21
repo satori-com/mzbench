@@ -273,6 +273,29 @@ def log_compression_test():
     log_cmd = 'curl --head -X GET http://localhost:4800/log?id={0}'.format(bench_id)
     assert("content-encoding: deflate" in cmd(log_cmd))
 
+
+def run_command_test():
+
+    def run_command(bid):
+        print "Running command for {0}".format(bid)
+        change_env_process = subprocess.Popen(
+            [mzbench_script,
+                '--host=localhost:4800',
+                'run_command',
+                str(bid),
+                'print("zzzzzz999")'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        change_env_res, change_env_err = change_env_process.communicate()
+        print 'Running command for {0}\n{1}'.format(change_env_res, change_env_err)
+
+    run_successful_bench(
+                scripts_dir + 'loop_with_vars.erl',
+                post_start=run_command,
+                expected_log_message_regex=r'zzzzzz999',
+                env={'time': '60', 'rate': '1', 'message':'abc'})
+
+
 def env_change_test():
 
     def change_var(bid):

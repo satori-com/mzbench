@@ -351,6 +351,34 @@ Positional param:
 `<tags>`
 :   Comma-separated tag list.
 
+### run_command
+
+```bash
+$ mzbench run_command 86 --percent 5 --pool 1 print(\"123\")
+{
+    "status": "ok"
+}
+```
+
+Run BDL statement on a given percent of workers without interrupting the benchmark,
+please note that the code is executed inside current loop and if there is no loop --
+it wont be executed at all.
+
+Positional param:
+
+`<benchmark_id>`
+:   The ID of the benchmark as returned by [start](#start) or [run](#run).
+`<command>`
+:   BDL statement to be executed.
+
+Optional param:
+
+`--percent <value>`
+:   Percent of workers to execute a command, default value is 100.
+`--pool <number>`
+:   Pool number from the top of a script, default value is 1.
+
+
 ## Misc
 
 ### selfcheck

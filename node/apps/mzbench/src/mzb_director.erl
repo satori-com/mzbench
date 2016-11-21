@@ -3,6 +3,7 @@
 -export([start_link/6,
          pool_report/3,
          change_env/1,
+         run_command/3,
          attach/0,
          notify/1,
          compile_and_load/2,
@@ -48,6 +49,9 @@ pool_report(PoolPid, Info, IsFinal) ->
 
 change_env(Env) ->
     gen_server:call(?MODULE, {change_env, Env}, infinity).
+
+run_command(Pool, Percent, Command) ->
+    gen_server:call(?MODULE, {run_command, Pool, Percent, Command}, infinity).
 
 attach() ->
     gen_server:call(?MODULE, attach, infinity).
@@ -97,6 +101,17 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
     catch
         _:E ->
             system_log:error("Change env failed with reason ~p~nEnv:~p~nStacktrace:~p", [E, MergedEnv, erlang:get_stacktrace()]),
+            {reply, {error, {internal_error, E}}, State}
+    end;
+
+handle_call({run_command, Pool, Percent, Command}, _From, #state{nodes = Nodes} = State) ->
+    system_log:info("Running a command: ~p on ~p of pool~p", [Command, Percent, Pool]),
+    try
+        {[{_, [ok | _]}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {run_command, Pool, Percent, Command}),
+        {reply, ok, State}
+    catch
+        _:E ->
+            system_log:error("Command run failed with reason ~p~nCommand:~p~nStacktrace:~p", [E, Command, erlang:get_stacktrace()]),
             {reply, {error, {internal_error, E}}, State}
     end;
 

@@ -78,6 +78,20 @@ handle_cast({start_worker, WorkerScript, Env, Worker, Node, WId}, #s{workers = T
     end,
     {noreply, State};
 
+handle_cast({run_command, PoolNum, Percent, AST}, #s{name = PoolName, workers = Tid} = State) ->
+    DestPool = "pool" ++ integer_to_list(PoolNum),
+    _ = if PoolName == DestPool ->
+            _ = ets:foldl(
+                fun ({Pid, _Ref}, Acc) ->
+                    RandomValue = random:uniform(),
+                    _ = if RandomValue < Percent / 100 ->
+                            Pid ! {run_command, AST};
+                        true -> ok end,
+                    Acc
+                end, [], Tid);
+        true -> ok end,
+    {noreply, State};
+
 handle_cast(Msg, State) ->
     system_log:error("Unhandled cast: ~p", [Msg]),
     {stop, {unhandled_cast, Msg}, State}.
