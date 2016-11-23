@@ -28,7 +28,7 @@
     "brace": "~0.5.1",
     "react-categorized-tag-input": "~2.0.*",
     "reactify": "^0.15",
-    "ident-adder": "~0.1.0",
+    "indent-adder": "0.1.1",
     "pegjs": "~0.10.0",
     "watchify": "~3.0.0"
   },

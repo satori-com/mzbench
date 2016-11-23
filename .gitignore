@@ -8,6 +8,7 @@ ebin
 node/rel/mzbench
 server/rel/mzbench_api
 server/priv/http_root/js/bundle.js
+server/dashboard/test/es5Checker.js
 .make
 .rebar
 log

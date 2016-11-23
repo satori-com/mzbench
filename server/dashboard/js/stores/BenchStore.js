@@ -25,11 +25,11 @@ const defaultData = {
                      "pool(size = 3, # three execution \"threads\"\n" +
                      "     worker_type = dummy_worker):\n" +
                      "        loop(time = 5 min, # total loop time\n" +
-                     "             rate = 1 rps): # one rps for every worker, 3 rps totally\n" +
+                     "             rate = numvar(\"loop_rate\") rps): # one rps for every worker, 3 rps totally\n" +
                      "            print(\"FOO\") # this operation prints \"FOO\" to console\n",
         nodes: "1",
         cloud: "",
-        env: []},
+        env: [{name: "loop_rate", value: "1"}]},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined,
