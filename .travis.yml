@@ -9,16 +9,25 @@ sudo: false
 
 env:
  - TASK=acceptance-basic-tests
- - TASK=lint
  - TASK=dialyzer
  - TASK=unit-tests
  - TASK=development-with-rsync
  - TASK=http-worker-tests
  - TASK=validate-examples
  - TASK=error-messages
- - TASK=dashboard-tests
  - TASK=acceptance-local-tests
  - TASK=acceptance-migrations-tests
+
+matrix:
+  include:
+  - otp_release: 19.1
+    env: TASK=python-lint
+  - otp_release: 19.1
+    env: TASK=dashboard-tests
+  - otp_release: 19.1
+    env: TASK=python-tests
+  - otp_release: 19.1
+    env: TASK=js-parser-tests
 
 addons:
   apt:
@@ -39,7 +48,9 @@ script:
  - ./bin/rebar3 update
  - export PROJECTS="node server common_apps/mzbench_language common_apps/mzbench_utils";
  - case "$TASK" in
-     lint) pip install pyflakes && ./bin/lint.py . ;;
+     python-lint) pip install pyflakes && ./bin/lint.py . ;;
+     python-tests) ./lib/bdl_utils_test.py ;;
+     js-parser-tests) cd cd server/dashboard/ && ./test/runTestChecker.sh ;;
      validate-examples) pip install -r requirements.txt && make -C examples check;;
      error-messages) pip install -r requirements.txt && make -C acceptance_tests/invalid_scripts check;;
      dashboard-tests) pip install -r requirements.txt &&
