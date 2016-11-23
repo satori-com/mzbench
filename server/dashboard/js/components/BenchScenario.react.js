@@ -7,18 +7,18 @@ class BenchScenario extends React.Component {
     render() {
         let env = this.props.bench.env;
         let editable = this.props.bench.status == "running";
-        var envForm = Object.keys(env).map((key) => {
+        var envForm = env.map((kv, index) => {
                 return (
-                    <div key={key} className="col-md-6 form-group">
-                        <label className="control-label">{key}</label>
-                        <input type="text" ref={key} name={key} defaultValue={env[key]} className="form-control" readOnly={ editable ? null : "readonly"}></input>
+                    <div key={index} className="col-md-6 form-group">
+                        <label className="control-label">{kv.name}</label>
+                        <input type="text" ref={kv.name} name={kv.name} defaultValue={kv.value} className="form-control" readOnly={ editable ? null : "readonly"}></input>
                     </div>
                 );
             });
 
         return (
             <div>
-                { Object.keys(env).length > 0 ?
+                { env.length > 0 ?
                     (<div className="row">
                         <form>
                             {envForm}

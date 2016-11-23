@@ -29,7 +29,7 @@ const defaultData = {
                      "            print(\"FOO\") # this operation prints \"FOO\" to console\n",
         nodes: "1",
         cloud: "",
-        env: {}},
+        env: []},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined,
@@ -41,7 +41,10 @@ let data = jQuery.extend(true, {}, defaultData); // extend is used to copy objec
 
 class Bench {
     constructor(props) {
+        let newEnv = [];
         Object.assign(this, props);
+        Object.keys(props.env).map((key) => newEnv.push({name: key, value: props.env[key]}));
+        this.env = newEnv;
     }
 
     isRunning() {
@@ -88,7 +91,7 @@ class BenchStore extends EventEmitter {
     updateItem(bench) {
         let existBench = this.findById(bench.id);
         if (existBench) {
-            Object.assign(existBench, bench);
+            Object.assign(existBench, new Bench(bench));
         } else {
             data.benchmarks.unshift(new Bench(bench));
         }
