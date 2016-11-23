@@ -47,5 +47,8 @@
       "js/**/*.js",
       "js/app.js"
     ]
+  },
+  "devDependencies": {
+    "pegjs": "^0.10.0"
   }
 }
