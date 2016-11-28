@@ -121,10 +121,11 @@ class NewBench extends React.Component {
                             name="BENCH_EDITOR" />
                     </div>
                 </div>
+                {bench.warnings ? bench.warnings.map(this.renderError, this) : null}
                 {bench.errors ? bench.errors.map(this.renderError, this) : null}
                 <div className="row">
                     <div className="form-group col-md-12 text-right">
-                        {bench.errors ? (<button type="button" className="btn btn-info" onClick={this._onForceStart}>Force run</button>): null}
+                        {bench.warnings ? (<button type="button" className="btn btn-info" onClick={this._onForceStart}>Force run</button>): null}
                         &nbsp;
                         <button type="button" className="btn btn-success" onClick={this._onStart}>Run</button>
                         &nbsp;
@@ -155,31 +156,34 @@ class NewBench extends React.Component {
     _onStart(event) {
         event.preventDefault();
         let bench = BenchStore.getNew();
-        let errors = BenchChecker.get_errors(bench);
+        let warnings = BenchChecker.get_errors(bench);
 
-        if (errors.length === 0) {
+        if (warnings.length === 0) {
             this._onForceStart(event);
         } else {
-            MZBenchActions.withNewBench((b) => {b.errors = errors});
+            MZBenchActions.withNewBench((b) => {b.warnings = warnings});
         }
     }
 
     _onForceStart(event) {
         event.preventDefault();
-        let notify = $.notify({message: `Starting the benchmark... `}, {type: 'info', delay: 0});
+        let notify = $.notify({message: `Checking the benchmark... `}, {type: 'info', delay: 0});
         let formData = new FormData();
         let bench = BenchStore.getNew();
         let blob = new Blob([bench.script_body], { type: "text/plain"});
         formData.append('bench', blob, bench.script_name);
-        let query = MZBenchRouter.buildLink('/start', {
+        let params = {
             benchmark_name: bench.name,
             nodes: bench.nodes,
-            cloud: bench.cloud});
+            cloud: bench.cloud};
 
-        query += bench.env.map((x, idx) =>
+        let start_query = MZBenchRouter.buildLink('/start', params);
+        let typecheck_query = MZBenchRouter.buildLink('/typecheck', params);
+
+        let env_query = bench.env.map((x, idx) =>
             x ? "&" + encodeURIComponent(x.name) + "=" + encodeURIComponent(x.value) : "").join("");
 
-        $.ajax({url: query, type : 'POST',
+        $.ajax({url: typecheck_query + env_query, type : 'POST',
             processData: false,
             contentType: false,
             beforeSend: function (xhr) {
@@ -188,19 +192,35 @@ class NewBench extends React.Component {
                 }
             },
             data: formData,
-            success: (data) => {
-                notify.update({message: `Started benchmark`, type: 'success'});
-                MZBenchActions.resetNewBench();
-                MZBenchActions.selectBenchById(data.id);
-                MZBenchRouter.navigate("#/bench/" + data.id + "/overview", {});
-                setTimeout(() => notify.close(), 5000);
-            },
+            success: (checkdata) => {
+                notify.update({message: `Starting...`, type: 'info', delay: 0});
+                $.ajax({url: start_query + env_query, type : 'POST',
+                    processData: false,
+                    contentType: false,
+                    data: formData,
+                    success: (data) => {
+                        notify.update({message: `Started benchmark`, type: 'success'});
+                        MZBenchActions.resetNewBench();
+                        MZBenchActions.selectBenchById(data.id);
+                        MZBenchRouter.navigate("#/bench/" + data.id + "/overview", {});
+                        setTimeout(() => notify.close(), 5000);
+                    },
+                    error: (data) => {
+                        let msg = "Failed to start benchmark\n";
+                        if (data.responseJSON && data.responseJSON.reason)
+                            msg += `<br>${data.responseJSON.reason.split('\n')[0]}`;
+                        notify.update({message: msg, type: 'danger'});
+                        setTimeout(() => notify.close(), 5000);
+                    }});
+                },
             error: (data) => {
-                let msg = "Failed to start benchmark\n";
+                let msg = "";
                 if (data.responseJSON && data.responseJSON.reason)
-                    msg += `<br>${data.responseJSON.reason.split('\n')[0]}`;
-                notify.update({message: msg, type: 'danger'});
+                    msg = data.responseJSON.reason;
+                else msg = "" + data;
+                notify.update({message: 'Typecheck error', type: 'danger'});
                 setTimeout(() => notify.close(), 5000);
+                MZBenchActions.withNewBench((b) => {b.errors = [{severity:"danger", text:msg}]});
             }});
     }
 };

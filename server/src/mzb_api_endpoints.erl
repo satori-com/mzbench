@@ -132,6 +132,21 @@ handle(<<"POST">>, <<"/sign-out">>, _, Req) ->
                             [{http_only, true}, {max_age, 0}], Req),
     {ok, reply_json(200, #{}, Req2), #{}};
 
+handle(<<"POST">>, <<"/typecheck">>, _, Req) ->
+    case cowboy_req:parse_header(<<"content-type">>, Req) of
+        {<<"multipart">>, <<"form-data">>, _} ->
+            {Files, _Req2} = multipart(Req, []),
+            [{_ScriptName, ScriptBody}] = proplists:get_all_values(<<"bench">>, Files),
+            AST = mzbl_script:read_from_string(binary_to_list(ScriptBody)),
+            case mzbl_typecheck:check(AST, list) of
+                {false, Reason, Location} ->
+                    reply_error(400, <<"error">>, Location ++ format_typecheck_reason(Reason), Req);
+                _ -> reply_json(200, #{result => <<"ok">>}, Req)
+            end;
+        _ ->
+            erlang:error({badarg, "Missing script file"})
+    end;
+
 handle(<<"POST">>, <<"/start">>, Login, Req) ->
     Params = parse_start_params(Req),
     RequestedHost = cowboy_req:header(<<"host">>, Req, undefined),
@@ -640,3 +655,12 @@ stream_metrics_from_files(Files, BenchId, Req) ->
 parse_tags(Binary) when is_binary(Binary) -> parse_tags(erlang:binary_to_list(Binary));
 parse_tags(Str) -> string:tokens(Str, ", ").
 
+format_typecheck_reason(R) when is_atom(R) ->
+    atom_to_list(R);
+format_typecheck_reason(T) when is_tuple(T) ->
+    string:join(lists:map(fun format_typecheck_reason/1, tuple_to_list(T)), " ");
+format_typecheck_reason(I) when is_integer(I) ->
+    integer_to_list(I);
+format_typecheck_reason(F) when is_float(F) ->
+    float_to_list(F);
+format_typecheck_reason(L) when is_list(L) -> L.
