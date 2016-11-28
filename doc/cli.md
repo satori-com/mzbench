@@ -1,4 +1,4 @@
-The **MZBench CLI** lets you control you control the server and benchmarks from the command line. It utilizes the [MZBench API](api.md), but goes beyond it: it can do things even without a running MZBench server.
+The **MZBench CLI** lets you control the server and benchmarks from the command line. It utilizes the [MZBench API](api.md), but goes beyond it: it can do things even without a running MZBench server.
 
 The commands are invoked by the `mzbench` script in the `bin` directory:
 
@@ -7,7 +7,7 @@ The commands are invoked by the `mzbench` script in the `bin` directory:
 $ ./bin/mzbench start --env foo=bar --nodes=5
 # or:
 $ cd bin
-$ mzbench start --env foo=bar --nodes=5
+$ ./mzbench start --env foo=bar --nodes=5
 ```
 
 # Commands
@@ -207,7 +207,23 @@ Start of log for bench 89
 ...
 ```
 
-View the benchmark logs.
+View the benchmark system logs.
+
+Positional param:
+
+`<benchmark_id>`
+:   The ID of the benchmark as returned by [start](#start) or [run](#run).
+
+### userlog
+
+```bash
+$ ./bin/mzbench userlog 89
+Start of userlog for bench 89
+14:02:47.080 [info] <0.237.0> Dummy print: "FOO"
+...
+```
+
+View the benchmark worker logs.
 
 Positional param:
 
@@ -255,6 +271,86 @@ Optional param:
 `--env <name=value> ...`
 :   [Environment variable](scenarios/spec.md#environment-variables) definitions.
 
+### clusters_info
+
+```bash
+$ mzbench clusters_info
+[
+    {
+        "timestamp": 1479140779,
+        "bench_id": 29,
+        "n": 2,
+        "state": "allocated",
+        "hosts": [
+            "127.0.0.1"
+        ],
+        "provider": "mzb_dummycloud_plugin",
+        "id": 5
+    },
+...
+```
+
+Check for currently allocated clusters.
+
+### remove_clusters_info
+
+```bash
+$ mzbench remove_cluster_info 5
+{}
+```
+
+Remove cluster from a list of allocated clusters.
+
+Positional param:
+
+`<cluster_id>`
+:   The ID of the cluster as returned by clusters_info.
+
+### deallocate_cluster
+
+```bash
+$ mzbench deallocate_cluster 5
+{}
+```
+
+Deallocate cluster and remove it from a list of allocated clusters.
+
+Positional param:
+
+`<cluster_id>`
+:   The ID of the cluster as returned by clusters_info.
+
+### add_tags
+
+```bash
+$ mzbench add_tags 50 a,b
+{}
+```
+
+Add tags to a specified benchmark.
+
+Positional param:
+
+`<benchmark_id>`
+:   The ID of the benchmark as returned by [start](#start) or [run](#run).
+`<tags>`
+:   Comma-separated tag list.
+
+### remove_tags
+
+```bash
+$ mzbench remove_tags 50 a,b
+{}
+```
+
+Remove tags from a specified benchmark.
+
+Positional param:
+
+`<benchmark_id>`
+:   The ID of the benchmark as returned by [start](#start) or [run](#run).
+`<tags>`
+:   Comma-separated tag list.
 
 ## Misc
 

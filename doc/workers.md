@@ -238,6 +238,20 @@ In this example, a group of graphs with the name "HTTP Requests" is created. It 
 A graph can produce several charts. In the example above, the graph for successful and failed request produces two charts: absolute counters and their rps.
 
 
+#### Dynamic metrics declaration
+
+Metrics could be also declared during the bench run:
+
+```
+mzb_metrics:declare_metrics([{group, "HTTP Requests", [
+                {graph, #{metrics => [{"success_requests", counter}, {"failed_requests", counter}]}},
+                {graph, #{title => "Request's latency",
+                          units => "ms",
+                          metrics => [{"latency", histogram}]}}]}]).
+```
+
+This feature is useful if your metric set depends on some external conditions or script configuration.
+
 #### Derived Metrics
 
 Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric, specify the `resolver` function in the metric opts dictionary. This function is used to evaluate the metric value.

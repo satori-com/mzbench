@@ -4,7 +4,7 @@
 
 Here's how you write a scenario to load-test a locally running web app.
 
-1.  Create a file called *myscenario.erl* with this content:
+1.  Create a file called *myscenario.bdl* with this content:
 
         pool(size = 1,
              worker_type = http_worker):
@@ -29,9 +29,13 @@ Here's how you write a scenario to load-test a locally running web app.
 
         $ ./bin/mzbench start_server
         Executing make -C /path/to//mzbench/bin/../server generate
-        Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
+        .........
+        Waiting for server application start
+        Webserver is started at http://127.0.0.1:4800
+        Active config file is ~/.config/mzbench/server.config
+        ok
         
-        $ ./bin/mzbench start /path/to/myscenarion.erl
+        $ ./bin/mzbench start /path/to/myscenario.bdl
         {
             "status": "pending", 
             "id": 107
@@ -43,7 +47,7 @@ Here's how you write a scenario to load-test a locally running web app.
 
     Great, it works! But one request isn't going to load your web app too much, is it? Let's extend our scenario to generate some proper load.
     
-4.  Modify *myscenario.erl* so that it looks like this:
+4.  Modify *myscenario.bdl* so that it looks like this:
 
         pool(size = 1,
              worker_type = http_worker):
@@ -57,7 +61,7 @@ Here's how you write a scenario to load-test a locally running web app.
     
 5.  Start the modified scenario:
 
-        $ ./bin/mzbench start /path/to/myscenario.erl
+        $ ./bin/mzbench start /path/to/myscenario.bdl
         {
             "status": "pending", 
             "id": 109

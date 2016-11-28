@@ -13,7 +13,7 @@ Here's how you install and configure MZBench for real-life use.
 
 Requirements:
 
- - [Erlang R17](http://www.erlang.org)
+ - [Erlang R17+](http://www.erlang.org)
  - C++ compiler (preinstalled on most UNIX-based systems)
  - [Python](https://www.python.org) 2.6 or 2.7
  - [Pip]((https://pip.pypa.io/en/stable/)) Python package manager

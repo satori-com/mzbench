@@ -1,6 +1,6 @@
 In MZBench, scenarios are .bdl files written in a special DSL (domain specific language). BDL stands for Benchmark Definition Language. Think of it as a simple ident-based (like python) language with a small set of instructions and measurement units.
 
-MZBench test scenarios consist of function calls and multi-line statements. Function name is *identifier*. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are values with values, for example:
+MZBench test scenarios consist of function calls and multi-line statements. Function name is *identifier*. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are keys with values, for example:
 
 ```python
 multiline(param1 = 10, param2 = 20):
@@ -18,7 +18,7 @@ Some statements only appear at the top level of a scenario. They're called *top-
 
 # Directives
 
-**Directives** prepare the system for the benchmark and clean it up after it. This includes installing an external [worker](../workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
+**Directives** prepare the system for the benchmark and clean up after. It includes installing an external [worker](../workers.md) on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.
 
 ## Top-Level Directives
 
@@ -115,7 +115,7 @@ Run actions before and after the benchmark. Two kinds of actions are supported: 
 
 **Exec commands** let you to run any shell command on all nodes or only on the director node.
 
-**Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark.
+**Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark. An example is available in dummy_worker [code](https://github.com/machinezone/mzbench/blob/master/node/apps/dummy_worker/src/dummy_worker.erl#L30).
 
 ### assert
 
@@ -176,7 +176,7 @@ The first param in the `pool` statement is a list of *pool options*.
 *required*
 
 ```python
-size = <NumberOfJobs>`
+size = <NumberOfJobs>
 ```
 
 How many times you want the pool executed.
@@ -226,8 +226,6 @@ Start the jobs with a given rate:
 :   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`:
     
     *Scale × Time<sup>Exponent</sup>*
-
-You can customize and combine rates:
 
 ### ramp
 
@@ -318,6 +316,9 @@ Start jobs with rate [`<Rate>`](#rate_1) for a second, then sleep for [`<Time>`]
 ```python
 parallel = <N>
 ```
+
+!!!hint
+    When parallel loop starts, all workers copy initial thread state. When loop ends all state copies but first are ommited. This note also applies to `spawn` mode below.
 
 Run `<N>` iterations of the loop in parallel.
 
@@ -560,10 +561,10 @@ Pause the current job for [`<Time>`](#time_1).
 
 ## Time
 
-**`<Time>`** is a tuple `{<Duration>, (ms|sec|min|h)}`:
+**`<Time>`** is a tuple `<Duration> (ms|sec|min|h)`:
 
 ```python
-1 sec` # one second
+1 sec # one second
 10 min # 10 minutes
 0.5 h # half hour
 ```

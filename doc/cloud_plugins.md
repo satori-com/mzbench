@@ -74,7 +74,7 @@ Minimally, the config requires `instance_spec` and `config` keys specified. Lear
 
 `mzb_staticcloud_plugin`
 
-The module allocated nodes from a list of hosts.
+The module uses allocated nodes from a list of hosts.
 
 Configuration example:
 
@@ -97,6 +97,7 @@ Configuration example:
 {cloud_plugins, [{dummy, #{module => mzb_dummycloud_plugin}}]}
 ```
 
+The main difference between `dummycloud` and `staticcloud` for localhost is that `dummycloud` does not provide node exclusivity. It means that you could run several benchmarks on your localhost simultaneously, which is not supported by `staticcloud`.
 
 ## Multicloud
 
