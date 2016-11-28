@@ -343,6 +343,16 @@ metric_type() :: counter | gauge | histogram.
 
 <p>In this example, a group of graphs with the name &ldquo;HTTP Requests&rdquo; is created. It consists of several graphs representing the number of successful and failed requests and the request latencies.</p>
 <p>A graph can produce several charts. In the example above, the graph for successful and failed request produces two charts: absolute counters and their rps.</p>
+<h4 id="dynamic-metrics-declaration">Dynamic metrics declaration<a class="headerlink" href="#dynamic-metrics-declaration" title="Permanent link">&para;</a></h4>
+<p>Metrics could be also declared during the bench run:</p>
+<pre><code>mzb_metrics:declare_metrics([{group, &quot;HTTP Requests&quot;, [
+                {graph, #{metrics =&gt; [{&quot;success_requests&quot;, counter}, {&quot;failed_requests&quot;, counter}]}},
+                {graph, #{title =&gt; &quot;Request's latency&quot;,
+                          units =&gt; &quot;ms&quot;,
+                          metrics =&gt; [{&quot;latency&quot;, histogram}]}}]}]).
+</code></pre>
+
+<p>This feature is useful if your metric set depends on some external conditions or script configuration.</p>
 <h4 id="derived-metrics">Derived Metrics<a class="headerlink" href="#derived-metrics" title="Permanent link">&para;</a></h4>
 <p>Derived metrics are basically gauges which are evaluated on the director node every ~10sec. To define a derived metric, specify the <code>resolver</code> function in the metric opts dictionary. This function is used to evaluate the metric value.</p>
 <p>Typical example of a derived metric is the current number of pending requests. We specify a function (<code>pending_requests</code>) to calculate the metric value in the metric options and then define the function as simple difference between the number of sent requests and received responses:</p>

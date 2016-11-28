@@ -198,7 +198,7 @@
                 <div class="col-md-9" role="main">
 
 <p>In MZBench, scenarios are .bdl files written in a special DSL (domain specific language). BDL stands for Benchmark Definition Language. Think of it as a simple ident-based (like python) language with a small set of instructions and measurement units.</p>
-<p>MZBench test scenarios consist of function calls and multi-line statements. Function name is <em>identifier</em>. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are values with values, for example:</p>
+<p>MZBench test scenarios consist of function calls and multi-line statements. Function name is <em>identifier</em>. Indetifier is lower-case letter sequence with numbers and underscore which starts from letter. Function could accept positional arguments or key arguments. Position arguments are values, key arguments are keys with values, for example:</p>
 <pre><code class="python">multiline(param1 = 10, param2 = 20):
     function1(1, 2)
     function2(param1 = function3(1), param2 = 2)
@@ -209,7 +209,7 @@
 <p>Some statements only appear at the top level of a scenario. They&rsquo;re called <em>top-level statements</em>. There&rsquo;re two kinds of top-level statements: <a href="#directives">directives</a> and <a href="#pools">pools</a>.</p>
 <p><a href="https://github.com/machinezone/mzbench/tree/master/examples.bdl">See live examples of MZBench scenarios on GitHub →</a></p>
 <h1 id="directives">Directives<a class="headerlink" href="#directives" title="Permanent link">&para;</a></h1>
-<p><strong>Directives</strong> prepare the system for the benchmark and clean it up after it. This includes installing an external <a href="../../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
+<p><strong>Directives</strong> prepare the system for the benchmark and clean up after. It includes installing an external <a href="../../workers/">worker</a> on test nodes, registering resource files, checking conditions, and executing shell commands before and after the test.</p>
 <h2 id="top-level-directives">Top-Level Directives<a class="headerlink" href="#top-level-directives" title="Permanent link">&para;</a></h2>
 <p>All top-level directives are optional.</p>
 <h3 id="make_install-git">make_install git<a class="headerlink" href="#make_install-git" title="Permanent link">&para;</a></h3>
@@ -276,7 +276,7 @@ Action = exec(Target, BashCommand)
 Target = all | director
 </code></pre>
 <p><strong>Exec commands</strong> let you to run any shell command on all nodes or only on the director node.</p>
-<p><strong>Worker calls</strong> are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the <a href="#environment-variables">environment variables</a> used in the benchmark.</p>
+<p><strong>Worker calls</strong> are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the <a href="#environment-variables">environment variables</a> used in the benchmark. An example is available in dummy_worker <a href="https://github.com/machinezone/mzbench/blob/master/node/apps/dummy_worker/src/dummy_worker.erl#L30">code</a>.</p>
 <h3 id="assert">assert<a class="headerlink" href="#assert" title="Permanent link">&para;</a></h3>
 <pre><code class="python">assert(always, &lt;Condition&gt;)
 assert(&lt;Time&gt;, &lt;Condition&gt;)
@@ -314,7 +314,7 @@ assert(&lt;Time&gt;, &lt;Condition&gt;)
 <h2 id="pool-options">Pool Options<a class="headerlink" href="#pool-options" title="Permanent link">&para;</a></h2>
 <h3 id="size">size<a class="headerlink" href="#size" title="Permanent link">&para;</a></h3>
 <p><em>required</em></p>
-<pre><code class="python">size = &lt;NumberOfJobs&gt;`
+<pre><code class="python">size = &lt;NumberOfJobs&gt;
 </code></pre>
 
 <p>How many times you want the pool executed.</p>
@@ -354,7 +354,6 @@ worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
 <p><em>Scale × Time<sup>Exponent</sup></em></p>
 </dd>
 </dl>
-<p>You can customize and combine rates:</p>
 <h3 id="ramp">ramp<a class="headerlink" href="#ramp" title="Permanent link">&para;</a></h3>
 <pre><code class="python">ramp(linear, &lt;StartRate&gt;, &lt;EndRate&gt;)
 </code></pre>
@@ -415,6 +414,10 @@ worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
 <pre><code class="python">parallel = &lt;N&gt;
 </code></pre>
 
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>When parallel loop starts, all workers copy initial thread state. When loop ends all state copies but first are ommited. This note also applies to <code>spawn</code> mode below.</p>
+</div>
 <p>Run <code>&lt;N&gt;</code> iterations of the loop in parallel.</p>
 <h3 id="iterator">iterator<a class="headerlink" href="#iterator" title="Permanent link">&para;</a></h3>
 <pre><code class="python">iterator = &quot;&lt;IterName&gt;&quot;
@@ -565,8 +568,8 @@ choose(&lt;List&gt;)
 <p>Pause the current job for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <h1 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h1>
 <h2 id="time_1">Time<a class="headerlink" href="#time_1" title="Permanent link">&para;</a></h2>
-<p><strong><code>&lt;Time&gt;</code></strong> is a tuple <code>{&lt;Duration&gt;, (ms|sec|min|h)}</code>:</p>
-<pre><code class="python">1 sec` # one second
+<p><strong><code>&lt;Time&gt;</code></strong> is a tuple <code>&lt;Duration&gt; (ms|sec|min|h)</code>:</p>
+<pre><code class="python">1 sec # one second
 10 min # 10 minutes
 0.5 h # half hour
 </code></pre>

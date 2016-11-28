@@ -161,9 +161,29 @@
         
             <li><a href="#get-restartidnumber">GET /restart?id=number</a></li>
         
-            <li><a href="#get-logsidnumber">GET /logs?id=number</a></li>
+            <li><a href="#get-change_envidnumbernamevalue">GET /change_env?id=number&amp;name=value</a></li>
+        
+            <li><a href="#get-logidnumber">GET /log?id=number</a></li>
+        
+            <li><a href="#get-userlogidnumber">GET /userlog?id=number</a></li>
         
             <li><a href="#get-dataidnumber">GET /data?id=number</a></li>
+        
+            <li><a href="#get-resultsidnumber">GET /results?id=number</a></li>
+        
+            <li><a href="#get-email_reportidnumberaddrmynamemydomaincom">GET /email_report?id=number&amp;addr=myname@mydomain.com[,...]</a></li>
+        
+            <li><a href="#get-server_logsseveritylevel">GET /server_logs&amp;severity=level</a></li>
+        
+            <li><a href="#get-clusters_info">GET /clusters_info</a></li>
+        
+            <li><a href="#get-deallocate_clusteridnumber">GET /deallocate_cluster?id=number</a></li>
+        
+            <li><a href="#get-remove_cluster_infoidnumber">GET /remove_cluster_info?id=number</a></li>
+        
+            <li><a href="#get-add_tagsidnumbertagsabc">GET /add_tags?id=number&amp;tags=a,b,c</a></li>
+        
+            <li><a href="#get-remove_tagsidnumbertagsabc">GET /remove_tags?id=number&amp;tags=a,b,c</a></li>
         
     
         <li class="main "><a href="#conventions">Conventions</a></li>
@@ -175,14 +195,14 @@
 
 <p>The <strong>MZBench API</strong> lets you run benchmarks on and collect data from a remote MZBench server with HTTP requests.</p>
 <p>The API accepts POST and GET requests and returns data in JSON format or plaintext. In case of an error, the response is <code>{"reason": "Error description", "reason_code": "short_textual_id"}</code>:</p>
-<pre><code class="bash">$ curl http://mzbench.myserver.com/status?id=1
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/status?id=1'
 {
     &quot;finish_time&quot;: &quot;2015-11-03T13:41:27Z&quot;,
     &quot;start_time&quot;: &quot;2015-11-03T13:39:21Z&quot;,
     &quot;status&quot;: &quot;complete&quot;
 }
 
-$ curl http://mzbench.myserver.com/logs?id=100500
+$ curl 'http://mzbench.myserver.com/logs?id=100500'
 {
     &quot;reason&quot;: &quot;Benchmark 100500 is not found&quot;,
     &quot;reason_code&quot;: &quot;not_found&quot;
@@ -251,17 +271,23 @@ curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?dealloc
 
 <h2 id="get-restartidnumber">GET /restart?id=number<a class="headerlink" href="#get-restartidnumber" title="Permanent link">&para;</a></h2>
 <p>Clone and start a previously executed benchmark. The response is the same as for the <a href="#post-start">start</a> endpoint:</p>
-<pre><code class="bash">$ curl http://mzbench.myserver.com/restart?id=122
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/restart?id=122'
 {
     &quot;id&quot;: 123,
     &quot;status&quot;: &quot;pending&quot;
 }
 </code></pre>
 
-<h2 id="get-logsidnumber">GET /logs?id=number<a class="headerlink" href="#get-logsidnumber" title="Permanent link">&para;</a></h2>
-<p>Request benchmark logs. The response is plaintext.</p>
+<h2 id="get-change_envidnumbernamevalue">GET /change_env?id=number&amp;name=value<a class="headerlink" href="#get-change_envidnumbernamevalue" title="Permanent link">&para;</a></h2>
+<p>Change enviroment variables during a bench run.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/change_env?id=122&amp;loop_rate=2'
+{&quot;status&quot;:&quot;set&quot;}
+</code></pre>
+
+<h2 id="get-logidnumber">GET /log?id=number<a class="headerlink" href="#get-logidnumber" title="Permanent link">&para;</a></h2>
+<p>Request benchmark system logs. The response is plaintext.</p>
 <p>If the benchmark is still running, the logs will be streamed continuously until it finishes.</p>
-<pre><code class="bash">$ curl http://mzbench.myserver.com/logs?id=122
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/log?id=122'
 12:17:16.000 [info] [ API ] Node repo: {git_install_spec,
                                         &quot;https://github.com/machinezone/mzbench.git&quot;,
                                         &quot;2729662cb1a393f66b84b25b27f58190afd43e85&quot;,
@@ -269,15 +295,104 @@ curl -XPOST --form bench=@scenario.bdl http://mzbench.myserver.com/start?dealloc
 ...
 </code></pre>
 
+<h2 id="get-userlogidnumber">GET /userlog?id=number<a class="headerlink" href="#get-userlogidnumber" title="Permanent link">&para;</a></h2>
+<p>Request benchmark userlogs these logs are worker-specific. The response is plaintext.</p>
+<p>If the benchmark is still running, the logs will be streamed continuously until it finishes.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/userlog?id=122'
+14:02:47.080 [info] &lt;0.237.0&gt; Dummy print: &quot;FOO&quot;
+14:02:47.245 [info] &lt;0.238.0&gt; Dummy print: &quot;FOO&quot;
+14:02:47.331 [info] &lt;0.239.0&gt; Dummy print: &quot;FOO&quot;
+...
+</code></pre>
+
 <h2 id="get-dataidnumber">GET /data?id=number<a class="headerlink" href="#get-dataidnumber" title="Permanent link">&para;</a></h2>
 <p>Request benchmark metrics data. The response will be a tab-delimited CSV with timestamp followed by metric name and value:</p>
-<pre><code class="bash">$ curl http://mzbench.myserver.com/data?id=1236
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/data?id=1236'
 1439245024  mzb.workers.failed.value    0
 1439245024  mzb.workers.failed.rps.value    0.0
 1439245024  mzb.workers.started.value   2000
 </code></pre>
 
 <p>Metric data for running benches is streamed similarly to <a href="#get-logsidnumber">logs</a>.</p>
+<h2 id="get-resultsidnumber">GET /results?id=number<a class="headerlink" href="#get-resultsidnumber" title="Permanent link">&para;</a></h2>
+<p>Get bench final results.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/results?id=122'
+{
+    &quot;systemload.netrx.utun1.mzb_director49_0&quot;: {
+        &quot;type&quot;: &quot;gauge&quot;,
+        &quot;percentiles&quot;: {
+            &quot;min&quot;: 12.975898566003504,
+            &quot;max&quot;: 4831.400347074634,
+            &quot;95&quot;: 3401.1115750135386,
+            &quot;90&quot;: 882.3189827822952,
+            &quot;50&quot;: 18.57593673155794
+        }
+    },
+    &quot;print&quot;: {
+        &quot;value&quot;: 900,
+        &quot;type&quot;: &quot;counter&quot;,
+        &quot;rps&quot;: {
+            &quot;min&quot;: 2.996889528358517,
+            &quot;max&quot;: 3.0588292392263448,
+            &quot;95&quot;: 2.9984995508247674,
+            &quot;90&quot;: 2.9980785314691816,
+            &quot;50&quot;: 2.9975917348002614
+        }
+    }
+...
+</code></pre>
+
+<h2 id="get-email_reportidnumberaddrmynamemydomaincom">GET /email_report?id=number&amp;addr=myname@mydomain.com[,&hellip;]<a class="headerlink" href="#get-email_reportidnumberaddrmynamemydomaincom" title="Permanent link">&para;</a></h2>
+<p>Send email report to addresses specified. Please note that smtp should be properly configured for API server to use this function.</p>
+<h2 id="get-server_logsseveritylevel">GET /server_logs&amp;severity=level<a class="headerlink" href="#get-server_logsseveritylevel" title="Permanent link">&para;</a></h2>
+<p>Stream API server logs starting from the point when this command was executed. These logs contain information on node allocations, bench starts and all other operations performing by the server itself. Please note that server logs could be buffered.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/server_logs?severity=info'
+17:31:36.770 [info] &lt;0.714.0&gt; [ GET ] /stop
+17:31:36.770 [info] &lt;0.142.0&gt; [ SERVER ] Stop bench #51 request received
+17:31:36.770 [info] &lt;0.570.0&gt; [ BENCH #51 ] Bench final: stopped
+17:31:36.771 [info] &lt;0.570.0&gt; [ BENCH #51 ] Stage 'finalize - saving_bench_results': started
+17:31:36.771 [info] &lt;0.714.0&gt; [ RESPONSE ] : 200 #{status =&gt; &lt;&lt;&quot;stopped&quot;&gt;&gt;}
+</code></pre>
+
+<h2 id="get-clusters_info">GET /clusters_info<a class="headerlink" href="#get-clusters_info" title="Permanent link">&para;</a></h2>
+<p>Get information on currently allocated clusters.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/clusters_info'
+[{
+    &quot;timestamp&quot;: 1479139259,
+    &quot;state&quot;: &quot;allocated&quot;,
+    &quot;provider&quot;: &quot;mzb_dummycloud_plugin&quot;,
+    &quot;n&quot;: 2,
+    &quot;id&quot;: 1,
+    &quot;hosts&quot;: [&quot;127.0.0.1&quot;],
+    &quot;bench_id&quot;: 24
+},
+...
+</code></pre>
+
+<h2 id="get-deallocate_clusteridnumber">GET /deallocate_cluster?id=number<a class="headerlink" href="#get-deallocate_clusteridnumber" title="Permanent link">&para;</a></h2>
+<p>Deallocate cluster and remove it from clusters list.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/deallocate_cluster?id=1'
+{&quot;reason_code&quot;:&quot;not_found&quot;,&quot;reason&quot;:&quot;Cluster not found&quot;}
+</code></pre>
+
+<h2 id="get-remove_cluster_infoidnumber">GET /remove_cluster_info?id=number<a class="headerlink" href="#get-remove_cluster_infoidnumber" title="Permanent link">&para;</a></h2>
+<p>Remove cluster from clusters list.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/remove_cluster_info?id=1'
+{&quot;reason_code&quot;:&quot;not_found&quot;,&quot;reason&quot;:&quot;Cluster not found&quot;}
+</code></pre>
+
+<h2 id="get-add_tagsidnumbertagsabc">GET /add_tags?id=number&amp;tags=a,b,c<a class="headerlink" href="#get-add_tagsidnumbertagsabc" title="Permanent link">&para;</a></h2>
+<p>Add tags to a given benchmark.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/add_tags?id=50&amp;tags=a,b,c'
+{}
+</code></pre>
+
+<h2 id="get-remove_tagsidnumbertagsabc">GET /remove_tags?id=number&amp;tags=a,b,c<a class="headerlink" href="#get-remove_tagsidnumbertagsabc" title="Permanent link">&para;</a></h2>
+<p>Remove tags from a given benchmark.</p>
+<pre><code class="bash">$ curl 'http://mzbench.myserver.com/remove_tags?id=50&amp;tags=a,b'
+{}
+</code></pre>
+
 <h1 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h1>
 <ul>
 <li>Benchmark ID is a non-negative integer.</li>

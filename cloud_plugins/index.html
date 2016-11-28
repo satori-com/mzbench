@@ -231,7 +231,7 @@ sa-east-1       ami-7798101b
 <p>Minimally, the config requires <code>instance_spec</code> and <code>config</code> keys specified. Learn more about AWS-specific config in the <a href="https://github.com/gleber/erlcloud">erlcloud documentation</a>.</p>
 <h2 id="static-cloud">Static Cloud<a class="headerlink" href="#static-cloud" title="Permanent link">&para;</a></h2>
 <p><code>mzb_staticcloud_plugin</code></p>
-<p>The module allocated nodes from a list of hosts.</p>
+<p>The module uses allocated nodes from a list of hosts.</p>
 <p>Configuration example:</p>
 <pre><code class="erlang">{cloud_plugins, [{static, #{module =&gt; mzb_staticcloud_plugin,
                            hosts =&gt; [&quot;123.45.67.89&quot;, &quot;hostname&quot;]
@@ -245,6 +245,7 @@ sa-east-1       ami-7798101b
 <pre><code class="erlang">{cloud_plugins, [{dummy, #{module =&gt; mzb_dummycloud_plugin}}]}
 </code></pre>
 
+<p>The main difference between <code>dummycloud</code> and <code>staticcloud</code> for localhost is that <code>dummycloud</code> does not provide node exclusivity. It means that you could run several benchmarks on your localhost simultaneously, which is not supported by <code>staticcloud</code>.</p>
 <h2 id="multicloud">Multicloud<a class="headerlink" href="#multicloud" title="Permanent link">&para;</a></h2>
 <p><code>mzb_multicloud_plugin</code></p>
 <p>Combine multiple plugins to allocate hosts from multiple sources.</p>

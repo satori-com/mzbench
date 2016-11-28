@@ -164,13 +164,13 @@
 </div></div>
                 <div class="col-md-9" role="main">
 
-<p>The <strong>MZBench CLI</strong> lets you control you control the server and benchmarks from the command line. It utilizes the <a href="../api/">MZBench API</a>, but goes beyond it: it can do things even without a running MZBench server.</p>
+<p>The <strong>MZBench CLI</strong> lets you control the server and benchmarks from the command line. It utilizes the <a href="../api/">MZBench API</a>, but goes beyond it: it can do things even without a running MZBench server.</p>
 <p>The commands are invoked by the <code>mzbench</code> script in the <code>bin</code> directory:</p>
 <pre><code class="bash"># Inside the MZBench directory:
 $ ./bin/mzbench start --env foo=bar --nodes=5
 # or:
 $ cd bin
-$ mzbench start --env foo=bar --nodes=5
+$ ./mzbench start --env foo=bar --nodes=5
 </code></pre>
 
 <h1 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h1>
@@ -320,7 +320,20 @@ Start of log for bench 89
 ...
 </code></pre>
 
-<p>View the benchmark logs.</p>
+<p>View the benchmark system logs.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dd>
+</dl>
+<h3 id="userlog">userlog<a class="headerlink" href="#userlog" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ ./bin/mzbench userlog 89
+Start of userlog for bench 89
+14:02:47.080 [info] &lt;0.237.0&gt; Dummy print: &quot;FOO&quot;
+...
+</code></pre>
+
+<p>View the benchmark worker logs.</p>
 <p>Positional param:</p>
 <dl>
 <dt><code>&lt;benchmark_id&gt;</code></dt>
@@ -358,6 +371,80 @@ Start of log for bench 89
 <dl>
 <dt><code>--env &lt;name=value&gt; ...</code></dt>
 <dd><a href="../scenarios/spec/#environment-variables">Environment variable</a> definitions.</dd>
+</dl>
+<h3 id="clusters_info">clusters_info<a class="headerlink" href="#clusters_info" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench clusters_info
+[
+    {
+        &quot;timestamp&quot;: 1479140779,
+        &quot;bench_id&quot;: 29,
+        &quot;n&quot;: 2,
+        &quot;state&quot;: &quot;allocated&quot;,
+        &quot;hosts&quot;: [
+            &quot;127.0.0.1&quot;
+        ],
+        &quot;provider&quot;: &quot;mzb_dummycloud_plugin&quot;,
+        &quot;id&quot;: 5
+    },
+...
+</code></pre>
+
+<p>Check for currently allocated clusters.</p>
+<h3 id="remove_clusters_info">remove_clusters_info<a class="headerlink" href="#remove_clusters_info" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench remove_cluster_info 5
+{}
+</code></pre>
+
+<p>Remove cluster from a list of allocated clusters.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;cluster_id&gt;</code></dt>
+<dd>The ID of the cluster as returned by clusters_info.</dd>
+</dl>
+<h3 id="deallocate_cluster">deallocate_cluster<a class="headerlink" href="#deallocate_cluster" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench deallocate_cluster 5
+{}
+</code></pre>
+
+<p>Deallocate cluster and remove it from a list of allocated clusters.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;cluster_id&gt;</code></dt>
+<dd>The ID of the cluster as returned by clusters_info.</dd>
+</dl>
+<h3 id="add_tags">add_tags<a class="headerlink" href="#add_tags" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench add_tags 50 a,b
+{}
+</code></pre>
+
+<p>Add tags to a specified benchmark.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>
+<dl>
+<dt>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dt>
+<dt><code>&lt;tags&gt;</code></dt>
+<dd>Comma-separated tag list.</dd>
+</dl>
+</dd>
+</dl>
+<h3 id="remove_tags">remove_tags<a class="headerlink" href="#remove_tags" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench remove_tags 50 a,b
+{}
+</code></pre>
+
+<p>Remove tags from a specified benchmark.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>
+<dl>
+<dt>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dt>
+<dt><code>&lt;tags&gt;</code></dt>
+<dd>Comma-separated tag list.</dd>
+</dl>
+</dd>
 </dl>
 <h2 id="misc">Misc<a class="headerlink" href="#misc" title="Permanent link">&para;</a></h2>
 <h3 id="selfcheck">selfcheck<a class="headerlink" href="#selfcheck" title="Permanent link">&para;</a></h3>

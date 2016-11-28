@@ -165,7 +165,7 @@
 <p>Here&rsquo;s how you write a scenario to load-test a locally running web app.</p>
 <ol>
 <li>
-<p>Create a file called <em>myscenario.erl</em> with this content:</p>
+<p>Create a file called <em>myscenario.bdl</em> with this content:</p>
 <pre><code>pool(size = 1,
      worker_type = http_worker):
     set_host("localhost")
@@ -187,9 +187,13 @@
 <p>Launch the MZBench server and start your scenario:</p>
 <pre><code>$ ./bin/mzbench start_server
 Executing make -C /path/to//mzbench/bin/../server generate
-Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzbench_api start
+.........
+Waiting for server application start
+Webserver is started at http://127.0.0.1:4800
+Active config file is ~/.config/mzbench/server.config
+ok
 
-$ ./bin/mzbench start /path/to/myscenarion.erl
+$ ./bin/mzbench start /path/to/myscenario.bdl
 {
     "status": "pending", 
     "id": 107
@@ -202,7 +206,7 @@ $ ./bin/mzbench start /path/to/myscenarion.erl
 <p>Great, it works! But one request isn&rsquo;t going to load your web app too much, is it? Let&rsquo;s extend our scenario to generate some proper load.</p>
 </li>
 <li>
-<p>Modify <em>myscenario.erl</em> so that it looks like this:</p>
+<p>Modify <em>myscenario.bdl</em> so that it looks like this:</p>
 <pre><code>pool(size = 1,
      worker_type = http_worker):
         set_host("localhost")
@@ -215,7 +219,7 @@ $ ./bin/mzbench start /path/to/myscenarion.erl
 </li>
 <li>
 <p>Start the modified scenario:</p>
-<pre><code>$ ./bin/mzbench start /path/to/myscenario.erl
+<pre><code>$ ./bin/mzbench start /path/to/myscenario.bdl
 {
     "status": "pending", 
     "id": 109
