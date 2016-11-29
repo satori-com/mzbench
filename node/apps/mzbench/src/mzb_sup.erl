@@ -35,7 +35,8 @@ init([]) ->
         child_spec(worker, garbage_cleaner, mzb_gc, permanent, [GCSleep]),
         child_spec(worker, watchdog, mzb_watchdog, permanent, []),
         child_spec(supervisor, interconnect, mzb_interconnect_sup, permanent, [InterconnectPort, fun mzb_protocol:handle/2]),
-        child_spec(worker, time_service, mzb_time, permanent, [])
+        child_spec(worker, time_service, mzb_time, permanent, []),
+        child_spec(worker, metrics_cache, mzb_metrics_cache, permanent, [])
     ]
     }}.
 

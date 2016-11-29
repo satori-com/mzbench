@@ -65,7 +65,10 @@ declare_metric(Group, Title, Name, Type, Opts) ->
         ]).
 
 declare_metrics(Groups) ->
-    mzb_interconnect:call_director({declare_metrics, Groups}).
+    case mzb_metrics_cache:check_cached_declare(Groups) of
+        true -> ok;
+        false -> mzb_interconnect:call_director({declare_metrics, Groups})
+    end.
 
 local_declare_metrics(Groups) ->
     gen_server:call(?MODULE, {declare_metrics, Groups}).
