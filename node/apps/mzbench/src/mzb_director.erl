@@ -31,6 +31,7 @@
     stop_reason = undefined,
     script     = undefined,
     env        = undefined,
+    assertions = [],
     nodes      = [],
     continuation = undefined
 }).
@@ -66,8 +67,8 @@ is_alive() ->
 
 init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
-    {Pools, Env2} = mzbl_script:extract_pools_and_env(Script, Env),
-    system_log:info("[ director ] Pools: ~p, Env: ~p", [Pools, Env2]),
+    {Pools, Env2, Asserts} = mzbl_script:extract_info(Script, Env),
+    system_log:info("[ director ] Pools: ~p, Env: ~p, Asserts: ~p", [Pools, Env2, Asserts]),
 
     {_, []} = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}),
     gen_server:cast(self(), start_pools),
@@ -77,6 +78,7 @@ init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     {ok, #state{
         script = Pools,
         env = Env2,
+        assertions = Asserts,
         nodes = Nodes,
         bench_name = BenchName,
         super_pid = SuperPid,
@@ -170,10 +172,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-start_metrics(#state{script = Script, env = Env, nodes = Nodes, super_pid = SuperPid}) ->
+start_metrics(#state{script = Script, assertions = Asserts, nodes = Nodes, super_pid = SuperPid}) ->
+    LoopAssertMetrics = mzbl_script:get_loop_assert_metrics(Script),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Env, Nodes]},
+         {mzb_metrics, start_link, [Asserts, LoopAssertMetrics, Nodes]},
          transient, 5000, worker, [mzb_metrics]}),
     {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
     SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),

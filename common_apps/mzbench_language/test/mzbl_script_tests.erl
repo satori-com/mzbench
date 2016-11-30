@@ -92,7 +92,7 @@ import_json_bdl_test() ->
 import_json(AST) ->
     {ok, MZBenchLanguageDir} = file:get_cwd(),
     ResourceDir = filename:join([MZBenchLanguageDir, "test", "resources"]),
-    {_S, Env} = mzbl_script:extract_pools_and_env(AST, [{"bench_script_dir", ResourceDir}]),
+    {_S, Env, _Asserts} = mzbl_script:extract_info(AST, [{"bench_script_dir", ResourceDir}]),
     Json = proplists:get_value({resource,test_json}, Env),
     ?assertEqual(#{<<"widget">> => #{
                        <<"debug">> => true,
@@ -122,6 +122,13 @@ rsync_with_excludes_bdl_test() ->
     install_specs_check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "node", excludes = ["deps", "ebin"]}],
        "#!benchDL\n"
        "make_install(rsync = \"../somewhere/nearby/\", dir = \"node\", excludes = [\"deps\", \"ebin\"])").
+
+extract_while_metrics_test() ->
+    AST = mzbl_script:read_from_string("#!benchDL\n"
+          "pool(size = 1):\n"
+          "    loop(rate = 1 rps, time = 1 min, while = \"asdf\" > 1):\n"
+          "        do_stuff()"),
+    ?assertEqual(["asdf"], mzbl_script:get_loop_assert_metrics(AST)).
 
 install_specs_check(ExpectedInstallSpecs, Script) ->
     AST = mzbl_script:read_from_string(Script),

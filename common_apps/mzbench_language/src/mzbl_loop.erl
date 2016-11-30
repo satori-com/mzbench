@@ -28,7 +28,8 @@
     spawn = false        :: true | false,
     iterator = undefined :: undefined | string(),
     parallel = 1         :: pos_integer(),
-    poisson = false      :: true | false
+    poisson = false      :: true | false,
+    while = []           :: list()
 }).
 
 -spec eval([proplists:property()], [script_expr()], worker_state(), worker_env(), module())
@@ -76,11 +77,13 @@ eval(LoopSpec, Body, State, Env, WorkerProvider) ->
     {ProcNum, State2} = (ArgEvaluator(parallel, LoopSpec, 1))(State1),
     {Spawn, State3} = (ArgEvaluator(spawn, LoopSpec, false))(State2),
     {Poisson, State4} = (ArgEvaluator(poisson, LoopSpec, false))(State3),
+    Asserts = mzbl_ast:find_operation_and_extract_args(while, LoopSpec, []),
     Opts = #opts{
             spawn = Spawn,
             iterator = Iterator,
             parallel = ProcNum,
-            poisson = Poisson
+            poisson = Poisson,
+            while = Asserts
         },
     case mzbl_ast:find_operation_and_extract_args(rate, LoopSpec, [#constant{value = undefined, units = rps}]) of
         [#constant{value = _, units = _} = RPS] ->
@@ -176,6 +179,10 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     {nil, State}.
 
 timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldRun) ->
+    case mzb_asserts:check_loop_expr(Opts#opts.while) of
+        false -> {nil, State};
+        _ ->
+
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),
@@ -218,8 +225,9 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                     end,
 
                     timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch, NewRun)
-            end
-    end.
+    end
+    end
+end.
 
 eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State, Step, {OldRun, DoneLastUpdate}) ->
     {Rate, State1} = F(State),
@@ -312,4 +320,3 @@ k_times_spawn(_, _, _, _, _, S, _, 0) -> S;
 k_times_spawn(Expr, Provider, I, Env, Step, S, Done, N) ->
     spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, Done}|Env], Provider) end),
     k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, N-1).
-

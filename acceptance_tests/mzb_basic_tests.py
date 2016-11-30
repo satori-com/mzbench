@@ -230,6 +230,9 @@ def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples.bdl/assertions.bdl', env={})
 
 
+def loop_assert_test():
+    run_successful_bench(scripts_bdl_dir + 'loop_while.bdl', env={})
+
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
     run_successful_bench(scripts_bdl_dir + 'ignore_failure_test.bdl')

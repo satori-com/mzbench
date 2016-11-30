@@ -256,7 +256,8 @@ loop(time = <Time>,
      rate = <Rate>,
      parallel = <N>,
      iterator = <Name>,
-     spawn = <Spawn>):
+     spawn = <Spawn>,
+     while = <Condition>):
     <Statement1>
     <Statement2>
     ...
@@ -339,6 +340,15 @@ spawn = (true|false)
 
 If `true`, every iteration runs in a separate, spawned process. Default is `false`.
 
+### while
+
+```python
+while = <Condition>
+```
+
+Run this loop while condition is specified. Condition is some metric name compared with `<`, `>`, `<=`, `>=` and `==`. For example `"print" < 10`. The syntax is similar to [asserts](#assert). Please note that metrics are updated once in a 10 seconds (by default), if you set condition for print being less than 10 it does not guarantee print to be equal to 11 after the loop. In this case, "print" could be any number greater than 10 depending on how fast is your loop.
+
+Loop conditions are different from global asserts in a two aspects: there is no time-limiting for loop ones and they do not terminate the entire worker thread. If loop assert is not satisfied, your script won't be `failed`.
 
 # Resource Files
 

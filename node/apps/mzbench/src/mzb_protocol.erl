@@ -38,6 +38,9 @@ handle(get_all_signals, _) ->
 handle({add_signal, Name, Count}, _) ->
     {reply, mzb_signaler:add_local_signal(Name, Count)};
 
+handle({cache_metric, Name, Value}, _) ->
+    {reply, gen_server:cast(mzb_metrics_cache, {cache_metric, Name, Value})};
+
 handle(is_director_alive, _) ->
     {reply, mzb_director:is_alive()};
 

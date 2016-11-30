@@ -9,13 +9,14 @@
          get_benchname/1,
          meta_to_location_string/1,
          normalize_env/1,
-         extract_pools_and_env/2,
+         extract_info/2,
          extract_install_specs/2,
          enumerate_pools/1,
          extract_worker/1,
          resolve_worker_provider/1,
          make_git_install_spec/4,
          make_rsync_install_spec/3,
+         get_loop_assert_metrics/1,
          eval_opts/2]).
 
 -include("mzbl_types.hrl").
@@ -154,29 +155,37 @@ eat_brackets([$[ | Brackets], [ $] | Rest], none) -> eat_brackets(Brackets, Rest
 eat_brackets(_, [Br | _], none) when (Br == $)) or (Br == $]) -> erlang:error({parse_error, "Wrong bracketing"});
 eat_brackets(Brackets, [_ | Rest], Mode) -> eat_brackets(Brackets, Rest, Mode).
 
--spec extract_pools_and_env([script_expr()], [{Key::term(), Value::term()}]) ->
-    {[#operation{}], [proplists:property()]}.
-extract_pools_and_env(Script, Env) ->
-    Env2 = lists:foldl(
-            fun (#operation{name = include_resource, args = [NameExpr, PathExpr]}, Acc) ->
+-spec get_loop_assert_metrics([script_expr()]) -> [string()].
+get_loop_assert_metrics(Script) ->
+    {_, Metrics} = mzbl_ast:mapfold(
+        fun (#operation{name = while, args = [#operation{args = A}]} = Op, Acc) ->
+                {Op, lists:filter(fun is_list/1, A) ++ Acc};
+            (Op, Acc) -> {Op, Acc}
+        end, [], Script),
+    Metrics.
+
+-spec extract_info([script_expr()], [{Key::term(), Value::term()}]) ->
+    {[#operation{}], [proplists:property()], [proplists:property()]}.
+extract_info(Script, Env) ->
+    {Env2, Asserts} = lists:foldl(
+            fun (#operation{name = include_resource, args = [NameExpr, PathExpr]}, {Acc, Ass}) ->
                     Name = mzbl_interpreter:eval_std(NameExpr, Env),
                     Path = mzbl_interpreter:eval_std(PathExpr, Env),
-                    [{{resource, Name}, import_resource(Env, Path, erlang)} | Acc];
-                (#operation{name = include_resource, args = [NameExpr, PathExpr, Type]}, Acc) ->
+                    {[{{resource, Name}, import_resource(Env, Path, erlang)} | Acc], Ass};
+                (#operation{name = include_resource, args = [NameExpr, PathExpr, Type]}, {Acc, Ass}) ->
                     Name = mzbl_interpreter:eval_std(NameExpr, Env),
                     Path = mzbl_interpreter:eval_std(PathExpr, Env),
-                    [{{resource, Name}, import_resource(Env, Path, Type)} | Acc];
-                (#operation{name = defaults, args = [DefaultsList]}, Acc) ->
-                    interpret_defaults(DefaultsList, Env) ++ Acc;
-                (#operation{name = assert, args = [Time, Expr]}, Acc) ->
-                    {value, {_, Asserts}, Acc2} = lists:keytake(asserts, 1, Acc),
-                    [{asserts, [{Time, normalize_assert(Expr)}|Asserts]}|Acc2];
+                    {[{{resource, Name}, import_resource(Env, Path, Type)} | Acc], Ass};
+                (#operation{name = defaults, args = [DefaultsList]}, {Acc, Ass}) ->
+                    {interpret_defaults(DefaultsList, Env) ++ Acc, Ass};
+                (#operation{name = assert, args = [Time, Expr]}, {Acc, Ass}) ->
+                    {Acc, [{Time, normalize_assert(Expr)} | Ass]};
                 (_, Acc) -> Acc
-            end, [{asserts, []}|Env], Script),
+            end, {Env, []}, Script),
 
     Script2 = lists:filter(fun (#operation{name = pool}) -> true; (_) -> false end, enumerate_pools(Script)),
     Script3 = mzbl_ast:map_meta(fun (Meta, Op) -> [{function, Op}|Meta] end, Script2),
-    {Script3, Env2}.
+    {Script3, Env2, Asserts}.
 
 normalize_assert(#operation{name = Op, args = [Op1, Op2]} = A) when is_list(Op2) ->
     A#operation{name = opposite_op(Op), args = [Op2, Op1]};

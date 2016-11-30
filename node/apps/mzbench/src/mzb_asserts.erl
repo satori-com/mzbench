@@ -5,6 +5,7 @@
     init/1,
     update_state/2,
     get_failed/3,
+    check_loop_expr/1,
     format_state/1
 ]).
 
@@ -65,6 +66,15 @@ update_state(TimeSinceCheck, State) ->
                 false -> A#{unsatisfy_time:= UTime + TimeSinceCheck}
             end
         end, State).
+
+check_loop_expr(List) -> lists:all(fun check_loop_op/1, List).
+
+check_loop_op(#operation{args = [Metric, Value]} = Op) when is_list(Metric) ->
+    check_loop_op(Op#operation{args = [mzb_metrics_cache:get_value(Metric), Value]});
+check_loop_op(#operation{args = [Value, Metric]} = Op) when is_list(Metric) ->
+    check_loop_op(Op#operation{args = [Value, mzb_metrics_cache:get_value(Metric)]});
+check_loop_op(#operation{name = Op, args = [Value1, Value2]}) ->
+    check_value(Op, Value1, Value2).
 
 check_expr(#operation{name = Op, args = [Metric, Value1]}) ->
     try mzb_metrics:get_value(Metric) of

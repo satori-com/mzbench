@@ -1,6 +1,6 @@
 -module(mzb_metrics).
 
--export([start_link/2,
+-export([start_link/3,
          declare_metric/5,
          declare_metrics/1,
          local_declare_metrics/1,
@@ -33,6 +33,7 @@
     previous_counter_values = [] :: [{string(), non_neg_integer()}],
     last_rps_calculation_time = undefined :: erlang:timestamp(),
     asserts = [] :: [map()],
+    loop_assert_metrics = [],
     active = true :: true | false,
     metric_groups = [],
     update_interval_ms :: undefined | integer(),
@@ -45,8 +46,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Env, Nodes) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Env, Nodes], [{spawn_opt, [{priority, high}]}]).
+start_link(Asserts, LoopAssertMetrics, Nodes) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Asserts, LoopAssertMetrics, Nodes], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     mz_counter:notify(Name, Value);
@@ -96,10 +97,9 @@ get_histogram_data() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Env, Nodes]) ->
+init([Asserts, LoopAssertMetrics, Nodes]) ->
     {ok, UpdateIntervalMs} = application:get_env(mzbench, metric_update_interval_ms),
     _ = ets:new(?MODULE, [set, protected, named_table]),
-    Asserts = mzb_asserts:init(proplists:get_value(asserts, Env, undefined)),
     erlang:send_after(UpdateIntervalMs, self(), trigger),
     StartTime = os:timestamp(),
     _ = random:seed(StartTime),
@@ -109,7 +109,8 @@ init([Env, Nodes]) ->
         start_time = StartTime,
         previous_counter_values = [],
         last_rps_calculation_time = StartTime,
-        asserts = Asserts,
+        asserts = mzb_asserts:init(Asserts),
+        loop_assert_metrics = LoopAssertMetrics,
         active = true,
         metric_groups = [],
         update_interval_ms = UpdateIntervalMs,
@@ -185,7 +186,7 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State3 = check_assertions(TimeSinceTick, State2),
             State4 = check_signals(State3),
             State5 = check_dynamic_deadlock(State4),
-            ok = report_metrics(),
+            ok = report_metrics(State5),
             State5#s{last_tick_time = Now}
     end.
 
@@ -450,8 +451,11 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-report_metrics() ->
-    [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- global_metrics(), Value /= undefined],
+report_metrics(#s{loop_assert_metrics = MetricList, nodes = Nodes}) ->
+    GlobalMetrics = global_metrics(),
+    GlobalFiltered = lists:filter(fun ({Nm, _, _}) -> lists:any(fun (X) -> X == Nm end, MetricList) end, GlobalMetrics),
+    [mzb_interconnect:abcast(Nodes, {cache_metric, Name, Value}) || {Name, _, Value} <- GlobalFiltered, Value /= undefined],
+    [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- GlobalMetrics, Value /= undefined],
     ok.
 
 datapoints(histogram) -> [min, max, mean, 50, 75, 90, 95, 99, 999];
@@ -475,5 +479,3 @@ global_inc(Name, Type, Value) ->
 
 global_set(Name, Type, Value) ->
     ets:insert(?MODULE, {Name, Type, Value}).
-
-

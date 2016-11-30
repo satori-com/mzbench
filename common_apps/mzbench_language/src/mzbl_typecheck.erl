@@ -56,6 +56,10 @@ check(X, boolean, _) when is_boolean(X) -> true;
 check(L, any, Env) when is_list(L) ->
     all_([check(X, any, Env) || X <- L]);
 check(_, any, _) -> true;
+check(#operation{name = LO, args = [A, B]}, boolean_operation, Env)
+    when (LO == gt) or (LO == gte) or (LO == lt) or (LO == lte) or (LO == eq) ->
+    and_(or_(or_(check(A, integer, Env), check(A, float, Env)), check(A, list, Env)),
+         or_(or_(check(B, integer, Env), check(B, float, Env)), check(B, list, Env)));
 check(X, T, _) -> {false, {X, is_not, T}, undefined}.
 
 -spec check_env(string(), type(), worker_env()) -> typecheck_result().
@@ -236,6 +240,8 @@ check_loop_spec_element(#operation{name = iterator, args = [Name]}, Env) ->
     check(Name, string, Env);
 check_loop_spec_element(#operation{name = poisson, args = [Flag]}, Env) ->
     check(Flag, boolean, Env);
+check_loop_spec_element(#operation{name = while, args = [Op]}, Env) ->
+    check(Op, boolean_operation, Env);
 check_loop_spec_element(X, _Env) ->
     {false, mzb_string:format("Bad loop spec element ~p", [X]), undefined}.
 
