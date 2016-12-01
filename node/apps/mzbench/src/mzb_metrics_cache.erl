@@ -16,7 +16,7 @@
 %%%===================================================================
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], [{spawn_opt, [{priority, high}]}]).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 check_cached_declare(Groups) ->
     case ets:lookup(?MODULE, Groups) of
