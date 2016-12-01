@@ -34,29 +34,18 @@ execute(State, Meta, Command) ->
     mzb_metrics:notify({"latency", histogram}, timer:now_diff(TimeFinish, TimeStart)),
     {nil, State}.
 
-run(Command, Opts, WorkerId) ->
-    Port = open_port({spawn, Command}, [
-        {env, [{"MZB_WORKER_ID", integer_to_list(WorkerId)}]}, 
-        {line, 255}, stream, eof, exit_status, stderr_to_stdout | Opts]),
-    get_data(Port, WorkerId).
+run(Command, _Opts, WorkerId) ->
+    {ok, Pid, _OsPid} = exec:run(Command, [monitor, stdout, stderr,
+        {env, [{"MZB_WORKER_ID", integer_to_list(WorkerId)}]}]),
+    get_data(Pid, WorkerId).
 
 get_data(Port, WorkerId) -> get_data(Port, WorkerId, []).
 
-get_data(Port, WorkerId, Buffer) ->
+get_data(Port, WorkerId, _Buffer) ->
     receive
-        {Port, {data, {eol, Bytes}}} ->
-            lager:info("Worker ~p output: ~s", [WorkerId, Buffer ++ Bytes]),
+        {Stream, _Pid, Bytes} when (Stream == stdout) or (Stream == stderr) -> 
+            lager:info("Worker ~p output: ~s", [WorkerId, Bytes]),
             get_data(Port, WorkerId, []);
-        {Port, {data, {noeol, Bytes}}} ->
-            get_data(Port, WorkerId, Buffer ++ Bytes);
-        {Port, eof} ->
-            Port ! {self(), close},
-            get_data(Port, WorkerId, Buffer);
-        stop ->
-            Port ! {self(), close},
-            get_data(Port, WorkerId, Buffer);
-        {Port, closed} ->
-            receive
-                {Port, {exit_status, Code}} -> Code
-            end
+        {'DOWN', _ , _, _, {exit_status, Code}} -> Code;
+        {'DOWN', _ , _, _, normal} -> 0
     end.

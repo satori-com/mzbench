@@ -60,11 +60,7 @@ start(#state{executable = Exec} = State, _Meta, Options) ->
     Command = Exec ++ lists:foldr(fun({url, Url}, A) -> A ++ " " ++ Url;
                         ({Opt, Val}, A) ->
                             L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
-                            Val2 = case length(string:tokens(Val, " ")) of
-                                0 -> Val;
-                                1 -> Val;
-                                _ -> "\"" ++ Val ++ "\""
-                                    end,
+                            Val2 = prepare_val(Val),
                             case length(L) of
                                 1 -> A ++ " -" ++ L ++ Val2;
                                 _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
@@ -76,31 +72,27 @@ start(#state{executable = Exec} = State, _Meta, Options) ->
     end,
     {nil, State}.
 
+prepare_val(Val) when is_float(Val) ->   float_to_list(Val);
+prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
+prepare_val(Val) when is_list(Val) ->
+    case length(string:tokens(Val, " ")) of
+        0 -> Val;
+        1 -> Val;
+        _ -> "\"" ++ Val ++ "\""
+    end.
+
 run(Command) ->
     erlang:spawn(?MODULE, statsd, []),
-    Port = open_port({spawn, Command}, [
-        {line, 255}, stream, eof, exit_status, stderr_to_stdout]),
-    get_data(Port).
+    {ok, Pid, _OsPid} = exec:run(Command, [monitor, stdout, stderr]),
+    get_data(Pid).
 
-get_data(Port) -> get_data(Port, []).
-
-get_data(Port, Buffer) ->
+get_data(Pid) ->
     receive
-        {Port, {data, {eol, Bytes}}} ->
-            lager:info("Output: ~s", [Buffer ++ Bytes]),
-            get_data(Port, []);
-        {Port, {data, {noeol, Bytes}}} ->
-            get_data(Port, Buffer ++ Bytes);
-        {Port, eof} ->
-            Port ! {self(), close},
-            get_data(Port, Buffer);
-        stop ->
-            Port ! {self(), close},
-            get_data(Port, Buffer);
-        {Port, closed} ->
-            receive
-                {Port, {exit_status, Code}} -> Code
-            end
+        {Stream, _Pid, Bytes} when (Stream == stdout) or (Stream == stderr) -> 
+            lager:info("Output: ~s", [Bytes]),
+            get_data(Pid);
+        {'DOWN', _ , _, _, {exit_status, Code}} -> Code;
+        {'DOWN', _ , _, _, normal} -> 0
     end.
 
 statsd() ->

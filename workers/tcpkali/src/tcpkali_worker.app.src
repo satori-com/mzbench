@@ -5,7 +5,8 @@
   {vsn, "0.3.6"},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  erlexec
                  ]},
   {env, []}
  ]}.
