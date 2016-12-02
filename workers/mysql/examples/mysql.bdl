@@ -1,0 +1,11 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/mysql")
+
+pool(size = 1,
+     worker_type = mysql_worker):
+    connect(user = "root", password = "", database = "mysql")
+    loop(time = 5 min,
+         rate = 1 rps):
+            query("SELECT * from user")
