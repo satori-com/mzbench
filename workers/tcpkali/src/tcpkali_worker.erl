@@ -57,7 +57,7 @@ metrics() ->
     ].
 
 start(#state{executable = Exec} = State, _Meta, Options) ->
-    Command = Exec ++ lists:foldr(fun({url, Url}, A) -> A ++ " " ++ Url;
+    Command = Exec ++ lists:foldr(fun({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
                         ({Opt, Val}, A) ->
                             L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
                             Val2 = prepare_val(Val),
@@ -77,7 +77,6 @@ prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
 prepare_val(Val) when is_list(Val) ->
     case length(string:tokens(Val, " ")) of
         0 -> Val;
-        1 -> Val;
         _ -> "\"" ++ Val ++ "\""
     end.
 
