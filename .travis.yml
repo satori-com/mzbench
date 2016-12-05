@@ -40,6 +40,7 @@ cache:
     - $HOME/.cache/pip
     - $HOME/.cache/rebar3
 
+# before_install and install below are only because of erlexec
 before_install:
 - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 - sudo apt-get update -qq
