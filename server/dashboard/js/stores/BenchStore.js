@@ -29,7 +29,7 @@ const defaultData = {
                      "            print(\"FOO\") # this operation prints \"FOO\" to console\n",
         nodes: "1",
         cloud: "",
-        env: [{name: "loop_rate", value: "1"}]},
+        env: [{name: "loop_rate", value: "1", id: 1}]},
     selectedBenchId: undefined,
     isShowTimelineLoadingMask: false,
     activeTab: undefined,
@@ -42,8 +42,9 @@ let data = jQuery.extend(true, {}, defaultData); // extend is used to copy objec
 class Bench {
     constructor(props) {
         let newEnv = [];
+        let currentId = 1;
         Object.assign(this, props);
-        Object.keys(props.env).map((key) => newEnv.push({name: key, value: props.env[key]}));
+        Object.keys(props.env).map((key) => newEnv.push({name: key, value: props.env[key], id: currentId++}));
         this.env = newEnv;
     }
 

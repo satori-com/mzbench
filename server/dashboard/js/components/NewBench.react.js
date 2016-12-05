@@ -24,18 +24,18 @@ class NewBench extends React.Component {
             this._onForceStart = this._onForceStart.bind(this);
     }
     renderEnv(env, idx) {
-        return  (<div className="row" key={idx}>
+        return  (<div className="row" key={env.id}>
                   <div className="form-group col-md-3">
-                    <input type="text" rel={idx} defaultValue={env.name} onChange={this._onChangeVarName} className="form-control" placeholder="Variable name" />
+                    <input type="text" rel={env.id} defaultValue={env.name} onChange={this._onChangeVarName} className="form-control" placeholder="Variable name" />
                   </div>
                   <div className="form-group col-md-1 equals">
                     =
                   </div>
                   <div className="form-group col-md-6">
                     <div className="input-group">
-                        <input type="text" rel={idx} defaultValue={env.value} onChange={this._onChangeVarValue} className="form-control" placeholder="Value" />
+                        <input type="text" rel={env.id} defaultValue={env.value} onChange={this._onChangeVarValue} className="form-control" placeholder="Value" />
                         <div className="input-group-btn">
-                                <a role="button" className="btn btn-danger" href="#" rel={idx} onClick={this._onRemoveVariable}><span className="glyphicon glyphicon-remove"></span></a>
+                                <a role="button" className="btn btn-danger" href="#" rel={env.id} onClick={this._onRemoveVariable}><span className="glyphicon glyphicon-remove"></span></a>
                         </div>
                     </div>
                   </div>
@@ -51,19 +51,24 @@ class NewBench extends React.Component {
     }
     _onAddVariable(event) {
         event.preventDefault();
-        MZBenchActions.withNewBench((b) => {b.env.push({name:"", value:""})});
+        MZBenchActions.withNewBench((b) => {
+                var max = b.env.reduce((a, x) => x.id > a ? x.id : a, 0);
+                b.env.push({name:"", value:"", id: (max + 1)});
+            });
     }
     _onRemoveVariable(event) {
-        let idx = parseInt($(event.target).attr("rel"));
-        MZBenchActions.withNewBench((b) => {b.env.splice(idx, 1)});
+        event.preventDefault();
+        let idx = parseInt($(event.target).closest('a').attr("rel"));
+        MZBenchActions.withNewBench((b) => {b.env = b.env.filter((x) => x.id !== idx);});
     }
     _onChangeVarName(event) {
+        event.preventDefault();
         let idx = parseInt($(event.target).attr("rel"));
-        MZBenchActions.withNewBench((b) => {b.env[idx].name = event.target.value});
+        MZBenchActions.withNewBench((b) => {b.env = b.env.map((x) => {if (idx === x.id) x.name = event.target.value; return x;})});
     }
     _onChangeVarValue(event) {
         let idx = parseInt($(event.target).attr("rel"));
-        MZBenchActions.withNewBench((b) => {b.env[idx].value = event.target.value});
+        MZBenchActions.withNewBench((b) => {b.env = b.env.map((x) => {if (idx === x.id) x.value = event.target.value; return x;})});
     }
     render() {
         let clouds = this.props.clouds;
