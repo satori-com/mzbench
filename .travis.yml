@@ -36,12 +36,19 @@ addons:
       - parallel
       - nodejs
       - npm
-      - g++-4.7 # because of erlexec
 
 cache:
   directories:
     - $HOME/.cache/pip
     - $HOME/.cache/rebar3
+
+before_install:
+- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+- sudo apt-get update -qq
+
+install:
+- sudo apt-get install -qq g++-4.9
+- export CXX="g++-4.9"
 
 script:
  - virtualenv venv
