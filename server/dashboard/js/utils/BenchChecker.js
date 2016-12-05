@@ -54,9 +54,22 @@ logic_op
     = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
 
 string
-    = '"' letters:(!'"' .)* '"' {
-        return makeList([], letters, 1).join("");
-    }
+    = '"' chars:DoubleStringCharacter* '"' { return chars.join(''); }
+
+DoubleStringCharacter
+    = !('"' / "\\\\") char:. { return char; }
+    / "\\\\" sequence:EscapeSequence { return sequence; }
+
+EscapeSequence
+    = "'"
+    / '"'
+    / "\\\\"
+    / "b"  { return "\\b";   }
+    / "f"  { return "\\f";   }
+    / "n"  { return "\\n";   }
+    / "r"  { return "\\r";   }
+    / "t"  { return "\\t";   }
+    / "v"  { return "\\x0B"; }
 
 number
     = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? units:[GKM]? { return digits.join(""); }
