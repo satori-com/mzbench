@@ -36,7 +36,7 @@ addons:
       - parallel
       - nodejs
       - npm
-      - g++-4.9 # because of erlexec
+      - g++-4.7 # because of erlexec
 
 cache:
   directories:
