@@ -87,7 +87,7 @@ random_list(State, _Env, _Meta, N) ->
     when State :: any(),
          Env :: [proplists:property()],
          Meta :: meta(),
-         N :: pos_integer(),
+         N :: non_neg_integer(),
          String :: string().
 random_string(State, _Env, _Meta, N) ->
     {mzb_utility:random_string(N), State}.
@@ -178,14 +178,17 @@ seq(State, _Env, _Meta, From, To) ->
 resource(State, Env, _Meta, Resource) ->
     {proplists:get_value({resource, Resource}, Env, []), State}.
 
--spec round_robin(State, Env, Meta, [El]) -> {El, State}
+-spec round_robin(State, Env, Meta, L) -> {any(), State}
     when State :: any(),
          Env :: [proplists:property()],
          Meta :: meta(),
-         El :: any().
+         L :: [any()] | non_neg_integer().
+round_robin(State, _Env, Meta, N) when is_integer(N) ->
+    Id = proplists:get_value(worker_id, Meta),
+    {(Id rem N) + 1, State};
 round_robin(_State, _Env, _Meta, []) ->
     erlang:error(empty_round_robin_list);
-round_robin(State, _Env, Meta, List) ->
+round_robin(State, _Env, Meta, List) when is_list(List) ->
     Len = erlang:length(List),
     Id = proplists:get_value(worker_id, Meta),
     {lists:nth((Id - 1) rem Len + 1, List), State}.
