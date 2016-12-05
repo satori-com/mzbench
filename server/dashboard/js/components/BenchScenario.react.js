@@ -9,7 +9,7 @@ class BenchScenario extends React.Component {
         let editable = this.props.bench.status == "running";
         var envForm = env.map((kv, index) => {
                 return (
-                    <div key={index} className="col-md-6 form-group">
+                    <div key={kv.name} className="col-md-6 form-group">
                         <label className="control-label">{kv.name}</label>
                         <input type="text" ref={kv.name} name={kv.name} defaultValue={kv.value} className="form-control" readOnly={ editable ? null : "readonly"}></input>
                     </div>
@@ -44,12 +44,12 @@ class BenchScenario extends React.Component {
         let notify = $.notify({message: `Saving environment... `}, {type: 'info', delay: 0});
         let query = MZBenchRouter.buildLink('/change_env', {id: this.props.bench.id});
 
-        query += Object.keys(this.props.bench.env).map(
+        query += this.props.bench.env.map(
             (x) => {
-                let oldValue = this.props.bench.env[x];
-                let newValue = ReactDOM.findDOMNode(this.refs[x]).value;
+                let oldValue = x.value;
+                let newValue = ReactDOM.findDOMNode(this.refs[x.name]).value;
                 if (newValue != oldValue) {
-                    return "&" + x.toString() + "=" + newValue;
+                    return "&" + x.name.toString() + "=" + newValue;
                 } else {
                     return ""
                 }
