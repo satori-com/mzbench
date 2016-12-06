@@ -1,0 +1,89 @@
+6 Dec 2016 Version 0.5.0 Arobase
+ * Python virtualenv
+ * Support for TLS
+ * Comparison between metrics (dashboards)
+ * Low disk space warning
+ * Dashboard syntax check
+ * Support for massive declare_metric
+
+22 Jul 2016 Version 0.4.3
+ * Tags for bench
+ * Results after bench execution: total counters/percentiles etc.
+ * BenchDL
+ * Multi server working together (different availability zones with metrics aggregation)
+ * Dynamic metrics
+
+31 Oct 2015 version 0.4.2
+ * Integrate ACE to the dashboard to allow editing test scripts from a browser
+ * External resources
+ * XMPP worker
+
+27 Sep 2015 version 0.4.1
+ * Add possibility to run on different cloud providers
+ * Think time
+ * Separate bench name from its filename
+ * Separate metric configuration
+
+9 Sep 2015 version 0.4.0
+ * Dashboard with websockets
+ * Derived metrics
+ * Static host list in configuration
+ * Number of active workers metric
+
+14 Aug 2015 version 0.3.6  
+ * Expose MZBench API
+ * Print out server state when trying to start
+ * Exec worker logs and worker_id passing
+ * Pure python worker support
+ * Node network connectivity check
+ * Log compression
+
+31 Jul 2015 version 0.3.5
+ * Cloud controller creation documented
+ * LUA worker
+ * Floating point rates
+ * Exit functionality
+ * Better output when wrong endpoint is specified
+
+7 Jul 2015 version 0.3.4
+ * TAR deployment
+ * Reset histograms each period
+
+30 May 2015
+ * Open-source product documentation
+ * AWS connector
+ * Ability to use hostedgraphite.com 
+
+15 May 2015
+ * Workers as git repos 
+
+30 Apr 2015
+ * Dedicated director node
+ * Time offset checking prior to bench run
+ * Countable signals
+ * Hdrhistogram integration
+
+15 Apr 2015
+ * System information gathering
+ * Dependent pool start
+ * Parallel worker start
+ * Assertion system
+ * Server dashboard
+
+30 Mar 2015
+ * Optimized interpreter loop function
+ * Output rps as well as counters
+ * Linear MZBench node scaling
+
+15 Mar 2015
+ * Interperter & metric system performance tests
+
+27 Feb 2015
+ * Asynchronous loop
+ * Migrate off folsom
+ * Signal script validation
+
+1 Feb 2015 version 0.31
+ * Separate erlang term library
+ * Signalling subsystem
+ * Typed vars
