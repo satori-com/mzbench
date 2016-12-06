@@ -2,17 +2,15 @@
 
 -export([initial_state/0, metrics/0]).
 
--export([set_host/3, set_port/3, set_options/3,
-    get/3, post/4]).
+-export([connect/4, set_options/3, disconnect/2,
+    get/3, post/4, set_prefix/3]).
 
 -type meta() :: [{Key :: atom(), Value :: any()}].
--type http_host() :: string().
--type http_port() :: integer().
 -type http_options() :: list().
 
 -record(state,
-    { host :: http_host()
-    , port :: http_port()
+    { connection = undefined
+    , prefix = "default"
     , options = [] :: http_options()
     }).
 
@@ -32,55 +30,68 @@ initial_state() ->
     #state{}.
 
 -spec metrics() -> list().
-metrics() ->
+metrics() -> metrics("default").
+
+metrics(Prefix) ->
     [
-        {group, "Summary", [
+        {group, "HTTP (" ++ Prefix ++ ")", [
             {graph, #{title => "HTTP Response",
                       units => "N",
-                      metrics => [{"http_ok", counter}, {"http_fail", counter}, {"other_fail", counter}]}},
+                      metrics => [{Prefix ++ ".http_ok", counter}, {Prefix ++ ".http_fail", counter}, {Prefix ++ ".other_fail", counter}]}},
             {graph, #{title => "Latency",
                       units => "microseconds",
-                      metrics => [{"latency", histogram}]}}
+                      metrics => [{Prefix ++ ".latency", histogram}]}}
         ]}
     ].
 
--spec set_host(state(), meta(), string()) -> {nil, state()}.
-set_host(State, _Meta, NewHost) ->
-    {nil, State#state{host = NewHost}}.
+-spec set_prefix(state(), meta(), string()) -> {nil, state()}.
+set_prefix(State, _Meta, NewPrefix) ->
+    mzb_metrics:declare_metrics(metrics(NewPrefix)),
+    {nil, State#state{prefix = NewPrefix}}.
 
--spec set_port(state(), meta(), http_port()) -> {nil, state()}.
-set_port(State, _Meta, NewPort) ->
-    {nil, State#state{port = NewPort}}.
+-spec disconnect(state(), meta()) -> {nil, state()}.
+disconnect(#state{connection = Connection} = State, _Meta) ->
+    hackney:close(Connection),
+    {nil, State}.
+
+-spec connect(state(), meta(), string() | binary(), integer()) -> {nil, state()}.
+connect(State, Meta, Host, Port) when is_list(Host) ->
+    connect(State, Meta, list_to_binary(Host), Port);
+connect(State, _Meta, Host, Port) ->
+    {ok, ConnRef} = hackney:connect(hackney_tcp, Host, Port, []),
+    {nil, State#state{connection = ConnRef}}.
 
 -spec set_options(state(), meta(), http_options()) -> {nil, state()}.
 set_options(State, _Meta, NewOptions) ->
     {nil, State#state{options = NewOptions}}.
 
--spec get(state(), meta(), string()) -> {nil, state()}.
-get(#state{host = Host, port = Port, options = Options} = State, _Meta, Endpoint) ->
-    URL = lists:flatten(io_lib:format("http://~s:~p~s", [Host, Port, Endpoint])),
-    Response = ?TIMED("latency", hackney:request(
-        get, list_to_binary(URL), [], <<"">>, Options)),
-    record_response(Response),
-    {nil, State}.
+-spec get(state(), meta(), string() | binary()) -> {nil, state()}.
+get(State, Meta, Endpoint) when is_list(Endpoint) ->
+    get(State, Meta, list_to_binary(Endpoint));
+get(#state{connection = Connection, prefix = Prefix, options = Options} = State, _Meta, Endpoint) ->
+    Response = ?TIMED(Prefix ++ ".latency", hackney:send_request(Connection,
+        {get, Endpoint, Options, <<>>})),
+    {nil, State#state{connection = record_response(Prefix, Response)}}.
 
--spec post(state(), meta(), string(), iodata()) -> {nil, state()}.
-post(#state{host = Host, port = Port, options = Options} = State, _Meta, Endpoint, Payload) ->
-    URL = lists:flatten(io_lib:format("http://~s:~p~s", [Host, Port, Endpoint])),
-    Response = ?TIMED("latency", hackney:request(
-        post, list_to_binary(URL), [], Payload, [{follow_redirect, true}] ++ Options)),
-    record_response(Response),
-    {nil, State}.
+-spec post(state(), meta(), string() | binary(), iodata()) -> {nil, state()}.
+post(State, Meta, Endpoint, Payload) when is_list(Endpoint) ->
+    post(State, Meta, list_to_binary(Endpoint), Payload);
+post(#state{connection = Connection, prefix = Prefix, options = Options} = State, _Meta, Endpoint, Payload) ->
+    Response = ?TIMED(Prefix ++ "latency", hackney:send_request(Connection,
+        {post, Endpoint, Options, Payload})),
+    {nil, State#state{connection = record_response(Prefix, Response)}}.
 
-record_response(Response) ->
+record_response(Prefix, Response) ->
     case Response of
-        {ok, 200, _, BodyRef} ->
-            hackney:body(BodyRef),
-            mzb_metrics:notify({"http_ok", counter}, 1);
-        {ok, _, _, BodyRef} ->
-            hackney:body(BodyRef),
-            mzb_metrics:notify({"http_fail", counter}, 1);
+        {ok, 200, _, Connection} ->
+            hackney:body(Connection),
+            mzb_metrics:notify({Prefix ++ ".http_ok", counter}, 1),
+            Connection;
+        {ok, _, _, Connection} ->
+            hackney:body(Connection),
+            mzb_metrics:notify({Prefix ++ ".http_fail", counter}, 1),
+            Connection;
         E ->
             lager:error("hackney:request failed: ~p", [E]),
-            mzb_metrics:notify({"other_fail", counter}, 1)
+            mzb_metrics:notify({Prefix ++ ".other_fail", counter}, 1)
     end.

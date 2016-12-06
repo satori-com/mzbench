@@ -14,8 +14,7 @@
         {worker_type, http_worker}
     ],
     [
-        {set_host, "localhost"},
-        {set_port, 8080},
+        {connect, "localhost", 8080},
         {loop,
             [
                 {time, {1, min}},

@@ -5,8 +5,8 @@
     {pool, [{size, {numvar, "conn_count", 20}},
             {worker_start, {linear, {10, rps}}},
             {worker_type, http_worker}], [
-        {set_host, {var, "host", "172.21.3.3"}}, % separate place for host and port definition
-        {set_port, {numvar, "port", 80}},
+
+        {connect, {var, "host", "172.21.3.3"}, {numvar, "port", 80}}, % each of these variables could be set
         {loop, [{time, {60, sec}},
                 {rate, {ramp, linear, {1, rps}, {{numvar, "max_rps", 2000}, rps}}}],
             [{get, {var, "endpoint", "/index.html"}}]}]}

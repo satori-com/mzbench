@@ -1,0 +1,24 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/http")
+
+pool(size = numvar("conn_count", 20),
+     worker_start = linear(10 rps),
+     worker_type = http_worker):
+
+     loop(time = 10 min,
+             rate = ramp(linear, 1 rps, numvar("max_rps", 10) rps)):
+            connect(var("host", "172.21.3.3"), numvar("port", 80))
+            get(var("endpoint", "/index.html"))
+            disconnect()
+
+pool(size = numvar("keepalive_conn_count", 20),
+     worker_start = linear(10 rps),
+     worker_type = http_worker):
+
+     connect(var("host", "172.21.3.3"), numvar("port", 80))
+     set_prefix("keepalive")
+     loop(time = 10 min,
+             rate = ramp(linear, 1 rps, numvar("max_rps", 10) rps)):
+            get(var("endpoint", "/index.html"))
