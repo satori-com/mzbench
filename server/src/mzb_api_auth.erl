@@ -116,7 +116,21 @@ init([]) ->
     DetsFile = filename:join(mzb_api_server:server_data_dir(), ".tokens.dets"),
     {ok, _} = dets:open_file(auth_tokens, [{file, DetsFile}, {type, set}]),
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
+    {ok, _} = inets:start(httpc, [{profile, auth_profile}]),
+    set_proxy(proxy, read_env_var("http_proxy")),
+    set_proxy(https_proxy, read_env_var("https_proxy")),
     {ok, #s{start_id = generate_ref()}}.
+
+set_proxy(_Type, false) -> false;
+set_proxy(Type, Value) ->
+    {ok, {_, _, Host, Port, _, _}} = http_uri:parse(Value),
+    httpc:set_options([{Type, {{Host, Port}, []}}], auth_profile).
+
+read_env_var(Var) ->
+    case os:getenv(Var) of
+        false -> os:getenv(string:to_upper(Var));
+        Value -> Value
+    end.
 
 handle_call({add_connection, ConnectionPid, Ref, UserInfo}, _From, State = #s{start_id = StartId}) ->
     insert(ConnectionPid, Ref, UserInfo, StartId),
@@ -226,7 +240,7 @@ google_tokens(Code, Opts) ->
            "&client_secret=" ++ edoc_lib:escape_uri(ClientSecret) ++
            "&redirect_uri=" ++ edoc_lib:escape_uri(RedirectURL) ++
            "&grant_type=authorization_code",
-    case httpc:request(post, {URL, [], "application/x-www-form-urlencoded", Data}, [], []) of
+    case httpc:request(post, {URL, [], "application/x-www-form-urlencoded", Data}, [], [], auth_profile) of
         {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}}->
             Reply = jiffy:decode(Body, [return_maps]),
             Reply;
@@ -239,7 +253,7 @@ google_tokens(Code, Opts) ->
 google_token_info(Type, Token, _Opts) ->
     URL = "https://www.googleapis.com/oauth2/v3/tokeninfo",
     Data = mzb_string:format("~s=~s", [Type, Token]),
-    case httpc:request(post, {URL, [], "application/x-www-form-urlencoded", Data}, [], []) of
+    case httpc:request(post, {URL, [], "application/x-www-form-urlencoded", Data}, [], [], auth_profile) of
         {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}}->
             Reply = jiffy:decode(Body, [return_maps]),
             Reply;
