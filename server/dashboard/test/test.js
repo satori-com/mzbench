@@ -60,14 +60,20 @@ function runTest(actions) {
         if (actions.length === 0) phantom.exit(0);
         var current = actions.shift();
         console.log(".");
-        if (current[0] == 'wait') {
+        if (current[0] === 'wait') {
             waitFor(function() {return page.evaluate(makeFun(current[1]), current[1]);},
                     function() { runTest(actions); },
                     current[1], current[2] ? current[2] : defaultTimeout);
-        } else if (current[0] == 'click') {
+        } else if (current[0] === 'click') {
             page.evaluate(function(current, findObject) {
                 findObject(current).click();
             }, current[1], findObject);
+
+            runTest(actions);
+        } else if (current[0][0] === 'value') {
+            page.evaluate(function(current, newValue, findObject) {
+                findObject(current).value = newValue;
+            }, current[1], current[0][1], findObject);
 
             runTest(actions);
         } else {
@@ -90,7 +96,23 @@ page.open("http://localhost:4800", function(status){
             // Start and wait until complete
             ['wait', ['a[href="#/new"]'], biggerTimeout], ['click', ['a[href="#/new"]']],
             ['wait', ['button.btn', 'Run']], ['click', ['button.btn', 'Run']],
-            ['wait', ['span.label', 'running'], biggerTimeout*10], ['wait', ['div.bs-complete.bs-selected'], biggerTimeout*10],
+            ['wait', ['span.label', 'running'], biggerTimeout*10],
+
+            // Go to "Scenario" and try to update variable
+            ['wait', ['li > a', 'Scenario']], ['click', ['li > a', 'Scenario']],
+            ['wait', ['input[name="loop_rate"]']], [['value', '3'], ['input[name="loop_rate"]']],
+            ['click', ['button.btn-success', 'Save']],
+
+            // Change tabs to remove old value from input
+            ['wait', ['li > a', 'Overview']], ['click', ['li > a', 'Overview']],
+            ['wait', ['a.btn-danger', 'Stop']],
+
+            // Make sure that loop rate is updated
+            ['wait', ['li > a', 'Scenario']], ['click', ['li > a', 'Scenario']],
+            ['wait', ['input[name="loop_rate"][value="3"]']],
+
+            // Wait until complete
+            ['wait', ['div.bs-complete.bs-selected'], biggerTimeout*10],
 
             // Check that "scenario" tab is accessible
             ['wait', ['li > a', 'Scenario']], ['click', ['li > a', 'Scenario']],
@@ -113,7 +135,7 @@ page.open("http://localhost:4800", function(status){
             // Try to stop bench and make sure it has stopped
             ['click', ['span.label', 'running']],
             ['wait', ['a.btn-danger', 'Stop']], ['click', ['a.btn-danger', 'Stop']],
-            ['wait', ['span.label', 'stopped']]
+            ['wait', ['span.label', 'stopped']],
 
             ]);
 

@@ -27,7 +27,6 @@ class AuthStore extends EventEmitter {
 
     handleSuccAuth(response) {
         if (response.res == "ok") {
-            console.log("AUTH OK");
             MZBenchActions.subscribeBenchTimeline();
             this.login = response.user_info.login;
             this.name = response.user_info.name;
