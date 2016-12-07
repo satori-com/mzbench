@@ -13,7 +13,7 @@ export default {
         let notify = undefined;
         MZBenchWS.connect("/ws", {
             onopen: () => {
-
+                this.wsConnected();
                 if (notify) {
                     notify.update({message: 'The board has connected to the server', type: 'success'});
                     setTimeout(() => {
@@ -25,9 +25,9 @@ export default {
             onmessage: (data) => {
                 Dispatcher.dispatch(data);
             },
-            onclose: () => {
+            onclose: (reason) => {
                 this.hideTimelineLoadingMask();
-                if (!notify) {
+                if (!notify && reason != "normal") {
                     notify = $.notify(
                                     { message: "The board is not connected to the server" },
                                     { type: "danger", delay: 0 }
@@ -47,6 +47,18 @@ export default {
         if (undefined !== opts.min_id) currentPage.set("min_id", parseInt(opts.min_id));
 
         Dispatcher.dispatch({ type: Constants.SET_CURRENT_PAGE, data: currentPage });
+    },
+
+    wsConnected() {
+        let opts = {};
+
+        let benchId = BenchStore.getSelectedId();
+        if (benchId) { opts.bench_id = benchId; }
+        if (GlobalStore.isDashboardModeOn())
+            this.getDashboards(opts);
+        else
+            this.getTimeline(opts);
+        this.getServerInfo()
     },
 
     turnOnDashboardMode(mode) {

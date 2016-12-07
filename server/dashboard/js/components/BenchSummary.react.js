@@ -53,7 +53,7 @@ class BenchSummary extends React.Component {
         var tags = this.state.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
 
         var canStop = AuthStore.isAnonymousServer() ||
-                      (this.props.bench.author == AuthStore.userLogin())
+                      (this.props.bench.author == AuthStore.userLogin());
 
         return (
             <div className="fluid-container">
@@ -166,7 +166,9 @@ class BenchSummary extends React.Component {
                     complete: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
                     error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});},
                     beforeSend: function (xhr) {
-                        xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                        if (AuthStore.getRef()) {
+                            xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                        }
                     }
                 });
         }

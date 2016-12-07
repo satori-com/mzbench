@@ -9,17 +9,18 @@
     auth_connection_by_ref/2,
     sign_out_connection/1,
     auth_api_call/3,
-    generate_token/2
+    generate_token/2,
+    get_auth_methods/0
 ]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+         terminate/2, code_change/3, cookie_name/0]).
 
 -record(s, {start_id = undefined :: string()}).
 
 -define(REF_SIZE, 32).
--define(DEFAULT_EXPIRATION_TIME_S, 259200). % 3 days
+-define(DEFAULT_EXPIRATION_TIME_S, 1814400). % 21 days
 -define(VALIDATE_TOKENS_TIMEOUT_MS, 5000).
 
 %%%===================================================================
@@ -28,6 +29,12 @@
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+cookie_name() -> <<"mzbench-token">>.
+
+get_auth_methods() ->
+    List = get_methods(),
+    [{Type, mzb_bc:maps_get(client_id, Opts, undefined)} || {Type, Opts} <- List].
 
 auth_connection(ConnectionPid, "anonymous", _) ->
     case get_methods() of
@@ -76,6 +83,7 @@ auth_connection(ConnectionPid, "google" = Type, Code) ->
 auth_connection_by_ref(ConnectionPid, Ref) ->
     gen_server:call(?MODULE, {auth_connection_by_ref, ConnectionPid, Ref}).
 
+auth_api_call(<<"POST">>, <<"/auth">>, _Ref) -> "default";
 auth_api_call(_Method, _Path, Ref) ->
     case get_methods() of
         [] -> "anonymous";
@@ -115,12 +123,25 @@ handle_call({add_connection, ConnectionPid, Ref, UserInfo}, _From, State = #s{st
     {reply, ok, State};
 
 handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{start_id = StartId}) ->
-    case get_user_info(Ref) of
-        {ok, UserInfo} ->
-            insert(ConnectionPid, Ref, UserInfo, StartId),
+    case get_methods() of
+        [] ->
+            UserInfo =
+                #{
+                    login => "anonymous",
+                    login_type => "undefined",
+                    name => "anonymous",
+                    picture_url => "",
+                    email => ""
+                },
             {reply, {ok, UserInfo}, State};
-        {error, Reason} ->
-            {reply, {error, Reason}, State}
+        _ ->
+            case get_user_info(Ref) of
+                {ok, UserInfo} ->
+                    insert(ConnectionPid, Ref, UserInfo, StartId),
+                    {reply, {ok, UserInfo}, State};
+                {error, Reason} ->
+                    {reply, {error, Reason}, State}
+            end
     end;
 
 handle_call({remove_connection, Ref}, _From, State) ->

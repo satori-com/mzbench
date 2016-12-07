@@ -1,10 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import AuthStore from '../stores/AuthStore';
+import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchWS from '../utils/MZBenchWS';
 import Modal from './Modal.react';
 import Menu, {SubMenu, MenuItem} from 'rc-menu';
-
+import MZBenchRouter from '../utils/MZBenchRouter';
+import LoadingSpinner from './LoadingSpinner.react';
 
 class Auth extends React.Component {
     constructor(props) {
@@ -16,13 +18,14 @@ class Auth extends React.Component {
 
     componentDidMount() {
         $(ReactDOM.findDOMNode(this.refs.authModal)).modal({backdrop: "static", show: true});
-        this.state.authRequired ? this.open() : this.close();
         this.mounted = true;
         AuthStore.onChange(this._onChange);
     }
 
     componentWillUnmount() {
         AuthStore.off(this._onChange);
+        this.serverRequest.abort();
+        MZBenchActions.unsubscribeBenchTimeline();
     }
 
     open() {
@@ -35,40 +38,6 @@ class Auth extends React.Component {
 
     _onChange() {
         this.setState(this._resolveState());
-    }
-
-    ensureGAPILoaded(clientId) {
-        if (this.gapi_loaded) return;
-        this.gapi_loaded = true;
-
-        ((d, s, id, cb) => {
-          const element = d.getElementsByTagName(s)[0];
-          const fjs = element;
-          let js = element;
-          js = d.createElement(s);
-          js.id = id;
-          js.src = '//apis.google.com/js/client:platform.js';
-          fjs.parentNode.insertBefore(js, fjs);
-          js.onload = cb;
-        })(document, 'script', 'google-login', () => {
-          const params = {
-            client_id: clientId,
-          };
-          window.gapi.load('auth2', () => {
-            if (!window.gapi.auth2.getAuthInstance()) {
-                window.gapi.auth2.init(params);
-            }
-          });
-        });
-    }
-
-    onGoogleSigninReq(event) {
-        event.preventDefault();
-        let auth2 = window.gapi.auth2.getAuthInstance();
-        auth2.grantOfflineAccess({'redirect_uri': 'postmessage'}).then(
-            (res) => {
-                MZBenchWS.send({cmd: "one-time-code", type: "google", data: res.code});
-            });
     }
 
     onSignOut() {
@@ -89,6 +58,41 @@ class Auth extends React.Component {
 
     render() {
         let login = this.state.userLogin;
+        let methods = this.state.supportedMethods;
+        let modalWindow = (<div ref="authModal" className="modal fade">
+                    <div className="modal-sign-in-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h4 className="modal-title sign-in-header">{this.props.title}</h4>
+                            </div>
+
+                            <div className="modal-body">
+                                {methods && methods.google ? <button type="button" className="btn btn-block btn-social btn-google" onClick={(event) => {event.preventDefault(); AuthStore.onGoogleSigninReq();}}>Google</button> : null}
+                            </div>
+                        </div>
+                    </div>
+                </div>)
+
+        let tokenGenWindow =
+                (<Modal ref="createTokenModal" title="Generate a token for CLI utilites">
+                    {this.state.generatedToken ?
+                        <div className="auth-token-modal">
+                            <p>Your secret token:</p> <pre>{this.state.generatedToken}</pre>
+                            <p>Please copy-paste it to ~/.config/mzbench/token file in your home directory</p>
+                        </div> :
+                        <div className="auth-token-modal">
+                            How long do you want the token to be valid:
+                            <select ref="validTime" defaultValue="86400">
+                                <option value="3600">an hour</option>
+                                <option value="86400">a day</option>
+                                <option value="2592000">a month</option>
+                                <option value="31536000">a year</option>
+                                <option value="0">forever</option>
+                            </select>&nbsp;
+                            <button type="button" className="btn btn-primary btn-sm" onClick={this.onGenerateToken.bind(this)}>Generate</button>
+                        </div>
+                    }
+                </Modal>)
         return (
             <div>
                 { (login != "") && (login != "anonymous") ?
@@ -107,39 +111,10 @@ class Auth extends React.Component {
                         </Menu>
                     </td></tr>
                   </tbody></table> : null}
-                <div ref="authModal" className="modal fade">
-                    <div className="modal-sign-in-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h4 className="modal-title sign-in-header">{this.props.title}</h4>
-                            </div>
-
-                            <div className="modal-body">
-                                <button type="button" className="btn btn-block btn-social btn-google" onClick={this.onGoogleSigninReq.bind(this)}>Google</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <Modal ref="createTokenModal" title="Generate a token for CLI utilites">
-                    {this.state.generatedToken ?
-                        <div className="auth-token-modal">
-                            <p>Here is your secret token:</p> <pre>{this.state.generatedToken}</pre>
-                            <p>Please copy-paste it to ~/.config/mzbench/token file in your home directory</p>
-                        </div> :
-                        <div className="auth-token-modal">
-                            How long do you want the token to be valid:
-                            <select ref="validTime" defaultValue="86400">
-                                <option value="3600">an hour</option>
-                                <option value="86400">a day</option>
-                                <option value="2592000">a month</option>
-                                <option value="31536000">a year</option>
-                                <option value="0">forever</option>
-                            </select>&nbsp;
-                            <button type="button" className="btn btn-primary btn-sm" onClick={this.onGenerateToken.bind(this)}>Generate</button>
-                        </div>
-                    }
-                </Modal>
-                {login != "" ? this.props.children : null}
+                {modalWindow}
+                {tokenGenWindow}
+                {methods == null && login == "" ? <LoadingSpinner>Loading...</LoadingSpinner> :
+                    (login != "" ? this.props.children : null)}
             </div>
         );
     }
@@ -156,12 +131,8 @@ class Auth extends React.Component {
         }
         let support = AuthStore.supportedAuthMethods();
 
-        if (support.google) {
-            this.ensureGAPILoaded(support.google);
-        }
 
         return {
-            authRequired: needShowSignIn,
             supportedMethods: support,
             userLogin: AuthStore.userLogin(),
             userName: AuthStore.userName(),
@@ -169,7 +140,6 @@ class Auth extends React.Component {
             generatedToken: AuthStore.getGeneratedToken()
         };
     }
-
 };
 
 Auth.propTypes = {

@@ -15,6 +15,7 @@
 
 -record(state, {
           ref = undefined :: undefined | reference(),
+          token = undefined :: undefined | binary(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           log_streams = #{} :: map(),
@@ -22,8 +23,7 @@
           timeline_items = [] :: [integer()],
           dashboard_items = [] :: [integer()],
           dashboard_query = undefined :: undefined | map(),
-          tags = [] :: [string()],
-          auth_state = init :: init | req_sent | authenticated
+          tags = [] :: [string()]
        }).
 
 %%                   User authentication procedure
@@ -78,12 +78,18 @@
 }).
 
 init(Req, _Opts) ->
-    self() ! authenticate,
-    {cowboy_websocket, Req, #state{}}.
+    Cookies = cowboy_req:parse_cookies(Req),
+    Token = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
 
-init_connection(Ref, State) ->
+    case mzb_api_auth:auth_connection_by_ref(self(), Token) of
+        {ok, #{}} -> {cowboy_websocket, Req, init_connection(Token, #state{})};
+        {error, _Reason} -> erlang:error(forbidden)
+    end.
+
+init_connection(Token, State) ->
+    Ref = erlang:make_ref(),
     ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
-    State#state{ref = Ref}.
+    State#state{ref = Ref, token = Token}.
 
 reauth(Pid) ->
     Pid ! reauth.
@@ -101,7 +107,9 @@ websocket_handle({text, Msg}, Req, State) ->
             JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply), [force_utf8]),
             {reply, {text, JsonReply}, Req, NewState};
         {ok, NewState} ->
-            {ok, Req, NewState}
+            {ok, Req, NewState};
+        {stop, NewState} ->
+            {stop, NewState}
     end;
 
 websocket_handle(_Data, Req, State) ->
@@ -118,25 +126,8 @@ websocket_info(Message, Req, State) ->
             {stop, Req, NewState}
     end.
 
-dispatch_info(authenticate, State = #state{auth_state = init}) ->
-    case mzb_api_auth:auth_connection(self(), "anonymous", undefined) of
-        {ok, Ref, UserInfo} ->
-            {reply, #{type => "AUTHENTICATED",
-                      login => maps:get(login, UserInfo),
-                      login_type => maps:get(login_type, UserInfo),
-                      name => maps:get(name, UserInfo),
-                      picture_url => maps:get(picture_url, UserInfo),
-                      ref => Ref
-                     },
-                init_connection(Ref, State#state{auth_state = authenticated})};
-        {error, {forbidden, {use, Methods}}} ->
-            {reply, #{type => "AUTH_REQ", support => Methods},
-                State#state{auth_state = req_sent}}
-    end;
-
 dispatch_info(reauth, State) ->
-    self() ! authenticate,
-    {reply, #{type => "AUTH_TOKEN_EXPIRED"}, State#state{auth_state = init}};
+    {reply, #{type => "AUTH_TOKEN_EXPIRED"}, State#state{}};
 
 dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
     {ok, State};
@@ -255,58 +246,20 @@ dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
 
-dispatch_request(#{<<"cmd">> := <<"one-time-code">>, <<"type">> := Type, <<"data">> := Code}, #state{auth_state = req_sent} = State) ->
-    case mzb_api_auth:auth_connection(self(), binary_to_list(Type), Code) of
-        {ok, Ref, UserInfo} ->
-            {reply, #{type => "AUTHENTICATED",
-                      login => maps:get(login, UserInfo),
-                      login_type => binary_to_list(Type),
-                      name => maps:get(name, UserInfo),
-                      picture_url => maps:get(picture_url, UserInfo),
-                      ref => Ref
-                     },
-                init_connection(Ref, State#state{auth_state = authenticated})};
-        {error, Reason} ->
-            lager:error("Authentication error: ~p", [Reason]),
-            self() ! authenticate,
-            {reply, #{type => "AUTH_ERROR", reason => Reason}, State#state{auth_state = init}}
-    end;
-
-dispatch_request(#{<<"cmd">> := <<"my-ref">>, <<"data">> := BinaryRef}, #state{auth_state = req_sent} = State) ->
-    Ref = binary_to_list(BinaryRef),
-    case mzb_api_auth:auth_connection_by_ref(self(), BinaryRef) of
-        {ok, #{login:= Login, login_type:= Type, name:= UserName, picture_url:= UserPic}} ->
-            {reply, #{type => "AUTHENTICATED",
-                      login => Login,
-                      login_type => Type,
-                      name => UserName,
-                      picture_url => UserPic,
-                      ref => Ref},
-                init_connection(Ref, State#state{auth_state = authenticated})};
-        {error, Reason} ->
-            self() ! authenticate,
-            {reply, #{type => "AUTH_ERROR", reason => Reason}, State#state{auth_state = init}}
-    end;
-
-dispatch_request(#{<<"cmd">> := <<"sign-out">>}, #state{auth_state = authenticated, ref = Ref} = State) ->
-    self() ! authenticate,
-    mzb_api_auth:sign_out_connection(Ref),
-    {ok, State#state{auth_state = init}};
-
-dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime, <<"ref">> := Ref}, State) ->
-    Token = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Ref),
+dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime}, #state{token = Token} = State) ->
+    Token = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Token),
     {reply, #{type => "GENERATED_TOKEN", token => Token}, State};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
 
-dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State = #state{}) ->
     Tags = get_all_tags(),
     {IsFree, KBLeft} = disk_status(),
     Data = #{clouds => mzb_api_cloud:list_clouds(), disk_is_free => IsFree, disk_left_kb => KBLeft, tags => Tags},
     {reply, #{type => "SERVER_INFO", data => Data}, State#state{tags = Tags}};
 
-dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, State = #state{}) ->
     NewId = dets:foldl(fun ({Id, _}, Acc) -> max(Acc, Id) end, 0, dashboards) + 1,
     dets:insert(dashboards, {NewId, Data}),
     dets:sync(dashboards),
@@ -316,7 +269,7 @@ dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, Sta
              },
     {reply, Event, State};
 
-dispatch_request(#{<<"cmd">> := <<"update_dashboard">>, <<"data">> := Data}, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"update_dashboard">>, <<"data">> := Data}, State = #state{}) ->
     Id = maps:get(<<"id">>, Data),
     dets:insert(dashboards, {Id, maps:remove(<<"id">>, Data)}),
     dets:sync(dashboards),
@@ -327,7 +280,7 @@ dispatch_request(#{<<"cmd">> := <<"update_dashboard">>, <<"data">> := Data}, Sta
              },
     {reply, Event, State};
 
-dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State = #state{}) ->
     Boards = dets:foldl(fun ({Id, Data}, Acc) -> [maps:put(id, Id, Data)|Acc] end, [], dashboards),
     Sorted = lists:sort(fun (#{id := IdA}, #{id := IdB}) ->
                                 IdA >= IdB
@@ -350,7 +303,7 @@ dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State = #state{auth
     {reply, Event, State#state{dashboard_items  = TimelineIds,
                                dashboard_query = Cmd}};
 
-dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State = #state{}) ->
     Query = mzb_bc:maps_get(<<"criteria">>, Cmd, undefined),
     BenchsetId = mzb_bc:maps_get(<<"benchset_id">>, Cmd, 0),
     Filter = fun (I) -> apply_filter(Query, normalize([I])) end,
@@ -374,7 +327,7 @@ dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State = #state{auth_s
     {reply, Event, State};
 
 
-dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State = #state{}) ->
     lager:info("Get timeline start"),
     Limit = mzb_bc:maps_get(<<"limit">>, Cmd, 10),
     MaxId = mzb_bc:maps_get(<<"max_id">>, Cmd, undefined),
@@ -405,7 +358,7 @@ dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State = #state{auth_s
                                timeline_bounds = {NewMinId, NewMaxId},
                                timeline_items  = TimelineIds}};
 
-dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State = #state{}) ->
     #{
         <<"stream_id">> := StreamId,
         <<"bench_ids">> := BenchIds,
@@ -416,7 +369,7 @@ dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State = #state{auth_sta
     spawn(fun() -> get_finals(Self, StreamId, BenchIds, MetricName, Kind, XEnv) end),
     {ok, State};
 
-dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State = #state{}) ->
     #{
         <<"stream_id">> := StreamId, 
         <<"bench">> := BenchId, 
@@ -467,8 +420,7 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_metric">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{metric_streams = remove_stream(StreamId, Streams)}};
 
-dispatch_request(#{<<"cmd">> := <<"start_streaming_logs">>} = Cmd,
-                    State = #state{auth_state = authenticated}) ->
+dispatch_request(#{<<"cmd">> := <<"start_streaming_logs">>} = Cmd, State = #state{}) ->
     #{<<"bench">> := BenchId,
       <<"stream_id">> := StreamId} = Cmd,
     {ok, add_log_stream(BenchId, StreamId, State)};
@@ -478,7 +430,7 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
-dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{auth_state = authenticated} = State) ->
+dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     try
         ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
@@ -494,7 +446,7 @@ dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{auth_state = authen
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
-dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{auth_state = authenticated} = State) ->
+dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     try
         ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])

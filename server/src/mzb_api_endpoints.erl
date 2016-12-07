@@ -48,9 +48,76 @@ init(Req, _Opts) ->
     end.
 
 authorize(Method, Path, Req) ->
-    <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
+    Cookies = cowboy_req:parse_cookies(Req),
+    Ref = 
+        case proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined) of
+            undefined ->
+                <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
+                Token;
+            Cookie -> Cookie
+        end,
+    mzb_api_auth:auth_api_call(Method, Path, Ref).
 
-    mzb_api_auth:auth_api_call(Method, Path, Token).
+handle(<<"POST">>, <<"/auth">>, _, Req) ->
+    Type =
+        try
+            #{type:= T} = cowboy_req:match_qs([{type, nonempty}], Req),
+            T
+        catch
+            error:bad_key ->
+                erlang:error({badarg, "Missing type argument"})
+        end,
+
+    AuthList = maps:from_list(lists:map(fun ({AType, undefined}) -> {list_to_binary(AType), ""};
+                  ({AType, Key}) -> {list_to_binary(AType), list_to_binary(Key)}
+              end, mzb_api_auth:get_auth_methods())),
+
+    case Type of
+        <<"ref">> ->
+            Cookies = cowboy_req:parse_cookies(Req),
+            Ref = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
+            case mzb_api_auth:auth_connection_by_ref(self(), Ref) of
+                {ok, #{login:= Login, login_type:= LoginType, name:= UserName, picture_url:= UserPic}} ->
+                    {ok, reply_json(200,
+                        #{res => <<"ok">>,
+                          user_info => #{
+                            login => list_to_binary(Login),
+                            login_type => list_to_binary(LoginType),
+                            name => list_to_binary(UserName),
+                            picture_url => list_to_binary(UserPic)
+                          }}, Req), #{}};
+                {error, _Reason} ->
+                    {ok, reply_json(200, #{res => <<"error">>, reason => <<"expired">>, use => AuthList}, Req), #{}}
+            end;
+
+        _ ->
+            {ok, Code, Req2} = cowboy_req:body(Req),
+
+            case mzb_api_auth:auth_connection(self(), binary_to_list(Type), Code) of
+                {ok, Ref, UserInfo} ->
+                    Req3 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), Ref,
+                            [{http_only, true}], Req2),
+                    {ok, reply_json(200,
+                            #{res => <<"ok">>,
+                              user_info => #{
+                                login => list_to_binary(maps:get(login, UserInfo)),
+                                login_type => list_to_binary(binary_to_list(Type)),
+                                name => list_to_binary(maps:get(name, UserInfo)),
+                                picture_url => list_to_binary(maps:get(picture_url, UserInfo))
+                             }}, Req3), #{}};
+                {error, Reason} ->
+                    lager:error("Authentication error: ~p", [Reason]),
+                    erlang:error(forbidden)
+            end
+    end;
+
+handle(<<"POST">>, <<"/sign-out">>, _, Req) ->
+    Cookies = cowboy_req:parse_cookies(Req),
+    Ref = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
+    mzb_api_auth:sign_out_connection(Ref),
+    Req2 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), <<>>,
+                            [{http_only, true}, {max_age, 0}], Req),
+    {ok, reply_json(200, #{}, Req2), #{}};
 
 handle(<<"POST">>, <<"/start">>, Login, Req) ->
     Params = parse_start_params(Req),

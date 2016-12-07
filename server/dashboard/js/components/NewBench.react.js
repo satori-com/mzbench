@@ -183,7 +183,9 @@ class NewBench extends React.Component {
             processData: false,
             contentType: false,
             beforeSend: function (xhr) {
-                xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                if (AuthStore.getRef()) {
+                    xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                }
             },
             data: formData,
             success: (data) => {

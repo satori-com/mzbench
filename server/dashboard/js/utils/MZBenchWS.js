@@ -21,7 +21,7 @@ class MZBenchWS {
 
         socket.onclose = (event) => {
             this.wsSocket = undefined;
-            if (onclose) { onclose(); }
+            if (onclose) { onclose("disconnected"); }
             setTimeout(() => this.connect(url, callbacks), 10000);
         };
 
@@ -40,7 +40,7 @@ class MZBenchWS {
             socket.onclose = () => {};
             socket.close()
         };
-
+        this.callbacks = callbacks;
         this.wsSocket = socket;
     }
 
@@ -57,7 +57,14 @@ class MZBenchWS {
     }
 
     close() {
-        this.wsSocket.close()
+        if (this.wsSocket) {
+            this.wsSocket.onclose = (event) => {
+                this.wsSocket = undefined;
+                let {onopen, onmessage, onclose} = this.callbacks;
+                if (onclose) { onclose("normal"); }
+            };
+            this.wsSocket.close()
+        }
     }
 }
 

@@ -1,19 +1,9 @@
 import React from 'react';
-import MZBenchActions from '../actions/MZBenchActions';
 import Timeline from './Timeline.react';
 import Details from './Details.react';
 import Auth from './Auth.react';
 
 class MZBenchApp extends React.Component {
-
-    componentWillMount() {
-        MZBenchActions.subscribeBenchTimeline();
-    }
-
-    componentWillUnmount() {
-        MZBenchActions.unsubscribeBenchTimeline();
-    }
-
     render() {
         return (
             <div className="fluid-container">

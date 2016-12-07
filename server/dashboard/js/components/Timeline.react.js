@@ -20,17 +20,6 @@ class Timeline extends React.Component {
         BenchStore.onChange(this._onChange);
         GlobalStore.onChange(this._onChange);
         DashboardStore.onChange(this._onChange);
-
-        let opts = {};
-
-        let benchId = BenchStore.getSelectedId();
-        if (benchId) { opts.bench_id = benchId; }
-        if (GlobalStore.isDashboardModeOn())
-            MZBenchActions.getDashboards(opts);
-        else
-            MZBenchActions.getTimeline(opts);
-
-        MZBenchActions.getServerInfo();
     }
 
     componentWillUnmount() {
