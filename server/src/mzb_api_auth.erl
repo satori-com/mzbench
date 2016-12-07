@@ -17,7 +17,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3, cookie_name/0]).
 
--record(s, {start_id = undefined :: string()}).
+-record(s, {start_id = undefined :: binary()}).
 
 -define(REF_SIZE, 32).
 -define(DEFAULT_EXPIRATION_TIME_S, 1814400). % 21 days
@@ -170,7 +170,7 @@ handle_info(validate, State = #s{start_id = StartId}) ->
         fun ({Ref, #{expiratioin_ts:= Expiration}}, Acc) when CurrentTime > Expiration -> [Ref|Acc];
             ({_, _}, Acc) -> Acc
         end, [], auth_tokens),
-    [remove(Ref, StartId) || Ref <- ExpiredRefs],
+    _ = [remove(Ref, StartId) || Ref <- ExpiredRefs],
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
     {noreply, State};
 
@@ -214,7 +214,7 @@ insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
                                      incarnation_id => StartId}}).
 
 generate_ref() ->
-    base64:encode(crypto:rand_bytes(?REF_SIZE)).
+    base64:encode(crypto:strong_rand_bytes(?REF_SIZE)).
 
 google_tokens(Code, Opts) ->
     URL = "https://www.googleapis.com/oauth2/v4/token",

@@ -27,6 +27,7 @@ normalize_test() ->
     ?assertEqual([
         #{finish_time => "2015-07-22T07:24:02Z",
           id => 2,
+          author => "anonymous",
           name => "Test bench",
           metrics => metrics,
           script_body => script_body1,
@@ -40,6 +41,7 @@ normalize_test() ->
           results => #{<<"m1">> => #{type => counter, value => 51, rps => #{<<"50">> => 10, <<"max">> => 20}},
                        <<"m2">> => #{type => gauge, percentiles => #{<<"50">> => 40, <<"max">> => 100}}}},
         #{id => 1,
+          author => "anonymous",
           name => "Test bench",
           metrics => metrics,
           script_body => script_body,

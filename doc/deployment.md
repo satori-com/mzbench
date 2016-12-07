@@ -143,6 +143,24 @@ By default protocol is set to `http`, but `https` is also available. MZBench gen
 
 CA certificate is not required unless you use custom CA.
 
+### authentication
+
+API server supports Google auth, to create APP credentials open [Google API manager page](https://console.developers.google.com). Click Credentials -> Create credentials -> OAuth Client ID -> Web Application, then specify your server URL. Copy `client_id` and `client_secret` to a following structure:
+
+```erlang
+{user_authentication,
+         [
+          {"google", [{client_id, "..."},
+                      {client_secret, "..."},
+                      {redirect_url, "http://localhost:4800"}]}
+         ]
+     }
+```
+
+`http://localhost:4800` should be replaced with your server's address.
+
+After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click "Generate token" link.
+
 ### bench_log_file
 
 ```erlang

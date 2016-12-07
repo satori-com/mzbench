@@ -107,9 +107,7 @@ websocket_handle({text, Msg}, Req, State) ->
             JsonReply = jiffy:encode(mzb_string:str_to_bstr(Reply), [force_utf8]),
             {reply, {text, JsonReply}, Req, NewState};
         {ok, NewState} ->
-            {ok, Req, NewState};
-        {stop, NewState} ->
-            {stop, NewState}
+            {ok, Req, NewState}
     end;
 
 websocket_handle(_Data, Req, State) ->
