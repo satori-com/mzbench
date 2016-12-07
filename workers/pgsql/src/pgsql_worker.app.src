@@ -1,0 +1,12 @@
+%% -*- mode: erlang -*-
+{application, pgsql_worker,
+ [
+  {description, "Mz-bench worker example"},
+  {vsn, "1.0.0"},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  epgsql
+                 ]},
+  {env, []}
+ ]}.

@@ -1,0 +1,11 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/pgsql")
+
+pool(size = 1,
+     worker_type = pgsql_worker):
+    connect(user = "tester", password = "test_password", database = "test_database", host = "localhost")
+    loop(time = 5 min,
+         rate = 1 rps):
+            query("SELECT * from test_table")
