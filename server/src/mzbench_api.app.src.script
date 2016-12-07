@@ -17,6 +17,7 @@
         observer,
         os_mon,
         runtime_tools,
+        edoc,
         hdr_histogram
     ]},
     {mod, {mzb_api_app, []}},
