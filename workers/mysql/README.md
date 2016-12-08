@@ -17,3 +17,5 @@ Execute query and report latencies to `default` group.
 	query("mygroup", "SELECT * from user")
 
 To report to `mygroup`
+
+[Full example](examples/mysql.bdl)
