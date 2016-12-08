@@ -77,7 +77,7 @@ get(#state{connection = Connection, prefix = Prefix, options = Options} = State,
 post(State, Meta, Endpoint, Payload) when is_list(Endpoint) ->
     post(State, Meta, list_to_binary(Endpoint), Payload);
 post(#state{connection = Connection, prefix = Prefix, options = Options} = State, _Meta, Endpoint, Payload) ->
-    Response = ?TIMED(Prefix ++ "latency", hackney:send_request(Connection,
+    Response = ?TIMED(Prefix ++ ".latency", hackney:send_request(Connection,
         {post, Endpoint, Options, Payload})),
     {nil, State#state{connection = record_response(Prefix, Response)}}.
 
