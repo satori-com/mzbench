@@ -117,8 +117,8 @@ init([]) ->
     {ok, _} = dets:open_file(auth_tokens, [{file, DetsFile}, {type, set}]),
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
     {ok, _} = inets:start(httpc, [{profile, auth_profile}]),
-    set_proxy(proxy, read_env_var("http_proxy")),
-    set_proxy(https_proxy, read_env_var("https_proxy")),
+    _ = set_proxy(proxy, read_env_var("http_proxy")),
+    _ = set_proxy(https_proxy, read_env_var("https_proxy")),
     {ok, #s{start_id = generate_ref()}}.
 
 set_proxy(_Type, false) -> false;
