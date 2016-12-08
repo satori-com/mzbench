@@ -41,7 +41,7 @@ sa-east-1       ami-7798101b
 To use one of these images, specify it in the cloud plugin config as `image_id`:
 
 ```erlang
-{image_id, "ami-ee8d718e"
+{image_id, "ami-ee8d718e"}
 ```
 
 You can, of course, build your own image based on the requirements listed above. [Learn more](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#creating-an-ami) in the official Amazon docs.
@@ -69,6 +69,7 @@ Configuration example:
 
 Minimally, the config requires `instance_spec` and `config` keys specified. Learn more about AWS-specific config in the [erlcloud documentation](https://github.com/gleber/erlcloud).
 
+To make allocated nodes accessible: specify `key_name` in configuration above, put associated key to your MZBench server and make ssh use it. Usually it is about adding `IdentityFile path/to/your/amazonkey.pem` to `~/.ssh/config` or running `ssh-add path/to/your/amazonkey.pem`.
 
 ## Static Cloud
 
