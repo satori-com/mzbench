@@ -120,7 +120,7 @@ init([]) ->
     DetsFile = filename:join(mzb_api_server:server_data_dir(), ".tokens.dets"),
     {ok, _} = dets:open_file(auth_tokens, [{file, DetsFile}, {type, set}]),
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
-    {ok, _} = inets:start(httpc, [{profile, auth_profile}]),
+    _ = inets:start(httpc, [{profile, auth_profile}]),
     _ = set_proxy(proxy, read_env_var("http_proxy")),
     _ = set_proxy(https_proxy, read_env_var("https_proxy")),
     {ok, #s{start_id = generate_ref()}}.
