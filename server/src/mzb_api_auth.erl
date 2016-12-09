@@ -304,6 +304,6 @@ remove_connection(Pid, NextId) ->
                     dets:insert(auth_tokens, {NextId, NewInfo}),
                     dets:sync(auth_tokens);
                 false ->
-                    remove_connection(Pid, dets:next(NextId))
+                    remove_connection(Pid, dets:next(auth_tokens, NextId))
             end
     end.
