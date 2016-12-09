@@ -76,7 +76,7 @@ handle(<<"POST">>, <<"/auth">>, _, Req) ->
         <<"ref">> ->
             Cookies = cowboy_req:parse_cookies(Req),
             Ref = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
-            case mzb_api_auth:auth_connection_by_ref(self(), Ref) of
+            case mzb_api_auth:auth_connection_by_ref(undefined, Ref) of
                 {ok, #{login:= Login, login_type:= LoginType, name:= UserName, picture_url:= UserPic}} ->
                     {ok, reply_json(200,
                         #{res => <<"ok">>,
@@ -93,7 +93,7 @@ handle(<<"POST">>, <<"/auth">>, _, Req) ->
         _ ->
             {ok, Code, Req2} = cowboy_req:body(Req),
 
-            case mzb_api_auth:auth_connection(self(), binary_to_list(Type), Code) of
+            case mzb_api_auth:auth_connection(undefined, binary_to_list(Type), Code) of
                 {ok, Ref, UserInfo} ->
                     Req3 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), Ref,
                             [{http_only, true}], Req2),

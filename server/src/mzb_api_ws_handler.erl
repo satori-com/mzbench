@@ -78,6 +78,7 @@
 }).
 
 init(Req, _Opts) ->
+    lager:info("New WS connection"),
     Cookies = cowboy_req:parse_cookies(Req),
     Token = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
 

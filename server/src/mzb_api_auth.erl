@@ -10,7 +10,8 @@
     sign_out_connection/1,
     auth_api_call/3,
     generate_token/2,
-    get_auth_methods/0
+    get_auth_methods/0,
+    get_user_table/0 % for debug only
 ]).
 
 %% gen_server callbacks
@@ -108,6 +109,9 @@ generate_token(Lifetime, Ref) ->
         {error, Reason} -> erlang:error(Reason)
     end.
 
+get_user_table() ->
+    dets:foldr(fun (E, Acc) -> [E|Acc] end, [], auth_tokens).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -160,6 +164,7 @@ handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{star
 
 handle_call({remove_connection, Ref}, _From, State) ->
     dets:delete(auth_tokens, Ref),
+    dets:sync(auth_tokens),
     {reply, ok, State};
 
 handle_call({generate_token, Lifetime, Ref}, _From, State = #s{start_id = StartId}) ->
@@ -188,6 +193,10 @@ handle_info(validate, State = #s{start_id = StartId}) ->
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
     {noreply, State};
 
+handle_info({'DOWN', _, process, Pid, _}, State) ->
+    remove_connection(Pid, dets:first(auth_tokens)),
+    {noreply, State};
+
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -210,9 +219,10 @@ get_user_info(Ref) ->
 remove(Ref, StartId) ->
     case dets:lookup(auth_tokens, Ref) of
         [] -> ok;
-        [{_, #{connection_pid:= Pid, incarnation_id:= Id}}] ->
-            (Id == StartId) andalso mzb_api_ws_handler:reauth(Pid),
-            dets:delete(auth_tokens, Ref)
+        [{_, #{connection_pids:= Pids, incarnation_id:= Id}}] ->
+            [(Id == StartId) andalso mzb_api_ws_handler:reauth(Pid) || Pid <- Pids],
+            dets:delete(auth_tokens, Ref),
+            dets:sync(auth_tokens)
     end.
 
 insert(ConnectionPid, Ref, UserInfo, StartId) ->
@@ -220,12 +230,22 @@ insert(ConnectionPid, Ref, UserInfo, StartId) ->
 insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
     CreationTS = mzb_api_bench:seconds(),
     ExpirationTS = CreationTS + Lifetime,
-    remove(Ref, StartId),
+    ExistingConnections = [P || {_, #{connection_pids := Pids, incarnation_id := Incarnation}} <- dets:lookup(auth_tokens, Ref),
+                           Incarnation == StartId,
+                           P <- Pids],
+    NewConnections =
+        case is_pid(ConnectionPid) of
+            true ->
+                erlang:monitor(process, ConnectionPid),
+                [ConnectionPid | ExistingConnections];
+            false -> ExistingConnections
+        end,
     dets:insert(auth_tokens, {Ref, #{user_info => UserInfo,
-                                     connection_pid => ConnectionPid,
+                                     connection_pids => NewConnections,
                                      creation_ts => CreationTS,
                                      expiratioin_ts => ExpirationTS,
-                                     incarnation_id => StartId}}).
+                                     incarnation_id => StartId}}),
+    dets:sync(auth_tokens).
 
 generate_ref() ->
     base64:encode(crypto:strong_rand_bytes(?REF_SIZE)).
@@ -273,3 +293,17 @@ get_opts(Type) ->
         Opts -> Opts
     end.
 
+remove_connection(_, '$end_of_table') -> ok;
+remove_connection(Pid, NextId) ->
+    case dets:lookup(auth_tokens, NextId) of
+        [] -> remove_connection(Pid, dets:next(auth_tokens, NextId));
+        [{_, #{connection_pids:= Connections} = Info}] ->
+            case lists:member(Pid, Connections) of
+                true  ->
+                    NewInfo = maps:put(connection_pids, lists:delete(Pid, Connections), Info),
+                    dets:insert(auth_tokens, {NextId, NewInfo}),
+                    dets:sync(auth_tokens);
+                false ->
+                    remove_connection(Pid, dets:next(NextId))
+            end
+    end.
