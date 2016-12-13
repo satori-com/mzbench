@@ -19,6 +19,11 @@ MZBench is:
 
 [Read the docs →](https://machinezone.github.io/mzbench)
 
+## Protocols
+
+Out-of-the-box it supports [HTTP](workers/http), [MySQL](workers/mysql), [PostgreSQL](workers/postgre), [Cassandra](workers/cassandra), [MongoDB](workers/mongo), [XMPP](workers/xmpp), [Shell commands execution](workers/exec), [Simplified HTTP](workers/simple_http), and [TCPKali](workers/tcpkali).
+
+Implementing addtional protocols is [not that hard](doc/workers.md#how-to-write-a-worker), but if you want something particular to be implemented -- feel free to create an [issue](https://github.com/machinezone/mzbench/issues).
 
 ## Installation
 
