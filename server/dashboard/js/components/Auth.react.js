@@ -68,6 +68,7 @@ class Auth extends React.Component {
 
                             <div className="modal-body">
                                 {methods && methods.google ? <button type="button" className="btn btn-block btn-social btn-google" onClick={(event) => {event.preventDefault(); AuthStore.onGoogleSigninReq();}}>Google</button> : null}
+                                {methods && methods.github ? <button type="button" className="btn btn-block btn-social btn-github" onClick={(event) => {event.preventDefault(); AuthStore.onGithubSigninReq(methods.github.url, methods.github.id);}}>GitHub</button> : null}
                             </div>
                         </div>
                     </div>

@@ -49,7 +49,7 @@ init(Req, _Opts) ->
 
 authorize(Method, Path, Req) ->
     Cookies = cowboy_req:parse_cookies(Req),
-    Ref = 
+    Ref =
         case proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined) of
             undefined ->
                 <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
@@ -57,6 +57,18 @@ authorize(Method, Path, Req) ->
             Cookie -> Cookie
         end,
     mzb_api_auth:auth_api_call(Method, Path, Ref).
+
+handle(<<"GET">>, <<"/github_auth">>, _, Req) ->
+    #{code:= Code, url:= URL} = cowboy_req:match_qs([{code, nonempty}, {url, nonempty}], Req),
+    case mzb_api_auth:auth_connection(undefined, "github", Code) of
+        {ok, Ref, _UserInfo} ->
+            Req2 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), Ref,
+                    [{http_only, true}], Req),
+            {ok, reply_redirect(303, URL, Req2), #{}};
+        {error, Reason} ->
+            lager:error("Authentication error: ~p", [Reason]),
+            erlang:error(forbidden)
+    end;
 
 handle(<<"POST">>, <<"/auth">>, _, Req) ->
     Type =
@@ -68,9 +80,10 @@ handle(<<"POST">>, <<"/auth">>, _, Req) ->
                 erlang:error({badarg, "Missing type argument"})
         end,
 
-    AuthList = maps:from_list(lists:map(fun ({AType, undefined}) -> {list_to_binary(AType), ""};
-                  ({AType, Key}) -> {list_to_binary(AType), list_to_binary(Key)}
-              end, mzb_api_auth:get_auth_methods())),
+    AuthList = maps:from_list(lists:map(
+        fun ({AType, Opts}) ->
+            {list_to_binary(AType), maps:from_list([{K, list_to_binary(V)} || {K, V} <- Opts])}
+        end, mzb_api_auth:get_auth_methods())),
 
     case Type of
         <<"ref">> ->
@@ -375,6 +388,10 @@ reply_json(Code, Map, Req) ->
         _   -> lager:error("[ RESPONSE ] : ~p ~p~n~p", [Code, Map, Req])
     end,
     cowboy_req:reply(Code, [{<<"content-type">>, <<"application/json">>}], jiffy:encode(Map), Req).
+
+reply_redirect(Code, URI, Req) ->
+    lager:info("[ REDIRECT ] ~p -> ~p", [Code, URI]),
+    cowboy_req:reply(Code, [{<<"Location">>, iolist_to_binary(URI)}], <<"Authenticated">>, Req).
 
 reply_error(HttpCode, Code, Description, Req) ->
     reply_json(HttpCode,

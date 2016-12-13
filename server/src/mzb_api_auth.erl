@@ -35,7 +35,8 @@ cookie_name() -> <<"mzbench-token">>.
 
 get_auth_methods() ->
     List = get_methods(),
-    [{Type, mzb_bc:maps_get(client_id, Opts, undefined)} || {Type, Opts} <- List].
+    [{Type, [{id, mzb_bc:maps_get(client_id, Opts, "")}] ++
+            [{url, URL} || URL <- [mzb_bc:maps_get(url, Opts, undefined)], URL /= undefined]} || {Type, Opts} <- List].
 
 auth_connection(ConnectionPid, "anonymous", _) ->
     case get_methods() of
@@ -54,6 +55,41 @@ auth_connection(ConnectionPid, "anonymous", _) ->
             AuthTypes = [{Type, mzb_bc:maps_get(client_id, Opts, undefined)} || {Type, Opts} <- List],
             {error, {forbidden, {use, maps:from_list(AuthTypes)}}}
     end;
+auth_connection(ConnectionPid, "github" = Type, Code) ->
+    try
+        Tokens = github_api_token(Code, get_opts(Type)),
+        AccessToken = maps:get(<<"access_token">>, Tokens),
+        Info = github_api_user(AccessToken, get_opts(Type)),
+        case maps:find(<<"login">>, Info) of
+            {ok, Login} ->
+                Name = case mzb_bc:maps_get(<<"name">>, Info, <<"">>) of
+                    null -> <<"">>;
+                    N -> N
+                end,
+                Email = case mzb_bc:maps_get(<<"email">>, Info, <<"">>) of
+                    null -> <<"">>;
+                    E -> E
+                end,
+                Picture = case mzb_bc:maps_get(<<"avatar_url">>, Info, <<"">>) of
+                    null -> <<"">>;
+                    P -> P
+                end,
+                UserInfo =
+                    #{
+                        login => binary_to_list(Login),
+                        login_type => Type,
+                        name => binary_to_list(Name),
+                        picture_url => binary_to_list(Picture),
+                        email => binary_to_list(Email)
+                    },
+                Ref = add_connection(ConnectionPid, UserInfo),
+                {ok, Ref, UserInfo};
+            error -> {error, "no_user_email"}
+        end
+    catch
+        {google_api, Method, Error} ->
+            {error, mzb_string:format("Google ~p return error ~p", [Method, Error])}
+    end;
 
 auth_connection(ConnectionPid, "google" = Type, Code) ->
     try
@@ -62,8 +98,8 @@ auth_connection(ConnectionPid, "google" = Type, Code) ->
         Info = google_token_info("id_token", IdToken, get_opts(Type)),
         case maps:find(<<"email">>, Info) of
             {ok, Email} ->
-                Name = mzb_bc:maps_get(<<"name">>, Info, ""),
-                Picture = mzb_bc:maps_get(<<"picture">>, Info, ""),
+                Name = mzb_bc:maps_get(<<"name">>, Info, <<"">>),
+                Picture = mzb_bc:maps_get(<<"picture">>, Info, <<"">>),
                 UserInfo =
                     #{
                         login => binary_to_list(Email),
@@ -85,6 +121,7 @@ auth_connection_by_ref(ConnectionPid, Ref) ->
     gen_server:call(?MODULE, {auth_connection_by_ref, ConnectionPid, Ref}).
 
 auth_api_call(<<"POST">>, <<"/auth">>, _Ref) -> "default";
+auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref) -> "default";
 auth_api_call(_Method, _Path, Ref) ->
     case get_methods() of
         [] -> "anonymous";
@@ -281,6 +318,38 @@ google_token_info(Type, Token, _Opts) ->
             erlang:error({google_api, token_info, {ErrorCode, Body}});
         {error,Error}->
             erlang:error({google_api, token_info, Error})
+    end.
+
+github_api_token(Code, Opts) ->
+    GitHubUrl = mzb_bc:maps_get(url, Opts, "https://github.com"),
+    ClientID = maps:get(client_id, Opts),
+    ClientSecret = maps:get(client_secret, Opts),
+    URL = GitHubUrl ++ "/login/oauth/access_token",
+    Data = "client_id=" ++ edoc_lib:escape_uri(ClientID) ++
+           "&client_secret=" ++ edoc_lib:escape_uri(ClientSecret) ++
+           "&code=" ++ edoc_lib:escape_uri(binary_to_list(Code)),
+    case httpc:request(post, {URL, [{"accept", "application/json"}], "application/x-www-form-urlencoded", Data}, [], [], auth_profile) of
+        {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} ->
+            Reply = jiffy:decode(Body, [return_maps]),
+            Reply;
+        {ok, {{_Version, ErrorCode, _ReasonPhrase}, _Headers, Body}} ->
+            erlang:error({github_api, access_token, {ErrorCode, Body}});
+        {error,Error} ->
+            erlang:error({github_api, access_token, Error})
+    end.
+
+github_api_user(Token, Opts) ->
+    GitHubAPI = mzb_bc:maps_get(api_url, Opts, "https://api.github.com"),
+    URL = GitHubAPI ++ "/user",
+
+    case httpc:request(get, {URL, [{"authorization", "token " ++ binary_to_list(Token)}]}, [], [], auth_profile) of
+        {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} ->
+            Reply = jiffy:decode(Body, [return_maps]),
+            Reply;
+        {ok, {{_Version, ErrorCode, _ReasonPhrase}, _Headers, Body}} ->
+            erlang:error({github_api, token_info, {ErrorCode, Body}});
+        {error,Error} ->
+            erlang:error({github_api, token_info, Error})
     end.
 
 get_methods() ->

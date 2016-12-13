@@ -40,7 +40,7 @@ class AuthStore extends EventEmitter {
     handleAuthMethodsResponse(support) {
 
         if (support.google) {
-            this.ensureGAPILoaded(support.google);
+            this.ensureGAPILoaded(support.google.id);
         }
 
         if (Object.keys(support).length > 0) {
@@ -92,6 +92,13 @@ class AuthStore extends EventEmitter {
                   data: res.code
                 });
             });
+    }
+
+    onGithubSigninReq(url, id) {
+        // redirect to github page for authentication and setting url to get back to the same page
+        window.location.href =
+            url + "/login/oauth/authorize?client_id="+id+"&allow_signup=false&redirect_uri=" +
+            encodeURI(window.location.origin + "/github_auth?url=" + encodeURI(window.location.href));
     }
 
     emitChange() {
