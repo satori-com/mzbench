@@ -1,0 +1,12 @@
+%% -*- mode: erlang -*-
+{application, cassandra_worker,
+ [
+  {description, "Mz-bench worker for cassandra"},
+  {vsn, "1.0.0"},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  cqerl
+                 ]},
+  {env, []}
+ ]}.

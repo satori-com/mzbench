@@ -1,0 +1,11 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/cassandra")
+
+pool(size = 1,
+     worker_type = cassandra_worker):
+    connect(host = "127.0.0.1", keyspace = "system")
+    loop(time = 5 min,
+         rate = 1 rps):
+            query("SELECT * from local")
