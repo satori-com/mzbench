@@ -246,8 +246,8 @@ dispatch_info(Info, State) ->
     {ok, State}.
 
 dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime}, #state{token = Token} = State) ->
-    Token = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Token),
-    {reply, #{type => "GENERATED_TOKEN", token => Token}, State};
+    NewToken = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Token),
+    {reply, #{type => "GENERATED_TOKEN", token => NewToken}, State};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
