@@ -1,0 +1,11 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/tcp")
+
+pool(size = var("workers", 2000),
+     worker_start = pow(2, 200, 30 sec),
+     worker_type = tcp_worker):
+    connect("service-host", 4444)
+    request("something")
+    wait_finish()

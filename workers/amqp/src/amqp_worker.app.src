@@ -5,8 +5,9 @@
   {vsn, "1.0.0"},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  xmerl,
+                  amqp_client
                  ]},
   {env, []}
-  %{mod, {amqp_worker, []}}
  ]}.

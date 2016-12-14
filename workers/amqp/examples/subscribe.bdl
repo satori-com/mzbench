@@ -1,0 +1,16 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/amqp")
+
+# This pool is subscribing and publishing spawning additional process
+# with "subscribe"
+pool(size = 8,
+     worker_type = amqp_worker):
+    connect(host = "127.0.0.1")
+    declare_queue("q3")
+    subscribe("q3")
+    loop(time = 1 min,
+         rate = 1000 rps):
+        publish("q3", "hello")
+    disconnect()

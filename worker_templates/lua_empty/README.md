@@ -1,4 +1,4 @@
-# Example of worker for MZBench in Lua
+# Empty worker for MZBench in Lua
 
 Code contains metric declaration and one method `main` which reports these metrics.
 

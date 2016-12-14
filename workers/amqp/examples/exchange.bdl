@@ -1,0 +1,26 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/amqp")
+
+# This pool is publishing 3x100 "hello" messages per second to exchange "x2"
+pool(size = 3,
+     worker_type = amqp_worker):
+    connect(host = "127.0.0.1")
+    declare_exchange("x2")
+    loop(time = 10 min,
+         rate = 100 rps):
+        publish("x2", "key", "hello")
+    disconnect()
+
+# This pool is binding queue "q2" to exchange "x2"
+# and reading from queue "q1" for 10 minutes
+pool(size = 3,
+     worker_type = amqp_worker):
+    connect(host = "127.0.0.1")
+    declare_exchange("x2")
+    declare_queue("q2")
+    bind("x2", "key", "q2")
+    loop(time = 10 min):
+        get("q2")
+    disconnect()
