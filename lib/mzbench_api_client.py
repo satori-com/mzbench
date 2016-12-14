@@ -422,7 +422,8 @@ def add_auth_headers(headers):
     if (auth_headers is None):
         return headers;
 
-    return headers.update(auth_headers)
+    headers.update(auth_headers)
+    return headers
 
 def get_auth_headers():
     token_file = os.path.expanduser("~/.config/mzbench/token")
