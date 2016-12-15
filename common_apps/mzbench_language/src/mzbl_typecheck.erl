@@ -191,6 +191,10 @@ check_op(set_signal, [Name, Count], T, Env) ->
         check(Count, integer, Env)]);
 check_op(dump, [X], T, Env) ->
     and_(is(atom, T), check(X, any, Env));
+check_op(concat, [ListOfStr], _T, Env) ->
+    check(ListOfStr, list, Env);
+check_op(concat, [Str1, Str2], _T, Env) ->
+    and_(check(Str1, string, Env), check(Str2, string, Env));
 check_op(think_time, [Time, Rate], T, Env) ->
     all_([
         is(rate, T),

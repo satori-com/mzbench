@@ -23,7 +23,9 @@
          wait_signal/4,
          wait_signal/5,
          wait_signal/6,
-         dump/4
+         dump/4,
+         concat/5,
+         concat/4
          ]).
 
 -include("mzbl_types.hrl").
@@ -246,3 +248,23 @@ dump(State, _Env, _Meta, Text) ->
     lager:info("~p", [Text]),
     {ok, State}.
 
+-spec concat(State, Env, Meta, Str1, Str2) -> {ResStr, State}
+    when State :: any(),
+         Env :: [proplists:property()],
+         Meta :: meta(),
+         Str1 :: string(),
+         Str2 :: string(),
+         ResStr :: string().
+
+concat(State, _Env, _Meta, Str1, Str2) ->
+    {Str1 ++ Str2, State}.
+
+-spec concat(State, Env, Meta, ListOfStrings) -> {ResStr, State}
+    when State :: any(),
+         Env :: [proplists:property()],
+         Meta :: meta(),
+         ListOfStrings :: [string()],
+         ResStr :: string().
+
+concat(State, _Env, _Meta, ListOfStrings) ->
+    {lists:concat(ListOfStrings), State}.
