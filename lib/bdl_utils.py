@@ -157,7 +157,7 @@ def lex(text):
     kv = term _ "=" _ term _
     term = unumber / logic_op / single / list / string / atom / number
     logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
-    string = '"' ~'[^"]*' '"'
+    string = '"' ~r'(\\\\"|[^\\\\"])*' '"'
     number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKM]?"
     unumber = (number / single) _ atom
     """)
