@@ -1,0 +1,14 @@
+#!benchDL
+
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/mongo")
+
+pool(size = 1,
+     worker_type = mongo_worker):
+    connect(host = "localhost")
+    loop(time = 5 min,
+         rate = 1 rps):
+            insert("mycollection", [t("a", "b", "c", "d")]) # means {a:"b", c: "d"}
+            find_one("mycollection", t("a", "b"))
+            count("mycollection", t("a", "b"))
+            delete("mycollection", t("a", "b"))
