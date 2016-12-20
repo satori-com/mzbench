@@ -145,7 +145,8 @@ CA certificate is not required unless you use custom CA.
 
 ### authentication
 
-API server supports Google auth, to create APP credentials open [Google API manager page](https://console.developers.google.com). Click Credentials -> Create credentials -> OAuth Client ID -> Web Application, then specify your server URL. Copy `client_id` and `client_secret` to a following structure:
+API server supports Google and GitHub auth.
+ - To create Google credentials open [Google API manager page](https://console.developers.google.com). Click Credentials -> Create credentials -> OAuth Client ID -> Web Application, then specify your server URL. Copy `client_id` and `client_secret` to a following structure.
 
 ```erlang
 {user_authentication,
@@ -158,6 +159,24 @@ API server supports Google auth, to create APP credentials open [Google API mana
 ```
 
 `http://localhost:4800` should be replaced with your server's address.
+
+ - To create GitHub credentials open [GitHub developer application](https://github.com/settings/developers) page. Click Register New Application. Put your server url to "Homepage URL" and "Authorization callback URL" and click "Register application".
+
+```erlang
+{user_authentication,
+         [
+          {"github", [{client_id, "..."},
+                      {client_secret, "..."}]}
+         ]
+     }
+```
+
+If GitHub Enterprise is used it may be usefull to add the following two parameters:
+
+```erlang
+    {url, "https://<GitHub URL>"},
+    {api_url, "https://<GitHub API URL>"},
+```
 
 After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click "Generate token" link.
 
