@@ -158,14 +158,27 @@ init([]) ->
     {ok, _} = dets:open_file(auth_tokens, [{file, DetsFile}, {type, set}]),
     erlang:send_after(?VALIDATE_TOKENS_TIMEOUT_MS, self(), validate),
     _ = inets:start(httpc, [{profile, auth_profile}]),
-    _ = set_proxy(proxy, read_env_var("http_proxy")),
-    _ = set_proxy(https_proxy, read_env_var("https_proxy")),
+    _ = set_proxy(proxy, read_env_var("http_proxy"), read_env_var("no_proxy")),
+    _ = set_proxy(https_proxy, read_env_var("https_proxy"), read_env_var("no_proxy")),
     {ok, #s{start_id = generate_ref()}}.
 
-set_proxy(_Type, false) -> false;
-set_proxy(Type, Value) ->
+set_proxy(_Type, false, _) -> false;
+set_proxy(Type, Value, NoProxy) ->
+    NoProxyList =
+        case NoProxy of
+            false -> [];
+            _ -> [parse_no_proxy(Str) || Str <- string:tokens(NoProxy, ",")]
+        end,
     {ok, {_, _, Host, Port, _, _}} = http_uri:parse(Value),
-    httpc:set_options([{Type, {{Host, Port}, []}}], auth_profile).
+    lager:info("Using ~p:~p as ~p for auth (exceptions: ~p)", [Host, Port, Type, NoProxyList]),
+    httpc:set_options([{Type, {{Host, Port}, NoProxyList}}], auth_profile).
+
+parse_no_proxy(Str) ->
+    Str2 = string:strip(Str),
+    case Str2 of
+        "." ++ _ -> "*" ++ Str2;
+       _ -> Str2
+    end.
 
 read_env_var(Var) ->
     case os:getenv(Var) of
