@@ -8,7 +8,7 @@ local-tests:
 
 .PHONY: basic-tests
 basic-tests:
-	./mzb_basic_tests.py -v --process-timeout=1200
+	./mzb_basic_tests.py -v --process-timeout=1200 --processes=10
 
 .PHONY: migrations-tests
 migrations-tests:
