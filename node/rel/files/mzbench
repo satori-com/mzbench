@@ -217,7 +217,10 @@ case "$1" in
         # Tell nodetool to initiate a stop
         $NODETOOL stop
         ES=$?
+
+        # If nodetool couldn't stop node, hardstop it
         if [ "$ES" -ne 0 ]; then
+            kill -9 $PID
             exit $ES
         fi
 
