@@ -712,7 +712,7 @@ apply_filter(Query, BenchInfos) ->
     end.
 
 get_searchable_fields(BenchInfo) ->
-    SearchFields = mzb_bc:maps_with([id, status, name, script_name, start_time, finish_time], BenchInfo),
+    SearchFields = mzb_bc:maps_with([id, status, name, script_name, author, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
     Tags = [ "#" ++ erlang:atom_to_list(T) || T <- mzb_bc:maps_get(tags, BenchInfo, [])],
     lists:map(fun (X) when is_atom(X) -> atom_to_list(X);
