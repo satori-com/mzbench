@@ -291,9 +291,11 @@ hostname(Node) ->
 
 -spec extract_install_specs(abstract_expr(), [term()]) -> [install_spec()].
 extract_install_specs(AST, Env) ->
+    [Defaults] = mzbl_ast:find_operation_and_extract_args(defaults, AST, [[]]),
+    Env2 = Env ++ interpret_defaults(Defaults, Env),
     Convert =
         fun(#operation{args = [Expr]}) ->
-            Args = eval_opts(Expr, Env),
+            Args = eval_opts(Expr, Env2),
             case mzbl_ast:find_operation_and_extract_args(git, Args, undefined) of
                 undefined ->
                     case mzbl_ast:find_operation_and_extract_args(rsync, Args, undefined) of
