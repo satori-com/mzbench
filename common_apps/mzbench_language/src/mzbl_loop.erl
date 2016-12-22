@@ -8,6 +8,7 @@
 -export([time_of_next_iteration/3, msnow/0]).
 
 -define(MAXSLEEP, 1000).
+-define(DEFAULT_MAX_BATCH, 1000000).
 
 -include("mzbl_types.hrl").
 
@@ -248,12 +249,19 @@ eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT}
     {RateState#linear_rate{from = F, to = T}, NewDone, State2}.
 
 batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
+    MaxBatch =
+        case BatchTime of
+            0 -> ?DEFAULT_MAX_BATCH;
+            _ -> max(Batch*1000 div BatchTime, 1) % Batch execution shouldn't take more than 1 sec
+        end,
     TimePerIter = max(0, BatchTime div Batch),
-    if BatchTime * 4 > TimeLeft -> Batch div 2 + 1;
-       (Sleep == 0) and (Batch < 1000000) -> Batch + Batch div 2 + 1;
-       Sleep > 2*TimePerIter -> max(Batch - Batch div 2 - 1, 1);
-       true -> Batch
-    end.
+    NewBatch =
+        if BatchTime * 4 > TimeLeft -> Batch div 2 + 1;
+            (Sleep == 0) and (Batch < MaxBatch) -> Batch + Batch div 2 + 1;
+            Sleep > 2*TimePerIter -> max(Batch - Batch div 2 - 1, 1);
+            true -> Batch
+        end,
+    min(NewBatch, MaxBatch).
 
 k_times(_, _, _, S, 0) -> S;
 k_times(Expr, Provider, Env, S, N) ->
