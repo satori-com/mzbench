@@ -52,11 +52,17 @@ provision_nodes(Config, Logger) ->
         io_lib:format("cd ~s && ~s/mzbench/bin/mzbench start", [RootDir, NodeDeployPath]),
         [],
         Logger),
+    NodePids = mzb_subprocess:remote_cmd(
+        UserName,
+        [DirectorHost|WorkerHosts],
+        io_lib:format("cd ~s && ~s/mzbench/bin/mzbench getpid", [RootDir, NodeDeployPath]),
+        [],
+        Logger),
     InterconnectPorts = mzb_lists:pmap(fun(H) ->
         [Res] = release_rpcterms(UserName, H, RootDir, "mzb_interconnect_sup", "get_port", Logger),
         erlang:list_to_integer(Res) end, WorkerHosts),
 
-    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), InterconnectPorts, get_management_port(Config, Logger)}.
+    {lists:zip(Nodes, [DirectorHost|WorkerHosts]), InterconnectPorts, NodePids, get_management_port(Config, Logger)}.
 
 get_management_port(Config = #{director_host:= DirectorHost, user_name:= UserName}, Logger) ->
     [Res] = release_rpcterms(UserName, DirectorHost, mzb_api_bench:remote_path("", Config),
@@ -79,15 +85,24 @@ clean_nodes(Config, Logger) ->
     #{
         user_name:= UserName,
         director_host:= DirectorHost,
+        node_pids:= NodePids,
         worker_hosts:= WorkerHosts} = Config,
     RootDir = mzb_api_bench:remote_path("", Config),
-    _ = mzb_subprocess:remote_cmd(
+    Codes = mzb_subprocess:remote_cmd(
         UserName,
         [DirectorHost|WorkerHosts],
-        io_lib:format("cd ~s; ~s/mzbench/bin/mzbench stop; true",
+        io_lib:format("cd ~s; ~s/mzbench/bin/mzbench stop > /dev/null 2>&1; echo $?",
             [RootDir, mzb_api_paths:node_deployment_path()]),
         [],
         Logger),
+    _ = mzb_lists:pmap(fun({Code, Host, Pid}) ->
+                case erlang:list_to_integer(Code) of
+                    0 -> ok;
+                    _ -> mzb_subprocess:remote_cmd(UserName,[Host],
+                        io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
+                end
+            end,
+        lists:zip3(Codes, [DirectorHost|WorkerHosts], NodePids)),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger),
     ok.
 

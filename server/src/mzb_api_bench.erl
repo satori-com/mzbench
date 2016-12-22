@@ -153,6 +153,7 @@ init([Id, Params]) ->
         log_user_file_handler => LogUserHandler,
         collectors => [],
         interconnect_ports => [],
+        node_pids => [],
         cluster_connection => undefined,
         deallocator => undefined,
         metrics => #{},
@@ -235,14 +236,15 @@ handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     end;
 
 handle_stage(pipeline, provisioning, #{config:= Config, self:= Self} = State) ->
-    {[{DirectorNode, _}|_] = Nodes, InterconnectPorts, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
+    {[{DirectorNode, _}|_] = Nodes, InterconnectPorts, NodePids, Port} = mzb_api_provision:provision_nodes(Config, get_logger(State)),
     #{director_host:= DirectorHost} = Config,
     Connection = mzb_api_connection:start_and_link_with(
                     Self, management, DirectorHost, Port,
                     fun (Msg, S) -> handle_management_msg(Msg, Self, S) end,
                     #{config => Config, handlers => #{}}),
     fun (S) -> S#{director_node => DirectorNode, cluster_connection => Connection,
-                  nodes => Nodes, interconnect_ports => InterconnectPorts} end;
+                  nodes => Nodes, interconnect_ports => InterconnectPorts,
+                  node_pids => NodePids} end;
 
 handle_stage(pipeline, connect_nodes, #{cluster_connection:= Connection, config:= Config,
                                         interconnect_ports:= InterconnectPorts}) ->
