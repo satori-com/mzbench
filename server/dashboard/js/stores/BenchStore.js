@@ -167,11 +167,11 @@ class BenchStore extends EventEmitter {
     }
 
     resetNew() {
-        data.newBench = Object.assign({}, defaultData.newBench);
+        data.newBench = jQuery.extend(true, {}, defaultData.newBench);
     }
 
     cloneNewBench(id) {
-        data.newBench = Object.assign({}, this.findById(data.selectedBenchId)); 
+        data.newBench = jQuery.extend(true, {}, this.findById(data.selectedBenchId));
     }
 
     isShowTimelineLoadingMask() {
