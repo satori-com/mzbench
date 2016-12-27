@@ -123,7 +123,7 @@ def transform(ast):
     elif ast.expr_name == "boolean":
         return [ast.text=="true"]
     elif ast.expr_name == "string":
-        return [ast.text[1:-1]] # "something"
+        return [ast.text[1:-1].replace(r'\"', '"').replace(r'\\\\', '\\\\')] # "something"
     elif ast.expr_name == "atom": 
         return [ast.text]
     else:
@@ -157,7 +157,7 @@ def lex(text):
     kv = term _ "=" _ term _
     term = unumber / logic_op / single / list / string / atom / number
     logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
-    string = '"' ~r'(\\\\"|[^\\\\"])*' '"'
+    string = '"' ~r'(\\\\.|[^\\\\"])*' '"'
     number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKM]?"
     unumber = (number / single) _ atom
     """)
