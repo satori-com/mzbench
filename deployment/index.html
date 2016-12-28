@@ -253,8 +253,8 @@ sudo pip install -r mzbench/requirements.txt
 <p>To open the dashboard to the public, set this param to <code>"0.0.0.0"</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.</p>
-<p>To protect your server, use an external auth proxy server like Nginx.</p>
+<p>By default MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.</p>
+<p>To protect your server, please, see <a href="./#authentication">authentication</a> and <a href="./#protocol">protocol</a>.</p>
 </div>
 <h3 id="listen_port">listen_port<a class="headerlink" href="#listen_port" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{listen_port, &lt;port&gt;}
@@ -272,8 +272,10 @@ sudo pip install -r mzbench/requirements.txt
 
 <p>CA certificate is not required unless you use custom CA.</p>
 <h3 id="authentication">authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h3>
-<p>API server supports Google and GitHub auth.
- - To create Google credentials open <a href="https://console.developers.google.com">Google API manager page</a>. Click Credentials -&gt; Create credentials -&gt; OAuth Client ID -&gt; Web Application, then specify your server URL. Copy <code>client_id</code> and <code>client_secret</code> to a following structure.</p>
+<p>API server supports Google and GitHub auth.</p>
+<ul>
+<li>To create Google credentials open <a href="https://console.developers.google.com">Google API manager page</a>. Click Credentials -&gt; Create credentials -&gt; OAuth Client ID -&gt; Web Application, then specify your server URL. Copy <code>client_id</code> and <code>client_secret</code> to a following structure.</li>
+</ul>
 <pre><code class="erlang">{user_authentication,
          [
           {&quot;google&quot;, [{client_id, &quot;...&quot;},
