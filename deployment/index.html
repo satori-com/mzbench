@@ -271,6 +271,36 @@ sudo pip install -r mzbench/requirements.txt
 </code></pre>
 
 <p>CA certificate is not required unless you use custom CA.</p>
+<h3 id="authentication">authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h3>
+<p>API server supports Google and GitHub auth.
+ - To create Google credentials open <a href="https://console.developers.google.com">Google API manager page</a>. Click Credentials -&gt; Create credentials -&gt; OAuth Client ID -&gt; Web Application, then specify your server URL. Copy <code>client_id</code> and <code>client_secret</code> to a following structure.</p>
+<pre><code class="erlang">{user_authentication,
+         [
+          {&quot;google&quot;, [{client_id, &quot;...&quot;},
+                      {client_secret, &quot;...&quot;},
+                      {redirect_url, &quot;http://localhost:4800&quot;}]}
+         ]
+     }
+</code></pre>
+
+<p><code>http://localhost:4800</code> should be replaced with your server&rsquo;s address.</p>
+<ul>
+<li>To create GitHub credentials open <a href="https://github.com/settings/developers">GitHub developer application</a> page. Click Register New Application. Put your server url to &ldquo;Homepage URL&rdquo; and &ldquo;Authorization callback URL&rdquo; and click &ldquo;Register application&rdquo;.</li>
+</ul>
+<pre><code class="erlang">{user_authentication,
+         [
+          {&quot;github&quot;, [{client_id, &quot;...&quot;},
+                      {client_secret, &quot;...&quot;}]}
+         ]
+     }
+</code></pre>
+
+<p>If GitHub Enterprise is used it may be usefull to add the following two parameters:</p>
+<pre><code class="erlang">    {url, &quot;https://&lt;GitHub URL&gt;&quot;},
+    {api_url, &quot;https://&lt;GitHub API URL&gt;&quot;},
+</code></pre>
+
+<p>After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click &ldquo;Generate token&rdquo; link.</p>
 <h3 id="bench_log_file">bench_log_file<a class="headerlink" href="#bench_log_file" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{bench_log_file, &quot;&lt;filename&gt;&quot;}
 </code></pre>

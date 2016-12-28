@@ -205,7 +205,7 @@ sa-east-1       ami-7798101b
 </code></pre>
 
 <p>To use one of these images, specify it in the cloud plugin config as <code>image_id</code>:</p>
-<pre><code class="erlang">{image_id, &quot;ami-ee8d718e&quot;
+<pre><code class="erlang">{image_id, &quot;ami-ee8d718e&quot;}
 </code></pre>
 
 <p>You can, of course, build your own image based on the requirements listed above. <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html#creating-an-ami">Learn more</a> in the official Amazon docs.</p>
@@ -229,6 +229,7 @@ sa-east-1       ami-7798101b
 </code></pre>
 
 <p>Minimally, the config requires <code>instance_spec</code> and <code>config</code> keys specified. Learn more about AWS-specific config in the <a href="https://github.com/gleber/erlcloud">erlcloud documentation</a>.</p>
+<p>To make allocated nodes accessible: specify <code>key_name</code> in configuration above, put associated key to your MZBench server and make ssh use it. Usually it is about adding <code>IdentityFile path/to/your/amazonkey.pem</code> to <code>~/.ssh/config</code> or running <code>ssh-add path/to/your/amazonkey.pem</code>.</p>
 <h2 id="static-cloud">Static Cloud<a class="headerlink" href="#static-cloud" title="Permanent link">&para;</a></h2>
 <p><code>mzb_staticcloud_plugin</code></p>
 <p>The module uses allocated nodes from a list of hosts.</p>
