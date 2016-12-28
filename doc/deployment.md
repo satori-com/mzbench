@@ -115,9 +115,9 @@ Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"
 To open the dashboard to the public, set this param to `"0.0.0.0"`.
 
 !!!warning
-    MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.
+    By default MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.
     
-    To protect your server, use an external auth proxy server like Nginx.
+    To protect your server, please, see [authentication](deployment.md#authentication) and [protocol](deployment.md#protocol).
 
 
 ### listen_port
@@ -146,6 +146,7 @@ CA certificate is not required unless you use custom CA.
 ### authentication
 
 API server supports Google and GitHub auth.
+
  - To create Google credentials open [Google API manager page](https://console.developers.google.com). Click Credentials -> Create credentials -> OAuth Client ID -> Web Application, then specify your server URL. Copy `client_id` and `client_secret` to a following structure.
 
 ```erlang
