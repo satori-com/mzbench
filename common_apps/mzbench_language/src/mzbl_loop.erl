@@ -1,6 +1,6 @@
 -module(mzbl_loop).
 
--compile({inline, [msnow/0, eval_rates/5, time_of_next_iteration/3, batch_size/4, k_times/5, k_times_iter/8, k_times_spawn/8]}).
+-compile({inline, [msnow/0, eval_rates/7, time_of_next_iteration/3, batch_size/4, k_times/5, k_times_iter/8, k_times_spawn/8]}).
 
 -export([eval/5]).
 
@@ -9,6 +9,7 @@
 
 -define(MAXSLEEP, 1000).
 -define(DEFAULT_MAX_BATCH, 1000000).
+-define(MSEC_in_SEC, 1000).
 
 -include("mzbl_types.hrl").
 
@@ -115,10 +116,10 @@ time_of_next_iteration(#const_rate{value = undefined}, _, _) -> 0;
 time_of_next_iteration(#const_rate{value = 0}, Duration, _) -> Duration * 2; % should be more than loop length "2" does not stand for anything important
 time_of_next_iteration(#const_rate{value = 0.0}, Duration, _) -> Duration * 2;
 time_of_next_iteration(#const_rate{value = Rate}, _Duration, IterationNumber) ->
-    (IterationNumber * 1000) / Rate;
+    (IterationNumber * ?MSEC_in_SEC) / Rate;
 time_of_next_iteration(#linear_rate{from = F, to = T}, Duration, _) when F == 0, T == 0 -> Duration * 2; % we want to match 0 and 0.0 hence the guard usage
 time_of_next_iteration(#linear_rate{from = Rate1, to = Rate2}, _, IterationNumber) when Rate1 == Rate2 ->
-    (IterationNumber * 1000) / Rate1;
+    (IterationNumber * ?MSEC_in_SEC) / Rate1;
 time_of_next_iteration(#linear_rate{from = StartRPS, to = FinishRPS}, RampDuration, IterationNumber) ->
     % This function solves the following equation for Elapsed:
     %
@@ -165,19 +166,19 @@ superloop(TimeFun, Rates, Body, WorkerProvider, State, Env, Opts) ->
     end.
 
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = 1})  ->
-    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0);
+    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, {0, 0});
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = N}) ->
     StartTime = msnow(),
     _ = mzb_lists:pmap(fun (I) ->
         _ = random:seed(now()),
-        timerun(StartTime, random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, I)
+        timerun(StartTime, I + random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, {0, I})
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
+timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldRun) ->
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
-    {NewRate, Done, State2} = eval_rates(Rate, OldDone, LocalTime, Time, State1),
+    {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),
     ShouldBe = time_of_next_iteration(NewRate, Time, Done + Shift),
     Remain = round(ShouldBe) - LocalTime,
     GotTime = round(Time) - LocalTime,
@@ -191,7 +192,7 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
     case Sleep > ?MAXSLEEP of
         true ->
             timer:sleep(?MAXSLEEP),
-            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done);
+            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done, NewRun);
         false ->
             Sleep > 0 andalso timer:sleep(Sleep),
             case Time =< LocalTime + Sleep of
@@ -205,10 +206,10 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                             false ->
                                 case Iterator of
                                     undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
-                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), Batch)
                                 end;
                             true ->
-                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done, Batch)
+                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), Batch)
                         end,
                     BatchEnd = msnow(),
                     NewBatch = case IsFirst of
@@ -216,43 +217,77 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                         false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
                     end,
 
-                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch)
+                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch, NewRun)
             end
     end.
 
-eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State) ->
+eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _Time, State, Step, {OldRun, DoneLastUpdate}) ->
     {Rate, State1} = F(State),
     % If rate changes we have to change number of "done" iterations accordingly
+    % Also we need to reset done counter every minute or so
+    % to make sure we don't generate more load than we were asked for
+    % It happens after periods of time when we were unable to maintain needed rate (for some external reasons)
+    NewRun = CurTime div (60*?MSEC_in_SEC),
+
     NewDone =
         case {Rate, Prev} of
-            {Prev, _} -> Done;
+            {Prev, _} when (NewRun =< OldRun) orelse (Done < DoneLastUpdate + 10 * Step) -> Done;
+            {Prev, _} ->
+                ND = Prev * CurTime / ?MSEC_in_SEC,
+                case ND > Done + Step of
+                    true -> ND;
+                    false -> Done
+                end;
             {undefined, _} -> Done;
-            {New, 0} -> round(New * CurTime / 1000);
             {_New, undefined} -> Done;
-            {New, _} -> round(New * CurTime / 1000)
+            {New, _} -> (New * CurTime / ?MSEC_in_SEC) % It's important not to round done counter here
         end,
-    {RateState#const_rate{value = Rate}, NewDone, State1};
-eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT} = RateState, Done, CurTime, Time, State) ->
+
+    NewDoneLastUpdate =
+        case NewDone == Done of
+            true -> DoneLastUpdate;
+            false -> NewDone
+        end,
+    {RateState#const_rate{value = Rate}, NewDone, State1, {NewRun, NewDoneLastUpdate}};
+eval_rates(#linear_rate{from_fun = FFun, to_fun = ToFun, from = OldF, to = OldT} = RateState, Done, CurTime, Time, State, Step, {OldRun, DoneLastUpdate}) ->
     {F, State1} = FFun(State),
     {T, State2} = ToFun(State1),
     % If rate changes we have to change number of "done" iterations accordingly
+    % Also we need to reset done counter every minute or so
+    % to make sure we don't generate more load than we were asked for
+    % It happens after periods of time when we were unable to maintain needed rate (for some external reasons)
+    NewRun = CurTime div (60*?MSEC_in_SEC),
+
     NewDone =
         case {F, T} of
-            {OldF, OldT} -> Done;
+            {OldF, OldT} when (NewRun =< OldRun) orelse (Done < DoneLastUpdate + 10 * Step) -> Done;
+            {OldF, OldT} ->
+                ND = F * CurTime/?MSEC_in_SEC  + (T - F) * CurTime * CurTime / (2 * ?MSEC_in_SEC * Time),
+                case ND > Done + Step of
+                    true -> ND;
+                    false -> Done
+                end;
             {_, _} when OldF == undefined -> Done;
             {_, _} ->
                 % Calculating area under new ramp graph (which is trapezium)
                 % Kinematic equations also could be used (S = v0*t + a*t^2/2)
-                A = F * CurTime/1000  + (T - F) * CurTime * CurTime / (2000 * Time),
-                round(A)
+                %
+                % It's important not to round done counter here
+                F * CurTime/?MSEC_in_SEC  + (T - F) * CurTime * CurTime / (2 * ?MSEC_in_SEC * Time)
         end,
-    {RateState#linear_rate{from = F, to = T}, NewDone, State2}.
+
+    NewDoneLastUpdate =
+        case NewDone == Done of
+            true -> DoneLastUpdate;
+            false -> NewDone
+        end,
+    {RateState#linear_rate{from = F, to = T}, NewDone, State2, {NewRun, NewDoneLastUpdate}}.
 
 batch_size(BatchTime, TimeLeft, Sleep, Batch) ->
     MaxBatch =
         case BatchTime of
             0 -> ?DEFAULT_MAX_BATCH;
-            _ -> max(Batch*1000 div BatchTime, 1) % Batch execution shouldn't take more than 1 sec
+            _ -> max(Batch*?MSEC_in_SEC div BatchTime, 1) % Batch execution shouldn't take more than 1 sec
         end,
     TimePerIter = max(0, BatchTime div Batch),
     NewBatch =
