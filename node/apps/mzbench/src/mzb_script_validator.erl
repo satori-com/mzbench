@@ -62,7 +62,7 @@ validate(Script) ->
             (#operation{name = include_resource, args = [_Name, Path, _Type]}, Acc) ->
                 validate_resource_filename(Path) ++ Acc;
             (#operation{name = assert} = Op, Acc) ->
-                mzb_asserts:validate(Op) ++ Acc;
+                mzbl_asserts:validate(Op) ++ Acc;
             (#operation{name = make_install}, Acc) -> Acc;
             (#operation{name = pre_hook} = Op, Acc) ->
                 mzb_hooks_validator:validate(Op) ++ Acc;

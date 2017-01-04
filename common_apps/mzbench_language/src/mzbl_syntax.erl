@@ -75,7 +75,38 @@ end end).
 
 -spec 'value'(input(), index()) -> parse_result().
 'value'(Input, Index) ->
-  p(Input, Index, 'value', fun(I,D) -> (p_choose([fun 'unumber'/2, fun 'logic_op'/2, fun 'single'/2, fun 'list'/2, fun 'id'/2, fun 'number'/2, fun 'string'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'value', fun(I,D) -> (p_choose([fun 'unumber'/2, fun 'logic_exp'/2, fun 'single'/2, fun 'list'/2, fun 'id'/2, fun 'number'/2, fun 'string'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+
+-spec 'logic_exp'(input(), index()) -> parse_result().
+'logic_exp'(Input, Index) ->
+  p(Input, Index, 'logic_exp', fun(I,D) -> (p_choose([fun 'logic_priority'/2, fun 'logic_unary'/2, fun 'logic_plain'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+
+-spec 'logic_priority'(input(), index()) -> parse_result().
+'logic_priority'(Input, Index) ->
+  p(Input, Index, 'logic_priority', fun(I,D) -> (p_seq([p_string(<<"(">>), fun '__'/2, p_label('head', fun 'logic_exp'/2), p_string(<<")">>), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+      proplists:get_value(head, Node), proplists:get_value(tail, Node))
+ end).
+
+-spec 'logic_plain'(input(), index()) -> parse_result().
+'logic_plain'(Input, Index) ->
+  p(Input, Index, 'logic_plain', fun(I,D) -> (p_seq([p_label('head', fun 'logic_op'/2), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+      proplists:get_value(head, Node), proplists:get_value(tail, Node))
+ end).
+
+-spec 'logic_binary'(input(), index()) -> parse_result().
+'logic_binary'(Input, Index) ->
+  p(Input, Index, 'logic_binary', fun(I,D) -> (p_choose([p_string(<<"and">>), p_string(<<"or">>)]))(I,D) end, fun(Node, _Idx) ->
+case lists:nth(1, Node) of
+  <<"and">> -> 'and';
+  <<"or">> -> 'or'
+end
+ end).
+
+-spec 'logic_unary'(input(), index()) -> parse_result().
+'logic_unary'(Input, Index) ->
+  p(Input, Index, 'logic_unary', fun(I,D) -> (p_seq([p_string(<<"not">>), fun '__'/2, fun 'logic_exp'/2]))(I,D) end, fun(Node, _Idx) ->{call, 'not', [lists:nth(3, Node)]} end).
 
 -spec 'logic_op'(input(), index()) -> parse_result().
 'logic_op'(Input, Index) ->

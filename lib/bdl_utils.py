@@ -155,7 +155,12 @@ def lex(text):
     map = "(" _ kv (_ "," _ kv)* _ ")"
     list = ( _ "[" _ term (_ "," _ term)* _ "]" ) / ( _ "[" _ "]")
     kv = term _ "=" _ term _
-    term = unumber / logic_op / single / list / string / atom / number
+    term = unumber / logic_exp / single / list / string / atom / number
+    logic_exp = logic_priority / logic_unary / logic_plain
+    logic_priority = "(" _ logic_exp _ ")" _ (logic_binary _ logic_exp _)*
+    logic_unary = "not" _ logic_exp _
+    logic_binary = "and" / "or"
+    logic_plain = logic_op _ (logic_binary _ logic_exp _)*
     logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
     string = '"' ~r'(\\\\.|[^\\\\"])*' '"'
     number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKM]?"

@@ -179,23 +179,13 @@ extract_info(Script, Env) ->
                 (#operation{name = defaults, args = [DefaultsList]}, {Acc, Ass}) ->
                     {interpret_defaults(DefaultsList, Env) ++ Acc, Ass};
                 (#operation{name = assert, args = [Time, Expr]}, {Acc, Ass}) ->
-                    {Acc, [{Time, normalize_assert(Expr)} | Ass]};
+                    {Acc, [{Time, Expr} | Ass]};
                 (_, Acc) -> Acc
             end, {Env, []}, Script),
 
     Script2 = lists:filter(fun (#operation{name = pool}) -> true; (_) -> false end, enumerate_pools(Script)),
     Script3 = mzbl_ast:map_meta(fun (Meta, Op) -> [{function, Op}|Meta] end, Script2),
     {Script3, Env2, Asserts}.
-
-normalize_assert(#operation{name = Op, args = [Op1, Op2]} = A) when is_list(Op2) ->
-    A#operation{name = opposite_op(Op), args = [Op2, Op1]};
-normalize_assert(#operation{args = [_, _]} = A) ->
-    A.
-
-opposite_op(gt) -> lt;
-opposite_op(lt) -> gt;
-opposite_op(gte) -> lte;
-opposite_op(lte) -> gte.
 
 import_resource(Env, File, Type) ->
     {ok, Content} = case re:run(File, "^https?://", [{capture, first}, caseless]) of

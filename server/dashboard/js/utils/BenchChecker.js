@@ -9,6 +9,13 @@ const ListFunction = `
         }
         return initial;
     }
+    function makeTree(head, tail) {
+        var lastop = head;
+        for (var i = 0; i < tail.length; i++) {
+            lastop = {name: tail[i][1], args: [lastop, tail[i][3]]};
+        }
+        return lastop;
+    }
 }`;
 
 const SharedGrammar = `
@@ -67,7 +74,18 @@ kv
     = k:term _ "=" _ v:term _ {return {key:k, value:v};}
 
 term
-    = unumber / logic_op / single / list / string / atom / number
+    = unumber / logic_exp / single / list / string / atom / number
+
+logic_exp
+    = "(" _ head:logic_exp ")" tail:(_ logic_binary _ logic_exp)* {return makeTree(head, tail);}
+    / name:logic_unary _ arg:logic_exp {return {name: name, args: arg};}
+    / head:logic_op tail:(_ logic_binary _ logic_exp)* {return makeTree(head, tail);}
+
+logic_binary
+    = "and" / "or"
+
+logic_unary
+    = "not"
 
 logic_op
     = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)

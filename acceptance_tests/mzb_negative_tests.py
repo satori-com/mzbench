@@ -64,7 +64,7 @@ def worker_provisioning_fail_test():
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},
-        expected_log_message_regex=r'''Benchmark result: FAILED.*1 assertions failed.*Assertion: print > 40.*was expected to hold for 40s.*but held for just''')
+        expected_log_message_regex=r'''Benchmark result: FAILED.*1 assertions failed.*Assertion: \(print > 40\).*was expected to hold for 40s.*but held for just''')
 
 
 def always_assertions_fail_test():

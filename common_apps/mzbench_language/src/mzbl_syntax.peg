@@ -20,7 +20,26 @@ pargs <- __ head:value tail:(__ ',' __ value)* __
     [Head|Rest]
 `;
 pair <- __ key:(id / string) __ '=' __ value:value __ `{call, t, [proplists:get_value(key, Node), proplists:get_value(value, Node)], Idx}`;
-value <- unumber / logic_op / single / list / id / number / string ~;
+value <- unumber / logic_exp / single / list / id / number / string ~;
+logic_exp <- logic_priority / logic_unary / logic_plain ~;
+logic_priority <- '(' __ head:logic_exp ')' tail:(__ logic_binary __ logic_exp )*
+`
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+      proplists:get_value(head, Node), proplists:get_value(tail, Node))
+`;
+logic_plain <- head:logic_op tail:(__ logic_binary __ logic_exp )*
+`
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+      proplists:get_value(head, Node), proplists:get_value(tail, Node))
+`;
+logic_binary <- 'and' / 'or'
+`
+case lists:nth(1, Node) of
+  <<"and">> -> 'and';
+  <<"or">> -> 'or'
+end
+`;
+logic_unary <- 'not' __ logic_exp `{call, 'not', [lists:nth(3, Node)]}`;
 logic_op <- (number / string) __ ('<=' / '>=' / '<' / '>' / '==') __ (number / string)
 `{call, case lists:nth(3, Node) of
   <<"<=">> -> lte;

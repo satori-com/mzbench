@@ -109,7 +109,7 @@ init([Asserts, LoopAssertMetrics, Nodes]) ->
         start_time = StartTime,
         previous_counter_values = [],
         last_rps_calculation_time = StartTime,
-        asserts = mzb_asserts:init(Asserts),
+        asserts = mzbl_asserts:init(Asserts),
         loop_assert_metrics = LoopAssertMetrics,
         active = true,
         metric_groups = [],
@@ -135,7 +135,7 @@ handle_call(final_trigger, _From, State) ->
     {reply, ok, NewState};
 
 handle_call(get_failed_asserts, _From, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
-    {reply, mzb_asserts:get_failed(_Finished = true, AccuracyMs, Asserts), State};
+    {reply, mzbl_asserts:get_failed(_Finished = true, AccuracyMs, Asserts), State};
 
 handle_call(get_metrics, _From, #s{metric_groups = Groups} = State) ->
     {reply, Groups, State};
@@ -255,10 +255,10 @@ check_dynamic_deadlock(#s{} = State) ->
 
 check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
     system_log:info("[ metrics ] CHECK ASSERTIONS:"),
-    NewAsserts = mzb_asserts:update_state(TimePeriod, Asserts),
-    system_log:info("Current assertions:~n~s", [mzb_asserts:format_state(NewAsserts)]),
+    NewAsserts = mzbl_asserts:update_state(TimePeriod, Asserts),
+    system_log:info("Current assertions:~n~s", [mzbl_asserts:format_state(NewAsserts)]),
 
-    FailedAsserts = mzb_asserts:get_failed(_Finished = false, AccuracyMs, NewAsserts),
+    FailedAsserts = mzbl_asserts:get_failed(_Finished = false, AccuracyMs, NewAsserts),
     case FailedAsserts of
         [] -> ok;
         _  ->
