@@ -578,5 +578,5 @@ Pause the current job for [`<Time>`](#time_1).
 ```python
 10 rps # 10 jobs per second
 12 rpm # 12 jobs per minute
-100 h # 100 jobs per hour
+100 rph # 100 jobs per hour
 ```
