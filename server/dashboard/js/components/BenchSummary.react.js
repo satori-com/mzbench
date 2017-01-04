@@ -163,7 +163,7 @@ class BenchSummary extends React.Component {
         let action_message = 'Benchmark ' + anchor.data('msg');
         if (!anchor.attr('disabled')) {
             $.ajax({url: anchor.attr('href'),
-                    complete: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
+                    success: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
                     error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});},
                     beforeSend: function (xhr) {
                         if (AuthStore.getRef()) {
