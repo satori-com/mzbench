@@ -40,8 +40,9 @@ class Auth extends React.Component {
         this.setState(this._resolveState());
     }
 
-    onSignOut() {
+    onSignOut(event) {
         let type = AuthStore.authType();
+        event.preventDefault();
 
         if ("google2" == type) {
             let auth2 = window.gapi.auth2.getAuthInstance();
@@ -51,7 +52,8 @@ class Auth extends React.Component {
         AuthStore.signOut();
     }
 
-    onCreateToken() {
+    onCreateToken(event) {
+        event.preventDefault();
         $(ReactDOM.findDOMNode(this.refs.createTokenModal)).modal("show");
         this.setState({generatedToken: ""});
     }
