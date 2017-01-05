@@ -236,7 +236,7 @@ handle_cast(_Msg, State) ->
 handle_info(validate, State = #s{start_id = StartId}) ->
     CurrentTime = mzb_api_bench:seconds(),
     ExpiredRefs = dets:foldl(
-        fun ({Ref, #{expiratioin_ts:= Expiration}}, Acc) when CurrentTime > Expiration -> [Ref|Acc];
+        fun ({Ref, #{expiratioin_ts:= Expiration}}, Acc) when (CurrentTime > Expiration) and (Expiration /= 0) -> [Ref|Acc];
             ({_, _}, Acc) -> Acc
         end, [], auth_tokens),
     _ = [remove(Ref, StartId) || Ref <- ExpiredRefs],
@@ -279,7 +279,7 @@ insert(ConnectionPid, Ref, UserInfo, StartId) ->
     insert(ConnectionPid, Ref, UserInfo, StartId, ?DEFAULT_EXPIRATION_TIME_S).
 insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
     CreationTS = mzb_api_bench:seconds(),
-    ExpirationTS = CreationTS + Lifetime,
+    ExpirationTS = if Lifetime == 0 -> 0; true -> CreationTS + Lifetime end,
     ExistingConnections = [P || {_, #{connection_pids := Pids, incarnation_id := Incarnation}} <- dets:lookup(auth_tokens, Ref),
                            Incarnation == StartId,
                            P <- Pids],
