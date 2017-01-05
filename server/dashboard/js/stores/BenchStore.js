@@ -280,7 +280,7 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             break;
 
         case ActionTypes.CLONE_BENCH:
-            data.newBench = Object.assign({}, data.benchmarks.find(x => x.id == action.data));
+            data.newBench = jQuery.extend(true, {}, data.benchmarks.find(x => x.id == action.data));
             data.selectedBenchId = undefined;
             data.isNewSelected = true;
             data.isNewActive = true;
@@ -289,7 +289,7 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
             break;
 
         case ActionTypes.CLEAN_NEW_BENCH:
-            data.newBench = Object.assign({}, defaultData.newBench);
+            data.newBench = jQuery.extend(true, {}, defaultData.newBench);
             if (data.clouds.length > 0) {
                 data.newBench.cloud = data.clouds[0];
             }
