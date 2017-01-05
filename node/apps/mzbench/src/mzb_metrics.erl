@@ -244,7 +244,7 @@ check_dynamic_deadlock(#s{} = State) ->
     if Blocked == 0 -> State;
         true ->
             WorkerMetrics = [{lists:reverse(N), V} || {"workers.pool" ++ _ = N, counter, V} <- global_metrics()],
-            Started = lists:sum([V || {["detrats" ++ _, V} <- WorkerMetrics]), % "started" reversed
+            Started = lists:sum([V || {"detrats" ++ _, V} <- WorkerMetrics]), % "started" reversed
             Ended = lists:sum([V || {"dedne" ++ _, V} <- WorkerMetrics]), % "ended" reversed
             if Blocked >= Started - Ended -> mzb_director:notify({assertions_failed, dynamic_deadlock});
                 true -> ok
