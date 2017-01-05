@@ -177,10 +177,10 @@ handle(<<"GET">>, <<"/stop">>, Login, Req) ->
         {ok, reply_json(200, #{status => <<"stopped">>}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/change_env">>, _Login, Req) ->
+handle(<<"GET">>, <<"/change_env">>, Login, Req) ->
     with_bench_id(Req, fun (Id) ->
         NewEnv = cowboy_req:parse_qs(Req),
-        ok = mzb_api_server:change_env(Id, proplists:delete(<<"id">>, NewEnv)),
+        ok = mzb_api_server:change_env(Id, proplists:delete(<<"id">>, NewEnv), Login),
         {ok, reply_json(200, #{status => <<"set">>}, Req), #{}}
     end);
 

@@ -9,7 +9,7 @@
     start_bench/1,
     restart_bench/2,
     stop_bench/2,
-    change_env/2,
+    change_env/3,
     bench_foldl/2,
     get_info/5,
     bench_finished/2,
@@ -79,14 +79,13 @@ stop_bench(Id, Login) ->
             erlang:error(Reason)
     end.
 
-change_env(Id, Env) ->
-    case ets:lookup(benchmarks, Id) of
-        [{_, B, undefined}] ->
-            mzb_api_bench:change_env(B, Env);
-        [{_, _, _}] ->
-            erlang:error({badarg, io_lib:format("Benchmark ~p is finished", [Id])});
-        [] ->
-            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+change_env(Id, Env, Login) ->
+    case gen_server:call(?MODULE, {change_env, Id, Env, Login}, infinity) of
+        ok -> ok;
+        {error, not_found} ->
+            erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
+        {error, Reason} ->
+            erlang:error(Reason)
     end.
 
 status(Id) ->
@@ -343,6 +342,16 @@ handle_call({stop_bench, Id, Login}, _, #{} = State) ->
             {reply, mzb_api_bench:interrupt_bench(BenchPid, Login), State};
         [{_, _, _}] ->
             {reply, ok, State};
+        [] ->
+            {reply, {error, not_found}, State}
+    end;
+
+handle_call({change_env, Id, Env, Login}, _, #{} = State) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, B, undefined}] ->
+            {reply, mzb_api_bench:change_env(B, Env, Login), State};
+        [{_, _, _}] ->
+            {reply, {error, finished}, State};
         [] ->
             {reply, {error, not_found}, State}
     end;
