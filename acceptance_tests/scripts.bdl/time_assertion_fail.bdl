@@ -1,6 +1,6 @@
 #!benchDL
 # total number of print operations should be greater than 20 at least for 30 seconds
-assert(40 sec, "print" > 40 and (not "print" <= 40))
+assert(40 sec, "p*t" > 40 and (not "p*t" <= 40)) # match name is "print"
 pool(size = 1, # one execution "thread"
      worker_type = dummy_worker):
     loop(time = 1 min, # total time is 1 minute

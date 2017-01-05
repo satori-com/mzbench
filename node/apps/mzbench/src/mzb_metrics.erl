@@ -6,6 +6,7 @@
          local_declare_metrics/1,
          notify/2,
          get_value/1,
+         get_by_wildcard/1,
          get_local_values/1,
          final_trigger/0,
          get_failed_asserts/0,
@@ -80,6 +81,14 @@ get_value(Metric) ->
         _:Error -> erlang:error({badarg, Metric, Error})
     end.
 
+get_by_wildcard(Wildcard) ->
+    Regexp = mzb_string:wildcard_to_regexp(Wildcard),
+    ets:foldl(fun({Name, _, Value}, A) -> 
+        case re:run(Name, Regexp) of
+            nomatch -> A;
+            _ -> [Value | A]
+        end end, [], ?MODULE).
+
 final_trigger() ->
     gen_server:call(?MODULE, final_trigger, infinity).
 
@@ -110,7 +119,7 @@ init([Asserts, LoopAssertMetrics, Nodes]) ->
         previous_counter_values = [],
         last_rps_calculation_time = StartTime,
         asserts = mzbl_asserts:init(Asserts),
-        loop_assert_metrics = LoopAssertMetrics,
+        loop_assert_metrics = lists:map(fun mzb_string:wildcard_to_regexp/1, LoopAssertMetrics),
         active = true,
         metric_groups = [],
         update_interval_ms = UpdateIntervalMs,
@@ -451,9 +460,13 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-report_metrics(#s{loop_assert_metrics = MetricList, nodes = Nodes}) ->
+report_metrics(#s{loop_assert_metrics = MetricRegexpList, nodes = Nodes}) ->
     GlobalMetrics = global_metrics(),
-    GlobalFiltered = lists:filter(fun ({Nm, _, _}) -> lists:any(fun (X) -> X == Nm end, MetricList) end, GlobalMetrics),
+    GlobalFiltered = lists:filter(fun ({Nm, _, _}) -> lists:any(
+        fun (X) -> case re:run(Nm, X) of
+            nomatch -> false;
+            _ -> true
+        end end, MetricRegexpList) end, GlobalMetrics),
     [mzb_interconnect:abcast(Nodes, {cache_metric, Name, Value}) || {Name, _, Value} <- GlobalFiltered, Value /= undefined],
     [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- GlobalMetrics, Value /= undefined],
     ok.

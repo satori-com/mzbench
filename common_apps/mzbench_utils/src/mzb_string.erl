@@ -3,6 +3,7 @@
 -export([
     format/2,
     char_substitute/3,
+    wildcard_to_regexp/1,
     iso_8601_fmt/1,
     parse_iso_8601/1,
     str_to_bstr/1,
@@ -17,6 +18,13 @@ format(Format, Args) ->
 char_substitute(String, OldChar, NewChar) ->
     lists:map(fun(Char) when Char =:= OldChar -> NewChar;
         (Char) -> Char end, String).
+
+wildcard_to_regexp(Wildcard) ->
+    "^" ++ lists:flatten(lists:map(
+        fun (X) when X == $* -> ".*";
+            (X) when X == $? -> $.;
+            (X) when X == $. -> "\\.";
+            (X) -> X end, Wildcard)) ++ "$".
 
 iso_8601_fmt(Seconds) ->
     {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time({Seconds div 1000000, Seconds rem 1000000, 0}),

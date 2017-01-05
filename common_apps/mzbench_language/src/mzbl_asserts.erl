@@ -76,8 +76,8 @@ update_state(TimeSinceCheck, State) ->
 -spec check_loop_expr(list()) -> boolean().
 check_loop_expr(List) -> lists:all(fun check_expr/1, List).
 
-get_value(V) when is_number(V) -> V;
-get_value(Metric) when is_list(Metric) -> mzb_metrics:get_value(Metric).
+get_value(V) when is_number(V) -> [V];
+get_value(Metric) when is_list(Metric) -> mzb_metrics:get_by_wildcard(Metric).
 
 -spec check_expr(any()) -> boolean().
 check_expr(#operation{name = 'not', args = [Exp1]}) -> not check_expr(Exp1);
@@ -93,7 +93,8 @@ check_expr(#operation{name = 'or', args = [Exp1, Exp2]}) ->
     end;
 check_expr(#operation{name = Op, args = [Value1, Value2]}) ->
     try {get_value(Value1), get_value(Value2)} of
-        {V1, V2} -> check_value(Op, V1, V2)
+        {VL1, VL2} -> lists:all(fun(X) -> X end,
+                [check_value(Op, V1, V2) || V1 <- VL1, V2 <- VL2])
     catch
         error:{badarg, _Metric, _} -> false
     end.
