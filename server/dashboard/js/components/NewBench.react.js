@@ -181,7 +181,7 @@ class NewBench extends React.Component {
         let typecheck_query = MZBenchRouter.buildLink('/typecheck', params);
 
         let env_query = bench.env.map((x, idx) =>
-            x ? "&" + encodeURIComponent(x.name) + "=" + encodeURIComponent(x.value) : "").join("");
+            x.name ? "&" + encodeURIComponent(x.name) + "=" + encodeURIComponent(x.value) : "").join("");
 
         $.ajax({url: typecheck_query + env_query, type : 'POST',
             processData: false,
