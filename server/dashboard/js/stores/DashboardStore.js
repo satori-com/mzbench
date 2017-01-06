@@ -18,7 +18,8 @@ const defaultData = {
     newDashboard: {
         name: "Print performance",
         criteria: "#new",
-        charts: [{metric: "print.rps",
+        charts: [{id: 1,
+                  metric: "print.rps",
                   kind: "compare",
                   size: "5",
                   group_env: "",
@@ -50,10 +51,19 @@ class DashboardStore extends EventEmitter {
         return data.dashboards.find(x => x.id == id);
     }
 
+    assignIds(dashboard) {
+        let max = dashboard.charts.reduce((a, x) => x.id > a ? x.id : a, 0);
+        dashboard.charts = dashboard.charts.map((c) => {
+            if (!c.id) c.id = ++max;
+            return c;
+        });
+        return dashboard;
+    }
+
     updateItem(dashboard) {
         let existDashboard = this.findById(dashboard.id);
         if (existDashboard) {
-            Object.assign(existDashboard, dashboard);
+            Object.assign(existDashboard, this.assignIds(dashboard));
         } else {
             data.dashboards.unshift(dashboard);
         }
@@ -61,7 +71,7 @@ class DashboardStore extends EventEmitter {
 
     loadAll(dashboards) {
         dashboards.sort((a, b) => b.id - a.id);
-        data.dashboards = dashboards;
+        data.dashboards = dashboards.map(this.assignIds);
         data.isLoaded = true;
         if (!this.getSelected() && (0 < data.dashboards.length)) {
             data.selectedDashboardId = data.dashboards[0].id;
@@ -116,7 +126,7 @@ class DashboardStore extends EventEmitter {
     }
 
     resetNew() {
-        data.newDashboard = Object.assign({}, defaultData.newDashboard);
+        data.newDashboard = jQuery.extend(true, {}, defaultData.newDashboard);
     }
 
     isShowTimelineLoadingMask() {
@@ -199,10 +209,11 @@ _DashboardStore.dispatchToken = Dispatcher.register((action) => {
 
         case ActionTypes.ADD_CHART_TO_SELECTED_DASHBOARD:
             let newChart = Object.assign({}, defaultData.newDashboard.charts[0]);
-            if (data.isNewSelected)
-                data.newDashboard.charts.push(newChart);
-            else
-                _DashboardStore.getSelected().charts.push(newChart);
+            let db = data.isNewSelected ? data.newDashboard : _DashboardStore.getSelected();
+
+            newChart.id = 0;
+            db.charts.push(newChart);
+            _DashboardStore.assignIds(db);
             _DashboardStore.emitChange();
             break;            
 
