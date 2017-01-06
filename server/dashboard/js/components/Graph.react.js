@@ -326,6 +326,7 @@ class Graph extends React.Component {
             title: this.props.title,
             y_label: this.props.units,
             x_label: this.props.x_env,
+            show_confidence_band: ['min', 'max'],
             missing_text: "Loading...",
 
             buffer: 0,
@@ -388,7 +389,7 @@ class Graph extends React.Component {
 
                     // metrics_graphics treats 0 as undefined and shows graph begining from wrong place
                     // as a workaround set min_x = 1 to prevent that behavior
-                    if (graph_options.min_x == 0) {
+                    if (graph_options.min_x == 0 && this.props.kind !== "regression") {
                         graph_options.min_x = 1;
                     }
                 }
