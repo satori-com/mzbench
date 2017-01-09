@@ -609,7 +609,8 @@ get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
                 {XVal, YVal} end, BenchIds),
     Sorted = lists:sort(fun ({A, _}, {B, _}) -> A >= B end, Data),
     Aggregated = if (Kind == <<"regression">>) and (XEnv /= <<"Time">>) ->
-      lists:zip(lists:seq(1, length(Sorted)), lists:map(fun ({_, B}) -> {B, B, B} end, Sorted));
+      lists:zip(lists:reverse(lists:seq(1, length(Sorted))),
+          lists:map(fun ({_, B}) -> {B, B, B} end, Sorted));
       true -> aggregate(Sorted) end,
     Values = lists:foldl(fun({X, {Min, Avg, Max}}, Acc) -> [io_lib:format("~p\t~p\t~p\t~p~n", [X, Avg, Min, Max]) |Acc] end, [], Aggregated),
     Pid ! {metric_value, StreamId, Values},
