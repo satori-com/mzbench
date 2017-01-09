@@ -59,6 +59,7 @@ class DashboardEdit extends React.Component {
             this._onChangeXEnvFun = this._onChangeXEnvFun.bind(this);
             this._onChangeGroupEnvFun = this._onChangeGroupEnvFun.bind(this);
             this._onChangeKind = this._onChangeKind.bind(this);
+            this._onChangeXAxis = this._onChangeXAxis.bind(this);
             this._onChangeDescription = this._onChangeDescription.bind(this);
             this._onTagSuggestionsUpdateRequested = this._onTagSuggestionsUpdateRequested.bind(this);
             this._onMetricSuggestionsUpdateRequested = this._onMetricSuggestionsUpdateRequested.bind(this);
@@ -132,7 +133,7 @@ class DashboardEdit extends React.Component {
             className: "form-control",
             type: "text"
         };
-    }    
+    }
 
     renderChart(chart, idx) {
         const inputProps = this.suggestionProps('Type metric name', chart.metric, this._onChangeMetricFun(chart.id));
@@ -182,7 +183,13 @@ class DashboardEdit extends React.Component {
                                    onSuggestionsUpdateRequested={this._onXSuggestionsUpdateRequested(chart.id)}
                                    renderSuggestion={this._suggestion.renderSuggestion}
                                    inputProps={inputXProps} />
-                              </div>) : (<div className="col-md-3"></div>) }
+                              </div>) : (chart.kind == "regression" ?
+                              (<div className="col-md-3"><label>X-axis</label>
+                              <select onChange={this._onChangeXAxis} rel={chart.id} defaultValue={chart.regression_x} className="form-control">
+                                  <option value="Number">Number</option>
+                                  <option value="Time">Time</option>
+                              </select></div>)
+                              : (<div className="col-md-3"></div>)) }
                       <div className="form-group col-md-3">
                             {idx > 0 ? (<button type="button" className="btn btn-info" rel={chart.id} onClick={this._onUp}><span className="glyphicon glyphicon-arrow-up"></span></button>) : null}
                             {idx > 0 ? (<span>&nbsp;</span>) : null}
@@ -282,6 +289,11 @@ class DashboardEdit extends React.Component {
         let kind = parts[0].toLowerCase();
         let size = parts[1] ? parts[1] : "0";
         MZBenchActions.withSelectedDashboard((d) => {d.charts[idx].kind = kind; d.charts[idx].size = size;});
+    }
+    _onChangeXAxis(event) {
+        let idx = this._getIdx(parseInt($(event.target).attr("rel")));
+        let newValue = event.target.value;
+        MZBenchActions.withSelectedDashboard((d) => {d.charts[idx].regression_x = newValue;});
     }
     _onChangeCriteria(event, {newValue}) {
         MZBenchActions.withSelectedDashboard((d) => {d.criteria = newValue});

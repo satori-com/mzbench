@@ -370,9 +370,9 @@ dispatch_request(#{<<"cmd">> := <<"get_finals">>} = Cmd, State = #state{}) ->
 
 dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State = #state{}) ->
     #{
-        <<"stream_id">> := StreamId, 
-        <<"bench">> := BenchId, 
-        <<"metric">> := MetricName, 
+        <<"stream_id">> := StreamId,
+        <<"bench">> := BenchId,
+        <<"metric">> := MetricName,
         <<"subsampling_interval">> := RawSubsamplingInterval,
         <<"time_window">> := RawTimeWindow,
         <<"begin_time">> := RawBeginTime,
@@ -404,7 +404,7 @@ dispatch_request(#{<<"cmd">> := <<"start_streaming_metric">>} = Cmd, State = #st
         <<"false">> -> false
     end,
 
-    {ok, add_stream(StreamId, BenchId, MetricName, 
+    {ok, add_stream(StreamId, BenchId, MetricName,
                     #stream_parameters{
                         subsampling_interval = SubsamplingInterval,
                         time_window = TimeWindow,
@@ -477,14 +477,14 @@ disk_status() ->
 
 add_stream(StreamId, BenchId, MetricName, StreamParams, #state{metric_streams = Streams} = State) ->
     #stream_parameters{
-        subsampling_interval = SubsamplingInterval, 
-        time_window = TimeWindow, 
-        begin_time = BeginTime, 
-        end_time = EndTime, 
+        subsampling_interval = SubsamplingInterval,
+        time_window = TimeWindow,
+        begin_time = BeginTime,
+        end_time = EndTime,
         stream_after_eof = StreamAfterEof
     } = StreamParams,
-    lager:debug("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p, 
-                    begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p", 
+    lager:debug("Starting streaming metric ~p of the benchmark #~p with stream_id = ~p, subsampling_interval = ~p,
+                    begin_time = ~p, end_time = ~p, time_window = ~p, stream_after_eof = ~p",
                     [MetricName, BenchId, StreamId, SubsamplingInterval, BeginTime, EndTime, TimeWindow, StreamAfterEof]),
     Self = self(),
 
@@ -608,7 +608,9 @@ get_finals(Pid, StreamId, BenchIds, MetricName, Kind, XEnv) ->
                           true -> Timestamp end,
                 {XVal, YVal} end, BenchIds),
     Sorted = lists:sort(fun ({A, _}, {B, _}) -> A >= B end, Data),
-    Aggregated = aggregate(Sorted),
+    Aggregated = if (Kind == <<"regression">>) and (XEnv /= <<"Time">>) ->
+      lists:zip(lists:seq(1, length(Sorted)), lists:map(fun ({_, B}) -> {B, B, B} end, Sorted));
+      true -> aggregate(Sorted) end,
     Values = lists:foldl(fun({X, {Min, Avg, Max}}, Acc) -> [io_lib:format("~p\t~p\t~p\t~p~n", [X, Avg, Min, Max]) |Acc] end, [], Aggregated),
     Pid ! {metric_value, StreamId, Values},
     Pid ! {metric_batch_end, StreamId}.
@@ -911,8 +913,8 @@ perform_streaming(Id, FileReader, SendFun, #stream_parameters{time_window = Time
                         filter_by_time(StartDate - ReportInterval, CurDate + ReportInterval, Values)
                 end,
 
-                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, FilteredValues} 
-                    = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean, 
+                {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, FilteredValues}
+                    = perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, CurrentSumForMean, CurrentNumValuesForMean,
                                           CurrentMin, CurrentMax, TimeFilteredValues),
                 _ = SendFun({data, FilteredValues}),
 
@@ -937,7 +939,7 @@ perform_streaming(Id, FileReader, FilteringSendFun, StoredFilteringData, Timeout
                 [] -> StoredFilteringData;
                 _ -> FilteringSendFun(StoredFilteringData, {data, lists:reverse(Buffer)})
             end,
-            NewStoredFilteringData2 = if 
+            NewStoredFilteringData2 = if
                 LinesInBatch > 0 -> FilteringSendFun(NewStoredFilteringData, batch_end);
                 true -> NewStoredFilteringData
             end,
@@ -980,7 +982,7 @@ filter_by_time(BeginTime, EndTime, Values) ->
         end, [], Values)).
 
 perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForMean, PreviousNumValuesForMean, PreviousMin, PreviousMax, Values) ->
-    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, NewValuesReversed} = 
+    {NewLastSentValueTimestamp, NewSumForMean, NewNumValuesForMean, NewMin, NewMax, NewValuesReversed} =
         lists:foldl(fun(ValueString, {LastRetainedTime, SumForMean, NumValuesForMean, MinValue, MaxValue, Acc}) ->
             {ValueTimestamp, Value} = parse_value(ValueString),
 
@@ -994,17 +996,17 @@ perform_subsampling(SubsamplingInterval, LastSentValueTimestamp, PreviousSumForM
                 Value > MaxValue -> Value;
                 true -> MaxValue
             end,
- 
+
             case LastRetainedTime of
-                undefined -> {ValueTimestamp, 0, 0, undefined, undefined, [ 
-                        io_lib:format("~p\t~p\t~p\t~p~n", 
+                undefined -> {ValueTimestamp, 0, 0, undefined, undefined, [
+                        io_lib:format("~p\t~p\t~p\t~p~n",
                             [ValueTimestamp, Value, NewMinValue, NewMaxValue]) | Acc]};
                 Timestamp ->
                     Interval = ValueTimestamp - Timestamp,
                     case Interval < SubsamplingInterval of
                         true -> {LastRetainedTime, SumForMean + Value, NumValuesForMean + 1, NewMinValue, NewMaxValue, Acc};
-                        false -> {ValueTimestamp, 0, 0, undefined, undefined, 
-                                    [io_lib:format("~p\t~p\t~p\t~p~n", 
+                        false -> {ValueTimestamp, 0, 0, undefined, undefined,
+                                    [io_lib:format("~p\t~p\t~p\t~p~n",
                                         [ValueTimestamp, (SumForMean + Value)/(NumValuesForMean + 1), NewMinValue, NewMaxValue]) | Acc]}
                     end
             end

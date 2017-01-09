@@ -20,7 +20,7 @@ class _DataStream {
         this.x_env = x_env;
         this.lastTimeRendered = moment();
     }
-    
+
     subscribeToEntireMetric(subsamplingInterval, continueStreamingAfterEnd) {
         if (this.kind == "ordinary" || this.kind == "compare") {
             this.streams = this.metrics.map((metric) => {
@@ -33,7 +33,7 @@ class _DataStream {
             });
         }
     }
-    
+
     subscribeToMetricSubset(subsamplingInterval, beginTime, endTime) {
         if (this.kind != "ordinary") throw "Subscribe to a subset is not supported for cummulative metrics";
 
@@ -42,7 +42,7 @@ class _DataStream {
         });
         this._createAggregatedMetric(this.benchId, undefined);
     }
-    
+
     subscribeToMetricWithTimeWindow(timeInterval) {
         if (this.kind != "ordinary") throw "Subscribe with time window is not supported for cummulative metrics";
 
@@ -51,33 +51,33 @@ class _DataStream {
         });
         this._createAggregatedMetric(this.benchId, timeInterval);
     }
-    
+
     unsubscribeFromMetric() {
         this._destroyAggregatedMetric();
         this.streams.forEach((streamId) => {
             MetricsStore.unsubscribeFromMetric(streamId);
         });
     }
-    
+
     getMetricMaxDate() {
         return MetricsStore.getMetricMaxDate(this.streams[this.streams.length - 1]);
     }
-    
+
     getMetricData() {
         return MetricsStore.getMetricData(this.streams[this.streams.length - 1]);
     }
-    
+
     getBatchCounter() {
         return MetricsStore.getBatchCounter(this.streams[this.streams.length - 1]);
     }
-    
+
     _createAggregatedMetric(timeInterval) {
         if(this.aggregated) {
             const id = MetricsStore.createAggregatedStream(this.benchId, this.streams.slice(), timeInterval);
             this.streams.push(id);
         }
     }
-    
+
     _destroyAggregatedMetric() {
         if(this.aggregated) {
             const id = this.streams.pop();
@@ -89,7 +89,7 @@ class _DataStream {
 class Graph extends React.Component {
     constructor(props) {
         super(props);
-        
+
         this.streams = [];
         this.currentZoom = undefined;
         this.previouslyRunning = undefined;
@@ -116,21 +116,21 @@ class Graph extends React.Component {
         this._updateGraph = this._updateGraph.bind(this);
         this._isVisibleMetric = this._isVisibleMetric.bind(this);
     }
-    
+
     componentDidMount() {
         MetricsStore.onChange(this._onChange);
         this.previouslyRunning = this.props.isRunning;
-        
+
         this._createSubscriptions();
         this._renderGraph();
     }
-    
+
     componentWillUnmount() {
         MetricsStore.off(this._onChange);
-        
+
         this._destroySubscriptions();
     }
-    
+
     shouldComponentUpdate(nextProps, nextState) {
         if (this.needUpdate) {
             setTimeout(this._updateGraph, 1);
@@ -149,12 +149,12 @@ class Graph extends React.Component {
             return false;
         }
     }
-    
+
     componentDidUpdate() {
         this._onChange();
         setTimeout(this._renderGraph.bind(this), 1 + Math.round(3000*Math.random()));
     }
-    
+
     render() {
         let checkboxes = [];
         if (this.props.renderFullscreen) {
@@ -166,7 +166,7 @@ class Graph extends React.Component {
             if (checkboxes.length > 8) {
                 checkboxes.push(
                     <div className="col-xs-12 col-md-12" key="select-deselect">
-                      <a href="#" onClick={this._onCheckAll.bind(this)}>Select all</a>&nbsp; 
+                      <a href="#" onClick={this._onCheckAll.bind(this)}>Select all</a>&nbsp;
                       <a href="#" onClick={this._onUncheckAll.bind(this)}>Deselect all</a>
                     </div>)
             }
@@ -176,11 +176,11 @@ class Graph extends React.Component {
                     {checkboxes.length > 1 ? <div className="col-md-12">{checkboxes}</div> : null}
                 </div>);
     }
-    
+
     _graphDOMId() {
         return this.props.domPrefix + this.props.targets[0].replace(/\./g, "-") + "-graph";
     }
-    
+
     _formatClockNumber(number) {
         let result = number.toString();
         if(number < 10) {
@@ -188,9 +188,9 @@ class Graph extends React.Component {
         }
         return result;
     }
-    
+
     _formatDate(rawDate) {
-        if (this.props.kind == "group")
+        if (this.props.kind == "group" || (this.props.kind == "regression" && this.props.x_env != "Time"))
             return "" + rawDate;
 
         if (this.props.kind == "regression")
@@ -199,7 +199,7 @@ class Graph extends React.Component {
         const absDate = (rawDate < 0)?-1*rawDate:rawDate;
         const negDate = rawDate < 0;
         let date = moment.duration(absDate, 'seconds');
-        
+
         let result = `${this._formatClockNumber(date.minutes())}:${this._formatClockNumber(date.seconds())}`;
         if(date.hours() > 0) {
             result = `${this._formatClockNumber(date.hours())}:` + result;
@@ -213,23 +213,23 @@ class Graph extends React.Component {
         if(date.years() > 0) {
             result = `${date.years()}y ` + result;
         }
-        
+
         if(negDate) {
             return '-' + result;
         } else {
             return result;
         }
     }
-    
+
     _formatRolloverTextFullscreen(data, i) {
         if(this.streams.length == 0) return;
         let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
         rolloverTextContainer.selectAll('*').remove();
-        
+
         if(data.key) {
             const dateString = this._formatDate(data.values[0].date);
             rolloverTextContainer.append('tspan').text(dateString).classed('mg-area1-color', true);
-            
+
             let lineCount = 1;
             let lineHeight = 1.1;
             data.values.forEach((value) => {
@@ -237,29 +237,29 @@ class Graph extends React.Component {
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
                             .text(`${this.streams.filter(this._isVisibleMetric)[value.line_id - 1].name}: ${+value.value.toFixed(2)}`)
                             .classed('mg-area' + value.line_id + '-color', true);
-                
+
                 ++lineCount;
             });
         } else {
             const dateString = this._formatDate(data.date);
             rolloverTextContainer.append('tspan').text(dateString).classed(`mg-area${data.line_id}-color`, true);
-            
+
             let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
                         .text(`${this.streams.filter(this._isVisibleMetric)[data.line_id - 1].name}: ${+data.value.toFixed(2)}`)
                         .classed(`mg-area${data.line_id}-color`, true);
         }
     }
-    
+
     _formatRolloverTextNormal(data, i) {
         if(this.streams.length == 0) return;
         let rolloverTextContainer = d3.select('#' + this._graphDOMId() + ' svg .mg-active-datapoint');
         rolloverTextContainer.selectAll('*').remove();
-        
+
         if(data.key) {
             const dateString = this._formatDate(data.values[0].date);
             rolloverTextContainer.append('tspan').text(dateString).classed('mg-area1-color', true);
-            
+
             let lineCount = 1;
             let lineHeight = 1.1;
             data.values.forEach((value) => {
@@ -267,20 +267,20 @@ class Graph extends React.Component {
                             .attr({ x: 0, y: (lineCount * lineHeight) + 'em' })
                             .text(`${this.streams[value.line_id - 1].name}: ${+value.value.toFixed(2)}`)
                             .classed('mg-area' + value.line_id + '-color', true);
-                
+
                 ++lineCount;
             });
         } else {
             const dateString = this._formatDate(data.date);
             rolloverTextContainer.append('tspan').text(dateString).classed(`mg-area${data.line_id}-color`, true);
-            
+
             let label = rolloverTextContainer.append('tspan')
                         .attr({ x: 0, y: 1.1 + 'em' })
                         .text(`${this.streams[data.line_id - 1].name}: ${+data.value.toFixed(2)}`)
                         .classed(`mg-area${data.line_id}-color`, true);
         }
     }
-    
+
     _formatRolloverText(data, i) {
         if(this.props.renderFullscreen) {
             this._formatRolloverTextFullscreen(data, i);
@@ -496,11 +496,11 @@ class Graph extends React.Component {
             const duration = this.currentZoom.max_x - this.currentZoom.min_x;
             return Math.floor(duration/MAX_POINTS_PER_GRAPH);
         }
-        
+
         if(this.props.benchStartTime) {
             const lastActiveTime = this.props.isRunning ? moment() : this.props.benchFinishTime;
             const benchDuration = lastActiveTime.diff(this.props.benchStartTime, 'seconds');
-            
+
             return Math.floor(benchDuration/MAX_POINTS_PER_GRAPH);
         } else {
             return 0;
@@ -512,7 +512,7 @@ class Graph extends React.Component {
             this._subscribeToMetric(stream);
         });
     }
-    
+
     _destroySubscriptions() {
         this.streams.forEach((stream) => {
             stream.unsubscribeFromMetric();

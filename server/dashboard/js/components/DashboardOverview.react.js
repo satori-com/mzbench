@@ -84,11 +84,11 @@ class DashboardOverview extends React.Component {
 
             let guid = "compare-" + idx;
             let groupEnv = Misc.ucfirst(c.group_env);
-            let xEnv = Misc.ucfirst(c.x_env);
+            let xEnv = c.kind === "regression" ? (c.regression_x ? c.regression_x : "Number") : Misc.ucfirst(c.x_env);
 
             return (<div key={idx}>
                         <p className="dashboard">{c.description}</p>
-                        <Graph targets={targets} kind={c.kind} x_env={c.x_env}
+                        <Graph targets={targets} kind={c.kind} x_env={xEnv}
                             title={c.metric} benchset={benches} domPrefix={guid} height="400"/>
                         <Collapsible triggerText="Show benches" triggerTextWhenOpen="Hide benches">
                             {this.renderTable(c.metric, c.kind, groupEnv, xEnv, benches)}
