@@ -87,7 +87,7 @@ List of [cloud plugins](cloud_plugins.md) that can be used to allocate nodes. On
 
 **`<PluginName>`** is an atom identifying a plugin instance.
 
-**`<ModuleName>`** is the name of the plugin module. Each module has its specific **`<Options>`**. 
+**`<ModuleName>`** is the name of the plugin module. Each module has its specific **`<Options>`**.
 
 There are four built-in plugins:
 
@@ -98,7 +98,7 @@ There are four built-in plugins:
 :   Allocates hosts from a static pool.
 
 [mzb_dummycloud_plugin](cloud_plugins.md#dummy)
-:   Dummy provider, doesn't really do anything, but can be used as a reference during [cloud plugin development](cloud_plugins.md#how-to-write-a-cloud-plugin).
+:   Dummy provider, treats localhost as unlimited number of hosts, useful for debug. It can be also used as a reference during [cloud plugin development](cloud_plugins.md#how-to-write-a-cloud-plugin).
 
 [mzb_multicloud_plugin](cloud_plugins.md#multicloud)
 :   Allocate hosts from multiple sources with the given ratio.
@@ -110,13 +110,13 @@ There are four built-in plugins:
 {network_interface, "<ip address>"}
 ```
 
-Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"`, so the dashboard is unavailable for external connections. 
+Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"`, so the dashboard is unavailable for external connections.
 
 To open the dashboard to the public, set this param to `"0.0.0.0"`.
 
 !!!warning
     By default MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.
-    
+
     To protect your server, please, see [authentication](deployment.md#authentication) and [protocol](deployment.md#protocol).
 
 
