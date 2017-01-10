@@ -233,7 +233,7 @@ sudo pip install -r mzbench/requirements.txt
 
 <p>List of <a href="../cloud_plugins/">cloud plugins</a> that can be used to allocate nodes. One plugin can be listed multiple times with different settings and under different names.</p>
 <p><strong><code>&lt;PluginName&gt;</code></strong> is an atom identifying a plugin instance.</p>
-<p><strong><code>&lt;ModuleName&gt;</code></strong> is the name of the plugin module. Each module has its specific <strong><code>&lt;Options&gt;</code></strong>. </p>
+<p><strong><code>&lt;ModuleName&gt;</code></strong> is the name of the plugin module. Each module has its specific <strong><code>&lt;Options&gt;</code></strong>.</p>
 <p>There are four built-in plugins:</p>
 <dl>
 <dt><a href="../cloud_plugins/#amazon-ec2">mzb_api_ec2_plugin</a></dt>
@@ -241,7 +241,7 @@ sudo pip install -r mzbench/requirements.txt
 <dt><a href="../cloud_plugins/#static-cloud">mzb_staticcloud_plugin</a></dt>
 <dd>Allocates hosts from a static pool.</dd>
 <dt><a href="../cloud_plugins/#dummy">mzb_dummycloud_plugin</a></dt>
-<dd>Dummy provider, doesn&rsquo;t really do anything, but can be used as a reference during <a href="../cloud_plugins/#how-to-write-a-cloud-plugin">cloud plugin development</a>.</dd>
+<dd>Dummy provider, treats localhost as unlimited number of hosts, useful for debug. It can be also used as a reference during <a href="../cloud_plugins/#how-to-write-a-cloud-plugin">cloud plugin development</a>.</dd>
 <dt><a href="../cloud_plugins/#multicloud">mzb_multicloud_plugin</a></dt>
 <dd>Allocate hosts from multiple sources with the given ratio.</dd>
 </dl>
@@ -249,7 +249,7 @@ sudo pip install -r mzbench/requirements.txt
 <pre><code class="erlang">{network_interface, &quot;&lt;ip address&gt;&quot;}
 </code></pre>
 
-<p>Specify the IP address for the dashboard to run on. By default it&rsquo;s <code>"127.0.0.1"</code>, so the dashboard is unavailable for external connections. </p>
+<p>Specify the IP address for the dashboard to run on. By default it&rsquo;s <code>"127.0.0.1"</code>, so the dashboard is unavailable for external connections.</p>
 <p>To open the dashboard to the public, set this param to <code>"0.0.0.0"</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
