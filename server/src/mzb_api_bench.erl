@@ -643,7 +643,7 @@ script_path(Script) ->
     end.
 
 run_periodically(StartTime, MaxTime, RetryTimeoutSec, Fn) ->
-    case Fn() of 
+    case Fn() of
         ok -> ok;
         retry ->
             TimeSinceStart = seconds() -  StartTime,
@@ -701,7 +701,7 @@ allocate_hosts(#{nodes_arg:= [HostsStr]}, _Logger) when is_list(HostsStr) ->
 
     if erlang:length(Hosts) >= 2 ->
             {Hosts, UserName, undefined};
-        true -> 
+        true ->
             erlang:error(not_enough_nodes)
     end.
 
@@ -974,7 +974,7 @@ aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
                         end
                 end
         end, Flatten),
-    info("Bench final metrics: ~p", [Res], State),
+    info("Bench final metrics: ~300p", [Res], State),
     Res.
 
 statistics([], _) -> [];
