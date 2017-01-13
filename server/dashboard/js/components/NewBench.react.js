@@ -19,6 +19,7 @@ class NewBench extends React.Component {
             this._onChangeCloud = this._onChangeCloud.bind(this);
             this._onChangeVarName = this._onChangeVarName.bind(this);
             this._onChangeVarValue = this._onChangeVarValue.bind(this);
+            this._onChangeExclusive = this._onChangeExclusive.bind(this);
             this._onAddVariable = this._onAddVariable.bind(this);
             this._onAddFromScript = this._onAddFromScript.bind(this);
             this._onRemoveUnused = this._onRemoveUnused.bind(this);
@@ -108,11 +109,15 @@ class NewBench extends React.Component {
                     <label>Name</label>
                     <input type="text" defaultValue={bench.name} onChange={this._onChangeName} className="form-control" placeholder="Type something" />
                   </div>
-                  <div className="form-group col-md-3">
+                  <div className="form-group col-md-2">
                     <label>Nodes</label>
                     <input type="text" defaultValue={bench.nodes} onChange={this._onChangeNodes} className="form-control" placeholder="1" />
                   </div>
-                  <div className="form-group col-md-3">
+                  <div className="form-group col-md-2">
+                    <label>Exclusive label</label>
+                    <input type="text" defaultValue={bench.exclusive} onChange={this._onChangeExclusive} className="form-control" placeholder="(optional)" />
+                  </div>
+                  <div className="form-group col-md-2">
                     <label>Cloud</label>
                     <select defaultValue={bench.cloud} onChange={this._onChangeCloud} className="form-control">
                         {clouds.map((cloudId) => { return <option key={cloudId} value={cloudId}>{cloudId}</option>}) }
@@ -175,6 +180,9 @@ class NewBench extends React.Component {
     _onChangeNodes(event) {
         MZBenchActions.withNewBench((b) => {b.nodes = event.target.value});
     }
+    _onChangeExclusive(event) {
+        MZBenchActions.withNewBench((b) => {b.exclusive = event.target.value});
+    }
     _onChangeCloud(event) {
         MZBenchActions.withNewBench((b) => {b.cloud = event.target.value});
     }
@@ -201,6 +209,7 @@ class NewBench extends React.Component {
         let params = {
             benchmark_name: bench.name,
             nodes: bench.nodes,
+            exclusive: bench.exclusive,
             cloud: bench.cloud};
 
         let start_query = MZBenchRouter.buildLink('/start', params);

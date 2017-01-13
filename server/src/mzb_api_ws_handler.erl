@@ -713,6 +713,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      name => BenchName,
                      nodes => Nodes,
                      cloud => Cloud,
+                     exclusive => mzb_bc:maps_get(exclusive, Config, ""),
                      env => EnvMap2,
                      results => Results,
                      author => mzb_bc:maps_get(author, Config, "anonymous"),

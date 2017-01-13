@@ -28,6 +28,7 @@ const defaultData = {
                      "             rate = numvar(\"loop_rate\") rps): # one rps for every worker, 3 rps totally\n" +
                      "            print(\"FOO\") # this operation prints \"FOO\" to console\n",
         nodes: "1",
+        exclusive: "",
         cloud: "",
         env: [{name: "loop_rate", value: "1", id: 1}]},
     selectedBenchId: undefined,
@@ -315,4 +316,3 @@ _BenchStore.dispatchToken = Dispatcher.register((action) => {
         default:
     }
 });
-

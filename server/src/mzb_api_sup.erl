@@ -25,7 +25,8 @@ init([main]) ->
         {server, {mzb_api_server, start_link, []}, permanent, 10000, worker, [mzb_api_server]},
         {benchmarks, {?MODULE, start_benchmarks_sup, []}, permanent, infinity, supervisor, [?MODULE]},
         {gc, {mzb_gc, start_link, [GCSleep]}, permanent, 10000, worker, [mzb_gc]},
-        {auth, {mzb_api_auth, start_link, []}, permanent, 10000, worker, [mzb_api_auth]}
+        {auth, {mzb_api_auth, start_link, []}, permanent, 10000, worker, [mzb_api_auth]},
+        {exclusive, {mzb_api_exclusive, start_link, []}, permanent, 10000, worker, [mzb_api_exclusive]}
     ],
     {ok, {{one_for_all, 10, 10}, Procs}};
 
