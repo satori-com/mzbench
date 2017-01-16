@@ -500,7 +500,6 @@ parse_start_params(Req) ->
         {emulate_bench_crash,       single_value,   fun binary_to_bool/1,                                       false},
         {deallocate_after_bench,    single_value,   fun binary_to_bool/1,                                       true},
         {provision_nodes,           single_value,   fun binary_to_bool/1,                                       true},
-        {exclusive_node_usage,      single_value,   fun binary_to_bool/1,                                       true},
         {benchmark_name,            single_value,   fun erlang:binary_to_list/1,                                undefined},
         {cloud,                     single_value,   fun (N) -> erlang:binary_to_atom(N, latin1) end,            undefined},
         {vm_args,                   list,           fun (List) ->

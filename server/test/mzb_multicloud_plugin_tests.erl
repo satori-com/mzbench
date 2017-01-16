@@ -37,7 +37,7 @@ multicloud_plugin_test() ->
                     ok
                 end),
 
-        Config = #{},%#{cloud => undefined, initial_user => "user", purpose => "purpose", exclusive_node_usage => false},
+        Config = #{},%#{cloud => undefined, initial_user => "user", purpose => "purpose"},
 
         mzb_api_cloud:start_link(),
         {ok, Id, dummy_user1, [dummy_hosts1, dummy_hosts2]} = mzb_api_cloud:create_cluster( _BenchId = 1234, multi, 20, Config),
@@ -53,4 +53,3 @@ multicloud_plugin_test() ->
         meck:unload(dummy_plugin1),
         meck:unload(dummy_plugin2)
     end.
-

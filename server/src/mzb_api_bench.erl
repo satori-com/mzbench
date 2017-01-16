@@ -104,7 +104,6 @@ init([Id, Params]) ->
         env => mzbl_script:normalize_env(generate_bench_env(Params)),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
-        exclusive_node_usage => maps:get(exclusive_node_usage, Params),
         req_host => maps:get(req_host, Params),
         initial_user => maps:get(user, Params),
         director_host => undefined,
@@ -659,14 +658,12 @@ run_periodically(StartTime, MaxTime, RetryTimeoutSec, Fn) ->
 allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer(N), N > 0 ->
     #{id:= BenchId,
       purpose:= Purpose,
-      initial_user:= User,
-      exclusive_node_usage:= Exclusive} = Config,
+      initial_user:= User} = Config,
     Description = mzb_string:format("MZBench cluster:~n~p", [Config]),
     ClusterConfig = #{
         purpose => Purpose,
         user => User,
-        description => Description,
-        exclusive_node_usage => Exclusive
+        description => Description
     },
     % Allocate one supplementary node for the director
     Logger(info, "Allocating ~p hosts in ~p cloud...", [N + 1, Cloud]),

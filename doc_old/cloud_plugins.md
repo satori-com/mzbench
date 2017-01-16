@@ -133,18 +133,18 @@ Cloud plugin is an Erlang module with at least three methods:
 
     `Name`
     :   The name of the particular instance of the plugin specified in the [configuration file](deployment.md#cloud_plugins).
-    
+
     `Opts`
     :   Options passed from the server [configuration file](deployment.md#cloud_plugins) for the particular plugin instance.
-    
+
 `create_cluster`
 :   Allocate the required number of nodes and return a tuple: `{ok, ClusterID, UserName, HostList}`.   
-    
+
     `NumNodes`
     :   Number of nodes to allocate.
-    
+
     `Config`
-    :   Map with keys `user`, `name`, `description`, and `exclusive_node_usage`.
+    :   Map with keys `user`, `name` and `description`.
 
     `ClusterID`
     :   This term will be passed to `destroy_cluster/1` when it's time it deallocate the nodes. Its content is up to the plugin developer.

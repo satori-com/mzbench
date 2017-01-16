@@ -19,7 +19,6 @@ Usage:
     [--node_commit=<commit>]
     [--deallocate_after_bench=<deallocate_after_bench>]
     [--provision_nodes=<provision_nodes>]
-    [--exclusive_node_usage=<exclusive_node_usage>]
     [--name=<benchmark_name>]
     [--cloud=<cloud_provider_name>]
     [--tags=<tags>]
@@ -61,7 +60,7 @@ Options:
     --nodes <nodes>  Specify either an amount of nodes to be allocated or a
                      comma-separated list of hostnames of preallocated nodes.
                      Beware that one additional node will be allocated for
-                     the director. If you provide preallocated nodes, you 
+                     the director. If you provide preallocated nodes, you
                      must provide at least two (one for director and one for
                      the workers).
                      Note: If preallocated nodes are used they won't be
@@ -72,8 +71,8 @@ Options:
                      could be used.
     --workers_per_node <workers_per_node>
                      Let the benchmarking system to allocate the number of
-                     nodes needed so each node will run the requested number 
-                     of workers. Beware that one additional node will be 
+                     nodes needed so each node will run the requested number
+                     of workers. Beware that one additional node will be
                      allocated for the director.
     --nodes_file <filename>
                      Specify a file with hostnames of preallocated nodes
@@ -85,14 +84,10 @@ Options:
                      *Warning* This parameter is for debugging purpose only.
                      Could lead to serious resource leakage.
     --provision_nodes <provision_nodes>
-                     Either "true" or "false". Default is "true". Setting this 
-                     to "true" indicates to perform nodes provision. Disabling 
-                     it is useful when reusing already preallocated and 
+                     Either "true" or "false". Default is "true". Setting this
+                     to "true" indicates to perform nodes provision. Disabling
+                     it is useful when reusing already preallocated and
                      provisioned nodes.
-    --exclusive_node_usage <exclusive_node_usage>
-                     Either "true" or "false". Default is "true".
-                     If set to true mzbench will request exclusive physical
-                     hosts for each worker node.
     --name <benchmark_name>
                      Set benchmark name.
     --cloud <cloud_provider_name>
@@ -103,7 +98,7 @@ Options:
 
 if server_functions:
     doc_acc += """
-    --template <template> 
+    --template <template>
                      Choose a template for new worker, default is 'empty'
     --config <config>
                      Configuation file to use"""
@@ -284,11 +279,11 @@ def pretty_print(data):
     print()
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
-        node_commit, deallocate_after_bench, provision_nodes, exclusive_node_usage,
+        node_commit, deallocate_after_bench, provision_nodes,
         name, cloud, tags, env, no_cert_check = False):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
-        exclusive_node_usage, name, cloud, tags, env, no_cert_check = no_cert_check)
+        name, cloud, tags, env, no_cert_check = no_cert_check)
     response = status(host, bench_id, wait=True, no_cert_check = no_cert_check)
     if response[u'status'] == u'failed':
         print('Bench failed')
@@ -296,7 +291,7 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          exclusive_node_usage, name, cloud, tags, env, no_cert_check = False):
+          name, cloud, tags, env, no_cert_check = False):
     try:
         response = api.start(host,
             script_file,
@@ -305,7 +300,6 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             node_commit=node_commit,
             deallocate_after_bench=deallocate_after_bench,
             provision_nodes=provision_nodes,
-            exclusive_node_usage=exclusive_node_usage,
             benchmark_name=name,
             cloud=cloud,
             tags=tags,
@@ -492,10 +486,10 @@ def run_or_validate(script, env, validate):
             compile_projects(NODE_PROJECTS)
     else:
         compile_projects(NODE_PROJECTS)
-    
+
     escript_name = 'run_local.escript'
     escript_path = os.path.join(dirname, '../node/scripts')
-    
+
     maybe_plugin_name = [app_src_filename[4:-8] for app_src_filename in glob.glob('src/*.app.src')]
     if len(maybe_plugin_name) == 1:
         [plugin_name] = maybe_plugin_name
@@ -540,7 +534,7 @@ def run_or_validate(script, env, validate):
 def run_local(script, env):
     require('escript')
     sys.exit(run_or_validate(script, env, validate=False))
-    
+
 def validate(script, env):
     require('escript')
     sys.exit(run_or_validate(script, env, validate=True))
@@ -550,13 +544,13 @@ def validate(script, env):
 #=================================================================================================
 def list_templates():
     templates_path = os.path.join(dirname, '../worker_templates/')
-    
+
     for tname in os.listdir(templates_path):
         print(tname)
 
 def new_worker(template, name):
     templates_path = os.path.join(dirname, '../worker_templates/')
-    
+
     template_name = template or 'empty'
     worker_name = name
     copytree(os.path.join(templates_path, template_name), worker_name)
@@ -572,7 +566,7 @@ def new_worker(template, name):
                     output.write(new)
 
             if template_name in filename:
-                os.rename(os.path.join(dirpath, filename), 
+                os.rename(os.path.join(dirpath, filename),
                     os.path.join(dirpath, filename.replace(template_name, worker_name)))
 
     print('new worker ' + worker_name + ' has been created\n')
@@ -612,15 +606,10 @@ def augment_args(args):
         print("invalid value for --deallocate_after_bench: {0}".format(
                 args['--deallocate_after_bench']))
         sys.exit(4)
-    
+
     if args['--provision_nodes'] not in [None, 'true', 'false']:
         print("invalid value for --provision_nodes: {0}".format(
                 args['--provision_nodes']))
-        sys.exit(4)
-
-    if args['--exclusive_node_usage'] not in [None, 'true', 'false']:
-        print("invalid value for --exclusive_node_usage: {0}".format(
-                args['--exclusive_node_usage']))
         sys.exit(4)
 
     script_file = args['<script_file>']

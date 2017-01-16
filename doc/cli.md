@@ -64,7 +64,7 @@ Optional params:
 ```bash
 $ mzbench start --env foo=bar --nodes=5 foo.bdl
 {
-    "status": "pending", 
+    "status": "pending",
     "id": 86
 }
 ```
@@ -75,7 +75,7 @@ Positional param:
 
 `<scenario_file>`
 :   The path to the [scenario](scenarios/spec.md) file for the benchmark.
- 
+
 Optional params:
 
 `--name <benchmark_name>`
@@ -102,9 +102,6 @@ Optional params:
 `--provision_nodes false`
 :   Skip MZBench installation on the nodes.
 
-`--exclusive_node_usage false`
-:   Allow multiple nodes to be hosted on the same physical machine, i.e. do not allocate a physical machine exclusively for each node.
-
 `--node_commit=<commit>`
 :   Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.
 
@@ -114,7 +111,7 @@ Optional params:
 ```bash
 $ mzbench run --env foo=bar --nodes=5 foo.bdl
 {
-    "status": "pending", 
+    "status": "pending",
     "id": 86
 }
 ```
@@ -168,7 +165,7 @@ Positional param:
 ```bash
 $ mzbench status 86
 {
-    "status": "provisioning", 
+    "status": "provisioning",
     "start_time": "2015-11-18T13:52:04Z"
 }
 ```
@@ -237,7 +234,7 @@ Positional param:
 $ ./bin/mzbench data 89
 [
     {
-        "target": "workers.pool1.km.ended.rps.value", 
+        "target": "workers.pool1.km.ended.rps.value",
         "datapoints": [
 ...
 ```
