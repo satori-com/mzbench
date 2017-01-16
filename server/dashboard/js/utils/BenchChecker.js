@@ -99,6 +99,9 @@ class BenchChecker {
     }
 
     check_script(b) {
+        // bypass for non-bdl scripts
+        if (!b.script_body.startsWith("#!benchDL")) return [];
+
         let ast = null;
         try {
             let script_id = IndentAdder.add_indents(b.script_body, "_INDENT_", "_DEDENT_ ",
