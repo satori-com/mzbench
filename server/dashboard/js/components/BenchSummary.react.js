@@ -74,10 +74,10 @@ class BenchSummary extends React.Component {
                                     <td>{bench.cloud}, {bench.nodes} node(s)</td>
                                 </tr>
                                 {bench.exclusive != "" ?
-                                  (<tr>
-                                      <th scope="row" className="col-xs-2">Exclusive label</th>
-                                      <td>{bench.exclusive}</td>
-                                  </tr>) : null}
+                                    (<tr>
+                                        <th scope="row" className="col-xs-2">Exclusive label</th>
+                                        <td>{bench.exclusive}</td>
+                                    </tr>) : null}
                                 <tr>
                                     <th scope="row">Duration</th>
                                     <td>{moment.duration(this.props.duration).format("h [hrs], m [min], s [sec]")}</td>

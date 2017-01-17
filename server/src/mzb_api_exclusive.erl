@@ -1,7 +1,7 @@
 -module(mzb_api_exclusive).
 
 -export([start_link/0,
-         check/2,
+         lock/2,
          release/2]).
 
 -behaviour(gen_server).
@@ -13,8 +13,8 @@
          code_change/3]).
 
 -record(s, {
-   locks = #{} :: #{term() => integer()},
-   queue = [] :: [{list(), integer(), pid()}]
+    locks = #{} :: #{term() => integer()},
+    queue = [] :: [{list(), integer(), pid()}]
 }).
 
 %%%===================================================================
@@ -24,8 +24,8 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-check(Id, Exclusive) ->
-    gen_server:call(?MODULE, {check, Id, Exclusive}, infinity).
+lock(Id, Exclusive) ->
+    gen_server:call(?MODULE, {lock, Id, Exclusive}, infinity).
 
 release(Id, Exclusive) ->
     gen_server:call(?MODULE, {release, Id, Exclusive}).
@@ -37,10 +37,10 @@ release(Id, Exclusive) ->
 init([]) ->
     {ok, #s{}}.
 
-handle_call({check, Id, Exclusive}, From, #s{locks = Locks, queue = Queue} = State) ->
+handle_call({lock, Id, Exclusive}, From, #s{locks = Locks, queue = Queue} = State) ->
     case take_lock(Exclusive, Id, Locks) of
-      {ok, NewLocks} -> {reply, ok, State#s{locks = NewLocks}};
-      fail -> {noreply, State#s{queue = Queue ++ [{Exclusive, Id, From}]}}
+        {ok, NewLocks} -> {reply, ok, State#s{locks = NewLocks}};
+        fail -> {noreply, State#s{queue = Queue ++ [{Exclusive, Id, From}]}}
     end;
 
 handle_call({release, BenchId, Exclusive}, _From, #s{locks = Locks, queue = Queue} = State) ->
@@ -49,10 +49,12 @@ handle_call({release, BenchId, Exclusive}, _From, #s{locks = Locks, queue = Queu
     NewLocks = maps:without(UsedLockList, Locks),
     NewQueue = lists:filter(fun({_, Id, _}) -> Id /= BenchId end, Queue),
     {NewLocks2, NewQueue2} = lists:foldl(
-      fun({E, Id, Pid}, {L, Q}) -> case take_lock(E, Id, L) of
-                                {ok, NewL} -> catch gen_server:reply(Pid, ok), {NewL, Q};
-                                fail -> {L, [{E, Id, Pid} | Q]}
-                              end end, {NewLocks, []}, NewQueue),
+        fun({E, Id, Pid}, {L, Q}) ->
+            case take_lock(E, Id, L) of
+                {ok, NewL} -> catch gen_server:reply(Pid, ok), {NewL, Q};
+                fail -> {L, [{E, Id, Pid} | Q]}
+            end
+        end, {NewLocks, []}, NewQueue),
     {reply, ok, State#s{locks = NewLocks2, queue = lists:reverse(NewQueue2)}};
 
 handle_call(Req, _From, State) ->

@@ -198,7 +198,7 @@ handle_stage(pipeline, checking_script, #{config:= Config}) ->
 
 handle_stage(pipeline, wait_exclusive, #{id:= Id, config:= Config}) ->
     #{exclusive:= Exclusive} = Config,
-    mzb_api_exclusive:check(Id, Exclusive),
+    mzb_api_exclusive:lock(Id, Exclusive),
     fun (S) -> S end;
 
 handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
