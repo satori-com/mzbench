@@ -36,6 +36,7 @@ normalize_test() ->
           nodes => "1",
           cloud => "",
           env => #{vm_args => []},
+          exclusive => "",
           status => success,
           tags => [tag1, tag2],
           results => #{<<"m1">> => #{type => counter, value => 51, rps => #{<<"50">> => 10, <<"max">> => 20}},
@@ -50,6 +51,7 @@ normalize_test() ->
           nodes => "1",
           cloud => "",
           env => #{vm_args => []},
+          exclusive => "",
           status => failed,
           tags => [],
           results => #{}}],
@@ -116,4 +118,3 @@ aggregate_test() ->
     ?assertEqual([{1, {2, 2.0, 2}}], mzb_api_ws_handler:aggregate([{1, 2}])),
     ?assertEqual([{1, {2, 3.0, 4}}], mzb_api_ws_handler:aggregate([{1, 2}, {1, 4}])),
     ?assertEqual([{1, {2, 4.0, 6}}, {2, {5, 6.0, 7}}], mzb_api_ws_handler:aggregate([{1,2}, {1, 6}, {1, 4}, {2, 7}, {2, 5}])).
-
