@@ -20,12 +20,15 @@ class NewBench extends React.Component {
             this._onChangeVarName = this._onChangeVarName.bind(this);
             this._onChangeVarValue = this._onChangeVarValue.bind(this);
             this._onAddVariable = this._onAddVariable.bind(this);
+            this._onAddFromScript = this._onAddFromScript.bind(this);
+            this._onRemoveUnused = this._onRemoveUnused.bind(this);
             this._onRemoveVariable = this._onRemoveVariable.bind(this);
             this._onStart = this._onStart.bind(this);
             this._onForceStart = this._onForceStart.bind(this);
     }
     renderEnv(env, idx) {
-        return  (<div className="row" key={env.id}>
+        let rowClass = env.unused ? "row unused" : "row";
+        return  (<div className={rowClass} key={env.id}>
                   <div className="form-group col-md-3">
                     <input type="text" rel={env.id} defaultValue={env.name} onChange={this._onChangeVarName} className="form-control" placeholder="Variable name" />
                   </div>
@@ -71,13 +74,32 @@ class NewBench extends React.Component {
         let idx = parseInt($(event.target).attr("rel"));
         MZBenchActions.withNewBench((b) => {b.env = b.env.map((x) => {if (idx === x.id) x.value = event.target.value; return x;})});
     }
+    _onRemoveUnused() {
+        let analyzed = BenchChecker.analyze(this.props.bench);
+        let unused = analyzed.env.reduce((a, x) => {
+            if (x.unused) a[x.name] = true;
+            return a;
+        }, {});
+        MZBenchActions.withNewBench((b) => {b.env = b.env.filter((x) => !unused[x.name])});
+    }
+    _onAddFromScript() {
+        let analyzed = BenchChecker.analyze(this.props.bench);
+        MZBenchActions.withNewBench((b) => {b.env = b.env.concat(analyzed.extra)});
+    }
+    addButton(analyzed) {
+        if (analyzed.extra.length > 0)
+            return <button type="button" className="btn btn-success" onClick={this._onAddFromScript}><span className="glyphicon glyphicon-plus"></span>Add from script</button>
+        return null;
+    }
+    removeButton(analyzed) {
+        if (analyzed.env.some((x) => x.unused))
+            return <button type="button" className="btn btn-unused" onClick={this._onRemoveUnused}><span className="glyphicon glyphicon-minus"></span>Remove unused</button>
+        return null;
+    }
     render() {
         let clouds = this.props.clouds;
         let bench = this.props.bench;
-        let envStr = Object.keys(bench.env).map(
-            (key) => {
-                return key.toString() + "=" + bench.env[key].toString()
-            }).join(", ");
+        let analyzed = BenchChecker.analyze(this.props.bench);
 
         return (
             <div className="fluid-container">
@@ -102,9 +124,13 @@ class NewBench extends React.Component {
                         <label>Environmental variables</label>
                     </div>
                 </div>
-                {bench.env.map(this.renderEnv, this)}
+                {analyzed.env.map(this.renderEnv, this)}
                 <div className="row">
                     <div className="form-group col-md-10 text-right">
+                        {this.removeButton(analyzed)}
+                        &nbsp;
+                        {this.addButton(analyzed)}
+                        &nbsp;
                         <button type="button" className="btn btn-success" onClick={this._onAddVariable}><span className="glyphicon glyphicon-plus"></span>Add variable</button>
                     </div>
                 </div>

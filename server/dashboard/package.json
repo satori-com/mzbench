@@ -35,6 +35,8 @@
   },
   "scripts": {
     "start": "watchify -o ../priv/http_root/js/bundle.js -v -d .",
+    "test": "mocha test/testChecker.js",
+    "compile-test": "node_modules/babel-cli/bin/babel.js --presets es2015 js/utils/BenchChecker.js > test/es5Checker.js",
     "phantom": "browserify . | browserify -t es6ify -o ../priv/http_root/js/bundle.min.js",
     "build": "NODE_ENV=production browserify . | uglifyjs -cm > ../priv/http_root/js/bundle.min.js"
   },
@@ -50,6 +52,9 @@
     ]
   },
   "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-preset-es2015": "^6.18.0",
+    "mocha": "^3.2.0",
     "pegjs": "^0.10.0"
   }
 }

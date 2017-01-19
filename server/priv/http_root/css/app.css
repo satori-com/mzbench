@@ -504,3 +504,11 @@ div.equals {
 .sign-in-header {
   text-align: center;
 }
+
+.row.unused input {
+  background-color: #eee;
+}
+
+.btn-unused {
+  background-color: #eee;
+}

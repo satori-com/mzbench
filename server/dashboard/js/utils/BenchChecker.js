@@ -98,15 +98,79 @@ class BenchChecker {
         return errors;
     }
 
+    add_vars(vars, morevars) {
+        return Object.keys(morevars).reduce((a, x) => {
+            if (morevars[x] || !a[x]) a[x] = morevars[x];
+            return a;
+        }, vars)
+    }
+
+    get_vars(ast, shadowed) {
+        if (Array.isArray(ast)) {
+            return ast.reduce((a, x) => this.add_vars(a, this.get_vars(x, shadowed)), {});
+        }
+        if (ast.name && ast.args && (ast.name === "var" || ast.name === "numvar")) {
+            let c = {};
+            if (!shadowed[ast.args[0]])
+                c[ast.args[0]] = ast.args[1];
+            return c;
+        }
+        if (ast.name && ast.args && ast.name === "defaults") {
+            return ast.args.reduce((a, x) => {a[x.key] = x.value; return a;}, {});
+        }
+
+        let newshadowed = Object.keys(shadowed).reduce((a, x) => {a[x] = true; return a;}, {});
+        if (ast.name && ast.name === "loop") {
+            newshadowed = ast.args.reduce((a, x) => {
+                if (x.key === "iterator") a[x.value] = true;
+                return a;
+            });
+        }
+
+        return ["args", "body", "value"].reduce(
+            (a, x) => ast[x] ? this.add_vars(a, this.get_vars(ast[x], newshadowed)) : a ,{});
+    }
+
+    analyze(b) {
+        let result = {env : b.env, extra: []};
+        let ast = null;
+        let max = b.env.reduce((a, x) => x.id > a ? x.id : a, 0);
+
+        try {
+            ast = this.parse(b.script_body);
+        } catch (e) {
+            return result; // If script can't be parsed, no further analysis is available
+        }
+
+        let vars = this.get_vars(ast, {});
+
+        for (var i in result.env) {
+            if (result.env[i].name in vars != (!result.env[i].unused)) {
+                result.env[i].unused = !result.env[i].unused;
+                result.env[i].id = ++max;
+            }
+        }
+
+        let usedVars = result.env.reduce((a, x) => {a[x.name] = true; return a;}, {});
+        result.extra = Object.keys(vars).reduce(
+            (a, x) => usedVars[x] ? a : a.concat([{name: x, value: vars[x], id: ++max}]), []);
+
+        return result;
+    }
+
+    parse(text) {
+        let script_id = IndentAdder.add_indents(text, "_INDENT_", "_DEDENT_ ",
+                            "#", "'\"", "([", ")]");
+        return this.parser.parse(script_id);
+    }
+
     check_script(b) {
         // bypass for non-bdl scripts
         if (!b.script_body.startsWith("#!benchDL")) return [];
 
         let ast = null;
         try {
-            let script_id = IndentAdder.add_indents(b.script_body, "_INDENT_", "_DEDENT_ ",
-                                "#", "'\"", "([", ")]");
-            ast = this.parser.parse(script_id);
+            ast = this.parse(b.script_body);
         } catch (e) {
             if (e.name  && e.name === "SyntaxError") {
                 return [{severity: "danger", text: "Parse error: " + e.message + " Line:" + e.location.start.line + " Column:" + e.location.start.column}];
