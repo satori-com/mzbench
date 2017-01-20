@@ -1,0 +1,5 @@
+#!benchDL
+pool(size = 1,
+     worker_type = dummy_worker):
+    wait(var("wait_ms", 1.3K) ms)
+    wait(var("wait_ms_2", 5.5M) ms)

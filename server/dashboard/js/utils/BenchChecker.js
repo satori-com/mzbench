@@ -1,7 +1,7 @@
 import PegJS from "pegjs";
 import IndentAdder from "indent-adder"
 
-const Grammar = `
+const ListFunction = `
 {
     function makeList(initial, tail, num) {
         for (var i = 0; i < tail.length; i++) {
@@ -9,49 +9,16 @@ const Grammar = `
         }
         return initial;
     }
-}
+}`;
 
-entry
-    = _ st:(statement _)* _ { return makeList([], st, 0); }
-
-statement
-    = multiline / single
-
-multiline
-    = name:atom _ args:args _ ":" _ "_INDENT_" _ body:(statement _)+ "_DEDENT_" {
-        return {name:name, args:args, body:makeList([], body, 0)};
-    }
-
-single
-    = name:atom _ args:args {return {name:name, args:args};}
-
-atom
-    = first:[a-z] letters:[0-9a-zA-Z_]* { return first + letters.join(""); }
-    / ("'" letters:[^']* "'") { return letters.join(""); }
-
-_
-    = [\\t\\n\\r ]* ("#" (!"\\n" .)* "\\n" [\\t\\n\\r ]* )*
-
-args
-    = _ m:map {return m;}
-    / _ "(" _ head:term tail:(_ "," _ term)* _ ")" { return makeList([head], tail, 3); }
-    / _ "(" _ ")" {return null;}
-
-map
-    = "(" _ head:kv tail:(_ "," _ kv)* _ ")" { return makeList([head], tail, 3); }
-
+const SharedGrammar = `
 list
     = _ "[" _ head:term tail:(_ "," _ term)* _ "]" { return makeList([head], tail, 3); }
     / _ "[" _ "]" {return [];}
 
-kv
-    = k:term _ "=" _ v:term _ {return {key:k, value:v};}
-
-term
-    = unumber / logic_op / single / list / string / atom / number
-
-logic_op
-    = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
+atom
+    = first:[a-z] letters:[0-9a-zA-Z_]* { return first + letters.join(""); }
+    / "'" letters:[^']* "'" { return letters.join(""); }
 
 string
     = '"' chars:DoubleStringCharacter* '"' { return chars.join(''); }
@@ -71,16 +38,93 @@ EscapeSequence
     / "t"  { return "\\t";   }
     / "v"  { return "\\x0B"; }
 
+`;
+
+const BdlGrammar = ListFunction + `
+entry
+    = _ st:(statement _)* _ { return makeList([], st, 0); }
+
+statement
+    = multiline / single
+
+multiline
+    = name:atom _ args:args _ ":" _ "_INDENT_" _ body:(statement _)+ "_DEDENT_" {
+        return {name:name, args:args, body:makeList([], body, 0)};
+    }
+
+single
+    = name:atom _ args:args {return {name:name, args:args};}
+
+args
+    = _ m:map {return m;}
+    / _ "(" _ head:term tail:(_ "," _ term)* _ ")" { return makeList([head], tail, 3); }
+    / _ "(" _ ")" {return null;}
+
+map
+    = "(" _ head:kv tail:(_ "," _ kv)* _ ")" { return makeList([head], tail, 3); }
+
+kv
+    = k:term _ "=" _ v:term _ {return {key:k, value:v};}
+
+term
+    = unumber / logic_op / single / list / string / atom / number
+
+logic_op
+    = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
+
 number
-    = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? units:[GKM]? { return digits.join(""); }
+    = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? mult:[GKM]? {
+        var base = parseFloat(mult ? text().substring(0, text().length - 1) : text());
+        if (mult === "G") base *= 1000000000;
+        if (mult === "K") base *= 1000;
+        if (mult === "M") base *= 1000000;
+        return base;
+    }
 
 unumber
     = v:(number / single) _ u:atom {return {value:v, units:u};}
-`;
+
+_
+    = [\\t\\n\\r ]* ("#" (!"\\n" .)* "\\n" [\\t\\n\\r ]* )*
+` + SharedGrammar;
+
+const ErlGrammar = ListFunction + `
+
+entry
+    = tr:(term _ "." _)* _ { return makeList([], tr, 0); }
+
+term
+    = boolean / atom / list / tuple / map / string / binary / number
+
+tuple
+    = _ "{" _ head:term tail:(_ "," _ term)* _ "}" { return makeList(["tuple", head], tail, 3); }
+    / _ "{" _ "}" {return [];}
+
+map
+    = ( _ "#{" _ head:keyvalue (_ "," _ tail:keyvalue)* _ "}" ) { return makeList([head], tail, 3); }
+    / ( _ "#{" _ "}") {return [];}
+
+keyvalue
+    = key:term _ "=>" _ value:term _ { return {key:k, value:v}; }
+
+binary
+    = "<<" s:string ">>" { return s; }
+
+boolean
+    = "true" / "false"
+
+number
+    = sign:"-"? digits:[0-9]+ "#" base:[0-9a-zA-Z]+ { return parseInt((sign ? sign : "") + digits.join(""), parseInt(base.join(""))); }
+    / sign:"-"? digits:[0-9]+ floating:("." [0-9]+)? exp:(("e" / "E")("-" / "+")? [0-9]+)? { return parseFloat(text()); }
+
+_
+    = [\\t\\n\\r ]* ("%" (!"\\n" .)* "\\n" [\\t\\n\\r ]* )*
+` + SharedGrammar;
 
 class BenchChecker {
     constructor() {
-        this.parser = PegJS.generate(Grammar);
+        this.bdl_parser = PegJS.generate(BdlGrammar);
+        this.erl_parser = PegJS.generate(ErlGrammar);
     }
 
     check_env(b) {
@@ -159,15 +203,45 @@ class BenchChecker {
     }
 
     parse(text) {
-        let script_id = IndentAdder.add_indents(text, "_INDENT_", "_DEDENT_ ",
-                            "#", "'\"", "([", ")]");
-        return this.parser.parse(script_id);
+        if (text.startsWith("#!benchDL")) {
+            let script_id = IndentAdder.add_indents(text, "_INDENT_", "_DEDENT_ ",
+                                "#", "'\"", "([", ")]");
+            return this.bdl_parser.parse(script_id);
+        } else {
+            return this.markup(this.erl_parser.parse(text));
+        }
+    }
+
+    markup_kv(list) {
+        return list.map((x) => {
+            return {key: x[1], value: this.markup(x[2])};
+        }, this);
+    }
+
+    markup(ast) {
+        if (ast[0] === "tuple") {
+            if (ast[1] === "pool" || ast[1] === "loop") {
+                return {name : ast[1], args: this.markup_kv(ast[2]), body: this.markup(ast[3])};
+            }
+            if (ast[1] === "defaults") {
+                return {name : "defaults", args: this.markup_kv(ast[2])};
+            }
+            if (ast.length === 3 && (typeof ast[1] === "number" || ast[1][0] === "tuple")) {
+                return {name : ast[2], args: this.markup(ast[1])};
+            }
+            ast.shift();
+            var name = ast.shift();
+            return {name: name, args: this.markup(ast)};
+        }
+
+        if (Array.isArray(ast)) {
+            return ast.map(this.markup, this);
+        } else {
+            return ast;
+        }
     }
 
     check_script(b) {
-        // bypass for non-bdl scripts
-        if (!b.script_body.startsWith("#!benchDL")) return [];
-
         let ast = null;
         try {
             ast = this.parse(b.script_body);
