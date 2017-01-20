@@ -203,7 +203,7 @@ class BenchChecker {
     }
 
     parse(text) {
-        if (text.startsWith("#!benchDL")) {
+        if (text.indexOf("#!benchDL") === 0) {
             let script_id = IndentAdder.add_indents(text, "_INDENT_", "_DEDENT_ ",
                                 "#", "'\"", "([", ")]");
             return this.bdl_parser.parse(script_id);
