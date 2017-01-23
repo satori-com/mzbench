@@ -22,6 +22,10 @@
           metric_streams = #{} :: map(),
           timeline_items = [] :: [integer()],
           dashboard_items = [] :: [integer()],
+          benchset_id = undefined :: undefined | string(),
+          benchset_query = undefined :: undefined | string(),
+          benchset_charts = [] :: list(),
+          benchset_event = #{} :: map(),
           dashboard_query = undefined :: undefined | map(),
           tags = [] :: [string()]
        }).
@@ -128,8 +132,22 @@ websocket_info(Message, Req, State) ->
 dispatch_info(reauth, State) ->
     {reply, #{type => "AUTH_TOKEN_EXPIRED"}, State#state{}};
 
-dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined}) ->
+dispatch_info({update_bench, _BenchInfo}, State = #state{timeline_opts = undefined, benchset_id = undefined}) ->
     {ok, State};
+
+% Normally, if you are susbscribed to a benchset, you don't need timeline, that's why
+% this case could overwrite the next one
+dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{benchset_id = BenchsetId,
+                                                                     benchset_event = LastEvent,
+                                                                     benchset_query = Query,
+                                                                     benchset_charts = Charts}) when BenchsetId /= undefined ->
+    BenchInfos1  = normalize([{Id, BenchInfo}]),
+    BenchInfos2  = apply_filter(Query, BenchInfos1),
+    if length(BenchInfos2) > 0 ->
+        NewEvent = get_benchset(Query, BenchsetId, Charts),
+        if NewEvent /= LastEvent -> {reply, NewEvent, State#state{benchset_event = NewEvent}};
+            true -> {ok, State} end;
+        true -> {ok, State} end;
 
 dispatch_info({update_bench, BenchInfo = #{id:= Id}}, State = #state{
                                                     timeline_items  = TimelineIds,
@@ -302,29 +320,21 @@ dispatch_request(#{<<"cmd">> := <<"get_dashboards">>} = Cmd, State = #state{}) -
     {reply, Event, State#state{dashboard_items  = TimelineIds,
                                dashboard_query = Cmd}};
 
-dispatch_request(#{<<"cmd">> := <<"get_benchset">>} = Cmd, State = #state{}) ->
+dispatch_request(#{<<"cmd">> := <<"subscribe_benchset">>} = Cmd, State = #state{}) ->
     Query = mzb_bc:maps_get(<<"criteria">>, Cmd, undefined),
     BenchsetId = mzb_bc:maps_get(<<"benchset_id">>, Cmd, 0),
-    Filter = fun (I) -> apply_filter(Query, normalize([I])) end,
-    {BenchInfos0, Min, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, _MaxBenchsetSize = 200),
+    Charts = mzb_bc:maps_get(<<"charts">>, Cmd, []),
+    BenchsetEvent = get_benchset(Query, BenchsetId, Charts),
 
-    Sets = lists:map(fun(Chart) ->
-              Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, <<"undefined">>)),
-              Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, <<"undefined">>)),
-              Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
-              GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, <<"undefined">>)),
-              XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, <<"undefined">>)),
-              benchset(BenchInfos0, Metric, Kind, Size, GroupEnv, XEnv)
-            end, mzb_bc:maps_get(<<"charts">>, Cmd, [])),
+    {reply, BenchsetEvent, State#state{benchset_id = BenchsetId, benchset_query = Query,
+                        benchset_charts = Charts, benchset_event = BenchsetEvent}};
 
-    Event = #{
-               type => "BENCHSET",
-               data => Sets,
-               benchset_id => BenchsetId,
-               next_id => Min
-             },
-    {reply, Event, State};
-
+dispatch_request(#{<<"cmd">> := <<"unsubscribe_benchset">>} = Cmd, State = #state{benchset_id = CurrentBenchset}) ->
+    BenchsetId = mzb_bc:maps_get(<<"benchset_id">>, Cmd, 0),
+    if BenchsetId == CurrentBenchset -> {ok, State#state{benchset_id = undefined,
+        benchset_event = #{}, benchset_charts = [], benchset_query = undefined}};
+        true -> {ok, State}
+    end;
 
 dispatch_request(#{<<"cmd">> := <<"get_timeline">>} = Cmd, State = #state{}) ->
     lager:info("Get timeline start"),
@@ -523,6 +533,25 @@ get_all_tags() ->
         end, []),
     [list_to_binary(T) || T <- lists:usort(Tags)].
 
+get_benchset(Query, BenchsetId, Charts) ->
+    Filter = fun (I) -> apply_filter(Query, normalize([I])) end,
+    {BenchInfos0, Min, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, _MaxBenchsetSize = 200),
+
+    Sets = lists:map(fun(Chart) ->
+              Kind = binary_to_list(mzb_bc:maps_get(<<"kind">>, Chart, <<"undefined">>)),
+              Metric = binary_to_list(mzb_bc:maps_get(<<"metric">>, Chart, <<"undefined">>)),
+              Size = list_to_integer(binary_to_list(mzb_bc:maps_get(<<"size">>, Chart, <<"0">>))),
+              GroupEnv = binary_to_list(mzb_bc:maps_get(<<"group_env">>, Chart, <<"undefined">>)),
+              XEnv = binary_to_list(mzb_bc:maps_get(<<"x_env">>, Chart, <<"undefined">>)),
+              benchset(BenchInfos0, Metric, Kind, Size, GroupEnv, XEnv)
+          end, Charts),
+    #{
+        type => "BENCHSET",
+        data => Sets,
+        benchset_id => BenchsetId,
+        next_id => Min
+     }.
+
 benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv) ->
     benchset(BenchInfos, Metric, Kind, Size, GroupEnv, XEnv, []).
 
@@ -538,11 +567,13 @@ benchset([BenchInfo | Rest], Metric, Kind, Size, GroupEnv, XEnv, Acc) ->
              end,
     benchset(Rest, Metric, Kind, Size, GroupEnv, XEnv, NewAcc).
 
-has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}}) ->
+has_metric(Metric, "compare", #{metrics:= #{groups:= Groups}, status := Status})
+                            when (Status == complete) or (Status == failed) or (Status == stopped) ->
     lists:any(fun(#{graphs:= Graphs}) ->
         lists:any(fun(#{metrics:= Metrics}) ->
             lists:any(fun(#{name:= Name}) when Name == Metric -> true; (_) -> false end, Metrics)
                 end, Graphs) end, Groups);
+has_metric(_Metric, "compare", _) -> false;
 has_metric(Metric, _, #{results:= Res}) when is_map(Res) ->
     find_result_metric(list_to_binary(Metric), Res, false);
 has_metric(_, _, _) ->

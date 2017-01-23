@@ -16,8 +16,12 @@ class DashboardOverview extends React.Component {
     }
 
     componentDidMount() {
-        MZBenchActions.getBenchset({criteria:this.props.item.criteria,
+        MZBenchActions.subscribeBenchset({criteria:this.props.item.criteria,
             charts: this.props.item.charts, benchset_id: this.benchsetId});
+    }
+
+    componentWillUnmount() {
+        MZBenchActions.unsubscribeBenchset(this.benchsetId);
     }
 
     render() {
@@ -85,8 +89,9 @@ class DashboardOverview extends React.Component {
             let guid = "compare-" + idx;
             let groupEnv = Misc.ucfirst(c.group_env);
             let xEnv = c.kind === "regression" ? (c.regression_x ? c.regression_x : "Number") : Misc.ucfirst(c.x_env);
+            let key = "" + idx + benches.map((b) => b.benches.map((bb) => bb.id)).join("");
 
-            return (<div key={idx}>
+            return (<div key={key}>
                         <p className="dashboard">{c.description}</p>
                         <Graph targets={targets} kind={c.kind} x_env={xEnv}
                             title={c.metric} benchset={benches} domPrefix={guid} height="400"/>

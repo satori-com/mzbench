@@ -88,7 +88,7 @@ export default {
     },
 
     addChartToSelectedDashboard() {
-        Dispatcher.dispatch({ type: Constants.ADD_CHART_TO_SELECTED_DASHBOARD });        
+        Dispatcher.dispatch({ type: Constants.ADD_CHART_TO_SELECTED_DASHBOARD });
     },
 
     hideTimelineLoadingMask() {
@@ -117,9 +117,13 @@ export default {
         Dispatcher.dispatch({ type: Constants.CLEAN_NEW_BENCH });
     },
 
-    getBenchset(opts) {
-        Object.assign(opts, {cmd: "get_benchset"});
+    subscribeBenchset(opts) {
+        Object.assign(opts, {cmd: "subscribe_benchset"});
         MZBenchWS.send(opts);
+    },
+
+    unsubscribeBenchset(benchsetId) {
+        MZBenchWS.send({cmd: "unsubscribe_benchset", benchset_id: benchsetId});
     },
 
     getTimeline(opts, timelineId) {
@@ -215,37 +219,37 @@ export default {
 
     startStream(benchId, metric, subsamplingInterval, timeWindow, beginTime, endTime, continueStreaming) {
         const streamId = Misc.gen_guid();
-        
+
         let encodedSubsamplingInterval = "undefined";
         if(subsamplingInterval) {
             encodedSubsamplingInterval = subsamplingInterval;
         }
-        
+
         let encodedTimeWindow = "undefined";
         if(timeWindow) {
             encodedTimeWindow = timeWindow;
         }
-        
+
         let encodedBeginTime = "undefined";
         if(beginTime) {
             encodedBeginTime = beginTime;
         }
-        
+
         let encodedEndTime = "undefined";
         if(endTime) {
             encodedEndTime = endTime;
         }
-        
+
         let encodedContinueStreaming = "false";
         if(continueStreaming) {
             encodedContinueStreaming = "true";
         }
 
-        MZBenchWS.send({ 
-            cmd: "start_streaming_metric", 
-            stream_id: streamId, 
-            bench: benchId, 
-            metric: metric, 
+        MZBenchWS.send({
+            cmd: "start_streaming_metric",
+            stream_id: streamId,
+            bench: benchId,
+            metric: metric,
             subsampling_interval: encodedSubsamplingInterval,
             time_window: encodedTimeWindow,
             begin_time: encodedBeginTime,
@@ -266,19 +270,19 @@ export default {
             kind: kind,
             x_env: x_env
         });
-        return streamId;        
+        return streamId;
     },
-    
+
     stopStream(streamId) {
         MZBenchWS.send({ cmd: "stop_streaming_metric", stream_id: streamId });
     },
 
     startStreamLogs(benchId) {
-        const streamId = Misc.gen_guid();        
+        const streamId = Misc.gen_guid();
         MZBenchWS.send({ cmd: "start_streaming_logs", bench: benchId, stream_id: streamId });
         return streamId;
     },
-    
+
     stopStreamLogs(streamId) {
         MZBenchWS.send({ cmd: "stop_streaming_logs", stream_id: streamId });
     }
