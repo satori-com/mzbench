@@ -12,6 +12,7 @@ class AuthStore extends EventEmitter {
     constructor() {
         super();
         this.reauth();
+        this.token = "";
     }
 
     reauth() {
@@ -141,6 +142,14 @@ class AuthStore extends EventEmitter {
         return this.type;
     }
 
+    getToken() {
+        return this.token;
+    }
+
+    setToken(token) {
+        this.token = token;
+    }
+
     getRef() {
         return this.ref;
     }
@@ -201,7 +210,10 @@ _AuthStore.dispatchToken = Dispatcher.register((action) => {
             _AuthStore.emitChange();
             break;
 
+        case ActionTypes.SERVER_INFO:
+            _AuthStore.setToken(action.data.token);
+            break;
+
         default:
     }
 });
-

@@ -166,8 +166,8 @@ class BenchSummary extends React.Component {
                     success: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
                     error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});},
                     beforeSend: function (xhr) {
-                        if (AuthStore.getRef()) {
-                            xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
+                        if (AuthStore.getToken()) {
+                            xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getToken() );
                         }
                     }
                 });

@@ -122,14 +122,31 @@ auth_connection_by_ref(ConnectionPid, Ref) ->
 
 auth_api_call(<<"POST">>, <<"/auth">>, _Ref) -> "default";
 auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref) -> "default";
-auth_api_call(_Method, _Path, Ref) ->
+auth_api_call(_Method, Path, Ref) ->
     case get_methods() of
         [] -> "anonymous";
-        _ ->
-            case get_user_info(Ref) of
-                {ok, UserInfo} -> maps:get(login, UserInfo);
-                {error, unknown_ref} -> erlang:error(forbidden)
-            end
+        _ -> auth_api_call_ref(Path, Ref)
+    end.
+
+auth_api_call_ref(_Path, {token, Token}) ->
+    case get_user_info(Token) of
+        {ok, UserInfo} -> maps:get(login, UserInfo);
+        {error, unknown_ref} -> erlang:error(forbidden)
+    end;
+auth_api_call_ref(Path, {cookie, Cookie, Token}) when (Path == <<"/stop">>)
+                    or (Path == <<"/restart">>) or (Path == <<"/change_env">>) ->
+    case dets:lookup(auth_tokens, Cookie) of
+        [{_, #{user_info:= #{login := Login}, connection_pids:= Pids}}] ->
+                case lists:member(Token, maps:values(Pids)) of
+                    true -> Login;
+                    false -> erlang:error(forbidden)
+                end;
+        [] -> erlang:error(forbidden)
+    end;
+auth_api_call_ref(_Path, {cookie, Cookie, _}) ->
+    case get_user_info(Cookie) of
+        {ok, UserInfo} -> maps:get(login, UserInfo);
+        {error, unknown_ref} -> erlang:error(forbidden)
     end.
 
 sign_out_connection(Ref) ->
@@ -201,12 +218,12 @@ handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{star
                     picture_url => "",
                     email => ""
                 },
-            {reply, {ok, UserInfo}, State};
+            {reply, {ok, UserInfo, <<>>}, State};
         _ ->
             case get_user_info(Ref) of
                 {ok, UserInfo} ->
-                    insert(ConnectionPid, Ref, UserInfo, StartId),
-                    {reply, {ok, UserInfo}, State};
+                    EditToken = insert(ConnectionPid, Ref, UserInfo, StartId),
+                    {reply, {ok, UserInfo, EditToken}, State};
                 {error, Reason} ->
                     {reply, {error, Reason}, State}
             end
@@ -270,7 +287,7 @@ remove(Ref, StartId) ->
     case dets:lookup(auth_tokens, Ref) of
         [] -> ok;
         [{_, #{connection_pids:= Pids, incarnation_id:= Id}}] ->
-            [(Id == StartId) andalso mzb_api_ws_handler:reauth(Pid) || Pid <- Pids],
+            [(Id == StartId) andalso mzb_api_ws_handler:reauth(Pid) || Pid <- maps:keys(Pids)],
             dets:delete(auth_tokens, Ref),
             dets:sync(auth_tokens)
     end.
@@ -280,14 +297,15 @@ insert(ConnectionPid, Ref, UserInfo, StartId) ->
 insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
     CreationTS = mzb_api_bench:seconds(),
     ExpirationTS = if Lifetime == 0 -> 0; true -> CreationTS + Lifetime end,
-    ExistingConnections = [P || {_, #{connection_pids := Pids, incarnation_id := Incarnation}} <- dets:lookup(auth_tokens, Ref),
-                           Incarnation == StartId,
-                           P <- Pids],
+    ExistingConnections = case dets:lookup(auth_tokens, Ref) of
+                            [] -> #{};
+                            [{_, #{connection_pids:= EC}} | _] -> EC
+                        end,
     NewConnections =
         case is_pid(ConnectionPid) of
             true ->
                 erlang:monitor(process, ConnectionPid),
-                [ConnectionPid | ExistingConnections];
+                maps:put(ConnectionPid, generate_ref(), ExistingConnections);
             false -> ExistingConnections
         end,
     dets:insert(auth_tokens, {Ref, #{user_info => UserInfo,
@@ -295,7 +313,11 @@ insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
                                      creation_ts => CreationTS,
                                      expiratioin_ts => ExpirationTS,
                                      incarnation_id => StartId}}),
-    dets:sync(auth_tokens).
+    dets:sync(auth_tokens),
+    case is_pid(ConnectionPid) of
+        true -> maps:get(ConnectionPid, NewConnections);
+        false -> ok
+    end.
 
 generate_ref() ->
     base64:encode(crypto:strong_rand_bytes(?REF_SIZE)).
@@ -380,9 +402,9 @@ remove_connection(Pid, NextId) ->
     case dets:lookup(auth_tokens, NextId) of
         [] -> remove_connection(Pid, dets:next(auth_tokens, NextId));
         [{_, #{connection_pids:= Connections} = Info}] ->
-            case lists:member(Pid, Connections) of
+            case maps:is_key(Pid, Connections) of
                 true  ->
-                    NewInfo = maps:put(connection_pids, lists:delete(Pid, Connections), Info),
+                    NewInfo = maps:put(connection_pids, maps:remove(Pid, Connections), Info),
                     dets:insert(auth_tokens, {NextId, NewInfo}),
                     dets:sync(auth_tokens);
                 false ->

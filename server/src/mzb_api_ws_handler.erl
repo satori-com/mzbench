@@ -16,6 +16,7 @@
 -record(state, {
           ref = undefined :: undefined | reference(),
           token = undefined :: undefined | binary(),
+          edit_token = undefined :: undefined | binary(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           log_streams = #{} :: map(),
@@ -87,14 +88,14 @@ init(Req, _Opts) ->
     Token = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
 
     case mzb_api_auth:auth_connection_by_ref(self(), Token) of
-        {ok, #{}} -> {cowboy_websocket, Req, init_connection(Token, #state{})};
+        {ok, #{}, EditToken} -> {cowboy_websocket, Req, init_connection(Token, EditToken, #state{})};
         {error, _Reason} -> erlang:error(forbidden)
     end.
 
-init_connection(Token, State) ->
+init_connection(Token, EditToken, State) ->
     Ref = erlang:make_ref(),
     ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
-    State#state{ref = Ref, token = Token}.
+    State#state{ref = Ref, token = Token, edit_token = EditToken}.
 
 reauth(Pid) ->
     Pid ! reauth.
@@ -270,10 +271,10 @@ dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
     {reply, <<"pong">>, State};
 
-dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State = #state{}) ->
+dispatch_request(#{<<"cmd">> := <<"get_server_info">>}, State = #state{edit_token = Token}) ->
     Tags = get_all_tags(),
     {IsFree, KBLeft} = disk_status(),
-    Data = #{clouds => mzb_api_cloud:list_clouds(), disk_is_free => IsFree, disk_left_kb => KBLeft, tags => Tags},
+    Data = #{clouds => mzb_api_cloud:list_clouds(), disk_is_free => IsFree, disk_left_kb => KBLeft, tags => Tags, token => Token},
     {reply, #{type => "SERVER_INFO", data => Data}, State#state{tags = Tags}};
 
 dispatch_request(#{<<"cmd">> := <<"create_dashboard">>, <<"data">> := Data}, State = #state{}) ->
