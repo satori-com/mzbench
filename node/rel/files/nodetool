@@ -84,7 +84,7 @@ main(Args) ->
                 _ ->
                     halt(1)
             end;
-        ["rpcterms", Module, Function, ArgsAsString] ->
+        ["rpcterms", Module, Function | ArgsAsString] ->
             case rpc:call(TargetNode,
                           list_to_atom(Module),
                           list_to_atom(Function),

@@ -7,12 +7,42 @@ SOURCES := $(shell find src dashboard test -name .eunit -prune -o -name node_mod
 MZBENCH_COMMON_SOURCES := $(wildcard ../common_apps/*/include/*) $(wildcard ../common_apps/*/src/*) $(wildcard ../common_apps/*/rebar.config)
 RELEASE_BINARY := _build/default/rel/$(SERVICE_NAME)/bin/$(SERVICE_NAME)
 
+define RPM_HELPER
+import glob
+import shutil
+import subprocess
+import os.path
+for file in glob.glob('../workers/*'):
+    subprocess.check_call(["make", "-C", file, "generate_tgz"])
+    worker_name = os.path.basename(file)
+    shutil.copyfile(file + "/" + worker_name + "_worker.tgz", "tmproot/opt/mzbench_api/cache/" + worker_name + "-someversion-someos.tgz")
+endef
+export RPM_HELPER
+
 .PHONY: compile
 compile: .make/compilation-up-to-date
 
 .PHONY: console
 console: $(RELEASE_BINARY)
 	$(RELEASE_BINARY) console
+
+.PHONY: rpm
+rpm: generate
+	echo "You need to disable custom_os_code_builds and auto_update_deployed_code to make your RPM work"
+	-rm -rf tmproot
+	mkdir -p tmproot/opt/
+	cp -R _build/default/rel/mzbench_api tmproot/opt
+	mkdir -p tmproot/opt/mzbench_api/cache
+	make -C ../node generate_tgz
+	cp ../node/node.tgz tmproot/opt/mzbench_api/cache/node-someversion-someos.tgz
+	python -c "$$RPM_HELPER"
+	-git clone https://github.com/flussonic/epm _build/epm
+	EPM="-s dir --url http://github.com/machinezone/mzbench --description 'Benchmark server' \
+	-m 'Info <info@mz.com>' --vendor 'MZ' --license BSD"
+	cd tmproot && ../_build/epm/epm.erl -f -t deb -n mzbench -v 0.4.0 $(EPM) -a amd64 \
+	           --category net opt
+	cd tmproot && ../_build/epm/epm.erl -f -t rpm -n mzbench -v 0.4.0 $(EPM) -a amd64 \
+	           --category Server/Benchmark opt
 
 .PHONY: js-dev
 js-dev: compile

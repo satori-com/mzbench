@@ -181,7 +181,7 @@ case "$1" in
 
         attempts=5
         while true; do
-            RES=`$NODETOOL rpcterms mzb_sup ensure_started ''`
+            RES=`$NODETOOL rpcterms mzb_sup ensure_started`
             EC=$?
             if [ "$EC" -eq 0 ]; then
                 echo "ok"
@@ -243,6 +243,16 @@ case "$1" in
     reboot)
         ## Restart the VM completely (uses heart to restart it)
         $NODETOOL reboot
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
+        ;;
+
+    rpcterms)
+        ## Call rpcterms
+        shift
+        $NODETOOL rpcterms $@
         ES=$?
         if [ "$ES" -ne 0 ]; then
             exit $ES

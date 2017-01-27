@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import os
 try:
     import mzbench_server_marker
     assert(mzbench_server_marker)
     server_functions = True
 except ImportError:
     server_functions = False
+
+dirname = os.path.dirname(os.path.realpath(__file__))
+
+if server_functions == False:
+    mzbench_installation = "/opt/mzbench_api/"
+    if os.path.exists(mzbench_installation):
+        server_functions = True
+        server_autorebuild = False
+        server_rel_dir = mzbench_installation
+        server_error_log = mzbench_installation + "log/error.log"
+else:
+    server_autorebuild = True
+    server_rel_dir = dirname + "/../server/_build/default/rel/mzbench_api/"
+    server_error_log = dirname + "/../server/log/error.log"
 
 # Client-only functions
 doc_acc = """MZBench command-line interface
@@ -46,7 +61,11 @@ if server_functions:
   mzbench run_local <script> [--env=<name=value>...]
   mzbench validate <script> [--env=<name=value>...]
   mzbench list_templates
-  mzbench new_worker [--template=<template>] <name>
+  mzbench new_worker [--template=<template>] <name>"""
+    if server_autorebuild == False:
+        doc_acc += """
+  mzbench add_worker [--version=<version>] <tarball>"""
+    doc_acc += """
   mzbench selfcheck"""
 
 doc_acc += """
@@ -97,17 +116,23 @@ Options:
                      Pass a variable to script"""
 
 if server_functions:
+    if server_autorebuild == False:
+        doc_acc += """
+    --version <version>
+                     Version consists of system version, erts version and hash
+                     in a special format. Please grep your bench log with
+                     "Missing tarballs:" keyword to find which version do you
+                     need."""
     doc_acc += """
     --template <template>
                      Choose a template for new worker, default is 'empty'
     --config <config>
                      Configuation file to use"""
 
-from shutil import copytree
+import shutil
 import csv
 import glob
 import json
-import os
 import re
 import subprocess
 import sys
@@ -139,11 +164,8 @@ except ImportError:
     print(' sudo pip install -r requirements.txt')
     sys.exit(1)
 
-dirname = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dirname + "/../lib")
 sys.dont_write_bytecode = True
-server_rel_dir = dirname + "/../server/_build/default/rel/mzbench_api/"
-server_error_log = dirname + "/../server/log/error.log"
 
 import color_terminal
 import util
@@ -215,8 +237,10 @@ def ensure_server_started(attempts):
 # API server startup and stop
 #=================================================================================================
 def start_server(config):
-    require('escript')
-    execute_make(SERVER_PROJECTS, 'generate')
+
+    if server_autorebuild:
+        require('escript')
+        execute_make(SERVER_PROJECTS, 'generate')
 
     if is_server_started():
         print("Server is already running, config info:")
@@ -245,8 +269,10 @@ def start_server(config):
     print_server_config()
 
 def stop_server():
-    require('escript')
-    execute_make(SERVER_PROJECTS, 'generate')
+    if server_autorebuild:
+        require('escript')
+        execute_make(SERVER_PROJECTS, 'generate')
+
     cmd(server_rel_dir + 'bin/mzbench_api stop')
 
 def restart_server(config):
@@ -548,12 +574,21 @@ def list_templates():
     for tname in os.listdir(templates_path):
         print(tname)
 
+def add_worker(version, tarball):
+    if version is None:
+        version = "someversion-someos"
+    name, extension = os.path.splitext(os.path.basename(tarball))
+    worker_name = name.replace("_worker", "")
+    shutil.copyfile(tarball, mzbench_installation + "cache/"
+        + worker_name + "-" + version + extension)
+    print("Worker " + worker_name + " copied to MZBench installation")
+
 def new_worker(template, name):
     templates_path = os.path.join(dirname, '../worker_templates/')
 
     template_name = template or 'empty'
     worker_name = name
-    copytree(os.path.join(templates_path, template_name), worker_name)
+    shutil.copytree(os.path.join(templates_path, template_name), worker_name)
 
     for dirpath, dirs, files in os.walk(worker_name):
         for filename in files:
