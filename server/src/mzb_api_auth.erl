@@ -297,9 +297,12 @@ insert(ConnectionPid, Ref, UserInfo, StartId) ->
 insert(ConnectionPid, Ref, UserInfo, StartId, Lifetime) ->
     CreationTS = mzb_api_bench:seconds(),
     ExpirationTS = if Lifetime == 0 -> 0; true -> CreationTS + Lifetime end,
-    ExistingConnections = case dets:lookup(auth_tokens, Ref) of
+    AllMaps = [EC || {_, #{connection_pids:= EC,
+                incarnation_id := Incarnation}} <- dets:lookup(auth_tokens, Ref),
+                Incarnation == StartId],
+    ExistingConnections = case AllMaps of
                             [] -> #{};
-                            [{_, #{connection_pids:= EC}} | _] -> EC
+                            [Map | _] -> Map
                         end,
     NewConnections =
         case is_pid(ConnectionPid) of
