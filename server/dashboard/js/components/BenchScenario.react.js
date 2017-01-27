@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Highlight from './Highlight.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
+import AuthStore from '../stores/AuthStore';
 
 class BenchScenario extends React.Component {
     render() {
