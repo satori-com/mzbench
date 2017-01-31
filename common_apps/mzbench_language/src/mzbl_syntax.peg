@@ -50,7 +50,7 @@ int <- '-'? (non_zero_digit digit+) / digit ~;
 mult <- ('K' / 'M' / 'G') ~;
 non_zero_digit <- [1-9] ~;
 digit <- [0-9] ~;
-string <- '"' chars:(!'"' ("\\\\" / '\\"' / .))* '"' `binary_to_list(iolist_to_binary(proplists:get_value(chars, Node)))`;
+string <- '"' chars:(!'"' ("\\\\" / '\\"' / .))* '"' `re:replace(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node))), "\\\\", "",[global, {return,list}])`;
 id <- [a-z] [a-z0-9_]* `binary_to_atom(iolist_to_binary(Node), latin1)`;
 __ <-  ((&'#' [^\n]* '\n') / ([ \t\n\s\r]+))* ~;
 indent <- '_INDENT_' ~;
