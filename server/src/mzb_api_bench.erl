@@ -4,9 +4,9 @@
 
 -export([
     start_link/2,
-    interrupt_bench/2,
+    interrupt_bench/1,
     get_status/1,
-    change_env/3,
+    change_env/2,
     seconds/0,
     send_email_report/2,
     request_report/2,
@@ -38,23 +38,13 @@ start_link(Id, Params) ->
 get_status(Pid) ->
     mzb_pipeline:call(Pid, status).
 
-change_env(Pid, Env, root) ->
+change_env(Pid, Env) ->
     case mzb_pipeline:call(Pid, {change_env, Env}, 30000) of
         ok -> ok;
         {error, Reason} -> erlang:error(Reason)
-    end;
-change_env(Pid, Env, Login) ->
-    case mzb_pipeline:call(Pid, get_author) of
-        Login -> change_env(Pid, Env, root);
-        _ -> {error, forbidden}
     end.
 
-interrupt_bench(Pid, root) -> mzb_pipeline:stop(Pid);
-interrupt_bench(Pid, Login) ->
-    case mzb_pipeline:call(Pid, get_author) of
-        Login -> mzb_pipeline:stop(Pid);
-        _ -> {error, forbidden}
-    end.
+interrupt_bench(Pid) -> mzb_pipeline:stop(Pid).
 
 request_report(Pid, Emails) ->
     mzb_pipeline:call(Pid, {request_report, Emails}).
