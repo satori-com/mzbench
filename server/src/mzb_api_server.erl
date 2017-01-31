@@ -50,7 +50,7 @@ config_info() ->
             {ok, [ServerConfig | _]} = application:get_env(mzbench_api, server_configs),
             io:format("No config file is used, to create one run:~n"),
             io:format("cp ~s ~s~n", [AutoConfig, ServerConfig]);
-        Filename -> 
+        Filename ->
             io:format("Active config file is ~s~n", [Filename])
     end.
 
@@ -332,24 +332,24 @@ handle_call(deactivate, _From, #{} = State) ->
             (_, Acc) -> Acc
         end, [], benchmarks),
     lager:info("[ SERVER ] Stopping all benchmarks due to server stop: ~p", [Unfinished]),
-    [ok = mzb_api_bench:interrupt_bench(P, root) || P <- Unfinished],
+    [ok = mzb_api_bench:interrupt_bench(P) || P <- Unfinished],
     {reply, ok, State#{status:= inactive}};
 
-handle_call({stop_bench, Id, Login}, _, #{} = State) ->
+handle_call({stop_bench, Id, _Login}, _, #{} = State) ->
     lager:info("[ SERVER ] Stop bench #~b request received", [Id]),
     case ets:lookup(benchmarks, Id) of
         [{_, BenchPid, undefined}] ->
-            {reply, mzb_api_bench:interrupt_bench(BenchPid, Login), State};
+            {reply, mzb_api_bench:interrupt_bench(BenchPid), State};
         [{_, _, _}] ->
             {reply, ok, State};
         [] ->
             {reply, {error, not_found}, State}
     end;
 
-handle_call({change_env, Id, Env, Login}, _, #{} = State) ->
+handle_call({change_env, Id, Env, _Login}, _, #{} = State) ->
     case ets:lookup(benchmarks, Id) of
         [{_, B, undefined}] ->
-            {reply, mzb_api_bench:change_env(B, Env, Login), State};
+            {reply, mzb_api_bench:change_env(B, Env), State};
         [{_, _, _}] ->
             {reply, {error, finished}, State};
         [] ->
@@ -551,4 +551,3 @@ sys_username() ->
             end;
         User -> User
     end.
-

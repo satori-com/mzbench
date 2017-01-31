@@ -17,6 +17,7 @@
           ref = undefined :: undefined | reference(),
           token = undefined :: undefined | binary(),
           edit_token = undefined :: undefined | binary(),
+          user_info = undefined :: undefined | map(),
           timeline_opts = undefined :: undefined | map(),
           timeline_bounds = {undefined, undefined} :: {undefined | non_neg_integer(), undefined | non_neg_integer()},
           log_streams = #{} :: map(),
@@ -88,14 +89,14 @@ init(Req, _Opts) ->
     Token = proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined),
 
     case mzb_api_auth:auth_connection_by_ref(self(), Token) of
-        {ok, #{}, EditToken} -> {cowboy_websocket, Req, init_connection(Token, EditToken, #state{})};
+        {ok, UserInfo, EditToken} -> {cowboy_websocket, Req, init_connection(UserInfo, Token, EditToken, #state{})};
         {error, _Reason} -> erlang:error(forbidden)
     end.
 
-init_connection(Token, EditToken, State) ->
+init_connection(UserInfo, Token, EditToken, State) ->
     Ref = erlang:make_ref(),
     ok = gen_event:add_handler(mzb_api_firehose, {mzb_api_firehose, Ref}, [self()]),
-    State#state{ref = Ref, token = Token, edit_token = EditToken}.
+    State#state{ref = Ref, user_info = UserInfo, token = Token, edit_token = EditToken}.
 
 reauth(Pid) ->
     Pid ! reauth.
@@ -264,8 +265,8 @@ dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
 
-dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime}, #state{token = Token} = State) ->
-    NewToken = mzb_api_auth:generate_token(binary_to_integer(LifeTime), Token),
+dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime}, #state{user_info = UserInfo} = State) ->
+    NewToken = mzb_api_auth:generate_token(binary_to_integer(LifeTime), UserInfo),
     {reply, #{type => "GENERATED_TOKEN", token => NewToken}, State};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
@@ -440,9 +441,10 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
-dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{} = State) ->
+dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     try
+        mzb_api_auth:auth_api_call(<<"POST">>, <<"/add_tag">>, {login, Login}, BenchId),
         ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
     catch
         _:Exception ->
@@ -456,9 +458,10 @@ dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{} = State) ->
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
-dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{} = State) ->
+dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     try
+        mzb_api_auth:auth_api_call(<<"POST">>, <<"/remove_tag">>, {login, Login}, BenchId),
         ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])
     catch
         _:Exception ->

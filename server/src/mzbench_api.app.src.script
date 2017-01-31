@@ -67,6 +67,9 @@
         {vm_args, []},
         {final_metrics_percentiles, [min, 50, 90, 95, max]},
         {gc_sleep, 10},
-        {user_authentication, []}
+        {user_authentication, []},
+        {admin_list, []},
+        {black_list, []},
+        {white_list, []}
     ]}
 ]}.
