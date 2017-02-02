@@ -132,7 +132,7 @@ end
 
 -spec 'string'(input(), index()) -> parse_result().
 'string'(Input, Index) ->
-  p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->re:replace(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node))), "\\\\", "",[global, {return,list}]) end).
+  p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->re:replace(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node))), "\\\\\"", "\"",[global, {return,list}]) end).
 
 -spec 'id'(input(), index()) -> parse_result().
 'id'(Input, Index) ->
