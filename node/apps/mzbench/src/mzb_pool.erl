@@ -273,19 +273,23 @@ sleep_off(StartTime, ShouldBe) ->
     timer:sleep(Sleep).
 
 worker_start_delay(undefined, _, _, _) -> ok;
-worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, units = rps}]}, Factor, _, _) ->
+worker_start_delay(#operation{name = poisson, args = [Rate]}, Factor, _, _) ->
     % The time between each pair of consecutive events has an exponential
     % distribution with parameter λ and each of these inter-arrival times
     % is assumed to be independent of other inter-arrival times.
     % (http://en.wikipedia.org/wiki/Poisson_process)
+    #constant{value = Lambda, units = rps} = mzbl_literals:convert(Rate),
     SleepTime = -(1000*Factor*math:log(random:uniform()))/Lambda,
     timer:sleep(erlang:round(SleepTime));
-worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, _, WId, StartTime) ->
+worker_start_delay(#operation{name = linear, args = [Rate]}, _, WId, StartTime) ->
+    #constant{value = RPS, units = rps} = mzbl_literals:convert(Rate),
     sleep_off(StartTime, trunc((WId * 1000) / RPS));
-worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, _, WId, StartTime) ->
+worker_start_delay(#operation{name = pow, args = [Y, W, Time]}, _, WId, StartTime) ->
+    #constant{value = T, units = ms} = mzbl_literals:convert(Time),
     sleep_off(StartTime, erlang:round(T*(math:pow(WId/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0, _) -> ok;
-worker_start_delay(#operation{name = exp, args = [X, #constant{value = T, units = ms}]}, _, WId, StartTime) ->
+worker_start_delay(#operation{name = exp, args = [X, Time]}, _, WId, StartTime) ->
+    #constant{value = T, units = ms} = mzbl_literals:convert(Time),
     sleep_off(StartTime, erlang:round(T*(math:log((WId+1)/X) + 1))).
 
 msnow() ->
