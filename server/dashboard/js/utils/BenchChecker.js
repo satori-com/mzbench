@@ -191,7 +191,7 @@ class BenchChecker {
         for (var i in result.env) {
             if (result.env[i].name in vars != (!result.env[i].unused)) {
                 result.env[i].unused = !result.env[i].unused;
-                result.env[i].id = ++max;
+//                result.env[i].id = ++max;
             }
         }
 
