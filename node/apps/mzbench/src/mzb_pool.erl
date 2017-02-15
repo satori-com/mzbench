@@ -223,7 +223,7 @@ eval_worker_number(Pool, Env, NumNodes, Offset) ->
                 [S, PN] when PN * Offset > S -> 0;
                 [S, PN] when NumNodes * PN >= S -> S;
                 [S, PN] ->
-                    system_log:error("Need more nodes, required = ~p, actual = ~p", 
+                    system_log:error("Need more nodes, required = ~p, actual = ~p",
                         [mzb_utility:int_ceil(S/PN), NumNodes]),
                     erlang:error({not_enough_nodes})
             end,
@@ -281,7 +281,7 @@ worker_start_delay(#operation{name = poisson, args = [#constant{value = Lambda, 
     SleepTime = -(1000*Factor*math:log(random:uniform()))/Lambda,
     timer:sleep(erlang:round(SleepTime));
 worker_start_delay(#operation{name = linear, args = [#constant{value = RPS, units = rps}]}, _, WId, StartTime) ->
-    sleep_off(StartTime, (WId * 1000) div RPS);
+    sleep_off(StartTime, trunc((WId * 1000) / RPS));
 worker_start_delay(#operation{name = pow, args = [Y, W, #constant{value = T, units = ms}]}, _, WId, StartTime) ->
     sleep_off(StartTime, erlang:round(T*(math:pow(WId/W, 1/Y))));
 worker_start_delay(#operation{name = exp, args = [_, _]}, _, 0, _) -> ok;
