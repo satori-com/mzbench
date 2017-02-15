@@ -210,7 +210,7 @@ Executing make -C /path/to/mzbench/bin/../server generate
 <h3 id="start">start<a class="headerlink" href="#start" title="Permanent link">&para;</a></h3>
 <pre><code class="bash">$ mzbench start --env foo=bar --nodes=5 foo.bdl
 {
-    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;status&quot;: &quot;pending&quot;,
     &quot;id&quot;: 86
 }
 </code></pre>
@@ -239,15 +239,13 @@ Executing make -C /path/to/mzbench/bin/../server generate
 <dd>Skip node deallocation after the benchmark.</dd>
 <dt><code>--provision_nodes false</code></dt>
 <dd>Skip MZBench installation on the nodes.</dd>
-<dt><code>--exclusive_node_usage false</code></dt>
-<dd>Allow multiple nodes to be hosted on the same physical machine, i.e. do not allocate a physical machine exclusively for each node.</dd>
 <dt><code>--node_commit=&lt;commit&gt;</code></dt>
 <dd>Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.</dd>
 </dl>
 <h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
 <pre><code class="bash">$ mzbench run --env foo=bar --nodes=5 foo.bdl
 {
-    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;status&quot;: &quot;pending&quot;,
     &quot;id&quot;: 86
 }
 </code></pre>
@@ -289,7 +287,7 @@ ok
 <h3 id="status">status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h3>
 <pre><code class="bash">$ mzbench status 86
 {
-    &quot;status&quot;: &quot;provisioning&quot;, 
+    &quot;status&quot;: &quot;provisioning&quot;,
     &quot;start_time&quot;: &quot;2015-11-18T13:52:04Z&quot;
 }
 </code></pre>
@@ -343,7 +341,7 @@ Start of userlog for bench 89
 <pre><code class="bash">$ ./bin/mzbench data 89
 [
     {
-        &quot;target&quot;: &quot;workers.pool1.km.ended.rps.value&quot;, 
+        &quot;target&quot;: &quot;workers.pool1.km.ended.rps.value&quot;,
         &quot;datapoints&quot;: [
 ...
 </code></pre>
