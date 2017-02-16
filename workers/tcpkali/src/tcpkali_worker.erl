@@ -105,15 +105,23 @@ parse(Bin) ->
 report(<<>>) -> ok;
 report(Bin) ->
     case binary:split(Bin, [<<"|">>, <<":">>], [global]) of
-        [Metric, Value, Type] -> ValueInt = binary_to_integer(Value),
+        [Metric, Value, Type|_] ->
                                  MetricStr = binary_to_list(Metric),
-                                 TypeAtom = case Type of
-                                                <<"c">> -> counter;
-                                                <<"g">> -> gauge;
+                                 {TypeAtom, ValueInt} = case Type of
+                                                <<"c">> -> {counter, parse_int(Value)};
+                                                <<"g">> -> {gauge, parse_int(Value)};
                                                 _ -> lager:info("Unknown type ~p", [Type]), gauge
                                             end,
                                  mzb_metrics:notify({MetricStr, TypeAtom}, ValueInt);
-        _ -> lager:info("Unknown format")
+        _ -> lager:info("Unknown format: ~s", [Bin])
+    end.
+
+parse_int(Bin) ->
+    try erlang:binary_to_integer(Bin) of
+        V -> V
+    catch
+        _:_ ->
+            erlang:round(erlang:binary_to_float(Bin))
     end.
 
 accept(Socket) ->
