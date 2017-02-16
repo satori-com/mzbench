@@ -27,6 +27,7 @@
 
 -spec initial_state() -> state().
 initial_state() ->
+    application:set_env(hackney, use_default_pool, false),
     #state{}.
 
 -spec metrics() -> list().
