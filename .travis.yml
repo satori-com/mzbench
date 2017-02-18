@@ -33,7 +33,6 @@ addons:
       - python-virtualenv
       - parallel
       - nodejs
-      - npm
 
 cache:
   directories:
