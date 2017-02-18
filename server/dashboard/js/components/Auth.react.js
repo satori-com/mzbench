@@ -12,13 +12,13 @@ class Auth extends React.Component {
     constructor(props) {
         super(props);
         this.state = this._resolveState();
-        this.mounted = false;
+        this.state.wait_resp = false;
         this._onChange = this._onChange.bind(this);
+        this.onAuthReq = this.onAuthReq.bind(this);
     }
 
     componentDidMount() {
         $(ReactDOM.findDOMNode(this.refs.authModal)).modal({backdrop: "static", show: true});
-        this.mounted = true;
         AuthStore.onChange(this._onChange);
     }
 
@@ -26,6 +26,10 @@ class Auth extends React.Component {
         AuthStore.off(this._onChange);
         this.serverRequest.abort();
         MZBenchActions.unsubscribeBenchTimeline();
+    }
+
+    componentDidUpdate(oldProps, oldState) {
+        this.state.authRequired ? this.open() : this.close();
     }
 
     open() {
@@ -37,7 +41,20 @@ class Auth extends React.Component {
     }
 
     _onChange() {
-        this.setState(this._resolveState());
+        let s = this._resolveState();
+        if (!this.state.authRequired && s.authRequired) s.wait_resp = false;
+        this.setState(s);
+    }
+
+    onAuthReq(event, type) {
+        event.preventDefault();
+        this.setState({wait_resp: true});
+        if (type == "google") {
+            AuthStore.onGoogleSigninReq();
+        } else if (type == "github") {
+            let methods = this.state.supportedMethods;
+            AuthStore.onGithubSigninReq(methods.github.url, methods.github.id);
+        }
     }
 
     onSignOut(event) {
@@ -63,16 +80,26 @@ class Auth extends React.Component {
         let methods = this.state.supportedMethods;
         let modalWindow = (<div ref="authModal" className="modal fade">
                     <div className="modal-sign-in-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h4 className="modal-title sign-in-header">{this.props.title}</h4>
+                        {
+                            (!this.state.wait_resp) ?
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h4 className="modal-title sign-in-header">{this.props.title}</h4>
+                                </div>
+                                <div className="modal-body">
+                                    {methods && methods.google ? <button type="button" className="btn btn-block btn-social btn-google" onClick={(e) => this.onAuthReq(e, "google")}>Google</button> : null}
+                                    {methods && methods.github ? <button type="button" className="btn btn-block btn-social btn-github" onClick={(e) => this.onAuthReq(e, "github")}>GitHub</button> : null}
+                                </div>
+                            </div> :
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h4 className="modal-title sign-in-header">Signing in</h4>
+                                </div>
+                                <div className="modal-body text-center">
+                                    <span className="glyphicon glyphicon-refresh glyphicon-spin"></span>
+                                </div>
                             </div>
-
-                            <div className="modal-body">
-                                {methods && methods.google ? <button type="button" className="btn btn-block btn-social btn-google" onClick={(event) => {event.preventDefault(); AuthStore.onGoogleSigninReq();}}>Google</button> : null}
-                                {methods && methods.github ? <button type="button" className="btn btn-block btn-social btn-github" onClick={(event) => {event.preventDefault(); AuthStore.onGithubSigninReq(methods.github.url, methods.github.id);}}>GitHub</button> : null}
-                            </div>
-                        </div>
+                        }
                     </div>
                 </div>)
 
@@ -128,15 +155,9 @@ class Auth extends React.Component {
     }
 
     _resolveState() {
-        let needShowSignIn = AuthStore.isAuthRequired();
-        if (this.mounted) {
-            needShowSignIn ? this.open() : this.close();
-        }
-        let support = AuthStore.supportedAuthMethods();
-
-
         return {
-            supportedMethods: support,
+            authRequired: AuthStore.isAuthRequired(),
+            supportedMethods: AuthStore.supportedAuthMethods(),
             userLogin: AuthStore.userLogin(),
             userName: AuthStore.userName(),
             userPic: AuthStore.userPic(),
