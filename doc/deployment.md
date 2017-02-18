@@ -152,7 +152,8 @@ API server supports Google and GitHub auth.
 ```erlang
 {user_authentication,
          [
-          {"google", [{client_id, "..."},
+          {"google", [{caption, "Google"},
+                      {client_id, "..."},
                       {client_secret, "..."},
                       {redirect_url, "http://localhost:4800"}]}
          ]
@@ -166,7 +167,8 @@ API server supports Google and GitHub auth.
 ```erlang
 {user_authentication,
          [
-          {"github", [{client_id, "..."},
+          {"github", [{caption, "GitHub"},
+                      {client_id, "..."},
                       {client_secret, "..."}]}
          ]
      }
