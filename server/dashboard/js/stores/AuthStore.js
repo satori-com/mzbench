@@ -80,6 +80,14 @@ class AuthStore extends EventEmitter {
         });
     }
 
+    onAuthReq(method) {
+        if (method == "google") {
+            this.onGoogleSigninReq();
+        } else if (method == "github") {
+            this.onGithubSigninReq();
+        }
+    }
+
     onGoogleSigninReq() {
         let auth2 = window.gapi.auth2.getAuthInstance();
         auth2.grantOfflineAccess({'redirect_uri': 'postmessage'}).then(
@@ -95,7 +103,9 @@ class AuthStore extends EventEmitter {
             });
     }
 
-    onGithubSigninReq(url, id) {
+    onGithubSigninReq() {
+        let url = this.authMethods.github.url;
+        let id = this.authMethods.github.id;
         // redirect to github page for authentication and setting url to get back to the same page
         window.location.href =
             url + "/login/oauth/authorize?client_id="+id+"&allow_signup=false&redirect_uri=" +

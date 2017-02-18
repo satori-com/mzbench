@@ -46,15 +46,10 @@ class Auth extends React.Component {
         this.setState(s);
     }
 
-    onAuthReq(event, type) {
+    onAuthReq(event, method) {
         event.preventDefault();
         this.setState({wait_resp: true});
-        if (type == "google") {
-            AuthStore.onGoogleSigninReq();
-        } else if (type == "github") {
-            let methods = this.state.supportedMethods;
-            AuthStore.onGithubSigninReq(methods.github.url, methods.github.id);
-        }
+        AuthStore.onAuthReq(method);
     }
 
     onSignOut(event) {
@@ -87,8 +82,10 @@ class Auth extends React.Component {
                                     <h4 className="modal-title sign-in-header">{this.props.title}</h4>
                                 </div>
                                 <div className="modal-body">
-                                    {methods && methods.google ? <button type="button" className="btn btn-block btn-social btn-google" onClick={(e) => this.onAuthReq(e, "google")}>Google</button> : null}
-                                    {methods && methods.github ? <button type="button" className="btn btn-block btn-social btn-github" onClick={(e) => this.onAuthReq(e, "github")}>GitHub</button> : null}
+                                    {Object.keys(methods).map((m, i) => {
+                                            let btnClass = `btn btn-block btn-social btn-${m}`;
+                                            return (<button key={""+m+i} type="button" className={btnClass} onClick={(e) => this.onAuthReq(e, m)}>{methods[m].caption}</button>);
+                                        })}
                                 </div>
                             </div> :
                             <div className="modal-content">

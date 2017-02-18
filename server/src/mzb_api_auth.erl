@@ -35,7 +35,7 @@ cookie_name() -> <<"mzbench-token">>.
 
 get_auth_methods() ->
     List = get_methods(),
-    [{Type, [{id, mzb_bc:maps_get(client_id, Opts, "")}] ++
+    [{Type, [{id, mzb_bc:maps_get(client_id, Opts, "")}, {caption, mzb_bc:maps_get(caption, Opts, Type)}] ++
             [{url, URL} || URL <- [mzb_bc:maps_get(url, Opts, undefined)], URL /= undefined]} || {Type, Opts} <- List].
 
 auth_connection(ConnectionPid, "anonymous", _) ->
