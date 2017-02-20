@@ -105,6 +105,8 @@ Optional params:
 `--node_commit=<commit>`
 :   Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.
 
+`--exclusive=<label>`
+:   Benchmarks with the same label couldn't be executed simultaneously, any further benches with this label will be blocked until its execution finishes.
 
 ### run
 

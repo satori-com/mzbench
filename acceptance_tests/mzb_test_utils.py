@@ -112,8 +112,6 @@ def run_bench(name=None, worker_package_with_default_scenario=None, nodes=None,
 
         if name is not None:
             invocation = mzbench_dir + 'bin/mzbench ' + flags + ' start ' + name
-        elif worker_package_with_default_scenario is not None:
-            invocation = mzbench_dir + 'bin/mzbench ' + flags + ' start_default_scenario_of_worker ' + worker_package_with_default_scenario
         else:
             raise RuntimeError('Neither script filename nor default scenario package provided.')
 
@@ -216,6 +214,22 @@ def restart_bench(bench_id):
             '--host=localhost:4800',
             'restart',
             str(bench_id)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    restart_out, restart_err = restart.communicate()
+
+    try:
+        return json.loads(restart_out)['id']
+    except Exception:
+        print 'mzbench restart returned invalid json:\nOutput: {0}\nStderr: {1}'.format(restart_out, restart_err)
+        raise
+
+def start_simple_bench(name, additional):
+    restart = subprocess.Popen(
+        [mzbench_dir + 'bin/mzbench',
+            '--host=localhost:4800',
+            'start',
+            name, additional],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
     restart_out, restart_err = restart.communicate()

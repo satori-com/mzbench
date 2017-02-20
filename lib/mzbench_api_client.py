@@ -20,7 +20,8 @@ class MZBenchAPIException(Exception):
 def start(host, script_file, script_content,
           node_commit = None, nodes = None, workers_per_node = None, deallocate_after_bench = None,
           provision_nodes = None, benchmark_name = None,
-          cloud = None, tags = None, emails=[], includes=[], env={}, no_cert_check = False
+          cloud = None, tags = None, emails=[], includes=[], env={}, no_cert_check = False,
+          exclusive = None
         ):
     """Starts a bench
 
@@ -48,6 +49,8 @@ def start(host, script_file, script_content,
     :type tags: str
     :param no_cert_check: Don't check server HTTPS certificate
     :type no_cert_check: boolean
+    :param exclusive: Exclusive label
+    :type exclusive: str or unicode
     :param emails: Emails to notify on bench results
     :type emails: List of strings
     :param env: Dictionary of environment variables to substitute
@@ -87,6 +90,8 @@ def start(host, script_file, script_content,
         params += [('cloud', cloud)]
     if tags is not None:
         params += [('tags', tags)]
+    if exclusive is not None:
+        params += [('exclusive', exclusive)]
     if node_commit is not None:
         params += [('node_commit', node_commit)]
 

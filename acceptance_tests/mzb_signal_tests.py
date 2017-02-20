@@ -8,7 +8,7 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
 sys.path.append("../lib")
 
-from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbench_server
+from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbench_server, start_simple_bench
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
@@ -60,6 +60,17 @@ def nobody_sets_signal_in_loop_test():
 def dynamic_deadlock_test():
     run_failing_bench(scripts_bdl_dir + 'signal_dyn_deadlock.bdl',
         expected_log_message_regex=r'Dynamic deadlock detected')
+
+def exclusive_test():
+    id1 = start_simple_bench(mzbench_dir + 'examples.bdl/comb.bdl', '--exclusive=tagA')
+    id2 = start_simple_bench(mzbench_dir + 'examples.bdl/comb.bdl', '--exclusive=tagA')
+    if wait_status(id1, 'running', 240):
+        if wait_status(id2, 'wait_exclusive', 240):
+            return wait_status(id2, 'complete', 240)
+        else:
+            return False
+    else:
+        return False
 
 def main():
     from nose.plugins.multiprocess import MultiProcess
