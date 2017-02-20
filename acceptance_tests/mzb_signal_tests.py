@@ -8,7 +8,7 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
 sys.path.append("../lib")
 
-from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbench_server, start_simple_bench
+from mzb_test_utils import run_successful_bench, run_failing_bench, start_mzbench_server, start_simple_bench, wait_status
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
