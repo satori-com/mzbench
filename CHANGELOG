@@ -1,3 +1,14 @@
+20 Feb 2016 Version 0.5.1
+ * Google and Github authorization
+ * Access lists
+ * Improved variable edit
+ * Cassandra worker
+ * MongoDB worker
+ * PostgeSQL worker
+ * MySQL worker
+ * RPM build
+ * no-auto-rebuild mode
+
 6 Dec 2016 Version 0.5.0 Arobase
  * Python virtualenv
  * Support for TLS
@@ -30,7 +41,7 @@
  * Static host list in configuration
  * Number of active workers metric
 
-14 Aug 2015 version 0.3.6  
+14 Aug 2015 version 0.3.6
  * Expose MZBench API
  * Print out server state when trying to start
  * Exec worker logs and worker_id passing
@@ -52,10 +63,10 @@
 30 May 2015
  * Open-source product documentation
  * AWS connector
- * Ability to use hostedgraphite.com 
+ * Ability to use hostedgraphite.com
 
 15 May 2015
- * Workers as git repos 
+ * Workers as git repos
 
 30 Apr 2015
  * Dedicated director node
