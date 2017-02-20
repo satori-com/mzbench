@@ -311,7 +311,7 @@ def pretty_print(data):
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes,
-        name, cloud, tags, env, no_cert_check = False, exclusive):
+        name, cloud, tags, env, no_cert_check = False, exclusive = None):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
         name, cloud, tags, env, no_cert_check, exclusive)
@@ -322,7 +322,7 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          name, cloud, tags, env, no_cert_check = False, exclusive):
+          name, cloud, tags, env, no_cert_check = False, exclusive = None):
     try:
         response = api.start(host,
             script_file,
