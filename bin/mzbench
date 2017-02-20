@@ -37,6 +37,7 @@ Usage:
     [--name=<benchmark_name>]
     [--cloud=<cloud_provider_name>]
     [--tags=<tags>]
+    [--exclusive=<label>]
     <script_file>
   mzbench [--host=<host>] [--no_cert_check] restart <bench_id>
   mzbench [--host=<host>] [--no_cert_check] status [--wait] <bench_id>
@@ -112,6 +113,10 @@ Options:
     --cloud <cloud_provider_name>
                      Specify cloud provider to use. If not set server will use
                      first available provider.
+    --exclusive <label>
+                     Benchmarks with the same label couldn't be executed
+                     simultaneously, any further benches with this label
+                     will be blocked until its execution finishes.
     --env <name=value>
                      Pass a variable to script"""
 
@@ -306,10 +311,10 @@ def pretty_print(data):
 
 def run(host, script_file, script_content, email, nodes, workers_per_node,
         node_commit, deallocate_after_bench, provision_nodes,
-        name, cloud, tags, env, no_cert_check = False):
+        name, cloud, tags, env, no_cert_check = False, exclusive = None):
     bench_id = start(host, script_file, script_content, email, node_commit,
         nodes, workers_per_node, deallocate_after_bench, provision_nodes,
-        name, cloud, tags, env, no_cert_check = no_cert_check)
+        name, cloud, tags, env, no_cert_check, exclusive)
     response = status(host, bench_id, wait=True, no_cert_check = no_cert_check)
     if response[u'status'] == u'failed':
         print('Bench failed')
@@ -317,7 +322,7 @@ def run(host, script_file, script_content, email, nodes, workers_per_node,
 
 def start(host, script_file, script_content, email, node_commit, nodes,
           workers_per_node, deallocate_after_bench, provision_nodes,
-          name, cloud, tags, env, no_cert_check = False):
+          name, cloud, tags, env, no_cert_check = False, exclusive = None):
     try:
         response = api.start(host,
             script_file,
@@ -332,7 +337,8 @@ def start(host, script_file, script_content, email, node_commit, nodes,
             env=env,
             nodes=nodes,
             workers_per_node=workers_per_node,
-            no_cert_check=no_cert_check)
+            no_cert_check=no_cert_check,
+            exclusive=exclusive)
         pretty_print(response)
         return response['id']
     except erl_terms.ParseError as e:
