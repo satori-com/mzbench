@@ -11,6 +11,34 @@ Here's how you install and configure MZBench for real-life use.
 
 # Installation
 
+## From RPM and Pip
+
+Available for CentOS 7 and Amazon Linux.
+
+Requirement:
+
+ - [Pip]((https://pip.pypa.io/en/stable/)) Python package manager
+
+Download MZBench RPM from [Github releases page](https://github.com/machinezone/mzbench/releases)
+
+```bash
+# Install RPM
+sudo yum install -y <rpm_file_downloaded_from_github_releases>
+
+# Install Python package
+sudo pip install mzbench_api_client
+
+# Start the server
+mzbench start_server
+```
+
+MZBench server from RPM has all [Github workers](https://github.com/machinezone/mzbench/tree/master/workers) bundled.
+If you need to add a worker to this installation, please use `mzbench add_worker <tgz_file>`
+command. Please refer to ["How to write your own worker"](doc/workers.md#how-to-write-a-worker)
+guide to learn more about generation of this tarball.
+
+## From sources
+
 Requirements:
 
  - [Erlang R17+](http://www.erlang.org)
@@ -21,10 +49,10 @@ Requirements:
 Install and start the MZBench API server:
 
 ```bash
-# Clone the current MZBench source code:
+# Clone the current MZBench source code
 git clone https://github.com/machinezone/mzbench.git
 
-# Install Python requirements:
+# Install Python requirements
 sudo pip install -r mzbench/requirements.txt
 
 # Start the server
