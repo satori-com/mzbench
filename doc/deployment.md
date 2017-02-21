@@ -34,7 +34,7 @@ mzbench start_server
 
 MZBench server from RPM has all [Github workers](https://github.com/machinezone/mzbench/tree/master/workers) bundled.
 If you need to add a worker to this installation, please use `mzbench add_worker <tgz_file>`
-command. Please refer to ["How to write your own worker"](doc/workers.md#how-to-write-a-worker)
+command. Please refer to ["How to write your own worker"](workers.md#how-to-write-a-worker)
 guide to learn more about generation of this tarball.
 
 ## From sources
