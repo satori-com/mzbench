@@ -153,6 +153,10 @@
     
         <li class="main active"><a href="#installation">Installation</a></li>
         
+            <li><a href="#from-rpm-and-pip">From RPM and Pip</a></li>
+        
+            <li><a href="#from-sources">From sources</a></li>
+        
     
         <li class="main "><a href="#configuration">Configuration</a></li>
         
@@ -176,6 +180,28 @@
 allocated on demand on AWS or another cloud provider.</p>
 <p>Here&rsquo;s how you install and configure MZBench for real-life use.</p>
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
+<h2 id="from-rpm-and-pip">From RPM and Pip<a class="headerlink" href="#from-rpm-and-pip" title="Permanent link">&para;</a></h2>
+<p>Available for CentOS 7 and Amazon Linux.</p>
+<p>Requirement:</p>
+<ul>
+<li><a href="../(https://pip.pypa.io/en/stable/)">Pip</a> Python package manager</li>
+</ul>
+<p>Download MZBench RPM from <a href="https://github.com/machinezone/mzbench/releases">Github releases page</a></p>
+<pre><code class="bash"># Install RPM
+sudo yum install -y &lt;rpm_file_downloaded_from_github_releases&gt;
+
+# Install Python package
+sudo pip install mzbench_api_client
+
+# Start the server
+mzbench start_server
+</code></pre>
+
+<p>MZBench server from RPM has all <a href="https://github.com/machinezone/mzbench/tree/master/workers">Github workers</a> bundled.
+If you need to add a worker to this installation, please use <code>mzbench add_worker &lt;tgz_file&gt;</code>
+command. Please refer to <a href="doc/workers.md#how-to-write-a-worker">&ldquo;How to write your own worker&rdquo;</a>
+guide to learn more about generation of this tarball.</p>
+<h2 id="from-sources">From sources<a class="headerlink" href="#from-sources" title="Permanent link">&para;</a></h2>
 <p>Requirements:</p>
 <ul>
 <li><a href="http://www.erlang.org">Erlang R17+</a></li>
@@ -184,10 +210,10 @@ allocated on demand on AWS or another cloud provider.</p>
 <li><a href="../(https://pip.pypa.io/en/stable/)">Pip</a> Python package manager</li>
 </ul>
 <p>Install and start the MZBench API server:</p>
-<pre><code class="bash"># Clone the current MZBench source code:
+<pre><code class="bash"># Clone the current MZBench source code
 git clone https://github.com/machinezone/mzbench.git
 
-# Install Python requirements:
+# Install Python requirements
 sudo pip install -r mzbench/requirements.txt
 
 # Start the server
@@ -278,7 +304,8 @@ sudo pip install -r mzbench/requirements.txt
 </ul>
 <pre><code class="erlang">{user_authentication,
          [
-          {&quot;google&quot;, [{client_id, &quot;...&quot;},
+          {&quot;google&quot;, [{caption, &quot;Google&quot;},
+                      {client_id, &quot;...&quot;},
                       {client_secret, &quot;...&quot;},
                       {redirect_url, &quot;http://localhost:4800&quot;}]}
          ]
@@ -291,7 +318,8 @@ sudo pip install -r mzbench/requirements.txt
 </ul>
 <pre><code class="erlang">{user_authentication,
          [
-          {&quot;github&quot;, [{client_id, &quot;...&quot;},
+          {&quot;github&quot;, [{caption, &quot;GitHub&quot;},
+                      {client_id, &quot;...&quot;},
                       {client_secret, &quot;...&quot;}]}
          ]
      }
