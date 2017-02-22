@@ -75,7 +75,7 @@ include_resource(<ResourceName>, "<FileURL>", <Type>)
 
 Register a [resource file](#resource-files) as `<ResourceName>`.
 
-If the file is on your local machine, put it in the same directory where you invoke `mzbench run`.
+If the file is on your local machine, put it in the same directory where your scenario is.
 
 **`<Type>`** is one of the following atoms:
 
