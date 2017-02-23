@@ -22,6 +22,18 @@ class AuthStore extends EventEmitter {
                   url: MZBenchRouter.buildLink('/auth', {type: "ref"}),
                   contentType: 'application/octet-stream; charset=utf-8',
                   success: this.handleSuccAuth.bind(this),
+                  error: (response) => {
+                        let message = "";
+                        if (response.responseJSON && response.responseJSON.reason) {
+                            message = response.responseJSON.reason;
+                        } else {
+                            message = "Authorization failed";
+                        }
+                        $.notify(
+                            { message: message },
+                            { type: "danger", delay: 5000 }
+                        );
+                      },
                   processData: false
                 });
     }
@@ -34,6 +46,12 @@ class AuthStore extends EventEmitter {
             this.picture = response.user_info.picture_url;
             this.emit(CHANGE_EVENT);
         } else if (response.res == "error"){
+            if (response.reason != "expired") {
+                $.notify(
+                    { message: response.reason },
+                    { type: "danger", delay: 5000 }
+                );
+            }
             this.handleAuthMethodsResponse(response.use);
         }
     }

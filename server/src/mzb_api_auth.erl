@@ -38,24 +38,16 @@ get_auth_methods() ->
     [{Type, [{id, mzb_bc:maps_get(client_id, Opts, "")}, {caption, mzb_bc:maps_get(caption, Opts, Type)}] ++
             [{url, URL} || URL <- [mzb_bc:maps_get(url, Opts, undefined)], URL /= undefined]} || {Type, Opts} <- List].
 
-auth_connection(ConnectionPid, "anonymous", _) ->
-    case get_methods() of
-        [] ->
-            UserInfo =
-                #{
-                    login => "anonymous",
-                    login_type => "undefined",
-                    name => "anonymous",
-                    picture_url => "",
-                    email => ""
-                },
+auth_connection(ConnectionPid, Type, Code) ->
+    case auth(Type, Code) of
+        {ok, UserInfo} ->
             Ref = add_connection(ConnectionPid, UserInfo),
             {ok, Ref, UserInfo};
-        List when is_list(List) ->
-            AuthTypes = [{Type, mzb_bc:maps_get(client_id, Opts, undefined)} || {Type, Opts} <- List],
-            {error, {forbidden, {use, maps:from_list(AuthTypes)}}}
-    end;
-auth_connection(ConnectionPid, "github" = Type, Code) ->
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+auth("github" = Type, Code) ->
     try
         Tokens = github_api_token(Code, get_opts(Type)),
         AccessToken = maps:get(<<"access_token">>, Tokens),
@@ -82,16 +74,15 @@ auth_connection(ConnectionPid, "github" = Type, Code) ->
                         picture_url => binary_to_list(Picture),
                         email => binary_to_list(Email)
                     },
-                Ref = add_connection(ConnectionPid, UserInfo),
-                {ok, Ref, UserInfo};
+                {ok, UserInfo};
             error -> {error, "no_user_email"}
         end
     catch
-        {google_api, Method, Error} ->
-            {error, mzb_string:format("Google ~p return error ~p", [Method, Error])}
+        {github_api, Method, Error} ->
+            {error, mzb_string:format("GitHub ~p return error ~p", [Method, Error])}
     end;
 
-auth_connection(ConnectionPid, "google" = Type, Code) ->
+auth("google" = Type, Code) ->
     try
         Tokens = google_tokens(Code, get_opts(Type)),
         IdToken = maps:get(<<"id_token">>, Tokens),
@@ -108,8 +99,7 @@ auth_connection(ConnectionPid, "google" = Type, Code) ->
                         picture_url => binary_to_list(Picture),
                         email => binary_to_list(Email)
                     },
-                Ref = add_connection(ConnectionPid, UserInfo),
-                {ok, Ref, UserInfo};
+                {ok, UserInfo};
             error -> {error, "no_user_email"}
         end
     catch
@@ -167,7 +157,7 @@ auth_login_access(_, Login, _) -> check_listed_or_fail(Login).
 check_listed_or_fail(Login) ->
     case check_black_white_listed(Login) of
         ok -> Login;
-        fail -> erlang:error(forbidden)
+        error -> erlang:error(forbidden)
     end.
 
 sign_out_connection(Ref) ->
@@ -247,7 +237,7 @@ handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{star
                         ok ->
                             EditToken = insert(ConnectionPid, Ref, UserInfo, StartId),
                             {reply, {ok, UserInfo, EditToken}, State};
-                        fail -> {reply, {error, forbidden}, State}
+                        error -> {reply, {error, user_not_found}, State}
                     end;
                 {error, Reason} ->
                     {reply, {error, Reason}, State}
@@ -427,12 +417,12 @@ check_black_white_listed(Login) ->
     BlackList = application:get_env(mzbench_api, black_list, []),
     WhiteList = application:get_env(mzbench_api, white_list, []),
     case lists:member(Login, BlackList) of
-        true -> fail;
+        true -> error;
         false -> if WhiteList == [] -> ok;
                     true ->
                         case lists:member(Login, WhiteList) of
                             true -> ok;
-                            false -> fail
+                            false -> error
                         end
                  end
     end.
