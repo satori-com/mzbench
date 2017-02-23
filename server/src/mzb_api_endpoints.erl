@@ -59,15 +59,18 @@ authorize(Method, Path, Req) ->
 
 handle(<<"GET">>, <<"/github_auth">>, _, Req) ->
     #{code:= Code, url:= URL} = cowboy_req:match_qs([{code, nonempty}, {url, nonempty}], Req),
-    case mzb_api_auth:auth_connection(undefined, "github", Code) of
-        {ok, Ref, _UserInfo} ->
-            Req2 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), Ref,
-                    [{http_only, true}], Req),
-            {ok, reply_redirect(303, URL, Req2), #{}};
-        {error, Reason} ->
-            lager:error("Authentication error: ~p", [Reason]),
-            erlang:error(forbidden)
-    end;
+    Req2 =
+        case mzb_api_auth:auth_connection(undefined, "github", Code) of
+            {ok, Ref, _UserInfo} ->
+                cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), Ref,
+                    [{http_only, true}], Req);
+            {error, Reason} ->
+                lager:error("Authentication error: ~p", [Reason]),
+                Req
+        end,
+    % we have to return redirect in any case because user is being redirected from github to ./github_auth
+    % and we want the user to get back to the dashboard
+    {ok, reply_redirect(303, URL, Req2), #{}};
 
 handle(<<"POST">>, <<"/auth">>, _, Req) ->
     Type =
