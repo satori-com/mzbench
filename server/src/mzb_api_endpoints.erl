@@ -101,8 +101,16 @@ handle(<<"POST">>, <<"/auth">>, _, Req) ->
                             name => list_to_binary(UserName),
                             picture_url => list_to_binary(UserPic)
                           }}, Req), #{}};
-                {error, _Reason} ->
-                    {ok, reply_json(200, #{res => <<"error">>, reason => <<"expired">>, use => AuthList}, Req), #{}}
+                {error, Reason} ->
+
+                    Req2 = cowboy_req:set_resp_cookie(mzb_api_auth:cookie_name(), <<>>,
+                            [{http_only, true}, {max_age, 0}], Req),
+                    ReplyReason =
+                        case Reason of
+                            user_not_found -> <<"User not found">>;
+                            _ -> <<"expired">>
+                        end,
+                    {ok, reply_json(200, #{res => <<"error">>, reason => ReplyReason, use => AuthList}, Req2), #{}}
             end;
 
         _ ->
