@@ -38,6 +38,16 @@ metrics() ->
                       metrics => [{"tcpkali.traffic.bitrate", gauge},
                                   {"tcpkali.traffic.bitrate.in", gauge},
                                   {"tcpkali.traffic.bitrate.out", gauge}]}},
+
+            {graph, #{title => "Traffic data",
+                      units => "N",
+                      metrics => [{"tcpkali.traffic.data", counter},
+                                  {"tcpkali.traffic.data.rcvd", counter},
+                                  {"tcpkali.traffic.data.sent", counter}]}},
+            {graph, #{title => "Messages",
+                      units => "N",
+                      metrics => [{"tcpkali.traffic.msgs.sent", counter},
+                                  {"tcpkali.traffic.msgs.rcvd", counter}]}},
             {graph, #{title => "Latency",
                       units => "ms",
                       metrics => [{"tcpkali.latency.message.mean", gauge},
@@ -45,14 +55,7 @@ metrics() ->
                                   {"tcpkali.latency.message.95", gauge},
                                   {"tcpkali.latency.message.99", gauge},
                                   {"tcpkali.latency.message.99.5", gauge},
-                                  {"tcpkali.latency.message.max", gauge}]}},
-            {graph, #{title => "Traffic data",
-                      units => "N",
-                      metrics => [{"tcpkali.traffic.data", counter},
-                                  {"tcpkali.traffic.data.rcvd", counter},
-                                  {"tcpkali.traffic.data.sent", counter},
-                                  {"tcpkali.traffic.data.reads", counter},
-                                  {"tcpkali.traffic.data.writes", counter}]}}
+                                  {"tcpkali.latency.message.max", gauge}]}}
         ]}
     ].
 
