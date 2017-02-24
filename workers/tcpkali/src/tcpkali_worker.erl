@@ -40,12 +40,12 @@ metrics() ->
                                   {"tcpkali.traffic.bitrate.out", gauge}]}},
             {graph, #{title => "Latency",
                       units => "ms",
-                      metrics => [{"latency.mean", gauge},
-                                  {"latency.50", gauge},
-                                  {"latency.95", gauge},
-                                  {"latency.99", gauge},
-                                  {"latency.99.5", gauge},
-                                  {"latency.max", gauge}]}},
+                      metrics => [{"tcpkali.latency.message.mean", gauge},
+                                  {"tcpkali.latency.message.50", gauge},
+                                  {"tcpkali.latency.message.95", gauge},
+                                  {"tcpkali.latency.message.99", gauge},
+                                  {"tcpkali.latency.message.99.5", gauge},
+                                  {"tcpkali.latency.message.max", gauge}]}},
             {graph, #{title => "Traffic data",
                       units => "N",
                       metrics => [{"tcpkali.traffic.data", counter},
@@ -57,7 +57,8 @@ metrics() ->
     ].
 
 start(#state{executable = Exec} = State, _Meta, Options) ->
-    Command = Exec ++ lists:foldr(fun({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
+    Command = Exec ++ lists:foldr(fun({raw, Raw}, A) -> A ++ " " ++ Raw;
+                        ({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
                         ({Opt, Val}, A) ->
                             L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
                             Val2 = prepare_val(Val),
