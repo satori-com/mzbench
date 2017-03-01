@@ -236,7 +236,7 @@ evaluate_derived_metrics(#s{metric_groups = MetricGroups} = State) ->
             _:Reason -> system_log:error("Failed to evaluate derived metrics:~nWorker: ~p~nFunction: ~p~nReason: ~p~nStacktrace: ~p~n", [Worker, Resolver, Reason, erlang:get_stacktrace()])
         end
     end, DerivedMetrics),
-    system_log:info("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
+    system_log:debug("[ metrics ] Current metrics values:~n~s", [format_global_metrics()]),
     NewState.
 
 check_dynamic_deadlock(#s{} = State) ->
