@@ -95,29 +95,25 @@ ntp_check(_, [H], Logger) ->
     Logger(info, "There's only one host, no need to make ntp check", []),
     [{H, 0}];
 ntp_check(UserName, Hosts, Logger) ->
-    MaxTimeDiff = application:get_env(mzbench_api, ntp_max_timediff_s, undefined),
-    try lists:map(fun(X) ->
-        [_, T | _] = lists:reverse(string:tokens(X, " \n")),
-        {F, []} = string:to_float(T), erlang:round(?MICROSEC_IN_SEC*F) end,
-        mzb_subprocess:remote_cmd(UserName, Hosts, "ntpdate -q pool.ntp.org", [], Logger)) of
-        Offsets ->
+    case application:get_env(mzbench_api, ntp_max_timediff_s, undefined) of
+        undefined -> [{H, undefined} || H <- Hosts];
+        MaxTimeDiff ->
+            NTPRes = mzb_subprocess:remote_cmd(UserName, Hosts, "ntpdate -q pool.ntp.org", [], Logger),
+            Offsets = lists:map(
+                    fun(X) ->
+                        [_, T | _] = lists:reverse(string:tokens(X, " \n")),
+                        {F, []} = string:to_float(T),
+                        erlang:round(?MICROSEC_IN_SEC*F)
+                    end, NTPRes),
             TimeDiff = lists:max(Offsets) - lists:min(Offsets),
             Logger(info, "NTP time diffs are: ~p, max distance is ~p microsecond", [Offsets, TimeDiff]),
-            case MaxTimeDiff of
-                undefined -> ok;
-                _  when ?MICROSEC_IN_SEC * MaxTimeDiff >= TimeDiff -> ok;
-                _ ->
+            case ?MICROSEC_IN_SEC * MaxTimeDiff >= TimeDiff of
+                true -> ok;
+                false ->
                     Logger(error, "NTP CHECK FAILED, max time different is ~p microseconds", [TimeDiff]),
                     erlang:error({ntp_check_failed, TimeDiff})
             end,
             lists:zip(Hosts, Offsets)
-    catch
-        _:Error when MaxTimeDiff == undefined ->
-            Logger(error, "NTP check crashed: ~p~n~p", [Error, erlang:get_stacktrace()]),
-            [{H, undefined} || H <- Hosts];
-        _:Error ->
-            Logger(error, "NTP check crashed: ~p~n~p", [Error, erlang:get_stacktrace()]),
-            erlang:error({ntp_call_crashed, Error})
     end.
 
 nodename(Name, N) ->
