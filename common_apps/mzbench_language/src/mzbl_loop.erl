@@ -178,7 +178,7 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone) ->
+timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldRun) ->
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),
