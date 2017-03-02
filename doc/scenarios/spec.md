@@ -468,9 +468,11 @@ random_number(<Min>, <Max>)
 random_number(<Max>)
 ```
 
-Return a random number between `<Min>` and `<Max>`, including `<Min>` and not including `<Max>`.
+Return a random positive integer between `<Min>` and `<Max>`, including `<Min>` and not including `<Max>`.
 
 `random_number(<Max>)` is equivalent to `random_number(0, <Max>)`
+
+`random_number` functions use a `crypto` Erlang library to generate random numbers, see [Erlang documentation](http://erlang.org/doc/man/crypto.html) if you need more info.
 
 ### random_list
 
