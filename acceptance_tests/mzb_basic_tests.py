@@ -80,7 +80,7 @@ def vars_defaults_test():
     def check_log(log):
         regexp1 = re.compile('the_var1_value_is_var1_default_value', re.DOTALL + re.UNICODE)
         regexp2 = re.compile('the_var2_value_is_var2_new_value', re.DOTALL + re.UNICODE)
-        
+
         if regexp1.search(log) and regexp2.search(log):
             return False
         else:
@@ -230,9 +230,6 @@ def assertions_succ_test():
     run_successful_bench(mzbench_dir + 'examples.bdl/assertions.bdl', env={})
 
 
-def loop_assert_test():
-    run_successful_bench(scripts_bdl_dir + 'loop_while.bdl', env={})
-
 def ignore_failure_test():
     run_successful_bench(scripts_dir + 'ignore_failure_test.erl')
     run_successful_bench(scripts_bdl_dir + 'ignore_failure_test.bdl')
@@ -358,4 +355,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

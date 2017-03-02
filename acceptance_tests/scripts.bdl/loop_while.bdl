@@ -1,8 +1,0 @@
-#!benchDL
-# assert will exit loop without rasing any error
-pool(size = 1, # one execution "thread"
-     worker_type = dummy_worker):
-    loop(time = 11 h, # total time is 11 hours, script should be terminated by assert
-         rate = 1 rps,
-         while = "print" < 10): # constant rate is 1 operation per second
-        print("FOO") # this operation prints "FOO" to console
