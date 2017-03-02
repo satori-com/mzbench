@@ -96,10 +96,16 @@ def vars_defaults_test():
 
 
 def poisson_worker_start_test():
-    run_successful_bench(mzbench_dir + 'examples/worker_start_poisson.erl',
-        expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')
-    run_successful_bench(mzbench_dir + 'examples.bdl/worker_start_poisson.bdl',
-        expected_log_message_regex='workers\.pool1\.started\.rps = 1\.')
+    bench_id = run_successful_bench(mzbench_dir + 'examples.bdl/worker_start_poisson.bdl')
+
+    output = subprocess.check_output(
+        [mzbench_script,
+            '--host=localhost:4800',
+            '--format=csv',
+            'data',
+            str(bench_id)])
+
+    assert re.compile('workers\.pool1\.started\.rps,.*,1\.', re.UNICODE).search(output)
 
 
 def unicode_resources_test():
