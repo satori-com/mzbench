@@ -34,7 +34,7 @@ logic_plain <- head:logic_op tail:(__ logic_binary __ logic_exp )*
 `;
 logic_binary <- 'and' / 'or'
 `
-case lists:nth(1, Node) of
+case Node of
   <<"and">> -> 'and';
   <<"or">> -> 'or'
 end

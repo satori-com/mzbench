@@ -98,7 +98,7 @@ end end).
 -spec 'logic_binary'(input(), index()) -> parse_result().
 'logic_binary'(Input, Index) ->
   p(Input, Index, 'logic_binary', fun(I,D) -> (p_choose([p_string(<<"and">>), p_string(<<"or">>)]))(I,D) end, fun(Node, _Idx) ->
-case lists:nth(1, Node) of
+case Node of
   <<"and">> -> 'and';
   <<"or">> -> 'or'
 end
