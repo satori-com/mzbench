@@ -11,12 +11,28 @@
     validate_function/3]).
 
 validate(Module) ->
+    add_pathsz(Module),
     try Module:module_info() of
         _InfoList -> []
     catch
         _:_ ->
             [mzb_string:format("Couldn't get module info for ~p", [Module])]
     end.
+
+add_pathsz(Module) ->
+    {ok, WorkerDirs} = application:get_env(mzbench, workers_dirs),
+
+    CodeWildcards =
+        [filename:join([D, Module, "ebin"])              || D <- WorkerDirs] ++
+        [filename:join([D, Module, "deps", "*", "ebin"]) || D <- WorkerDirs] ++
+        [filename:join([D, Module, "apps", "*", "ebin"]) || D <- WorkerDirs],
+
+    CodePaths = [File || WC <- CodeWildcards, File <- mzb_file:wildcard(WC)],
+
+    system_log:info("Add worker paths: ~p", [CodePaths]),
+
+    code:add_pathsz([filename:absname(P) || P <- CodePaths]).
+
 
 validate_function(Module, Fn, Arity) ->
     Fns = Module:module_info(exports),
@@ -30,6 +46,7 @@ validate_function(Module, Fn, Arity) ->
     end.
 
 load(Worker) ->
+    add_pathsz(Worker),
     WorkerName = case apply_if_exists(Worker, worker_info, []) of
                      {ok, WorkerInfo} ->
                          proplists:get_value(worker_name, WorkerInfo, Worker);
@@ -112,4 +129,3 @@ load_config([File|T]) ->
         {error, Reason} ->
             system_log:error("Could not open file ~p, reason ~p", [File, Reason])
     end.
-
