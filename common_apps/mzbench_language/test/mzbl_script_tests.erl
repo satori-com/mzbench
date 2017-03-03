@@ -114,6 +114,14 @@ rsync_bdl_test() ->
        "#!benchDL\n"
        "make_install(rsync = \"../somewhere/nearby/\")").
 
+assert_bdl_test() ->
+   Res = mzbl_script:read_from_string("#!benchDL\n"
+   "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 1.5)) # "),
+   ?assertEqual([#operation{name = assert, args = [always,
+             {call,'and',[{call,gt,["print.rps",1.5],{{line,2},{column,17}}},
+                    {call,'not',[{call,lt, ["print.rps",1.5], {{line,2},{column,45}}}]}]}],
+            meta=[{line,2},{column,1}], is_std = false}], Res).
+
 rsync_with_excludes_test() ->
     install_specs_check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "node", excludes = ["deps", "ebin"]}],
        "[{make_install, [{rsync, \"../somewhere/nearby/\"}, {dir, <<\"node\">>}, {excludes, [\"deps\", \"ebin\"]}]}].").
@@ -133,4 +141,3 @@ extract_while_metrics_test() ->
 install_specs_check(ExpectedInstallSpecs, Script) ->
     AST = mzbl_script:read_from_string(Script),
     ?assertEqual(ExpectedInstallSpecs, mzbl_script:extract_install_specs(AST, [])).
-

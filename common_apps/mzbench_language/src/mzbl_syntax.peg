@@ -24,12 +24,12 @@ value <- unumber / logic_exp / single / list / id / number / string ~;
 logic_exp <- logic_priority / logic_unary / logic_plain ~;
 logic_priority <- '(' __ head:logic_exp ')' tail:(__ logic_binary __ logic_exp )*
 `
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)]} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
 `;
 logic_plain <- head:logic_op tail:(__ logic_binary __ logic_exp )*
 `
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), [E, lists:nth(3, Logic)]} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
 `;
 logic_binary <- 'and' / 'or'

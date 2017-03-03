@@ -84,14 +84,14 @@ end end).
 -spec 'logic_priority'(input(), index()) -> parse_result().
 'logic_priority'(Input, Index) ->
   p(Input, Index, 'logic_priority', fun(I,D) -> (p_seq([p_string(<<"(">>), fun '__'/2, p_label('head', fun 'logic_exp'/2), p_string(<<")">>), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)]} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
  end).
 
 -spec 'logic_plain'(input(), index()) -> parse_result().
 'logic_plain'(Input, Index) ->
   p(Input, Index, 'logic_plain', fun(I,D) -> (p_seq([p_label('head', fun 'logic_op'/2), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), E, lists:nth(3, Logic)} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), [E, lists:nth(3, Logic)]} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
  end).
 
