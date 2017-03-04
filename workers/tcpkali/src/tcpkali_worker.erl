@@ -50,12 +50,20 @@ metrics() ->
                                   {"tcpkali.traffic.msgs.rcvd", counter}]}},
             {graph, #{title => "Latency",
                       units => "ms",
-                      metrics => [{"tcpkali.latency.message.mean", gauge},
-                                  {"tcpkali.latency.message.50", gauge},
+                      metrics => [{"tcpkali.latency.message.min", gauge},
+                                  {"tcpkali.latency.message.mean", gauge},
                                   {"tcpkali.latency.message.95", gauge},
                                   {"tcpkali.latency.message.99", gauge},
                                   {"tcpkali.latency.message.99.5", gauge},
-                                  {"tcpkali.latency.message.max", gauge}]}}
+                                  {"tcpkali.latency.message.max", gauge}]}},
+            {graph, #{title => "Latency connect",
+                      units => "ms",
+                      metrics => [{"tcpkali.latency.connect.min", gauge},
+                                  {"tcpkali.latency.connect.mean", gauge},
+                                  {"tcpkali.latency.connect.95", gauge},
+                                  {"tcpkali.latency.connect.99", gauge},
+                                  {"tcpkali.latency.connect.99.5", gauge},
+                                  {"tcpkali.latency.connect.max", gauge}]}}
         ]}
     ].
 
