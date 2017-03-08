@@ -333,7 +333,7 @@ def stream_lines(host, endpoint, args, no_cert_check = False):
     try:
         response = requests.get(
             addproto(host) + endpoint + '?' + urlencode(args),
-            stream=True, verify = not no_cert_check, headers=get_auth_headers())
+            stream=True, verify = not no_cert_check, headers=get_auth_headers(host))
 
         for line in fast_iter_lines(response, chunk_size=1024):
             try:
@@ -404,7 +404,7 @@ def assert_successful_request(perform_request):
 def assert_successful_get(host, endpoint, args, no_cert_check = False):
     return requests.get(
         addproto(host) + endpoint + '?' + urlencode(args),
-        verify=not no_cert_check, headers=get_auth_headers())
+        verify=not no_cert_check, headers=get_auth_headers(host))
 
 
 @assert_successful_request
@@ -412,11 +412,11 @@ def assert_successful_post(host, endpoint, args, data=None, headers=None, no_cer
     return requests.post(
         addproto(host) + endpoint + '?' + urlencode(args),
         data=data,
-        headers=add_auth_headers(headers),
+        headers=add_auth_headers(headers, host),
         verify=not no_cert_check)
 
-def add_auth_headers(headers):
-    auth_headers = get_auth_headers();
+def add_auth_headers(headers, host):
+    auth_headers = get_auth_headers(host);
     if (headers is None):
         return auth_headers;
 
@@ -426,11 +426,27 @@ def add_auth_headers(headers):
     headers.update(auth_headers)
     return headers
 
-def get_auth_headers():
-    token_file = os.path.expanduser("~/.config/mzbench/token")
-    if (os.path.isfile(token_file)):
-        with open(token_file) as f:
-            token = f.read()
-            return {"Authorization": "Bearer {}".format(string.rstrip(token, " \n\r"))}
+def get_auth_headers(host):
+    token = read_token(host)
+    if (token is not None):
+        return {"Authorization": "Bearer {}".format(string.rstrip(token, " \n\r"))}
     else:
         return None
+
+def read_token(host):
+    token_file = os.path.expanduser("~/.config/mzbench/token")
+
+    if (not os.path.isfile(token_file)):
+        return None
+
+    with open(token_file) as f:
+        s = f.read()
+        for line in s.split('\n'):
+            line_no_comments = line.split('#', 1)[0]
+            strtokens = line_no_comments.split()
+            if len(strtokens) > 1 and host == strtokens[0]:
+                return strtokens[1]
+            if len(strtokens) == 1:
+                return line_no_comments
+
+    return None

@@ -169,7 +169,7 @@ except ImportError:
     print(' sudo pip install -r requirements.txt')
     sys.exit(1)
 
-sys.path.append(dirname + "/../lib")
+sys.path.insert(0, dirname + "/../lib")
 sys.dont_write_bytecode = True
 
 import color_terminal
