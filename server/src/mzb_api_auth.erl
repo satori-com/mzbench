@@ -14,6 +14,10 @@
     get_user_table/0 % for debug only
 ]).
 
+-ifdef(TEST).
+-export([check_admin_listed/1, check_black_white_listed/1]).
+-endif.
+
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3, cookie_name/0]).
@@ -411,21 +415,26 @@ get_opts(Type) ->
     end.
 
 check_admin_listed(Login) ->
-    lists:member(Login, application:get_env(mzbench_api, admin_list, [])).
+    list_regexp_check(Login, application:get_env(mzbench_api, admin_list, [])).
 
 check_black_white_listed(Login) ->
     BlackList = application:get_env(mzbench_api, black_list, []),
     WhiteList = application:get_env(mzbench_api, white_list, []),
-    case lists:member(Login, BlackList) of
+    case list_regexp_check(Login, BlackList) of
         true -> error;
         false -> if WhiteList == [] -> ok;
                     true ->
-                        case lists:member(Login, WhiteList) of
+                        case list_regexp_check(Login, WhiteList) of
                             true -> ok;
                             false -> error
                         end
                  end
     end.
+
+list_regexp_check(Name, List) ->
+    lists:any(fun(X) -> case re:run(Name, mzb_string:wildcard_to_regexp(X)) of
+        nomatch -> false;
+        _ -> true end end, List).
 
 remove_connection(_, '$end_of_table') -> ok;
 remove_connection(Pid, NextId) ->
