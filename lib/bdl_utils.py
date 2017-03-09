@@ -118,13 +118,13 @@ def transform(ast):
                 mult = 1000000000
         else:
             num = ast.text
-            mult = 1 
+            mult = 1
         return [float(num)*mult] if "." in num else [int(num)*mult]
     elif ast.expr_name == "boolean":
         return [ast.text=="true"]
     elif ast.expr_name == "string":
         return [ast.text[1:-1].replace(r'\"', '"').replace(r'\\\\', '\\\\')] # "something"
-    elif ast.expr_name == "atom": 
+    elif ast.expr_name == "atom":
         return [ast.text]
     else:
         lis = reduce(lambda a, x: a + transform(x), ast.children, [])
@@ -161,7 +161,7 @@ def lex(text):
     logic_unary = "not" _ logic_exp _
     logic_binary = "and" / "or"
     logic_plain = logic_op _ (logic_binary _ logic_exp _)*
-    logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
+    logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (string / number)
     string = '"' ~r'(\\\\.|[^\\\\"])*' '"'
     number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKM]?"
     unumber = (number / single) _ atom

@@ -24,10 +24,16 @@ validate(#operation{name = assert, args = [Time, Expression], meta = M}) ->
     validate_assert_expr(Expression, M).
 
 validate_assert_expr(Op, _M) when is_number(Op) or is_list(Op) -> [];
-validate_assert_expr(#operation{name = Name, args = [Op1, Op2]}, M) ->
+validate_assert_expr(#operation{name = Name, args = [Op1, Op2], meta = M}, _) ->
     validate_assert_op(Name, M) ++ validate_assert_expr(Op1, M) ++ validate_assert_expr(Op2, M);
+validate_assert_expr(#operation{name = 'not', args = [Op], meta = M}, _) ->
+    validate_assert_expr(Op, M);
+validate_assert_expr(#operation{meta = M}, _) ->
+    invalid_assert(M);
 validate_assert_expr(_Invalid, M) ->
-    [mzb_string:format("~sInvalid assert expression", [mzbl_script:meta_to_location_string(M)])].
+    invalid_assert(M).
+
+invalid_assert(M) -> [mzb_string:format("~sInvalid assert expression", [mzbl_script:meta_to_location_string(M)])].
 
 validate_assert_op('and', _) -> [];
 validate_assert_op('or', _) -> [];
@@ -36,6 +42,7 @@ validate_assert_op(lt, _) -> [];
 validate_assert_op(gte, _) -> [];
 validate_assert_op(lte, _) -> [];
 validate_assert_op(eq, _) -> [];
+validate_assert_op(ne, _) -> [];
 validate_assert_op(Name, M) ->
     [mzb_string:format("~sInvalid assert operation: ~p",
         [mzbl_script:meta_to_location_string(M), Name])].
@@ -103,6 +110,7 @@ check_value(gt, V1, V2) -> V1 > V2;
 check_value(gte, V1, V2) -> V1 >= V2;
 check_value(lt, V1, V2) -> V1 < V2;
 check_value(lte, V1, V2) -> V1 =< V2;
+check_value(ne, V1, V2) -> V1 /= V2;
 check_value(eq, V1, V2) -> V1 == V2.
 
 format_error(#{assert_time:= always, assert_expr:= Expr, unsatisfy_time:= UTime}) ->
@@ -126,7 +134,8 @@ format_op(gt) -> ">";
 format_op(lt) -> "<";
 format_op(gte) -> ">=";
 format_op(lte) -> "<=";
-format_op(eq) -> "==".
+format_op(eq) -> "==";
+format_op(ne) -> "!=".
 
 format_time(always) -> "always";
 format_time(0) -> "0";

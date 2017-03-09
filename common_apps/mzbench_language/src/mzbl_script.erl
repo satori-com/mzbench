@@ -41,9 +41,13 @@ get_real_script_name(Env) ->
 -spec meta_to_location_string(meta()) -> string().
 meta_to_location_string(Meta) ->
     case proplists:get_value(line, Meta) of
+        undefined -> "unknown line";
+        LineNumber -> "line " ++ integer_to_list(LineNumber)
+    end ++
+    case proplists:get_value(column, Meta) of
         undefined -> "";
-        LineNumber -> "line " ++ integer_to_list(LineNumber) ++ ": "
-    end.
+        ColumnNumber -> ", column " ++ integer_to_list(ColumnNumber)
+    end ++ ": ".
 
 -spec read_from_string(string()) -> abstract_expr().
 read_from_string(String) ->

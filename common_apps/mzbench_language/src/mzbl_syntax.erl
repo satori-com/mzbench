@@ -83,15 +83,15 @@ end end).
 
 -spec 'logic_priority'(input(), index()) -> parse_result().
 'logic_priority'(Input, Index) ->
-  p(Input, Index, 'logic_priority', fun(I,D) -> (p_seq([p_string(<<"(">>), fun '__'/2, p_label('head', fun 'logic_exp'/2), p_string(<<")">>), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)]} end,
+  p(Input, Index, 'logic_priority', fun(I,D) -> (p_seq([p_string(<<"(">>), fun '__'/2, p_label('head', fun 'logic_exp'/2), p_string(<<")">>), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, Idx) ->
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)], Idx} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
  end).
 
 -spec 'logic_plain'(input(), index()) -> parse_result().
 'logic_plain'(Input, Index) ->
-  p(Input, Index, 'logic_plain', fun(I,D) -> (p_seq([p_label('head', fun 'logic_op'/2), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, _Idx) ->
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), [E, lists:nth(3, Logic)]} end,
+  p(Input, Index, 'logic_plain', fun(I,D) -> (p_seq([p_label('head', fun 'logic_op'/2), p_label('tail', p_zero_or_more(p_seq([fun '__'/2, fun 'logic_binary'/2, fun '__'/2, fun 'logic_exp'/2])))]))(I,D) end, fun(Node, Idx) ->
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)], Idx} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
  end).
 
@@ -106,7 +106,7 @@ end
 
 -spec 'logic_unary'(input(), index()) -> parse_result().
 'logic_unary'(Input, Index) ->
-  p(Input, Index, 'logic_unary', fun(I,D) -> (p_seq([p_string(<<"not">>), fun '__'/2, fun 'logic_exp'/2]))(I,D) end, fun(Node, _Idx) ->{call, 'not', [lists:nth(3, Node)]} end).
+  p(Input, Index, 'logic_unary', fun(I,D) -> (p_seq([p_string(<<"not">>), fun '__'/2, fun 'logic_exp'/2]))(I,D) end, fun(Node, Idx) ->{call, 'not', [lists:nth(3, Node)], Idx} end).
 
 -spec 'logic_op'(input(), index()) -> parse_result().
 'logic_op'(Input, Index) ->

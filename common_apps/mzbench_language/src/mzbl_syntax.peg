@@ -24,12 +24,12 @@ value <- unumber / logic_exp / single / list / id / number / string ~;
 logic_exp <- logic_priority / logic_unary / logic_plain ~;
 logic_priority <- '(' __ head:logic_exp ')' tail:(__ logic_binary __ logic_exp )*
 `
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)]} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)], Idx} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
 `;
 logic_plain <- head:logic_op tail:(__ logic_binary __ logic_exp )*
 `
-    lists:foldl(fun(Logic, E) -> {call, lists:nth(1, Logic), [E, lists:nth(3, Logic)]} end,
+    lists:foldl(fun(Logic, E) -> {call, lists:nth(2, Logic), [E, lists:nth(4, Logic)], Idx} end,
       proplists:get_value(head, Node), proplists:get_value(tail, Node))
 `;
 logic_binary <- 'and' / 'or'
@@ -39,13 +39,16 @@ case Node of
   <<"or">> -> 'or'
 end
 `;
-logic_unary <- 'not' __ logic_exp `{call, 'not', [lists:nth(3, Node)]}`;
-logic_op <- (number / string) __ ('<=' / '>=' / '<' / '>' / '==') __ (number / string)
+logic_unary <- 'not' __ logic_exp `{call, 'not', [lists:nth(3, Node)], Idx}`;
+logic_op <- (number / string) __ ('<=' / '>=' / '<' / '>' / '==' / '!=' / '/=' / '<>') __ (number / string)
 `{call, case lists:nth(3, Node) of
   <<"<=">> -> lte;
   <<">=">> -> gte;
   <<"<">> -> lt;
   <<">">> -> gt;
+  <<"!=">> -> ne;
+  <<"/=">> -> ne;
+  <<"<>">> -> ne;
   <<"==">> -> eq
 end, [lists:nth(1, Node), lists:nth(5, Node)], Idx}`;
 

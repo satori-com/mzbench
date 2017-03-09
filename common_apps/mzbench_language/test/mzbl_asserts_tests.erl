@@ -7,6 +7,8 @@
 
 essential_test() ->
   ?assertEqual(mzbl_asserts:check_expr(?OP('gt', 1, 2)), false),
+  ?assertEqual(mzbl_asserts:check_expr(?OP('ne', 1, 2)), true),
+  ?assertEqual(mzbl_asserts:check_expr(?OP('ne', 2, 2)), false),
   ?assertEqual(mzbl_asserts:check_expr(?OP('gte', 2, 2)), true),
   ?assertEqual(mzbl_asserts:check_expr(?OP('lt', 1, 2)), true),
   ?assertEqual(mzbl_asserts:check_expr(?OP('lte', 2, 2)), true),

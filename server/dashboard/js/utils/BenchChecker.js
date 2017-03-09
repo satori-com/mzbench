@@ -88,7 +88,7 @@ logic_unary
     = "not"
 
 logic_op
-    = (string / number) _ ("<=" / ">=" / "<" / ">" / "==") _ (string / number)
+    = (string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (string / number)
 
 number
     = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? mult:[GKM]? {
