@@ -115,38 +115,17 @@ rsync_bdl_test() ->
        "make_install(rsync = \"../somewhere/nearby/\")").
 
 assert_bdl_test() ->
-   Res = mzbl_script:read_from_string("#!benchDL\n"
-   "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 1.5)) # "),
-   Expected = [
-#operation{name = assert,
-    args = [always,
-            #operation{name = 'and',
-                args = [#operation{name = gt, args = ["print.rps", 1.5],
-                                   meta = [{line,2},{column,17}], is_std = false},
-                        #operation{name = 'not',
-                             args = [#operation{name = lt, args = ["print.rps",1.5],
-                                                meta = [{line,2},{column,45}], is_std = false}],
-                             meta = [{line,2},{column,41}], is_std = false}],
-                meta = [{line,2},{column,16}], is_std = false}],
-    meta=[{line,2},{column,1}], is_std = false}],
-   ?assertEqual(Expected, Res).
+   match_myassert(mzbl_script:read_from_string("#!benchDL\n"
+   "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 1.5)) # ")),
+   match_myassert(mzbl_script:read_from_string("#!benchDL\n"
+   "assert(always, \"print.rps\" > 1.5 and (not \"print.rps\" < 1.5)) # ")).
 
-assert_bdl_2_test() ->
-      Res = mzbl_script:read_from_string("#!benchDL\n"
-      "assert(always, \"print.rps\" > 1.5 and (not \"print.rps\" < 1.5)) # "),
-      Expected = [
-   #operation{name = assert,
-       args = [always,
-               #operation{name = 'and',
-                   args = [#operation{name = gt, args = ["print.rps", 1.5],
-                                      meta = [{line,2},{column,16}], is_std = false},
-                           #operation{name = 'not',
-                                args = [#operation{name = lt, args = ["print.rps",1.5],
-                                                   meta = [{line,2},{column,43}], is_std = false}],
-                                meta = [{line,2},{column,39}], is_std = false}],
-                   meta = [{line,2},{column,16}], is_std = false}],
-       meta=[{line,2},{column,1}], is_std = false}],
-      ?assertEqual(Expected, Res).
+match_myassert(Res) ->
+    ?assertMatch([#operation{name = assert,
+     args = [always, #operation{name = 'and',
+                 args = [#operation{name = gt, args = ["print.rps", 1.5]},
+                         #operation{name = 'not',
+                              args = [#operation{name = lt, args = ["print.rps",1.5]}]}]}]}], Res).
 
 rsync_with_excludes_test() ->
     install_specs_check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "node", excludes = ["deps", "ebin"]}],

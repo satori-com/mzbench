@@ -16,6 +16,7 @@ from mzb_test_utils import run_failing_bench, start_mzbench_server
 
 mzbench_dir = dirname + '/../'
 scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
+scripts_bdl_dir = mzbench_dir + 'acceptance_tests/scripts.bdl/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
 def emulate_crash_test():
@@ -63,12 +64,12 @@ def worker_provisioning_fail_test():
             else None)
 
 def time_assertions_fail_test():
-    run_failing_bench(scripts_dir + 'time_assertion_fail.erl', env={},
-        expected_log_message_regex=r'''Benchmark result: FAILED.*1 assertions failed.*Assertion: \(print > 40\).*was expected to hold for 40s.*but held for just''')
+    run_failing_bench(scripts_bdl_dir + 'time_assertion_fail.bdl', env={},
+        expected_log_message_regex=r'''Benchmark result: FAILED.*1 assertions failed.*Assertion: \(\(p\*t > 40\) and \(not \(p\*t <= 40\)\)\).*was expected to hold for 40s.*but held for just''')
 
 
 def always_assertions_fail_test():
-    run_failing_bench(scripts_dir + 'always_assertion_fail.erl', env={},
+    run_failing_bench(scripts_bdl_dir + 'always_assertion_fail.bdl', env={},
         expected_log_message_regex=r'\[error\].*Interrupting benchmark because of failed asserts')
 
 
