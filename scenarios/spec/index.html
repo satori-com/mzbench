@@ -278,12 +278,12 @@ Target = all | director
 <p><strong>Exec commands</strong> let you to run any shell command on all nodes or only on the director node.</p>
 <p><strong>Worker calls</strong> are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the <a href="#environment-variables">environment variables</a> used in the benchmark. An example is available in dummy_worker <a href="https://github.com/machinezone/mzbench/blob/master/node/apps/dummy_worker/src/dummy_worker.erl#L30">code</a>.</p>
 <h3 id="assert">assert<a class="headerlink" href="#assert" title="Permanent link">&para;</a></h3>
-<pre><code class="python">assert(always, &lt;Condition&gt;)
-assert(&lt;Time&gt;, &lt;Condition&gt;)
+<pre><code class="python">assert(always, &lt;Expression&gt;)
+assert(&lt;Time&gt;, &lt;Expression&gt;)
 </code></pre>
 
-<p>Check if the condition <code>&lt;Condition&gt;</code> is satisfied throughout the entire benchmark or at least for the amount of time <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
-<p><code>&lt;Condition&gt;</code> is a comparison of two value and is defined as a tuple <code>&lt;Operand1&gt; &lt;Operation&gt; &lt;Operand2&gt;</code>.</p>
+<p>Check if the condition <code>&lt;Expression&gt;</code> is satisfied throughout the entire benchmark or at least for the amount of time <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
+<p><code>&lt;Expression&gt;</code> is a logical expression composed of conditions <code>&lt;Operand1&gt; &lt;Operation&gt; &lt;Operand2&gt;</code> with binary (and, or), unary (not) logical operators and parenthesis.</p>
 <p><code>&lt;Operation&gt;</code> is one of four atoms:</p>
 <dl>
 <dt><code>&lt;</code></dt>
@@ -294,13 +294,18 @@ assert(&lt;Time&gt;, &lt;Condition&gt;)
 <dd>Less than or equal to.</dd>
 <dt><code>&gt;=</code></dt>
 <dd>Greater than or equal to.</dd>
+<dt><code>==</code></dt>
+<dd>Equal to.</dd>
+<dt><code>!=</code></dt>
+<dd>Not equal to.</dd>
 </dl>
-<p><code>&lt;Operand1&gt;</code> and <code>&lt;Operand2&gt;</code> are the values to compare. They can be integers, floats, or <em>metrics</em> values.</p>
+<p><code>&lt;Operand1&gt;</code> and <code>&lt;Operand2&gt;</code> are the values to compare. They can be integers, floats, or <em>metrics</em> wildcards.</p>
 <p><a href="../../workers/#metrics">Metrics</a> are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:</p>
-<pre><code class="python">&quot;http_ok&quot; &gt; 20
+<pre><code class="python">(&quot;h*k&quot; &gt; 20) and (not &quot;http_ok&quot; &gt; 100)
 </code></pre>
 
 <p>The <code>http_ok</code> metric is provided by the <a href="https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl">simple_http</a> worker. This condition passes if the number of successful HTTP responses is greater than 20.</p>
+<p>When multiple metrics are matched against wildcard, condition is checked for every matched metric.</p>
 <p>Please note that signals are automatically converted to gauges and could be also used for asserts.</p>
 <h1 id="pools">Pools<a class="headerlink" href="#pools" title="Permanent link">&para;</a></h1>
 <p><strong>Pool</strong> represents a sequence of <strong>jobs</strong>—statements to run. The statements are defined by the <a href="../../workers/">worker</a> and <a href="#standard-library">MZBench&rsquo;s standard library</a>. The jobs are evenly distributed between nodes, so they can be executed in parallel.</p>
@@ -372,7 +377,8 @@ worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
      rate = &lt;Rate&gt;,
      parallel = &lt;N&gt;,
      iterator = &lt;Name&gt;,
-     spawn = &lt;Spawn&gt;):
+     spawn = &lt;Spawn&gt;,
+     while = &lt;Condition&gt;):
     &lt;Statement1&gt;
     &lt;Statement2&gt;
     ...
@@ -388,7 +394,7 @@ worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
 <pre><code class="python">loop(time = 30 sec,
      rate = 10 rpm,
      iterator = &quot;i&quot;):
-        loop(time = 3 sec, 
+        loop(time = 3 sec,
              rate = var(&quot;i&quot;) rps):
                 get(&quot;http://google.com&quot;)
 </code></pre>
@@ -430,6 +436,12 @@ worker_start = pow(&lt;Exponent&gt;, &lt;Scale&gt;, &lt;Time&gt;)
 </code></pre>
 
 <p>If <code>true</code>, every iteration runs in a separate, spawned process. Default is <code>false</code>.</p>
+<h3 id="while">while<a class="headerlink" href="#while" title="Permanent link">&para;</a></h3>
+<pre><code class="python">while = &lt;Condition&gt;
+</code></pre>
+
+<p>Run this loop while condition is specified. Condition is some metric name compared with <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code> and <code>==</code>. For example <code>"print" &lt; 10</code>. The syntax is similar to <a href="#assert">asserts</a>. Please note that metrics are updated once in a 10 seconds (by default), if you set condition for print being less than 10 it does not guarantee print to be equal to 11 after the loop. In this case, &ldquo;print&rdquo; could be any number greater than 10 depending on how fast is your loop.</p>
+<p>Loop conditions are different from global asserts in a two aspects: there is no time-limiting for loop ones and they do not terminate the entire worker thread. If loop assert is not satisfied, your script won&rsquo;t be <code>failed</code>.</p>
 <h1 id="resource-files">Resource Files<a class="headerlink" href="#resource-files" title="Permanent link">&para;</a></h1>
 <p><strong>Resource file</strong> is an external data source for the benchmark.</p>
 <p>To declare a resource file for the benchmark, use <a href="#include-resource"><code>include_resource</code></a>.</p>
