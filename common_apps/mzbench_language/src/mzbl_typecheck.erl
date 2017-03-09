@@ -199,6 +199,10 @@ check_op(concat, [ListOfStr], _T, Env) ->
     check(ListOfStr, list, Env);
 check_op(concat, [Str1, Str2], _T, Env) ->
     and_(check(Str1, string, Env), check(Str2, string, Env));
+check_op(tokens, [Str], _T, Env) ->
+    check(Str, string, Env);
+check_op(tokens, [Str, Separators], _T, Env) ->
+    and_(check(Str, string, Env), check(Separators, string, Env));
 check_op(think_time, [Time, Rate], T, Env) ->
     all_([
         is(rate, T),

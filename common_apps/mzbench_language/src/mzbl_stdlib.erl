@@ -25,7 +25,9 @@
          wait_signal/6,
          dump/4,
          concat/5,
-         concat/4
+         concat/4,
+         tokens/4,
+         tokens/5
          ]).
 
 -include("mzbl_types.hrl").
@@ -268,3 +270,25 @@ concat(State, _Env, _Meta, Str1, Str2) ->
 
 concat(State, _Env, _Meta, ListOfStrings) ->
     {lists:concat(ListOfStrings), State}.
+
+-spec tokens(State, Env, Meta, Str) -> {ListOfStrings, State}
+    when State :: any(),
+         Env :: [proplists:property()],
+         Meta :: meta(),
+         Str :: string(),
+         ListOfStrings :: [string()].
+
+tokens(State, _Env, _Meta, Str) ->
+    {string:tokens(Str, ", "), State}.
+
+-spec tokens(State, Env, Meta, Str, Separators) -> {ListOfStrings, State}
+    when State :: any(),
+         Env :: [proplists:property()],
+         Meta :: meta(),
+         Str :: string(),
+         Separators :: string(),
+         ListOfStrings :: [string()].
+
+tokens(State, _Env, _Meta, Str, Separators) ->
+    {string:tokens(Str, Separators), State}.
+
