@@ -120,13 +120,13 @@ Run actions before and after the benchmark. Two kinds of actions are supported: 
 ### assert
 
 ```python
-assert(always, <Condition>)
-assert(<Time>, <Condition>)
+assert(always, <Expression>)
+assert(<Time>, <Expression>)
 ```
 
-Check if the condition `<Condition>` is satisfied throughout the entire benchmark or at least for the amount of time [`<Time>`](#time_1).
+Check if the condition `<Expression>` is satisfied throughout the entire benchmark or at least for the amount of time [`<Time>`](#time_1).
 
-`<Condition>` is a comparison of two value and is defined as a tuple `<Operand1> <Operation> <Operand2>`.
+`<Expression>` is a logical expression composed of conditions `<Operand1> <Operation> <Operand2>` with binary (and, or), unary (not) logical operators and parenthesis.
 
 `<Operation>` is one of four atoms:
 
@@ -142,15 +142,23 @@ Check if the condition `<Condition>` is satisfied throughout the entire benchmar
 `>=`
 :   Greater than or equal to.
 
-`<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metrics* values.
+`==`
+:   Equal to.
+
+`!=`
+:   Not equal to.
+
+`<Operand1>` and `<Operand2>` are the values to compare. They can be integers, floats, or *metrics* wildcards.
 
 [Metrics](../workers.md#metrics) are numerical values collected by the worker during the benchmark. To get the metric value, put its name between double quotation marks:
 
 ```python
-"http_ok" > 20
+("h*k" > 20) and (not "http_ok" > 100)
 ```
 
 The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.
+
+When multiple metrics are matched against wildcard, condition is checked for every matched metric.
 
 Please note that signals are automatically converted to gauges and could be also used for asserts.
 
@@ -196,7 +204,7 @@ worker_type = <WorkerName>
 ```
 
 The worker that provides statements for the jobs.
-    
+
 !!!hint
     A pool uses exactly one worker. If you need multiple workers in the benchmark, just write a pool for each one.
 
@@ -211,7 +219,7 @@ worker_start = pow(<Exponent>, <Scale>, <Time>)
 ```
 
 Start the jobs with a given rate:
-    
+
 `linear`
 :   Constant rate [`<Rate>`](#rate_1), e.g. 10 per minute.
 
@@ -225,7 +233,7 @@ Start the jobs with a given rate:
 
 `pow`
 :   Start jobs with rate growing as a [power function](https://en.wikipedia.org/wiki/Power_function) with the exponent `<Exponent>` and the scale factor `<Scale>`:
-    
+
     *Scale × Time<sup>Exponent</sup>*
 
 ### ramp
@@ -277,7 +285,7 @@ You can put loops inside loops. Here's a nested loop that sends HTTP GET request
 loop(time = 30 sec,
      rate = 10 rpm,
      iterator = "i"):
-        loop(time = 3 sec, 
+        loop(time = 3 sec,
              rate = var("i") rps):
                 get("http://google.com")
 ```
@@ -290,10 +298,10 @@ The difference between these two examples is that in the first case the rate is 
 ### time
 
 *required*
-    
+
 ```python
 time = <Time>
-``` 
+```
 
 Run the loop for [`<Time>`](#time_1).
 
