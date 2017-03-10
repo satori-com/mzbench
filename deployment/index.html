@@ -331,6 +331,14 @@ sudo pip install -r mzbench/requirements.txt
 </code></pre>
 
 <p>After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click &ldquo;Generate token&rdquo; link.</p>
+<h4 id="access_lists">access_lists<a class="headerlink" href="#access_lists" title="Permanent link">&para;</a></h4>
+<p>It is possible to specify white and black user lists in a following way:</p>
+<pre><code class="erlang">    {admin_list, [&quot;*@mydomain-admins.com&quot;, &quot;root@mydomain.com&quot;]},
+    {black_list, [&quot;hacker*&quot;, &quot;single-hacker@mydomain.com&quot;]},
+    {white_list, [&quot;tester*@mydomain.com&quot;, &quot;single-tester@mydomain.com&quot;]},
+</code></pre>
+
+<p>Administrators have privileges to stop any benchmark. Blacklisted users have no access. If white list is used, all users, except this list have no access.</p>
 <h3 id="bench_log_file">bench_log_file<a class="headerlink" href="#bench_log_file" title="Permanent link">&para;</a></h3>
 <pre><code class="erlang">{bench_log_file, &quot;&lt;filename&gt;&quot;}
 </code></pre>
