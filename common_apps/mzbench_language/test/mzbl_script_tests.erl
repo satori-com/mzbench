@@ -115,17 +115,40 @@ rsync_bdl_test() ->
        "make_install(rsync = \"../somewhere/nearby/\")").
 
 assert_bdl_test() ->
-   match_myassert(mzbl_script:read_from_string("#!benchDL\n"
-   "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 1.5)) # ")),
-   match_myassert(mzbl_script:read_from_string("#!benchDL\n"
-   "assert(always, \"print.rps\" > 1.5 and (not \"print.rps\" < 1.5)) # ")).
+    match_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 2)) # ")),
+    match_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, \"print.rps\" > 1.5 and (not \"print.rps\" < 2)) # ")).
+
+assert_2nd_bdl_test() ->
+    match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, (\"print.rps\" > 1.5) and (\"print.rps\" < 2)) # ")),
+    match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, \"print.rps\" > 1.5 and \"print.rps\" < 2) # ")),
+    match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, (\"print.rps\" > 1.5) and \"print.rps\" < 2) # ")),
+    match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
+    "assert(always, \"print.rps\" > 1.5 and (\"print.rps\" < 2)) # ")).
 
 match_myassert(Res) ->
     ?assertMatch([#operation{name = assert,
      args = [always, #operation{name = 'and',
                  args = [#operation{name = gt, args = ["print.rps", 1.5]},
                          #operation{name = 'not',
-                              args = [#operation{name = lt, args = ["print.rps",1.5]}]}]}]}], Res).
+                              args = [#operation{name = lt, args = ["print.rps",2]}]}]}]}], Res).
+
+match_2nd_myassert(Res) ->
+    ?assertMatch([#operation{name = assert,
+     args = [always, #operation{name = 'and',
+                 args = [#operation{name = gt, args = ["print.rps", 1.5]},
+                         #operation{name = lt, args = ["print.rps", 2]}]}]}], Res).
+
+quotes_test() ->
+    Res = mzbl_script:read_from_string("#!benchDL\n"
+    "defaults(\"var1\" = \"var1_default_value\",\n"
+    "         \"var2\" = \"the answer is \\\"yes\\\"\")"),
+    ?assertMatch([#operation{name = defaults, args = [[{"var1", "var1_default_value"},
+                                            {"var2", "the answer is \"yes\""}]]}], Res).
 
 rsync_with_excludes_test() ->
     install_specs_check([#rsync_install_spec{remote = "../somewhere/nearby/", dir = "node", excludes = ["deps", "ebin"]}],

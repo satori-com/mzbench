@@ -38,7 +38,8 @@ describe('checkAnalyzer', function() {
         var analyze = BenchChecker.default.analyze({env: [],
                         script_body: fs.readFileSync("../../acceptance_tests/scripts.bdl/vars_defaults.bdl", 'utf8')});
         assert.deepEqual(analyze, {env: [], extra: [{ name: 'var1', value: 'var1_default_value', id: 1 },
-                                                 { name: 'var2', value: 'var2_default_value', id: 2 }]});
+                                                 { name: 'var2', value: 'var2_default_value', id: 2 },
+                                                 { name: 'var3', value: 'the answer is "yes"',id: 3 }]});
 
         var analyze2 = BenchChecker.default.analyze({env: [],
                          script_body: fs.readFileSync("../../acceptance_tests/scripts/vars_defaults.erl", 'utf8')});

@@ -1,0 +1,13 @@
+#!benchDL
+# this file is used to check assert parsing
+assert(40 sec, "p*t" > 40 and (not "p*t" <= 40))
+assert(always, ("p*t" > 40) and "p*t" < 40)
+assert(always, "p*t" > 40 or "p*t" != 40)
+assert(always, not "p*t" > 40 and "p*t" <= 40)
+assert(always, not ("p*t" > 40 and "p*t" <= 40))
+
+pool(size = 1, # one execution "thread"
+     worker_type = dummy_worker):
+    loop(time = 1 min, # total time is 1 minute
+         rate = 1 rps): # constant rate is 1 operation per second
+        print("FOO") # this operation prints "FOO" to console

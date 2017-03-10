@@ -1,6 +1,7 @@
 #!benchDL
 defaults("var1" = "var1_default_value",
-         "var2" = "var2_default_value")
+         "var2" = "var2_default_value",
+         "var3" = "the answer is \"yes\"")
 
 pool(size = 1, worker_type = dummy_worker):
     print(sprintf("the_var1_value_is_~s", [var("var1")]))
