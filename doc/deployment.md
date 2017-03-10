@@ -211,6 +211,18 @@ If GitHub Enterprise is used it may be usefull to add the following two paramete
 
 After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click "Generate token" link.
 
+#### access_lists
+
+It is possible to specify white and black user lists in a following way:
+
+```erlang
+    {admin_list, ["*@mydomain-admins.com", "root@mydomain.com"]},
+    {black_list, ["hacker*", "single-hacker@mydomain.com"]},
+    {white_list, ["tester*@mydomain.com", "single-tester@mydomain.com"]},
+```
+
+Administrators have privileges to stop any benchmark. Blacklisted users have no access. If white list is used, all users, except this list have no access.
+
 ### bench_log_file
 
 ```erlang
