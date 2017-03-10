@@ -308,10 +308,10 @@ k_times(Expr, Provider, Env, S, N) ->
 
 k_times_iter(_, _, _, _, _, S, _, 0) -> S;
 k_times_iter(Expr, Provider, I, Env, Step, S, Done, N) ->
-    {_, NewS} = mzbl_interpreter:eval(Expr, S, [{I, Done}|Env], Provider),
+    {_, NewS} = mzbl_interpreter:eval(Expr, S, [{I, erlang:trunc(Done)}|Env], Provider),
     k_times_iter(Expr, Provider, I, Env, Step, NewS, Done + Step, N-1).
 
 k_times_spawn(_, _, _, _, _, S, _, 0) -> S;
 k_times_spawn(Expr, Provider, I, Env, Step, S, Done, N) ->
-    spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, Done}|Env], Provider) end),
+    spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, erlang:trunc(Done)}|Env], Provider) end),
     k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, N-1).
