@@ -120,9 +120,13 @@ tuple_test() ->
 
 round_robin_test_() ->
     Script = "[{test_method, {round_robin, [\"1\", \"2\", \"3\"]}}].",
-    [?_assertEqual("1", catch run(Script, [{worker_id, 1}])),
-     ?_assertEqual("2", catch run(Script, [{worker_id, 2}])),
-     ?_assertEqual("1", catch run(Script, [{worker_id, 301}]))].
+    [?_assertEqual("1", catch run(Script, [{worker_id, 1}, {pool_id, 1}])),
+     ?_assertEqual("2", catch run(Script, [{worker_id, 2}, {pool_id, 1}])),
+     ?_assertEqual("1", catch run(Script, [{worker_id, 301}, {pool_id, 1}])),
+     ?_assertEqual("2", catch run(Script, [{worker_id, 1}, {pool_id, 2}])),
+     ?_assertEqual("3", catch run(Script, [{worker_id, 2}, {pool_id, 2}])),
+     ?_assertEqual("2", catch run(Script, [{worker_id, 301}, {pool_id, 2}]))
+     ].
 
 sequence_test() ->
     Script = "[{test_method, {sprintf, \"~p\", [{seq, 1, 7}]}}].",
@@ -130,7 +134,7 @@ sequence_test() ->
 
 eval_std_test() ->
     Script = "{seq, {numvar, \"V1\"}, {round_robin, [10,11]}}.",
-    Meta = [{worker_id, 4}],
+    Meta = [{worker_id, 4}, {pool_id, 1}],
     Env = [{"V1", "5"}],
     AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
     R = mzbl_interpreter:eval_std(AST, Env),
@@ -138,7 +142,7 @@ eval_std_test() ->
 
 eval_std_compiled_test() ->
     Script = "{seq, {numvar, \"V1\"}, {round_robin, [10,11]}}.",
-    Meta = [{worker_id, 4}],
+    Meta = [{worker_id, 4}, {pool_id, 1}],
     Env = [{"V1", "5"}],
     AST = mzbl_ast:add_meta(mzbl_script:parse(Script), Meta),
     NewAST = compile_and_load(AST, Env),
