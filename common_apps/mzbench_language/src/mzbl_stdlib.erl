@@ -189,13 +189,15 @@ resource(State, Env, _Meta, Resource) ->
          L :: [any()] | non_neg_integer().
 round_robin(State, _Env, Meta, N) when is_integer(N) ->
     Id = proplists:get_value(worker_id, Meta),
-    {(Id rem N) + 1, State};
+    PoolId = proplists:get_value(pool_id, Meta) - 1,
+    {((Id + PoolId) rem N) + 1, State};
 round_robin(_State, _Env, _Meta, []) ->
     erlang:error(empty_round_robin_list);
 round_robin(State, _Env, Meta, List) when is_list(List) ->
     Len = erlang:length(List),
     Id = proplists:get_value(worker_id, Meta),
-    {lists:nth((Id - 1) rem Len + 1, List), State}.
+    PoolId = proplists:get_value(pool_id, Meta) - 1,
+    {lists:nth((Id - 1 + PoolId) rem Len + 1, List), State}.
 
 -spec wait_signal(State, Env, Meta, Name) -> {ok, State}
     when State :: any(),
