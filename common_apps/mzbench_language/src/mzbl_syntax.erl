@@ -110,11 +110,14 @@ end
 
 -spec 'logic_op'(input(), index()) -> parse_result().
 'logic_op'(Input, Index) ->
-  p(Input, Index, 'logic_op', fun(I,D) -> (p_seq([p_choose([fun 'number'/2, fun 'string'/2]), fun '__'/2, p_choose([p_string(<<"<=">>), p_string(<<">=">>), p_string(<<"<">>), p_string(<<">">>), p_string(<<"==">>)]), fun '__'/2, p_choose([fun 'number'/2, fun 'string'/2])]))(I,D) end, fun(Node, Idx) ->{call, case lists:nth(3, Node) of
+  p(Input, Index, 'logic_op', fun(I,D) -> (p_seq([p_choose([fun 'number'/2, fun 'string'/2]), fun '__'/2, p_choose([p_string(<<"<=">>), p_string(<<">=">>), p_string(<<"<">>), p_string(<<">">>), p_string(<<"==">>), p_string(<<"!=">>), p_string(<<"\/=">>), p_string(<<"<>">>)]), fun '__'/2, p_choose([fun 'number'/2, fun 'string'/2])]))(I,D) end, fun(Node, Idx) ->{call, case lists:nth(3, Node) of
   <<"<=">> -> lte;
   <<">=">> -> gte;
   <<"<">> -> lt;
   <<">">> -> gt;
+  <<"!=">> -> ne;
+  <<"/=">> -> ne;
+  <<"<>">> -> ne;
   <<"==">> -> eq
 end, [lists:nth(1, Node), lists:nth(5, Node)], Idx} end).
 
@@ -163,7 +166,7 @@ end
 
 -spec 'string'(input(), index()) -> parse_result().
 'string'(Input, Index) ->
-  p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->re:replace(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node))), "\\\\\"", "\"",[global, {return,list}]) end).
+  p(Input, Index, 'string', fun(I,D) -> (p_seq([p_string(<<"\"">>), p_label('chars', p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])]))), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->mzb_string:unescape_ascii(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node)))) end).
 
 -spec 'id'(input(), index()) -> parse_result().
 'id'(Input, Index) ->

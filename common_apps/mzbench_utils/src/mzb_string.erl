@@ -7,8 +7,24 @@
     iso_8601_fmt/1,
     parse_iso_8601/1,
     str_to_bstr/1,
+    unescape_ascii/1,
     list_to_number/1
 ]).
+
+-spec unescape_ascii(Escaped :: string()) -> Unescaped :: string().
+unescape_ascii([$\\, X | T]) ->
+    [case X of
+        $a -> 16#07;
+        $b -> 16#08;
+        $f -> 16#0C;
+        $n -> 16#0A;
+        $r -> 16#0D;
+        $t -> 16#09;
+        $v -> 16#0B;
+        R -> R end
+    | unescape_ascii(T)];
+unescape_ascii([H | T]) -> [H | unescape_ascii(T)];
+unescape_ascii([]) -> [].
 
 -spec format(Format :: string(), Args :: [term()]) -> FlatString :: string().
 format(Format, Args) ->
@@ -33,7 +49,7 @@ iso_8601_fmt(Seconds) ->
 
 parse_iso_8601(String) ->
     case io_lib:fread("~4d-~2d-~2dT~2d:~2d:~2d", String) of
-        {ok, [Year, Month, Day, Hour, Min, Sec], _} -> 
+        {ok, [Year, Month, Day, Hour, Min, Sec], _} ->
             DateTime = {{Year, Month, Day}, {Hour, Min, Sec}},
             calendar:datetime_to_gregorian_seconds(DateTime) - 62167219200;
         _ -> erlang:error(date_parsing_error)

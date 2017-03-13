@@ -146,8 +146,11 @@ match_2nd_myassert(Res) ->
 quotes_test() ->
     Res = mzbl_script:read_from_string("#!benchDL\n"
     "defaults(\"var1\" = \"var1_default_value\",\n"
+    "         \"var3\" = \"\\n,\\\\,\\\\\\\\\",\n"
     "         \"var2\" = \"the answer is \\\"yes\\\"\")"),
+    io:format("~p", [Res]),
     ?assertMatch([#operation{name = defaults, args = [[{"var1", "var1_default_value"},
+                                            {"var3", "\n,\\,\\\\"},
                                             {"var2", "the answer is \"yes\""}]]}], Res).
 
 rsync_with_excludes_test() ->
