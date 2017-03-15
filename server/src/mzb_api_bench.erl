@@ -197,7 +197,7 @@ handle_stage(pipeline, checking_script, #{config:= Config}) ->
     fun (S) -> S end;
 
 handle_stage(pipeline, wait_exclusive, #{id:= Id, config:= Config}) ->
-    #{exclusive:= Exclusive} = Config,
+    Exclusive = mzb_bc:maps_get(exclusive, Config, []),
     mzb_api_exclusive:lock(Id, Exclusive),
     fun (S) -> S end;
 
@@ -369,7 +369,8 @@ handle_stage(finalize, cleaning_nodes,
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 
-handle_stage(finalize, release_exclusive, #{id:= Id, config:= #{exclusive:= Exclusive}}) ->
+handle_stage(finalize, release_exclusive, #{id:= Id, config:= Config}) ->
+    Exclusive = mzb_bc:maps_get(exclusive, Config, []),
     mzb_api_exclusive:release(Id, Exclusive);
 
 handle_stage(finalize, deallocating_hosts, #{config:= #{deallocate_after_bench:= false}} = State) ->
