@@ -69,12 +69,12 @@ check(State) ->
             State;
         false ->
             system_log:warning("[ watchdog ] Node ~p is going to shutdown in 1 min because director process is down", [node()]),
-            {ok, _} = timer:apply_after(60000, init, stop, []),
+            {ok, _} = timer:apply_after(60000, erlang, halt, [1]),
             State
     catch
         _:Error ->
             system_log:warning("[ watchdog ] Node ~p is going to shutdown in 1 min because director check failed with reason: ~p", [node(), Error]),
-            {ok, _} = timer:apply_after(60000, init, stop, []),
+            {ok, _} = timer:apply_after(60000, erlang, halt, [1]),
             State
     end.
 
