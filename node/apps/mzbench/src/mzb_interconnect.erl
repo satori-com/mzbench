@@ -189,8 +189,13 @@ handle_call({call_director, _Req}, _From, #s{role = worker, director = undefined
     {reply, {error, not_connected}, State};
 
 handle_call({call_director, Req}, From, #s{role = worker, director = Director} = State) ->
-    send_to(Director, {call, {node(), From}, Req}, State),
-    {noreply, State};
+    try
+        send_to(Director, {call, {node(), From}, Req}, State),
+        {noreply, State}
+    catch
+        error:node_not_found ->
+            {reply, {error, node_not_found}, State}
+    end;
 
 handle_call({monitor, Owner, Pid}, _From, State) when node(Pid) == node() ->
     Ref = erlang:monitor(process, Pid),
@@ -373,13 +378,14 @@ send_to(To, Msg, #s{role = Role, nodes = Nodes, director = Director}) ->
     case maps:find(To, Nodes) of
         {ok, Sender} -> Sender(Msg);
         error when Role == worker ->
-            Sender = maps:get(Director, Nodes),
-            Sender({transit, To, Msg});
+            case maps:find(Director, Nodes) of
+                {ok, Sender} -> Sender({transit, To, Msg});
+                error -> erlang:error(node_not_found)
+            end;
         error when Role == director ->
             system_log:warning("Skip msg for unknown node: ~p~nMessage: ~p", [To, Msg]),
             ok
     end.
-
 
 add_lmon(Ref, Owner, Pid, #s{local_monitors = LMons} = State) ->
     State#s{local_monitors = maps:put(Ref, {Owner, Pid}, LMons)}.

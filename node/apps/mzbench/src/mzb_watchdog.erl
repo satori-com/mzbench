@@ -63,12 +63,17 @@ start_check_timer() ->
     ok.
 
 check(State) ->
-    case mzb_interconnect:call_director(is_director_alive, 30000) of
+    try mzb_interconnect:call_director(is_director_alive, 30000) of
         true  ->
             start_check_timer(),
             State;
         false ->
             system_log:warning("[ watchdog ] Node ~p is going to shutdown in 1 min because director process is down", [node()]),
+            {ok, _} = timer:apply_after(60000, init, stop, []),
+            State
+    catch
+        _:Error ->
+            system_log:warning("[ watchdog ] Node ~p is going to shutdown in 1 min because director check failed with reason: ~p", [node(), Error]),
             {ok, _} = timer:apply_after(60000, init, stop, []),
             State
     end.
