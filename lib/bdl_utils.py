@@ -108,14 +108,16 @@ def substitute(ir, env):
 
 def transform(ast):
     if ast.expr_name == "number":
-        if ast.text[-1] in "KMG":
+        if ast.text[-1] in "KMGT":
             num = ast.text[0:-1]
             if ast.text[-1] == "K":
                 mult = 1000
             elif ast.text[-1] == "M":
                 mult = 1000000
-            else:
+            elif ast.text[-1] == "G":
                 mult = 1000000000
+            else:
+                mult = 1000000000000
         else:
             num = ast.text
             mult = 1
