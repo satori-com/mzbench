@@ -163,7 +163,7 @@ def lex(text):
     logic_plain = logic_op _ (logic_binary _ logic_exp _)*
     logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (string / number)
     string = '"' ~r'(\\\\.|[^\\\\"])*' '"'
-    number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKM]?"
+    number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKMT]?"
     unumber = (number / single) _ atom
     """)
     try:

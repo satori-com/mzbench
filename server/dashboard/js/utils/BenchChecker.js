@@ -91,11 +91,12 @@ logic_op
     = (string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (string / number)
 
 number
-    = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? mult:[GKM]? {
+    = digits:[0-9]+ after:("." [0-9]+)? exp:("e" "-"? [0-9]+)? mult:[GKMT]? {
         var base = parseFloat(mult ? text().substring(0, text().length - 1) : text());
+        if (mult === "T") base *= 1000000000000;
         if (mult === "G") base *= 1000000000;
-        if (mult === "K") base *= 1000;
         if (mult === "M") base *= 1000000;
+        if (mult === "K") base *= 1000;
         return base;
     }
 

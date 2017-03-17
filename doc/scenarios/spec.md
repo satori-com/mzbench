@@ -578,6 +578,16 @@ Pause the current job for [`<Time>`](#time_1).
 
 # Conventions
 
+## Multipliers
+
+Every numerical constant could be followed by a multiplier letter `K`, `M`, `G` or `T`. They correspond to 10^3, 10^6, 10^9 and 10^12 respectively.
+
+```python
+1.1K # 1100
+2.3M # 2300000
+0.5G # 500000000
+```
+
 ## Time
 
 **`<Time>`** is a tuple `<Duration> (ms|sec|min|h)`:
@@ -594,7 +604,7 @@ Pause the current job for [`<Time>`](#time_1).
 **`<Rate>`** is a tuple `<N> (rps|rpm|rph)`:
 
 ```python
-10 rps # 10 jobs per second
+10K rps # 10000 jobs per second
 12 rpm # 12 jobs per minute
 100 rph # 100 jobs per hour
 ```

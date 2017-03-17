@@ -134,9 +134,10 @@ case Node of
   _ -> list_to_float(binary_to_list(iolist_to_binary(Node)))
 end * case lists:nth(3, Node) of
   [] -> 1;
-  ['K'] -> 1000;
-  ['M'] -> 1000000;
-  ['G'] -> 1000000000
+  <<"K">> -> 1000;
+  <<"M">> -> 1000000;
+  <<"G">> -> 1000000000;
+  <<"T">> -> 1000000000000
 end
  end).
 
