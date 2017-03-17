@@ -241,6 +241,8 @@ Executing make -C /path/to/mzbench/bin/../server generate
 <dd>Skip MZBench installation on the nodes.</dd>
 <dt><code>--node_commit=&lt;commit&gt;</code></dt>
 <dd>Commit hash or branch name in the MZBench repository pointing to the MZBench version to install on the nodes.</dd>
+<dt><code>--exclusive=&lt;label&gt;</code></dt>
+<dd>Benchmarks with the same label couldn&rsquo;t be executed simultaneously, any further benches with this label will be blocked until its execution finishes.</dd>
 </dl>
 <h3 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
 <pre><code class="bash">$ mzbench run --env foo=bar --nodes=5 foo.bdl

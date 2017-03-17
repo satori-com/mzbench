@@ -188,6 +188,8 @@
     
         <li class="main "><a href="#conventions">Conventions</a></li>
         
+            <li><a href="#multipliers">Multipliers</a></li>
+        
             <li><a href="#time_1">Time</a></li>
         
             <li><a href="#rate_1">Rate</a></li>
@@ -580,6 +582,13 @@ choose(&lt;List&gt;)
 
 <p>Pause the current job for <a href="#time_1"><code>&lt;Time&gt;</code></a>.</p>
 <h1 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h1>
+<h2 id="multipliers">Multipliers<a class="headerlink" href="#multipliers" title="Permanent link">&para;</a></h2>
+<p>Every numerical constant could be followed by a multiplier letter <code>K</code>, <code>M</code>, <code>G</code> or <code>T</code>. They correspond to 10^3, 10^6, 10^9 and 10^12 respectively.</p>
+<pre><code class="python">1.1K # 1100
+2.3M # 2300000
+0.5G # 500000000
+</code></pre>
+
 <h2 id="time_1">Time<a class="headerlink" href="#time_1" title="Permanent link">&para;</a></h2>
 <p><strong><code>&lt;Time&gt;</code></strong> is a tuple <code>&lt;Duration&gt; (ms|sec|min|h)</code>:</p>
 <pre><code class="python">1 sec # one second
@@ -589,7 +598,7 @@ choose(&lt;List&gt;)
 
 <h2 id="rate_1">Rate<a class="headerlink" href="#rate_1" title="Permanent link">&para;</a></h2>
 <p><strong><code>&lt;Rate&gt;</code></strong> is a tuple <code>&lt;N&gt; (rps|rpm|rph)</code>:</p>
-<pre><code class="python">10 rps # 10 jobs per second
+<pre><code class="python">10K rps # 10000 jobs per second
 12 rpm # 12 jobs per minute
 100 rph # 100 jobs per hour
 </code></pre></div>
