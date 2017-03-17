@@ -155,7 +155,7 @@ end
 
 -spec 'mult'(input(), index()) -> parse_result().
 'mult'(Input, Index) ->
-  p(Input, Index, 'mult', fun(I,D) -> (p_choose([p_string(<<"K">>), p_string(<<"M">>), p_string(<<"G">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'mult', fun(I,D) -> (p_choose([p_string(<<"K">>), p_string(<<"M">>), p_string(<<"G">>), p_string(<<"T">>)]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'non_zero_digit'(input(), index()) -> parse_result().
 'non_zero_digit'(Input, Index) ->

@@ -70,7 +70,7 @@ end
 unumber <- (number / single) __ ('b' / 'kb' / 'mb' / 'gb' / 'tb' / 'ms' / 'sec' / 'min' / 'h' / 'rpm' / 'rph' / 'rps') `{value, lists:nth(1, Node), binary_to_atom(lists:nth(3, Node), latin1), Idx}`;
 frac <- '.' digit+ ~;
 int <- '-'? (non_zero_digit digit+) / digit ~;
-mult <- ('K' / 'M' / 'G') ~;
+mult <- ('K' / 'M' / 'G' / 'T') ~;
 non_zero_digit <- [1-9] ~;
 digit <- [0-9] ~;
 string <- '"' chars:(!'"' ("\\\\" / '\\"' / .))* '"' `mzb_string:unescape_ascii(binary_to_list(iolist_to_binary(proplists:get_value(chars, Node))))`;
