@@ -116,32 +116,32 @@ rsync_bdl_test() ->
 
 assert_bdl_test() ->
     match_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, (\"print.rps\" > 1.5) and (not \"print.rps\" < 2)) # ")),
+    "assert(always, (\"print.rps\" > 1.5K) and (not \"print.rps\" < 2M)) # ")),
     match_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, \"print.rps\" > 1.5 and (not \"print.rps\" < 2)) # ")).
+    "assert(always, \"print.rps\" > 1.5K and (not \"print.rps\" < 2M)) # ")).
 
 assert_2nd_bdl_test() ->
     match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, (\"print.rps\" > 1.5) and (\"print.rps\" < 2)) # ")),
+    "assert(always, (\"print.rps\" > 1.5G) and (\"print.rps\" < 2T)) # ")),
     match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, \"print.rps\" > 1.5 and \"print.rps\" < 2) # ")),
+    "assert(always, \"print.rps\" > 1.5G and \"print.rps\" < 2T) # ")),
     match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, (\"print.rps\" > 1.5) and \"print.rps\" < 2) # ")),
+    "assert(always, (\"print.rps\" > 1.5G) and \"print.rps\" < 2T) # ")),
     match_2nd_myassert(mzbl_script:read_from_string("#!benchDL\n"
-    "assert(always, \"print.rps\" > 1.5 and (\"print.rps\" < 2)) # ")).
+    "assert(always, \"print.rps\" > 1.5G and (\"print.rps\" < 2T)) # ")).
 
 match_myassert(Res) ->
     ?assertMatch([#operation{name = assert,
      args = [always, #operation{name = 'and',
-                 args = [#operation{name = gt, args = ["print.rps", 1.5]},
+                 args = [#operation{name = gt, args = ["print.rps", 1.5e3]},
                          #operation{name = 'not',
-                              args = [#operation{name = lt, args = ["print.rps",2]}]}]}]}], Res).
+                              args = [#operation{name = lt, args = ["print.rps",2000000]}]}]}]}], Res).
 
 match_2nd_myassert(Res) ->
     ?assertMatch([#operation{name = assert,
      args = [always, #operation{name = 'and',
-                 args = [#operation{name = gt, args = ["print.rps", 1.5]},
-                         #operation{name = lt, args = ["print.rps", 2]}]}]}], Res).
+                 args = [#operation{name = gt, args = ["print.rps", 1.5e9]},
+                         #operation{name = lt, args = ["print.rps", 2000000000000]}]}]}], Res).
 
 quotes_test() ->
     Res = mzbl_script:read_from_string("#!benchDL\n"
