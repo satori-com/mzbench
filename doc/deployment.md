@@ -219,7 +219,15 @@ If GitHub Enterprise is used it may be usefull to add the following two paramete
     {api_url, "https://<GitHub API URL>"},
 ```
 
-After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click "Generate token" link.
+After successful setup you will be able to authorize yourself at dashboard and create tokens for Command Line Utilities (CLI). To create one hover your name at top-right corner of the dashboard and click "Generate token" link.
+When token is generated it should be saved in ~/.config/mzbench/token file. If multiple mzbench servers are used token file could be organized the following way:
+
+```
+<Server1> <Token1>
+<Server2> <Token2>
+<Server3> <Token3>
+...
+```
 
 #### access_lists
 
