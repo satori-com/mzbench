@@ -1,0 +1,6 @@
+#!/bin/bash
+mzbench start_server
+while true
+do
+	sleep 1
+done

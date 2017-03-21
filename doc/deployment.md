@@ -37,6 +37,16 @@ If you need to add a worker to this installation, please use `mzbench add_worker
 command. Please refer to ["How to write your own worker"](workers.md#how-to-write-a-worker)
 guide to learn more about generation of this tarball.
 
+## From Docker container
+
+Docker is a container platform, more information is available at its [website](https://www.docker.com/). If you have Docker up and running, use the following command to start MZBench server:
+
+```bash
+docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
+```
+
+After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/machinezone/mzbench/tree/master/docker).
+
 ## From sources
 
 Requirements:
