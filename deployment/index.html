@@ -155,6 +155,8 @@
         
             <li><a href="#from-rpm-and-pip">From RPM and Pip</a></li>
         
+            <li><a href="#from-docker-container">From Docker container</a></li>
+        
             <li><a href="#from-sources">From sources</a></li>
         
     
@@ -201,6 +203,12 @@ mzbench start_server
 If you need to add a worker to this installation, please use <code>mzbench add_worker &lt;tgz_file&gt;</code>
 command. Please refer to <a href="../workers/#how-to-write-a-worker">&ldquo;How to write your own worker&rdquo;</a>
 guide to learn more about generation of this tarball.</p>
+<h2 id="from-docker-container">From Docker container<a class="headerlink" href="#from-docker-container" title="Permanent link">&para;</a></h2>
+<p>Docker is a container platform, more information is available at its <a href="https://www.docker.com/">website</a>. If you have Docker up and running, use the following command to start MZBench server:</p>
+<pre><code class="bash">docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
+</code></pre>
+
+<p>After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on <a href="https://github.com/machinezone/mzbench/tree/master/docker">github</a>.</p>
 <h2 id="from-sources">From sources<a class="headerlink" href="#from-sources" title="Permanent link">&para;</a></h2>
 <p>Requirements:</p>
 <ul>
