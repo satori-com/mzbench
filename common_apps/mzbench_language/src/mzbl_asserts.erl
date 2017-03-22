@@ -3,10 +3,10 @@
 -export([
     validate/1,
     init/1,
-    update_state/2,
+    update_state/3,
     get_failed/3,
-    check_loop_expr/1,
-    check_expr/1,
+    check_loop_expr/2,
+    check_expr/2,
     format_state/1
 ]).
 
@@ -24,6 +24,10 @@ validate(#operation{name = assert, args = [Time, Expression], meta = M}) ->
     validate_assert_expr(Expression, M).
 
 validate_assert_expr(Op, _M) when is_number(Op) or is_list(Op) -> [];
+validate_assert_expr(#operation{name = var, args = [_, Default]}, M) ->
+    if is_number(Default) -> [];
+        true -> invalid_assert(M) end;
+validate_assert_expr(#operation{name = numvar}, _M) -> [];
 validate_assert_expr(#operation{name = Name, args = [Op1, Op2], meta = M}, _) ->
     validate_assert_op(Name, M) ++ validate_assert_expr(Op1, M) ++ validate_assert_expr(Op2, M);
 validate_assert_expr(#operation{name = 'not', args = [Op], meta = M}, _) ->
@@ -70,36 +74,43 @@ init(Asserts) ->
        satisfy_time => 0,
        unsatisfy_time => 0} || {#constant{value = Time, units = ms}, Expr} <- Asserts].
 
--spec update_state(integer(), [map()]) -> [map()].
-update_state(TimeSinceCheck, State) ->
+-spec update_state(integer(), [map()], [tuple()]) -> [map()].
+update_state(TimeSinceCheck, State, Env) ->
     lists:map(
         fun (#{assert_expr:= Expr, satisfy_time:= STime, unsatisfy_time:= UTime} = A) ->
-            case check_expr(Expr) of
+            case check_expr(Expr, Env) of
                 true  -> A#{satisfy_time:= STime + TimeSinceCheck};
                 false -> A#{unsatisfy_time:= UTime + TimeSinceCheck}
             end
         end, State).
 
--spec check_loop_expr(list()) -> boolean().
-check_loop_expr(List) -> lists:all(fun check_expr/1, List).
+-spec check_loop_expr(list(), [tuple()]) -> boolean().
+check_loop_expr(List, Env) -> lists:all(fun(Expr) -> check_expr(Expr, Env) end, List).
 
-get_value(V) when is_number(V) -> [V];
-get_value(Metric) when is_list(Metric) -> mzb_metrics:get_by_wildcard(Metric).
+get_value(V, _) when is_number(V) -> [V];
+get_value(Metric, _) when is_list(Metric) -> mzb_metrics:get_by_wildcard(Metric);
+get_value(#operation{name = VarKind, args = [Name | Default]}, Env)
+                            when (VarKind == 'var') or (VarKind == 'numvar') ->
+    AName = erlang:list_to_atom(Name),
+    case erlang:function_exported(mzb_compiled_vars, AName, 0) of
+        true -> [mzb_compiled_vars:AName()];
+        false -> [mzbl_ast:var_eval(VarKind, Env, [Name | Default])]
+    end.
 
--spec check_expr(any()) -> boolean().
-check_expr(#operation{name = 'not', args = [Exp1]}) -> not check_expr(Exp1);
-check_expr(#operation{name = 'and', args = [Exp1, Exp2]}) ->
-    case check_expr(Exp1) of
+-spec check_expr(any(), [tuple()]) -> boolean().
+check_expr(#operation{name = 'not', args = [Exp1]}, Env) -> not check_expr(Exp1, Env);
+check_expr(#operation{name = 'and', args = [Exp1, Exp2]}, Env) ->
+    case check_expr(Exp1, Env) of
         false -> false;
-        true -> check_expr(Exp2)
+        true -> check_expr(Exp2, Env)
     end;
-check_expr(#operation{name = 'or', args = [Exp1, Exp2]}) ->
-    case check_expr(Exp1) of
+check_expr(#operation{name = 'or', args = [Exp1, Exp2]}, Env) ->
+    case check_expr(Exp1, Env) of
         true -> true;
-        false -> check_expr(Exp2)
+        false -> check_expr(Exp2, Env)
     end;
-check_expr(#operation{name = Op, args = [Value1, Value2]}) ->
-    try {get_value(Value1), get_value(Value2)} of
+check_expr(#operation{name = Op, args = [Value1, Value2]}, Env) ->
+    try {get_value(Value1, Env), get_value(Value2, Env)} of
         {VL1, VL2} -> lists:all(fun(X) -> X end,
                 [check_value(Op, V1, V2) || V1 <- VL1, V2 <- VL2])
     catch
@@ -123,6 +134,8 @@ format_error(#{assert_time:= ExpectedTime, assert_expr:= Expr, satisfy_time:= ST
 format_expr(Op) when is_list(Op) -> Op;
 format_expr(Op) when is_integer(Op) -> integer_to_list(Op);
 format_expr(Op) when is_float(Op) -> float_to_list(Op);
+format_expr(#operation{name = VarKind, args = Args}) when (VarKind == 'var') or (VarKind == 'numvar')->
+    io_lib:format("~p~p", [VarKind, Args]);
 format_expr(#operation{name = 'not', args = [Op1]}) ->
     io_lib:format("(not ~s)", [format_expr(Op1)]);
 format_expr(#operation{name = Operation, args = [Op1, Op2]}) ->
