@@ -1,6 +1,6 @@
 -module(mzb_metrics).
 
--export([start_link/3,
+-export([start_link/4,
          declare_metric/5,
          declare_metrics/1,
          local_declare_metrics/1,
@@ -37,6 +37,7 @@
     loop_assert_metrics = [],
     active = true :: true | false,
     metric_groups = [],
+    env = [],
     update_interval_ms :: undefined | integer(),
     assert_accuracy_ms :: undefined | integer(),
     histograms = []
@@ -47,8 +48,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Asserts, LoopAssertMetrics, Nodes) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Asserts, LoopAssertMetrics, Nodes], [{spawn_opt, [{priority, high}]}]).
+start_link(Asserts, LoopAssertMetrics, Nodes, Env) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Asserts, LoopAssertMetrics, Nodes, Env], [{spawn_opt, [{priority, high}]}]).
 
 notify({Name, counter}, Value) ->
     mz_counter:notify(Name, Value);
@@ -106,7 +107,7 @@ get_histogram_data() ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([Asserts, LoopAssertMetrics, Nodes]) ->
+init([Asserts, LoopAssertMetrics, Nodes, Env]) ->
     {ok, UpdateIntervalMs} = application:get_env(mzbench, metric_update_interval_ms),
     _ = ets:new(?MODULE, [set, protected, named_table]),
     erlang:send_after(UpdateIntervalMs, self(), trigger),
@@ -122,6 +123,7 @@ init([Asserts, LoopAssertMetrics, Nodes]) ->
         loop_assert_metrics = lists:map(fun mzb_string:wildcard_to_regexp/1, LoopAssertMetrics),
         active = true,
         metric_groups = [],
+        env = Env,
         update_interval_ms = UpdateIntervalMs,
         assert_accuracy_ms = round(UpdateIntervalMs * 1.5)
         }}.
@@ -262,9 +264,9 @@ check_dynamic_deadlock(#s{} = State) ->
             State
     end.
 
-check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs} = State) ->
+check_assertions(TimePeriod, #s{asserts = Asserts, assert_accuracy_ms = AccuracyMs, env = Env} = State) ->
     system_log:info("[ metrics ] CHECK ASSERTIONS:"),
-    NewAsserts = mzbl_asserts:update_state(TimePeriod, Asserts),
+    NewAsserts = mzbl_asserts:update_state(TimePeriod, Asserts, Env),
     system_log:info("Current assertions:~n~s", [mzbl_asserts:format_state(NewAsserts)]),
 
     FailedAsserts = mzbl_asserts:get_failed(_Finished = false, AccuracyMs, NewAsserts),

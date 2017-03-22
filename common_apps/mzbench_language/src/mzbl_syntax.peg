@@ -40,7 +40,7 @@ case Node of
 end
 `;
 logic_unary <- 'not' __ logic_exp `{call, 'not', [lists:nth(3, Node)], Idx}`;
-logic_op <- (number / string) __ ('<=' / '>=' / '<' / '>' / '==' / '!=' / '/=' / '<>') __ (number / string)
+logic_op <- (single / number / string) __ ('<=' / '>=' / '<' / '>' / '==' / '!=' / '/=' / '<>') __ (single / number / string)
 `{call, case lists:nth(3, Node) of
   <<"<=">> -> lte;
   <<">=">> -> gte;

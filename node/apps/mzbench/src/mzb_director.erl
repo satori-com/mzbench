@@ -172,11 +172,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-start_metrics(#state{script = Script, assertions = Asserts, nodes = Nodes, super_pid = SuperPid}) ->
+start_metrics(#state{script = Script, assertions = Asserts, env = Env, nodes = Nodes, super_pid = SuperPid}) ->
     LoopAssertMetrics = mzbl_script:get_loop_assert_metrics(Script),
     {ok, _} = supervisor:start_child(SuperPid,
         {mzb_metrics,
-         {mzb_metrics, start_link, [Asserts, LoopAssertMetrics, Nodes]},
+         {mzb_metrics, start_link, [Asserts, LoopAssertMetrics, Nodes, Env]},
          transient, 5000, worker, [mzb_metrics]}),
     {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
     SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
@@ -291,4 +291,3 @@ compile_and_load(Script, Env) ->
     {NewScript, ModulesToLoad} = mzb_compiler:compile(Script, Env),
     [{module, _} = code:load_binary(Mod, mzb_string:format("~s.erl", [Mod]), Bin) || {Mod, Bin} <- ModulesToLoad],
     {ok, NewScript}.
-

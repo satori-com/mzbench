@@ -110,7 +110,7 @@ end
 
 -spec 'logic_op'(input(), index()) -> parse_result().
 'logic_op'(Input, Index) ->
-  p(Input, Index, 'logic_op', fun(I,D) -> (p_seq([p_choose([fun 'number'/2, fun 'string'/2]), fun '__'/2, p_choose([p_string(<<"<=">>), p_string(<<">=">>), p_string(<<"<">>), p_string(<<">">>), p_string(<<"==">>), p_string(<<"!=">>), p_string(<<"\/=">>), p_string(<<"<>">>)]), fun '__'/2, p_choose([fun 'number'/2, fun 'string'/2])]))(I,D) end, fun(Node, Idx) ->{call, case lists:nth(3, Node) of
+  p(Input, Index, 'logic_op', fun(I,D) -> (p_seq([p_choose([fun 'single'/2, fun 'number'/2, fun 'string'/2]), fun '__'/2, p_choose([p_string(<<"<=">>), p_string(<<">=">>), p_string(<<"<">>), p_string(<<">">>), p_string(<<"==">>), p_string(<<"!=">>), p_string(<<"\/=">>), p_string(<<"<>">>)]), fun '__'/2, p_choose([fun 'single'/2, fun 'number'/2, fun 'string'/2])]))(I,D) end, fun(Node, Idx) ->{call, case lists:nth(3, Node) of
   <<"<=">> -> lte;
   <<">=">> -> gte;
   <<"<">> -> lt;

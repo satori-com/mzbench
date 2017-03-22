@@ -163,7 +163,7 @@ def lex(text):
     logic_unary = "not" _ logic_exp _
     logic_binary = "and" / "or"
     logic_plain = logic_op _ (logic_binary _ logic_exp _)*
-    logic_op = (string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (string / number)
+    logic_op = (single / string / number) _ ("<=" / ">=" / "<" / ">" / "==" / "!=" / "<>" / "/=") _ (single / string / number)
     string = '"' ~r'(\\\\.|[^\\\\"])*' '"'
     number = ~"[0-9]+(\.[0-9]+)?(e\-?[0-9]+)?[GKMT]?"
     unumber = (number / single) _ atom

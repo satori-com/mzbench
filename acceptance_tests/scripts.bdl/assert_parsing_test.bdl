@@ -1,6 +1,6 @@
 #!benchDL
 # this file is used to check assert parsing
-assert(40 sec, "p*t" > 40 and (not "p*t" <= 40))
+assert(40 sec, "p*t" > numvar("aa", 40) and (not "p*t" <= 40))
 assert(always, ("p*t" > 40) and "p*t" < 40)
 assert(always, "p*t" > 40 or "p*t" != 40)
 assert(always, not "p*t" > 40 and "p*t" <= 40)
