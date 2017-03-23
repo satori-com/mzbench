@@ -182,7 +182,8 @@ extract_info(Script, Env) ->
                     {[{{resource, Name}, import_resource(Env, Path, Type)} | Acc], Ass};
                 (#operation{name = defaults, args = [DefaultsList]}, {Acc, Ass}) ->
                     {interpret_defaults(DefaultsList, Env) ++ Acc, Ass};
-                (#operation{name = assert, args = [Time, Expr]}, {Acc, Ass}) ->
+                (#operation{name = assert, args = [TimeExpr, Expr]}, {Acc, Ass}) ->
+                    Time = mzbl_literals:convert(mzbl_interpreter:eval_std(TimeExpr, Env)),
                     {Acc, [{Time, Expr} | Ass]};
                 (_, Acc) -> Acc
             end, {Env, []}, Script),
