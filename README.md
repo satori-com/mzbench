@@ -44,7 +44,7 @@ sudo pip install mzbench_api_client
 mzbench start_server
 ```
 
-## From Docker container
+### From Docker container
 
 Docker is a container platform, more information is available at its [website](https://www.docker.com/). If you have Docker up and running, use the following command to start MZBench server:
 
