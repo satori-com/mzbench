@@ -1,6 +1,6 @@
 -module(mzbl_loop).
 
--compile({inline, [msnow/0, eval_rates/7, time_of_next_iteration/3, batch_size/4, k_times/5, k_times_iter/8, k_times_spawn/8]}).
+-compile({inline, [msnow/0, eval_rates/7, time_of_next_iteration/3, batch_size/4]}).
 
 -export([eval/5]).
 
@@ -169,16 +169,16 @@ superloop(TimeFun, Rates, Body, WorkerProvider, State, Env, Opts) ->
     end.
 
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = 1})  ->
-    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, {0, 0});
+    timerun(msnow(), random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, 0, {0, 0});
 looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel = N}) ->
     StartTime = msnow(),
     _ = mzb_lists:pmap(fun (I) ->
         _ = random:seed(now()),
-        timerun(StartTime, I + random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, {0, I})
+        timerun(StartTime, I + random:uniform(), TimeFun, Rate, Body, WorkerProvider, Env, true, Opts, 1, State, 0, 0, {0, I})
     end, lists:seq(0, N - 1)),
     {nil, State}.
 
-timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldRun) ->
+timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldIter, OldRun) ->
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),
@@ -195,7 +195,7 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
     case Sleep > ?MAXSLEEP of
         true ->
             timer:sleep(?MAXSLEEP),
-            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done, NewRun);
+            timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State2, Done, OldIter + Opts#opts.parallel, NewRun);
         false ->
             Sleep > 0 andalso timer:sleep(Sleep),
             case Time =< LocalTime + Sleep of
@@ -209,10 +209,10 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                             false ->
                                 case Iterator of
                                     undefined -> k_times(Body, WorkerProvider, Env, State2, Batch);
-                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), Batch)
+                                    _ -> k_times_iter(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), OldIter + erlang:trunc(Shift), Batch)
                                 end;
                             true ->
-                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), Batch)
+                                k_times_spawn(Body, WorkerProvider, Iterator, Env, Step, State2, Done + erlang:trunc(Shift), OldIter + erlang:trunc(Shift), Batch)
                         end,
                     BatchEnd = msnow(),
                     NewBatch = case IsFirst of
@@ -220,7 +220,7 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                         false -> batch_size(BatchEnd - BatchStart, GotTime, NeedToSleep, Batch)
                     end,
 
-                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch, NewRun)
+                    timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch, OldIter + Step*Batch, NewRun)
     end
 end.
 
@@ -306,12 +306,12 @@ k_times(Expr, Provider, Env, S, N) ->
     {_, NewS} = mzbl_interpreter:eval(Expr, S, Env, Provider),
     k_times(Expr, Provider, Env, NewS, N-1).
 
-k_times_iter(_, _, _, _, _, S, _, 0) -> S;
-k_times_iter(Expr, Provider, I, Env, Step, S, Done, N) ->
-    {_, NewS} = mzbl_interpreter:eval(Expr, S, [{I, erlang:trunc(Done)}|Env], Provider),
-    k_times_iter(Expr, Provider, I, Env, Step, NewS, Done + Step, N-1).
+k_times_iter(_, _, _, _, _, S, _, _, 0) -> S;
+k_times_iter(Expr, Provider, I, Env, Step, S, Done, Iter, N) ->
+    {_, NewS} = mzbl_interpreter:eval(Expr, S, [{I, Iter}|Env], Provider),
+    k_times_iter(Expr, Provider, I, Env, Step, NewS, Done + Step, Iter + Step, N-1).
 
-k_times_spawn(_, _, _, _, _, S, _, 0) -> S;
-k_times_spawn(Expr, Provider, I, Env, Step, S, Done, N) ->
-    spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, erlang:trunc(Done)}|Env], Provider) end),
-    k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, N-1).
+k_times_spawn(_, _, _, _, _, S, _, _, 0) -> S;
+k_times_spawn(Expr, Provider, I, Env, Step, S, Done, Iter, N) ->
+    spawn_link(fun() -> mzbl_interpreter:eval(Expr, S, [{I, Iter}|Env], Provider) end),
+    k_times_iter(Expr, Provider, I, Env, Step, S, Done + Step, Iter + Step, N-1).
