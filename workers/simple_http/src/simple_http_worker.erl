@@ -30,6 +30,7 @@ get(State, _Meta, URL) ->
 get(State, _Meta, URL, Options) ->
     StartTime = os:timestamp(),
     ShouldLog = proplists:get_value(log, Options, false),
+    ExpectedCode = proplists:get_value(expected, Options, 200),
 
     ShouldLog andalso lager:info("GET ~s", [URL]),
 
@@ -45,7 +46,7 @@ get(State, _Meta, URL, Options) ->
     mzb_metrics:notify({"latency", histogram}, Latency),
 
     case Response of
-        {ok, 200, _, _} ->
+        {ok, ExpectedCode, _, _} ->
             mzb_metrics:notify({"http_ok", counter}, 1);
         {ok, _, _, _} = Reply ->
             lager:error("GET failed: ~p", [Reply]),
