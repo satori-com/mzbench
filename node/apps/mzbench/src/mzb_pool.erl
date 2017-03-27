@@ -187,7 +187,7 @@ start_workers(Pool, Env, NumNodes, Offset, #s{} = State) ->
                         WId = (StartingFrom + N) * NumNodes + Offset,
                         worker_start_delay(StartDelay, NumNodes, WId, StartTime),
                         WorkerScript = mzbl_ast:add_meta(Script, [{worker_id, WId}]),
-                        gen_server:cast(Self, {start_worker, WorkerScript, Env, Worker, Node, WId })
+                        gen_server:cast(Self, {start_worker, WorkerScript, [{"worker_id", WId}|Env], Worker, Node, WId })
                     end, Numbers)
     end,
 
