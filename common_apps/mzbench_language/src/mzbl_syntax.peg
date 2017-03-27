@@ -52,7 +52,7 @@ logic_op <- (number / string) __ ('<=' / '>=' / '<' / '>' / '==' / '!=' / '/=' /
   <<"==">> -> eq
 end, [lists:nth(1, Node), lists:nth(5, Node)], Idx}`;
 
-list <- '[' pargs ']' `lists:nth(2, Node)`;
+list <- '[' pargs? ']' `lists:nth(2, Node)`;
 number <- int frac? mult?
 `
 case Node of

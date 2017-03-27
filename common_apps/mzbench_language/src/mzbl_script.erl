@@ -54,9 +54,9 @@ read_from_string(String) ->
     try
         mzbl_literals:convert(parse(String))
     catch
-        C:{parse_error, {_, Module, ErrorInfo}} = E ->
+        C:{parse_error, {_, _, ErrorInfo}} = E ->
             ST = erlang:get_stacktrace(),
-            lager:error("Parsing script file failed: ~s", [Module:format_error(ErrorInfo)]),
+            lager:error("Parsing script file failed: ~s", [erl_parse:format_error(ErrorInfo)]),
             erlang:raise(C,E,ST);
         C:E ->
             ST = erlang:get_stacktrace(),

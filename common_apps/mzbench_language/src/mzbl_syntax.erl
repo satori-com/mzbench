@@ -123,7 +123,7 @@ end, [lists:nth(1, Node), lists:nth(5, Node)], Idx} end).
 
 -spec 'list'(input(), index()) -> parse_result().
 'list'(Input, Index) ->
-  p(Input, Index, 'list', fun(I,D) -> (p_seq([p_string(<<"[">>), fun 'pargs'/2, p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->lists:nth(2, Node) end).
+  p(Input, Index, 'list', fun(I,D) -> (p_seq([p_string(<<"[">>), p_optional(fun 'pargs'/2), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->lists:nth(2, Node) end).
 
 -spec 'number'(input(), index()) -> parse_result().
 'number'(Input, Index) ->
