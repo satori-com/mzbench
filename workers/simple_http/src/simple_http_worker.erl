@@ -38,18 +38,14 @@ get(State, _Meta, URL, Options) ->
     Response = hackney:request(get, list_to_binary(URL), Headers, <<"">>, HackneyOptions),
     Latency = timer:now_diff(os:timestamp(), StartTime),
 
-    case Response of
-        {ok, _, _, BodyRef} -> hackney:skip_body(BodyRef);
-        _ -> ok
-    end,
-
     mzb_metrics:notify({"latency", histogram}, Latency),
 
     case Response of
-        {ok, ExpectedCode, _, _} ->
+        {ok, ExpectedCode, _, Ref} ->
+            hackney:skip_body(Ref),
             mzb_metrics:notify({"http_ok", counter}, 1);
-        {ok, _, _, _} = Reply ->
-            lager:error("GET failed: ~p", [Reply]),
+        {ok, _, _, Ref} = Reply ->
+            lager:error("GET failed: ~p~n~p", [Reply, hackney:body(Ref)]),
             mzb_metrics:notify({"http_fail", counter}, 1);
         E ->
             lager:error("hackney:request failed: ~p", [E]),
@@ -68,23 +64,20 @@ post(State, _Meta, URL, Body, Options) ->
     Response = hackney:request(post, list_to_binary(URL), Headers, list_to_binary(Body), HackneyOptions),
     Latency = timer:now_diff(os:timestamp(), StartTime),
 
-    case Response of
-        {ok, _, _, BodyRef} -> hackney:skip_body(BodyRef);
-        _ -> ok
-    end,
-
     mzb_metrics:notify({"latency", histogram}, Latency),
 
     case Response of
-        {ok, ExpectedCode, _, _} ->
+        {ok, ExpectedCode, _, Ref} ->
+            hackney:skip_body(Ref),
             mzb_metrics:notify({"http_ok", counter}, 1);
-        {ok, _, _, _} = Reply ->
-            lager:error("POST failed: ~p", [Reply]),
+        {ok, _, _, Ref} = Reply ->
+            lager:error("POST failed: ~p~n~p", [Reply, hackney:body(Ref)]),
             mzb_metrics:notify({"http_fail", counter}, 1);
         E ->
             lager:error("hackney:request failed: ~p", [E]),
             mzb_metrics:notify({"other_fail", counter}, 1)
     end,
+
     {nil, State}.
 
 random_get(State, Meta, List) ->
