@@ -45,10 +45,11 @@ get(State, _Meta, URL, Options) ->
             hackney:skip_body(Ref),
             mzb_metrics:notify({"http_ok", counter}, 1);
         {ok, _, _, Ref} = Reply ->
-            lager:error("GET failed: ~p~n~p", [Reply, hackney:body(Ref)]),
+            lager:error("GET failed~nURL: ~p~nHeaders: ~p~nReply:~p~n~p", [URL, Headers, Reply, hackney:body(Ref)]),
             mzb_metrics:notify({"http_fail", counter}, 1);
         E ->
             lager:error("hackney:request failed: ~p", [E]),
+            lager:error("hackney:request failed~nURL: ~p~nHeaders: ~p~nReason: ~p", [URL, Headers, E]),
             mzb_metrics:notify({"other_fail", counter}, 1)
     end,
     {nil, State}.
@@ -71,10 +72,10 @@ post(State, _Meta, URL, Body, Options) ->
             hackney:skip_body(Ref),
             mzb_metrics:notify({"http_ok", counter}, 1);
         {ok, _, _, Ref} = Reply ->
-            lager:error("POST failed: ~p~n~p", [Reply, hackney:body(Ref)]),
+            lager:error("POST failed~nURL: ~p~nHeaders: ~p~nBody: ~p~nReply:~p~n~p", [URL, Headers, Body, Reply, hackney:body(Ref)]),
             mzb_metrics:notify({"http_fail", counter}, 1);
         E ->
-            lager:error("hackney:request failed: ~p", [E]),
+            lager:error("hackney:request failed~nURL: ~p~nHeaders: ~p~nBody: ~p~nReason: ~p", [URL, Headers, Body, E]),
             mzb_metrics:notify({"other_fail", counter}, 1)
     end,
 
