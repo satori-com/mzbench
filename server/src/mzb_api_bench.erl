@@ -92,7 +92,7 @@ init([Id, Params]) ->
         script => generate_script_filename(maps:get(script, Params)),
         purpose => Purpose,
         node_install_spec => NodeInstallSpec,
-        env => mzbl_script:normalize_env(generate_bench_env(Params)),
+        env => mzbl_script:normalize_env(generate_bench_env(Id, Params)),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
         provision_nodes => maps:get(provision_nodes, Params),
         req_host => maps:get(req_host, Params),
@@ -624,7 +624,7 @@ send_email_report(_Emails, Status) ->
 status(State) ->
     mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results], State).
 
-generate_bench_env(Params) ->
+generate_bench_env(Id, Params) ->
     Env = maps:get(env, Params),
     Script = maps:get(script, Params),
     #{name := ScriptName} = Script,
@@ -634,7 +634,7 @@ generate_bench_env(Params) ->
                             _ -> E
                         end
                        end, Env,
-                [{"mzb_script_name", list_to_binary(ScriptName)}]).
+                [{"mzb_script_name", list_to_binary(ScriptName)}, {"mzb_bench_id", Id}]).
 
 script_path(Script) ->
     case Script of
