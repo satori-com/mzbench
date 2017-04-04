@@ -84,7 +84,7 @@ get_value(Metric) ->
 
 get_by_wildcard(Wildcard) ->
     Regexp = mzb_string:wildcard_to_regexp(Wildcard),
-    ets:foldl(fun({Name, _, Value}, A) ->
+    ets:foldl(fun({Name, _, Value}, A) -> 
         case re:run(Name, Regexp) of
             nomatch -> A;
             _ -> [Value | A]
@@ -197,7 +197,7 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State3 = check_assertions(TimeSinceTick, State2),
             State4 = check_signals(State3),
             State5 = check_dynamic_deadlock(State4),
-            ok = report_metrics(),
+            ok = report_metrics(State5),
             State5#s{last_tick_time = Now}
     end.
 
@@ -462,8 +462,14 @@ flatten_exometer_metrics(BenchMetrics) ->
     FlattenMetrics = lists:flatten(BenchMetrics),
     lists:flatten([get_exometer_metrics(M) || M <- FlattenMetrics]).
 
-report_metrics() ->
+report_metrics(#s{loop_assert_metrics = MetricRegexpList, nodes = Nodes}) ->
     GlobalMetrics = global_metrics(),
+    GlobalFiltered = lists:filter(fun ({Nm, _, _}) -> lists:any(
+        fun (X) -> case re:run(Nm, X) of
+            nomatch -> false;
+            _ -> true
+        end end, MetricRegexpList) end, GlobalMetrics),
+    [mzb_interconnect:abcast(Nodes, {cache_metric, Name, Value}) || {Name, _, Value} <- GlobalFiltered, Value /= undefined],
     [mzb_metric_reporter:report(Name, Value) || {Name, _, Value} <- GlobalMetrics, Value /= undefined],
     ok.
 

@@ -179,6 +179,10 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     {nil, State}.
 
 timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, State, OldDone, OldIter, OldRun) ->
+    case mzbl_asserts:check_loop_expr(Opts#opts.while) of
+        false -> {nil, State};
+        _ ->
+
     LocalTime = msnow() - Start,
     {Time, State1} = TimeFun(State),
     {NewRate, Done, State2, NewRun} = eval_rates(Rate, OldDone, LocalTime, Time, State1, Opts#opts.parallel, OldRun),
@@ -221,6 +225,7 @@ timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, B
                     end,
 
                     timerun(Start, Shift, TimeFun, NewRate, Body, WorkerProvider, Env, false, Opts, NewBatch, NextState, Done + Step*Batch, OldIter + Step*Batch, NewRun)
+    end
     end
 end.
 
