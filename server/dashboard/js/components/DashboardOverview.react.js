@@ -87,8 +87,8 @@ class DashboardOverview extends React.Component {
             if (!benches || benches.length == 0) return (<h4 key={idx}>{c.metric} not found</h4>);
 
             let guid = "compare-" + idx;
-            let groupEnv = Misc.ucfirst(c.group_env);
-            let xEnv = c.kind === "regression" ? (c.regression_x ? c.regression_x : "Number") : Misc.ucfirst(c.x_env);
+            let groupEnv = c.group_env;
+            let xEnv = c.kind === "regression" ? (c.regression_x ? c.regression_x : "Number") : c.x_env;
             let key = "" + idx + benches.map((b) => b.benches.map((bb) => bb.id)).join("");
 
             return (<div key={key}>
@@ -96,7 +96,7 @@ class DashboardOverview extends React.Component {
                         <Graph targets={targets} kind={c.kind} x_env={xEnv}
                             title={c.metric} benchset={benches} domPrefix={guid} height="400"/>
                         <Collapsible triggerText="Show benches" triggerTextWhenOpen="Hide benches">
-                            {this.renderTable(c.metric, c.kind, groupEnv, xEnv, benches)}
+                            {this.renderTable(c.metric, c.kind, Misc.ucfirst(groupEnv), Misc.ucfirst(xEnv), benches)}
                         </Collapsible>
                     </div>);
         });
