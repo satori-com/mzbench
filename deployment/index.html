@@ -82,6 +82,12 @@
                 
                 
                     <li >
+                        <a href="../dashboard/">Dashboard</a>
+                    </li>
+                
+                
+                
+                    <li >
                         <a href="../cli/">CLI</a>
                     </li>
                 
@@ -338,7 +344,14 @@ sudo pip install -r mzbench/requirements.txt
     {api_url, &quot;https://&lt;GitHub API URL&gt;&quot;},
 </code></pre>
 
-<p>After successful setup you will be able to authorize yourself at dashboard using Google account and create tokens for Command Line Utilities. To create one hover your name at top-right corner of the dashboard and click &ldquo;Generate token&rdquo; link.</p>
+<p>After successful setup you will be able to authorize yourself at dashboard and create tokens for Command Line Utilities (CLI). To create one hover your name at top-right corner of the dashboard and click &ldquo;Generate token&rdquo; link.
+When token is generated it should be saved in ~/.config/mzbench/token file. If multiple mzbench servers are used token file could be organized the following way:</p>
+<pre><code>&lt;Server1&gt; &lt;Token1&gt;
+&lt;Server2&gt; &lt;Token2&gt;
+&lt;Server3&gt; &lt;Token3&gt;
+...
+</code></pre>
+
 <h4 id="access_lists">access_lists<a class="headerlink" href="#access_lists" title="Permanent link">&para;</a></h4>
 <p>It is possible to specify white and black user lists in a following way:</p>
 <pre><code class="erlang">    {admin_list, [&quot;*@mydomain-admins.com&quot;, &quot;root@mydomain.com&quot;]},

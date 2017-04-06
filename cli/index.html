@@ -81,6 +81,12 @@
                 
                 
                 
+                    <li >
+                        <a href="../dashboard/">Dashboard</a>
+                    </li>
+                
+                
+                
                     <li class="active">
                         <a href="./">CLI</a>
                     </li>
@@ -121,7 +127,7 @@
                 </li>
                 
                     <li >
-                        <a rel="next" href="../scenarios/spec/">
+                        <a rel="next" href="../dashboard/">
                             <i class="fa fa-arrow-left"></i> Previous
                         </a>
                     </li>
@@ -443,6 +449,38 @@ Start of userlog for bench 89
 <dt>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dt>
 <dt><code>&lt;tags&gt;</code></dt>
 <dd>Comma-separated tag list.</dd>
+</dl>
+</dd>
+</dl>
+<h3 id="run_command">run_command<a class="headerlink" href="#run_command" title="Permanent link">&para;</a></h3>
+<pre><code class="bash">$ mzbench run_command 86 --percent 5 --pool 1 print(\&quot;123\&quot;)
+{
+    &quot;status&quot;: &quot;ok&quot;
+}
+</code></pre>
+
+<p>Run BDL statement on a given percent of workers without interrupting the benchmark,
+please note that the code is executed inside current loop and if there is no loop &ndash;
+it wont be executed at all.</p>
+<p>Positional param:</p>
+<dl>
+<dt><code>&lt;benchmark_id&gt;</code></dt>
+<dd>
+<dl>
+<dt>The ID of the benchmark as returned by <a href="#start">start</a> or <a href="#run">run</a>.</dt>
+<dt><code>&lt;command&gt;</code></dt>
+<dd>BDL statement to be executed.</dd>
+</dl>
+</dd>
+</dl>
+<p>Optional param:</p>
+<dl>
+<dt><code>--percent &lt;value&gt;</code></dt>
+<dd>
+<dl>
+<dt>Percent of workers to execute a command, default value is 100.</dt>
+<dt><code>--pool &lt;number&gt;</code></dt>
+<dd>Pool number from the top of a script, default value is 1.</dd>
 </dl>
 </dd>
 </dl>
