@@ -1,4 +1,11 @@
-20 Feb 2016 Version 0.5.1
+6 Apr 2017 Version 0.5.2
+ * Dependent benchmarks
+ * Logic operations in asserts
+ * Environment variables in asserts
+ * Comparison for benchmarks
+ * Conditional loops
+
+20 Feb 2017 Version 0.5.1
  * Google and Github authorization
  * Access lists
  * Improved variable edit
