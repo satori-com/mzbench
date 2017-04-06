@@ -1,4 +1,4 @@
-site_name: MZBench Docs
+site_name: MZBench
 site_description: Expressive, Scalable Load Testing Tool
 
 repo_url: http://github.com/machinezone/mzbench/
@@ -18,7 +18,7 @@ pages:
 - Scenarios:
     - How to Write a Scenario: 'scenarios/tutorial.md'
     - Scenario DSL Specification: 'scenarios/spec.md'
-- Dashboard: 'dashboard.md'
+- UI: 'dashboard.md'
 - CLI: 'cli.md'
 - API: 'api.md'
 - Deployment: 'deployment.md'
