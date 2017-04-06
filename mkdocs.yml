@@ -18,6 +18,7 @@ pages:
 - Scenarios:
     - How to Write a Scenario: 'scenarios/tutorial.md'
     - Scenario DSL Specification: 'scenarios/spec.md'
+- Dashboard: 'dashboard.md'
 - CLI: 'cli.md'
 - API: 'api.md'
 - Deployment: 'deployment.md'
