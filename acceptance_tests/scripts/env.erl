@@ -1,7 +1,9 @@
-[{pool, [{size, {var, "pool_size"}},
+[
+{assert, always, {gt, {numvar, "loop_rate", 1}, 1}},
+{pool, [{size, {var, "pool_size"}},
         {worker_type, dummy_worker}],
-    [{print, {var, "jozin"}}, 
-     {print, {var, "missing", "fallback"}}, 
+    [{print, {var, "jozin"}},
+     {print, {var, "missing", "fallback"}},
      {wait, {{numvar, "wait_ms"}, ms}},
      {wait, {{var, "wait_ms", 1}, ms}},
      {wait, {{var, "wait_ms_undefined", 5}, ms}},

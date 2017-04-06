@@ -56,13 +56,13 @@ describe('checkAnalyzer', function() {
 
     it('Check vars from a complex script', function() {
         var an2 = {env: [{name: "mysomething", value: "something", unused: true, id: 1}],
-                extra: [{ name: 'pool_size', value: undefined, id: 2 },
-                        { name: 'jozin', value: undefined, id: 3 },
-                        { name: 'missing', value: 'fallback', id: 4 },
-                        { name: 'wait_ms', value: 1, id: 5 },
-                        { name: 'wait_ms_undefined', value: 5, id: 6 },
-                        { name: 'loop_time', value: 1, id: 7 },
-                        { name: 'loop_rate', value: 1, id: 8 }]};
+                extra: [{ name: 'loop_rate', value: 1, id: 2 },
+                        { name: 'pool_size', value: undefined, id: 3 },
+                        { name: 'jozin', value: undefined, id: 4 },
+                        { name: 'missing', value: 'fallback', id: 5 },
+                        { name: 'wait_ms', value: 1, id: 6 },
+                        { name: 'wait_ms_undefined', value: 5, id: 7 },
+                        { name: 'loop_time', value: 1, id: 8 }]};
         var analyze = BenchChecker.default.analyze({env: [{name: "mysomething", value: "something", id: 1}],
                         script_body: fs.readFileSync("../../acceptance_tests/scripts.bdl/env.bdl", 'utf8')});
         assert.deepEqual(analyze, an2);
