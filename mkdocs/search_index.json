@@ -318,7 +318,7 @@
         {
             "location": "/dashboard/", 
             "text": "Starting a benchmark\n\n\nTo start a new benchmark, press green \n+\n button at the left top, type your\nscenario and press green \nrun\n at the right bottom.\n\n\n\n\nExecution flow\n\n\nOnce benchmark is started it goes through different phases: node allocation,\nprovisioning, script upload, etc. If exclusive label was specified, it will\nwait until no other benchmarks with the same label will be in progress. In this\ncase, it will be identified as \nwait_exclusive\n.\n\n\nWhen \nrunning\n phase begins,\nyou will see charts. There are two built-in groups \nSystem load\n and\n\nMZBench internals\n, the rest of the charts are worker-specific.\n\n\n\n\nWhile benchmark is running it is possible to adjust environmental variables or\nexecute some code on a given percentage of workers.\n\n\n\n\nLogs are available all the time.\n\n\n\n\nComparison\n\n\nIf you need to compare a set of benchmarks you could use \ndashboards\n\nfunctionality. Dashboard mode switch is close to new benchmark green \n+\n.\n\n\nYou need to set a search criteria for your set of comparable dashboards,\nif you don\nt have it, you could always set some unique tag for this set and\nspecify this tag as a criteria.\n\n\n\n\nThere are three kinds of charts for comparison.\n\n\ncompare\n \n lines from different benchmarks are shown at the same time.\n\n\n\n\nregression\n \n bench number or time is X and metric value is Y.\n\n\n\n\nxychart\n \n env variable is X and metric value is Y.\n\n\n\n\nNew data on these dashboards appear as soon as bench finishes.", 
-            "title": "Dashboard"
+            "title": "UI"
         }, 
         {
             "location": "/dashboard/#starting-a-benchmark", 
