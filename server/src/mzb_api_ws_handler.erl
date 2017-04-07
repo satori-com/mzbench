@@ -705,7 +705,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
       env:=            Env} = Config,
     Results = mzb_api_endpoints:format_results(Status),
     DefaultVMArgs = application:get_env(mzbench_api, vm_args, undefined),
-    EnvMap = mzb_bc:maps_without(["mzb_script_name", "nodes_num", "bench_workers_dir", "bench_script_dir", "worker_hosts"], maps:from_list(Env)),
+    EnvMap = mzb_bc:maps_without(["mzb_script_name", "nodes_num", "bench_workers_dir", "bench_script_dir", "worker_hosts", "mzb_bench_id"], maps:from_list(Env)),
     EnvMap2 = if VMArgs =/= DefaultVMArgs -> maps:put(vm_args, VMArgs, EnvMap);
                   true -> EnvMap end,
     ScriptFields = #{script_body => ScriptBody,
