@@ -314,7 +314,7 @@ class DashboardEdit extends React.Component {
     }
     _resolveState() {
         this.state.total = (this.props.item.criteria == BenchStore.getTimelineId()) ? BenchStore.getTotal() : -1;
-        let benches = BenchStore.getItems().filter((b) => b.status === "complete" ? 0 : 1);
+        let benches = BenchStore.getItems().filter((b) => b.status === "complete" ? 1 : 0);
         this.state.metrics = Misc.uniq_fast(benches.reduce((acc_b, b) => {
             let groups = b.metrics.groups || [];
             return acc_b.concat(groups.reduce((acc_g, g) => {
