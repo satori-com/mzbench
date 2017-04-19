@@ -20,8 +20,6 @@ MZBench is:
 
 ## Installation
 
-## Installation
-
 ### From RPM and Pip
 
 Available for CentOS 7 and Amazon Linux.
