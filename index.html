@@ -161,6 +161,8 @@
         
             <li><a href="#installation">Installation</a></li>
         
+            <li><a href="#installation_1">Installation</a></li>
+        
             <li><a href="#quickstart">Quickstart</a></li>
         
             <li><a href="#how-it-works">How It Works</a></li>
@@ -176,27 +178,54 @@
 <p><strong><em>Expressive, scalable load testing tool</em></strong></p>
 <hr />
 <p><img alt="Graphs" src="./images/graphs.gif" /></p>
-<p><strong>MZBench</strong> helps developers test software under huge load. With this, it helps reduce the risk of outages under real-life high load. </p>
+<p><strong>MZBench</strong> helps developers test software under huge load. With this, it helps reduce the risk of outages in production.</p>
 <p>MZBench runs test scenarios on many machines simultaneously, maintaining millions of connections. This makes it suitable even for large scale products (we&rsquo;re talking Facebook large scale here).</p>
 <p>MZBench is:</p>
 <ul>
-<li><strong>cloud-aware:</strong> allocates nodes directly from Amazon EC2 </li>
-<li><strong>scalable:</strong> tested with 100 nodes and millions of connections</li>
-<li><strong>extendable:</strong> lets you write your own <a href="./cloud_plugins#how-to-write-a-cloud-plugin">cloud plugins</a> and <a href="workers/#how-to-write-a-worker">workers</a></li>
-<li><strong>open-source:</strong> released under the <a href="https://github.com/machinezone/mzbench/blob/master/LICENSE">BSD license</a></li>
+<li><strong>Cloud-aware:</strong> allocates nodes directly from Amazon EC2 or run on a local machine.</li>
+<li><strong>Scalable:</strong> tested with 100 nodes and millions of connections.</li>
+<li><strong>Extendable:</strong> lets you write your own <a href="./cloud_plugins#how-to-write-a-cloud-plugin">cloud plugins</a> and <a href="workers/#how-to-write-a-worker">workers</a>.</li>
+<li><strong>Open-source:</strong> released under the <a href="https://github.com/machinezone/mzbench/blob/master/LICENSE">BSD license</a>.</li>
 </ul>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<h2 id="installation_1">Installation<a class="headerlink" href="#installation_1" title="Permanent link">&para;</a></h2>
+<h3 id="from-rpm-and-pip">From RPM and Pip<a class="headerlink" href="#from-rpm-and-pip" title="Permanent link">&para;</a></h3>
+<p>Available for CentOS 7 and Amazon Linux.</p>
+<p>Download MZBench RPM from <a href="https://github.com/machinezone/mzbench/releases">Github releases page</a></p>
+<pre><code class="bash"># Install RPM
+sudo yum install -y &lt;rpm_file_downloaded_from_github_releases&gt;
+
+# Install Python package
+sudo pip install mzbench_api_client
+
+# Start the server
+mzbench start_server
+</code></pre>
+
+<h3 id="from-docker-container">From Docker container<a class="headerlink" href="#from-docker-container" title="Permanent link">&para;</a></h3>
+<p>Docker is a container platform, more information is available at its <a href="https://www.docker.com/">website</a>. If you have Docker up and running, use the following command to start MZBench server:</p>
+<pre><code class="bash">docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
+</code></pre>
+
+<p>After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on <a href="https://github.com/machinezone/mzbench/tree/master/docker">github</a>.</p>
+<h3 id="from-sources">From sources<a class="headerlink" href="#from-sources" title="Permanent link">&para;</a></h3>
 <p>To use MZBench, you&rsquo;ll need:</p>
 <ul>
-<li>Erlang &gt;= 17.1</li>
+<li>Erlang R17+</li>
 <li>C++ compiler</li>
 <li>Python 2.6 or 2.7 with pip</li>
 </ul>
-<p>Most UNIX systems have C++ compiler and Python preinstalled.</p>
-<p>Erlang is available in the <a href="http://pkgs.org/search/erlang">official repositories on most GNU/Linux distros</a>. If your distro doesn&rsquo;t have Erlang R17, <a href="http://www.erlang.org/doc/installation_guide/INSTALL.html">build it from source</a>.  </p>
 <p>Download MZBench from GitHub and install Python requirements:</p>
 <pre><code class="bash">$ git clone https://github.com/machinezone/mzbench
-$ sudo pip install -r mzbench/requirements.txt 
+$ sudo pip install -r mzbench/requirements.txt
+</code></pre>
+
+<p>If you want to use virtualenv (optional) to isolate Python dependencies:</p>
+<pre><code class="bash">$ git clone https://github.com/machinezone/mzbench
+$ cd mzbench
+$ virtualenv venv
+$ source venv/bin/activate
+$ pip install -r requirements.txt
 </code></pre>
 
 <h2 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h2>
@@ -214,7 +243,7 @@ Executing /path/to//mzbench/bin/../server/_build/default/rel/mzbench_api/bin/mzb
 <p>When the server is running, launch an example benchmark:</p>
 <pre><code class="bash">$ ./bin/mzbench run workers/http/examples/localhost.bdl
 {
-    &quot;status&quot;: &quot;pending&quot;, 
+    &quot;status&quot;: &quot;pending&quot;,
     &quot;id&quot;: 6
 }
 status: running                       00:09
@@ -231,7 +260,7 @@ status: running                       00:09
 <p><img alt="MZBench Architecture Running" src="./images/scheme_2.png" /></p>
 <p>To know what kind of jobs MZBench can run, it&rsquo;s important to understand the concept of a <em>worker</em>.</p>
 <p><strong>Worker</strong> is an Erlang module that provides functions for test scenarios. A worker may implement a common protocol like HTTP or XMPP, or a specific routine that is relevant only for a particular test case. It also implements the related metrics.</p>
-<p>MZBench ships with workers for <a href="https://github.com/machinezone/mzbench/tree/master/workers/http">HTTP</a> and <a href="https://github.com/machinezone/mzbench/tree/master/workers/xmpp">XMPP</a> protocols and a worker that <a href="https://github.com/machinezone/mzbench/tree/master/workers/exec">executes shell commands</a>. This should be enough for most common test cases, but you can use your own workers in necessary.</p>
+<p>MZBench ships with workers for <a href="./../workers/http">HTTP</a>, <a href="./../workers/mysql">MySQL</a>, <a href="./../workers/pgsql">PostgreSQL</a>, <a href="./../workers/mongo">MongoDB</a>, <a href="./../workers/cassandra">Cassandra</a>, <a href="./../workers/xmpp">XMPP</a>, <a href="./../workers/amqp">AMQP</a>, <a href="./../workers/tcp">TCP</a>, <a href="./../workers/exec">Shell commands execution</a>, <a href="./../workers/simple_http">Simplified HTTP</a>, and <a href="./../workers/tcpkali">TCPKali</a>. This should be enough for most common test cases, but you can use your own workers in necessary.</p>
 <h2 id="read-next">Read Next<a class="headerlink" href="#read-next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="scenarios/tutorial/">How to write scenarios →</a></li>
@@ -285,5 +314,5 @@ status: running                       00:09
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2017-04-06 06:38:40.959191
+Build Date UTC : 2017-04-19 17:19:08.262350
 -->
