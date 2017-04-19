@@ -6,35 +6,72 @@
 
 ![Graphs](images/graphs.gif)
 
-**MZBench** helps developers test software under huge load. With this, it helps reduce the risk of outages under real-life high load. 
+**MZBench** helps developers test software under huge load. With this, it helps reduce the risk of outages in production.
 
 MZBench runs test scenarios on many machines simultaneously, maintaining millions of connections. This makes it suitable even for large scale products (we're talking Facebook large scale here).
 
 MZBench is:
 
- - **cloud-aware:** allocates nodes directly from Amazon EC2 
- - **scalable:** tested with 100 nodes and millions of connections
- - **extendable:** lets you write your own [cloud plugins](cloud_plugins#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker)
- - **open-source:** released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE)
+ - **Cloud-aware:** allocates nodes directly from Amazon EC2 or run on a local machine.
+ - **Scalable:** tested with 100 nodes and millions of connections.
+ - **Extendable:** lets you write your own [cloud plugins](cloud_plugins#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker).
+ - **Open-source:** released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
 
 
 ## Installation
 
+## Installation
+
+### From RPM and Pip
+
+Available for CentOS 7 and Amazon Linux.
+
+Download MZBench RPM from [Github releases page](https://github.com/machinezone/mzbench/releases)
+
+```bash
+# Install RPM
+sudo yum install -y <rpm_file_downloaded_from_github_releases>
+
+# Install Python package
+sudo pip install mzbench_api_client
+
+# Start the server
+mzbench start_server
+```
+
+### From Docker container
+
+Docker is a container platform, more information is available at its [website](https://www.docker.com/). If you have Docker up and running, use the following command to start MZBench server:
+
+```bash
+docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
+```
+
+After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/machinezone/mzbench/tree/master/docker).
+
+### From sources
+
 To use MZBench, you'll need:
 
- - Erlang >= 17.1
+ - Erlang R17+
  - C++ compiler
  - Python 2.6 or 2.7 with pip
-
-Most UNIX systems have C++ compiler and Python preinstalled.
-
-Erlang is available in the [official repositories on most GNU/Linux distros](http://pkgs.org/search/erlang). If your distro doesn't have Erlang R17, [build it from source](http://www.erlang.org/doc/installation_guide/INSTALL.html).  
 
 Download MZBench from GitHub and install Python requirements:
 
 ```bash
 $ git clone https://github.com/machinezone/mzbench
-$ sudo pip install -r mzbench/requirements.txt 
+$ sudo pip install -r mzbench/requirements.txt
+```
+
+If you want to use virtualenv (optional) to isolate Python dependencies:
+
+```bash
+$ git clone https://github.com/machinezone/mzbench
+$ cd mzbench
+$ virtualenv venv
+$ source venv/bin/activate
+$ pip install -r requirements.txt
 ```
 
 ## Quickstart
@@ -56,7 +93,7 @@ When the server is running, launch an example benchmark:
 ```bash
 $ ./bin/mzbench run workers/http/examples/localhost.bdl
 {
-    "status": "pending", 
+    "status": "pending",
     "id": 6
 }
 status: running                       00:09
@@ -85,7 +122,7 @@ To know what kind of jobs MZBench can run, it's important to understand the conc
 
 **Worker** is an Erlang module that provides functions for test scenarios. A worker may implement a common protocol like HTTP or XMPP, or a specific routine that is relevant only for a particular test case. It also implements the related metrics.
 
-MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tree/master/workers/http) and [XMPP](https://github.com/machinezone/mzbench/tree/master/workers/xmpp) protocols and a worker that [executes shell commands](https://github.com/machinezone/mzbench/tree/master/workers/exec). This should be enough for most common test cases, but you can use your own workers in necessary.
+MZBench ships with workers for [HTTP](../workers/http), [MySQL](../workers/mysql), [PostgreSQL](../workers/pgsql), [MongoDB](../workers/mongo), [Cassandra](../workers/cassandra), [XMPP](../workers/xmpp), [AMQP](../workers/amqp), [TCP](../workers/tcp), [Shell commands execution](../workers/exec), [Simplified HTTP](../workers/simple_http), and [TCPKali](../workers/tcpkali). This should be enough for most common test cases, but you can use your own workers in necessary.
 
 
 ## Read Next
@@ -94,4 +131,3 @@ MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tre
  - [How to control MZBench from command line →](cli.md)
  - [How to deploy MZBench →](deployment.md)
  - [How to write your own worker →](workers.md#how-to-write-a-worker)
- 
