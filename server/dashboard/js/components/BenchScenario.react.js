@@ -99,6 +99,11 @@ class BenchScenario extends React.Component {
                 notify.update({message: successMessage, type: 'success'});
                 setTimeout(() => notify.close(), 5000);
             },
+            beforeSend: function (xhr) {
+                if (AuthStore.getToken()) {
+                    xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getToken() );
+                }
+            },
             error: () => {
                 notify.update({message: failMessage, type: 'danger'});
                 setTimeout(() => notify.close(), 5000);
@@ -136,22 +141,7 @@ class BenchScenario extends React.Component {
                 }
             }).join("");
 
-        $.ajax({url: query, type : 'GET',
-            processData: false,
-            contentType: false,
-            success: (data) => {
-                notify.update({message: `Environment has been updated`, type: 'success'});
-                setTimeout(() => notify.close(), 5000);
-            },
-            beforeSend: function (xhr) {
-                if (AuthStore.getToken()) {
-                    xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getToken() );
-                }
-            },
-            error: () => {
-                notify.update({message: `Failed to save new environment`, type: 'danger'});
-                setTimeout(() => notify.close(), 5000);
-            }});
+        this._runAjax(query, "Environment has been updated", "Failed to save new environment", notify);
     }
 
 };
