@@ -63,7 +63,12 @@ class TimelineElement extends React.Component {
                     <h6 className="no-overflow">
                         #{bench.id} {bench.name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
-                            <Star selected={bench.tags.indexOf("favorites") > -1} onClick={(v) => {
+                        <span title="Search for similar benchmarks" className="search-bench-character glyphicon glyphicon-search" aria-hidden="true"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                MZBenchRouter.navigate("/timeline", {q: bench.name});
+                            }}/>
+                        <Star selected={bench.tags.indexOf("favorites") > -1} onClick={(v) => {
                                 if (v == true) MZBenchActions.addBenchTag(bench.id, "favorites");
                                 else MZBenchActions.removeBenchTag(bench.id, "favorites");
                             }}/>

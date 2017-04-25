@@ -329,6 +329,28 @@ div.log-window pre{
     overflow: auto;
 }
 
+.search-bench-character {
+  display: none;
+}
+
+.bs.bs-selected:hover .search-bench-character {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 11px;
+  color: #fafafa;
+}
+
+.bs:hover .search-bench-character {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 11px;
+  color: #9c969d;
+}
+
+.bs:hover .search-bench-character:hover {
+  color: #ffcc53;
+}
+
 .favorite-star-character {
   color: #ece6ed;
   cursor: pointer;
