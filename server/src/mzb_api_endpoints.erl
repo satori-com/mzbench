@@ -534,7 +534,8 @@ parse_start_params(Req) ->
                                                         List2
                                                     end,                                                        []},
         {metric_update_interval_ms, single_value,   fun parse_update_interval/1,                                undefined},
-        {tags,                      single_value,   fun parse_tags/1,                                           []}
+        {tags,                      single_value,   fun parse_tags/1,                                           []},
+        {parent,                    single_value,   fun erlang:binary_to_integer/1,                             undefined}
     ],
 
     {Params, Env} = lists:mapfoldl(

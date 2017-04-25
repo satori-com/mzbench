@@ -210,7 +210,9 @@ class NewBench extends React.Component {
             benchmark_name: bench.name,
             nodes: bench.nodes,
             exclusive: bench.exclusive,
-            cloud: bench.cloud};
+            cloud: bench.cloud,
+            parent: bench.id
+        };
 
         let start_query = MZBenchRouter.buildLink('/start', params);
         let typecheck_query = MZBenchRouter.buildLink('/typecheck', params);

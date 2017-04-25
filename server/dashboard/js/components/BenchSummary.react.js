@@ -107,6 +107,11 @@ class BenchSummary extends React.Component {
                                                   />
                                     </td>
                                 </tr>
+                                {bench.parent != "undefined" ?
+                                    <tr>
+                                        <th scope="row">Parent</th>
+                                        <td><a href={`#/bench/${bench.parent}/overview`}>#{bench.parent}</a></td>
+                                    </tr> : null}
                             </tbody>
                         </table>
                     </div>

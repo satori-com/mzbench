@@ -92,6 +92,7 @@ init([Id, Params]) ->
 
     Config = #{
         id => Id,
+        parent => mzb_bc:maps_get(parent, Params, undefined),
         author => mzb_bc:maps_get(author, Params, "anonymous"),
         benchmark_name => BenchName,
         nodes_arg => maps:get(nodes, Params),

@@ -321,7 +321,7 @@ handle_call({restart_bench, RestartId, Login}, _From, #{status:= active, data_di
                     P -> P
                 end,
 
-            case start_bench_child(Params#{author => Login}, State) of
+            case start_bench_child(Params#{author => Login, parent => RestartId}, State) of
                 {ok, Id, NewState} ->
                     {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
                 {error, Reason, NewState} ->
