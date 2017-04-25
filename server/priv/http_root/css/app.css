@@ -134,20 +134,22 @@ ul.nav.bench-nav {
     width: 80px;
 }
 
-.bench-details .table {
+.bench-details {
   margin: 0px;
 }
 
-.bench-details .table>tbody>tr>td,
-.bench-details .table>tbody>tr>th,
-.bench-details .table>tfoot>tr>td,
-.bench-details .table>tfoot>tr>th,
-.bench-details .table>thead>tr>td,
-.bench-details .table>thead>tr>th {
+.bench-details-el {
   padding: 4px;
   line-height: 1;
-  vertical-align: top;
-  border-top: 0px;
+}
+
+.bench-details-hd {
+  padding: 4px 4px 8px 4px;
+  line-height: 1;
+}
+
+.bench-details-key {
+  font-weight: bold;
 }
 
 .reset-query {

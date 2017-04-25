@@ -58,62 +58,76 @@ class BenchSummary extends React.Component {
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
-                    <div className="col-xs-9">
-                        <table className="table">
-                            <tbody>
-                                <tr>
-                                    <th scope="row" className="col-xs-2">Scenario</th>
-                                    <td>#{bench.id} {bench.name}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row" className="col-xs-2">Author</th>
-                                    <td>{bench.author}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row" className="col-xs-2">Cloud</th>
-                                    <td>{bench.cloud}, {bench.nodes} node(s)</td>
-                                </tr>
-                                {bench.exclusive != "" ?
-                                    (<tr>
-                                        <th scope="row" className="col-xs-2">Exclusive label</th>
-                                        <td>{bench.exclusive}</td>
-                                    </tr>) : null}
-                                <tr>
-                                    <th scope="row">Duration</th>
-                                    <td>{moment.duration(this.props.duration).format("h [hrs], m [min], s [sec]")}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Date</th>
-                                    <td>{bench.start_time_client.format("lll")}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Status</th>
-                                    <td><span className={`label ${labelClass}`}>{bench.status}</span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Tags</th>
-                                    <td>
-                                        <TagInput value={tags}
-                                                  categories={[{
-                                                            id: 'cat1', type: 'tag',
-                                                            title: 'existing tags',
-                                                            items: tagSuggestions.slice(),
-                                                            single: false
-                                                          }]}
-                                                  addNew={true}
-                                                  transformTag={(tag) => {return tag.title;}}
-                                                  onChange={this._handleTagChange.bind(this)}
-                                                  placeholder="Add a tag"
-                                                  />
-                                    </td>
-                                </tr>
-                                {bench.parent != "undefined" ?
-                                    <tr>
-                                        <th scope="row">Parent</th>
-                                        <td><a href={`#/bench/${bench.parent}/overview`}>#{bench.parent}</a></td>
-                                    </tr> : null}
-                            </tbody>
-                        </table>
+                    <div className="row col-xs-9">
+                        <div className="col-xs-12 col-md-12">
+                            <div className="row">
+                                <div className="col-xs-4 col-md-2 bench-details-key bench-details-hd">Scenario</div>
+                                <div className="col-xs-8 col-md-10 bench-details-hd">#{bench.id} {bench.name}</div>
+                            </div>
+                        </div>
+                        <div className="col-xs-12 col-md-6">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Author</div>
+                                <div className="col-xs-8 bench-details-el">{bench.author}</div>
+                            </div>
+                        </div>
+                        <div className="col-xs-12 col-md-6">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Cloud</div>
+                                <div className="col-xs-8 bench-details-el">{bench.cloud}, {bench.nodes} node(s)</div>
+                            </div>
+                        </div>
+                        {bench.exclusive != "" ?
+                            <div className="col-xs-12 col-md-6">
+                                <div className="row">
+                                    <div className="col-xs-4 bench-details-key bench-details-el">Exclusive label</div>
+                                    <div className="col-xs-8 bench-details-el">{bench.exclusive}</div>
+                                </div>
+                            </div>: null}
+                        <div className="col-xs-12 col-md-6">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Duration</div>
+                                <div className="col-xs-8 bench-details-el">{moment.duration(this.props.duration).format("h [hrs], m [min], s [sec]")}</div>
+                            </div>
+                        </div>
+                        <div className="col-xs-12 col-md-6">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Date</div>
+                                <div className="col-xs-8 bench-details-el">{bench.start_time_client.format("lll")}</div>
+                            </div>
+                        </div>
+                        <div className="col-xs-12 col-md-6">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Status</div>
+                                <div className="col-xs-8 bench-details-el"><span className={`label ${labelClass}`}>{bench.status}</span></div>
+                            </div>
+                        </div>
+                        {bench.parent != "undefined" ?
+                            <div className="col-xs-12 col-md-6">
+                                <div className="row">
+                                    <div className="col-xs-4 bench-details-key bench-details-el">Parent</div>
+                                    <div className="col-xs-8 bench-details-el"><a href={`#/bench/${bench.parent}/overview`}>#{bench.parent}</a></div>
+                                </div>
+                            </div> : null}
+                        <div className="col-xs-12 col-md-12">
+                            <div className="row">
+                                <div className="col-xs-4 col-md-2 bench-details-key bench-details-el">Tags</div>
+                                <div className="col-xs-8 col-md-10 bench-details-el">
+                                    <TagInput value={tags}
+                                              categories={[{
+                                                        id: 'cat1', type: 'tag',
+                                                        title: 'existing tags',
+                                                        items: tagSuggestions.slice(),
+                                                        single: false
+                                                      }]}
+                                              addNew={true}
+                                              transformTag={(tag) => {return tag.title;}}
+                                              onChange={this._handleTagChange.bind(this)}
+                                              placeholder="Add a tag"
+                                              />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="bench-actions col-xs-3">
