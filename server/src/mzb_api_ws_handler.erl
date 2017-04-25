@@ -754,11 +754,11 @@ apply_filter(Query, BenchInfos) ->
 get_searchable_fields(BenchInfo) ->
     SearchFields = mzb_bc:maps_with([id, status, name, script_name, author, start_time, finish_time], BenchInfo),
     Values = maps:values(SearchFields),
-    Tags = [ "#" ++ erlang:atom_to_list(T) || T <- mzb_bc:maps_get(tags, BenchInfo, [])],
-    lists:map(fun (X) when is_atom(X) -> atom_to_list(X);
-                  (X) when is_integer(X) -> integer_to_list(X);
-                  (X) -> X
-              end, Values) ++ Tags.
+    Tags = [ erlang:atom_to_list(T) || T <- mzb_bc:maps_get(tags, BenchInfo, [])],
+    lists:map(fun (X) when is_atom(X) -> {substr, atom_to_list(X)};
+                  (X) when is_integer(X) -> {substr, integer_to_list(X)};
+                  (X) -> {substr, X}
+              end, Values) ++ [{exact, "#"++T} || T <- Tags] ++ [{substr, T} || T <- Tags].
 
 is_satisfy_filter(Query, BenchInfo) ->
     is_satisfy_fields(Query, BenchInfo) orelse is_satisfy_env(Query, BenchInfo).
@@ -781,11 +781,13 @@ compare(_, _) -> false.
 is_satisfy_fields(Query, BenchInfo) ->
     try
         SearchFields = get_searchable_fields(BenchInfo),
-        lists:any(fun(Field) ->
+        lists:any(fun({substr, Field}) ->
                       case re:run(Field, Query, [caseless]) of
                           {match, _} -> true;
                           _ -> false
-                      end
+                      end;
+                      ({exact, Field}) ->
+                          Field == Query
                   end, SearchFields)
     catch _:Error ->
         lager:error("Failed to apply filter: ~p ~p~n Query: ~p -- BenchInfo ~p", [Error, erlang:get_stacktrace(), Query, BenchInfo]),
