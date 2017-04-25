@@ -18,7 +18,7 @@ normalize_test() ->
                finish_time => 1437549842,
                config => #{script => #{body => script_body1, name => "another_name.erl"},
                            benchmark_name => "Test bench", nodes_arg => "1", cloud => "",
-                           vm_args => [], env => [], tags => ["tag1", "tag2"]},
+                           vm_args => [], env => [], tags => ["tag1", "tag2"], parent => 0},
                results => [{"m1", counter, {51, [{"max", 20}, {"50", 10}]}}, {"m2", gauge, [{"max", 100}, {"50", 40}]}]}}
     ],
 
@@ -27,6 +27,7 @@ normalize_test() ->
     ?assertEqual([
         #{finish_time => "2015-07-22T07:24:02Z",
           id => 2,
+          parent => 0,
           author => "anonymous",
           name => "Test bench",
           metrics => metrics,
@@ -42,6 +43,7 @@ normalize_test() ->
           results => #{<<"m1">> => #{type => counter, value => 51, rps => #{<<"50">> => 10, <<"max">> => 20}},
                        <<"m2">> => #{type => gauge, percentiles => #{<<"50">> => 40, <<"max">> => 100}}}},
         #{id => 1,
+          parent => undefined,
           author => "anonymous",
           name => "Test bench",
           metrics => metrics,
