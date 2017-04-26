@@ -59,60 +59,60 @@ class BenchSummary extends React.Component {
             <div className="fluid-container">
                 <div className="row bench-details">
                     <div className="row col-xs-9">
-                        <div className="col-xs-12 col-md-12">
+                        <div className="col-xs-12 col-md-10">
                             <div className="row">
                                 <div className="col-xs-4 col-md-2 bench-details-key bench-details-hd">Scenario</div>
                                 <div className="col-xs-8 col-md-10 bench-details-hd">#{bench.id} {bench.name}</div>
                             </div>
                         </div>
-                        <div className="col-xs-12 col-md-6">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Author</div>
                                 <div className="col-xs-8 bench-details-el">{bench.author}</div>
                             </div>
                         </div>
-                        <div className="col-xs-12 col-md-6">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Cloud</div>
                                 <div className="col-xs-8 bench-details-el">{bench.cloud}, {bench.nodes} node(s)</div>
                             </div>
                         </div>
                         {bench.exclusive != "" ?
-                            <div className="col-xs-12 col-md-6">
+                            <div className="col-xs-12 col-md-5">
                                 <div className="row">
                                     <div className="col-xs-4 bench-details-key bench-details-el">Exclusive label</div>
                                     <div className="col-xs-8 bench-details-el">{bench.exclusive}</div>
                                 </div>
                             </div>: null}
-                        <div className="col-xs-12 col-md-6">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Duration</div>
                                 <div className="col-xs-8 bench-details-el">{moment.duration(this.props.duration).format("h [hrs], m [min], s [sec]")}</div>
                             </div>
                         </div>
-                        <div className="col-xs-12 col-md-6">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Date</div>
                                 <div className="col-xs-8 bench-details-el">{bench.start_time_client.format("lll")}</div>
                             </div>
                         </div>
-                        <div className="col-xs-12 col-md-6">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Status</div>
                                 <div className="col-xs-8 bench-details-el"><span className={`label ${labelClass}`}>{bench.status}</span></div>
                             </div>
                         </div>
                         {bench.parent != "undefined" ?
-                            <div className="col-xs-12 col-md-6">
+                            <div className="col-xs-12 col-md-5">
                                 <div className="row">
                                     <div className="col-xs-4 bench-details-key bench-details-el">Parent</div>
                                     <div className="col-xs-8 bench-details-el"><a href={`#/bench/${bench.parent}/overview`}>#{bench.parent}</a></div>
                                 </div>
                             </div> : null}
-                        <div className="col-xs-12 col-md-12">
+                        <div className="col-xs-12 col-md-5">
                             <div className="row">
-                                <div className="col-xs-4 col-md-2 bench-details-key bench-details-el">Tags</div>
-                                <div className="col-xs-8 col-md-10 bench-details-el">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Tags</div>
+                                <div className="col-xs-8 bench-details-el">
                                     <TagInput value={tags}
                                               categories={[{
                                                         id: 'cat1', type: 'tag',

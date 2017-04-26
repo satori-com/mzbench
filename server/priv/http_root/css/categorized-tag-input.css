@@ -1,10 +1,11 @@
 .cti__root {
   /*font-family: sans-serif;*/
-  font-weight: normal;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 75%;
   position: relative;
   /*width: 330px;*/
   display: inline-block;
+  margin-top: -4px;
 }
 
 .cti__root * {
@@ -13,8 +14,8 @@
 }
 
 .cti__input {
-  border: 1px solid rgb(240, 240, 240);
-  padding: .1em 24px .1em .1em;
+  /*border: 1px solid rgb(240, 240, 240);*/
+  padding: .1em 0 0 0;
   /*min-height: 38px;*/
   position: relative;
   background: white;
@@ -22,7 +23,7 @@
 
 .cti__input__arrow {
   position: absolute;
-  display: block;
+  display: none;
   width: 0;
 	height: 0;
 	border-left: 4px solid transparent;
@@ -40,7 +41,7 @@
 
 .cti__input__input {
   max-width: 100%;
-  min-width: 120px;
+  /*min-width: 120px;*/
   padding: .4em 0 !important;
   margin: .1em 0 .1em .4em !important;
   font-size: 1em !important;
@@ -49,13 +50,13 @@
 }
 
 .cti__tag {
-  background-color: rgb(240, 240, 240);
+  background-color: rgb(230, 240, 250);
   /*border: 1px solid rgb(220, 220, 220);*/
   border-radius: 3px;
   padding: .3em .4em;
-  /*color: rgb(146, 146, 146);*/
+  color: rgb(60, 60, 60);
   display: inline-block;
-  margin: .1em  0 .1em .2em;
+  margin: 0 .3em .1em 0;
   cursor: pointer;
   word-break: break-all;
   max-width: 100%;
@@ -73,7 +74,7 @@
 
 .cti__tag__delete {
   background-color: transparent;
-  padding: 0 0 0 .3em;
+  padding: 0 0 0 .2em;
   margin: 0 0 0 0;
   color: rgb(146, 146, 146);
   font-size: 1.5em;
@@ -81,7 +82,7 @@
 }
 
 .cti__tag__content > span {
-  margin-top: -3px;
+  margin-top: -2px;
 }
 
 .cti__panel {
