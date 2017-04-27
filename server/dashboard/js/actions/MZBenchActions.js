@@ -209,6 +209,10 @@ export default {
         Dispatcher.dispatch({ type: Constants.NEW_DASHBOARD });
     },
 
+    updateBenchName(benchId, newName) {
+        MZBenchWS.send({ cmd: "update_name", bench: benchId, name: newName });
+    },
+
     addBenchTag(benchId, tag) {
         MZBenchWS.send({ cmd: "add_tag", bench: benchId, tag: tag });
     },

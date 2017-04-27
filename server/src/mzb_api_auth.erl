@@ -149,7 +149,7 @@ auth_api_call_ref(Path, {cookie, Cookie, _}, BenchId) ->
 auth_login_access(Path, Login, BenchId) when
                     (Path == <<"/stop">>) or (Path == <<"/change_env">>) or
                     (Path == <<"/add_tag">>) or (Path == <<"/remove_tag">>) or
-                    (Path == <<"/run_command">>) ->
+                    (Path == <<"/update_name">>) or (Path == <<"/run_command">>) ->
     case check_admin_listed(Login) of
         true -> Login;
         false -> _ = check_listed_or_fail(Login),

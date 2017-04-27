@@ -15,6 +15,7 @@
     log_user_file/1,
     metrics_file/2,
     remote_path/2,
+    update_name/2,
     add_tags/2,
     remove_tags/2
 ]).
@@ -55,6 +56,9 @@ run_command(Pid, Pool, Percent, Command) ->
 
 request_report(Pid, Emails) ->
     mzb_pipeline:call(Pid, {request_report, Emails}).
+
+update_name(Pid, NewName) ->
+    mzb_pipeline:call(Pid, {update_name, NewName}).
 
 add_tags(Pid, Tags) ->
     mzb_pipeline:call(Pid, {add_tags, Tags}).
@@ -444,6 +448,10 @@ handle_call({run_command, Pool, Percent, Command}, From, #{status:= running, clu
 handle_call({run_command, _, _, _}, _From, #{} = State) ->
     {reply, {error, not_running}, State};
 
+handle_call({update_name, NewName}, _From, #{config:= Config} = State) ->
+    info("Update bench name: ~p", [NewName], State),
+    NewState = maps:put(config, maps:put(benchmark_name, NewName, Config), State),
+    {reply, ok, NewState};
 
 handle_call({add_tags, Tags}, _From, #{config:= Config} = State) ->
     info("Add tags: ~p / ~p", [Tags, mzb_bc:maps_get(tags, Config, [])], State),

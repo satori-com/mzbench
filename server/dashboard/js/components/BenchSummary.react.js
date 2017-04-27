@@ -6,6 +6,7 @@ import 'moment-duration-format';
 import BenchStore from '../stores/BenchStore';
 import TagInput from 'react-categorized-tag-input';
 import AuthStore from '../stores/AuthStore';
+import InlineEdit from 'react-edit-inline';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -62,7 +63,18 @@ class BenchSummary extends React.Component {
                         <div className="col-xs-12 col-md-10">
                             <div className="row">
                                 <div className="col-xs-4 col-md-2 bench-details-key bench-details-hd">Scenario</div>
-                                <div className="col-xs-8 col-md-10 bench-details-hd">#{bench.id} {bench.name}</div>
+                                <div className="col-xs-8 col-md-10 bench-details-hd">
+                                    #{bench.id + ' '}
+                                    <span title="Click to edit" style={{width: "inherit"}}>
+                                        <InlineEdit className=""
+                                                    validate={ (m) => { return true; } }
+                                                    activeClassName="inline-change-input"
+                                                    text={bench.name}
+                                                    paramName="name"
+                                                    change={this._updateBenchName.bind(this)}
+                                                    />
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div className="col-xs-12 col-md-5">
@@ -155,6 +167,10 @@ class BenchSummary extends React.Component {
                 </div>
             </div>
         );
+    }
+
+    _updateBenchName(newName) {
+        MZBenchActions.updateBenchName(this.props.bench.id, newName.name);
     }
 
     _handleTagChange(tags) {

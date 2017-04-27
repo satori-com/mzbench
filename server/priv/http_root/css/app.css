@@ -536,3 +536,10 @@ div.equals {
 .btn-unused {
   background-color: #eee;
 }
+
+.inline-change-input {
+  width: inherit;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  margin-top: -5px;
+}

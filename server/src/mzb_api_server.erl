@@ -20,6 +20,7 @@
     config_info/0,
     email_report/2,
     is_datastream_ended/1,
+    update_name/2,
     add_tags/2,
     remove_tags/2
 ]).
@@ -117,6 +118,26 @@ is_datastream_ended(Id) ->
         [{_, B, _}] when is_pid(B) -> false;
         [{_, _, _Status}] -> true;
         [] -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])})
+    end.
+
+update_name(Id, NewName) ->
+    Res =
+        case ets:lookup(benchmarks, Id) of
+            [{_, B, undefined}] when is_pid(B) ->
+                try
+                    mzb_api_bench:update_name(B, NewName)
+                catch
+                    exit:{no_proc, _} -> gen_server:call(?MODULE, {update_name, Id, NewName})
+                end;
+            _ ->
+                gen_server:call(?MODULE, {update_name, Id, NewName})
+        end,
+    case Res of
+        ok ->
+            mzb_api_firehose:update_bench(mzb_api_server:status(Id)),
+            ok;
+        {error, not_found} -> erlang:error({not_found, io_lib:format("Benchmark ~p is not found", [Id])});
+        {error, invalid_benchmark} -> erlang:error({invalid_benchmark, io_lib:format("Benchmark ~p is in invalid state", [Id])})
     end.
 
 add_tags(Id, Tags) ->
@@ -372,6 +393,16 @@ handle_call(is_ready, _, #{status:= active} = State) ->
 
 handle_call(is_ready, _, #{status:= inactive} = State) ->
     {reply, false, State};
+
+handle_call({update_name, Id, NewName}, _, State) ->
+    case ets:lookup(benchmarks, Id) of
+        [{_, _, Status = #{config:= Config}}] ->
+            NewStatus = maps:put(config, maps:put(benchmark_name, NewName, Config), Status),
+            save_results(Id, NewStatus, State),
+            {reply, ok, State};
+        [{_, _, _}] -> {reply, {error, invalid_benchmark}, State};
+        [] -> {reply, {error, not_found}, State}
+    end;
 
 handle_call({add_tags, Id, Tags}, _, State) ->
     case ets:lookup(benchmarks, Id) of

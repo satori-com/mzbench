@@ -441,6 +441,23 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
+dispatch_request(#{<<"cmd">> := <<"update_name">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
+    #{<<"bench">> := BenchId, <<"name">> := NewName} = Cmd,
+    try
+        mzb_api_auth:auth_api_call(<<"POST">>, <<"/update_name">>, {login, Login}, BenchId),
+        ok = mzb_api_server:update_name(BenchId, [binary_to_list(NewName)])
+    catch
+        _:Exception ->
+            Str =
+                case Exception of
+                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
+                    _ -> io_lib:format("~p", Exception)
+                end,
+            mzb_api_firehose:notify(danger, mzb_string:format("Update name failed: ~s", [Str]))
+    end,
+    mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
+    {ok, State};
+
 dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     try
