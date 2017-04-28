@@ -543,3 +543,7 @@ div.equals {
   border-radius: 3px;
   margin-top: -5px;
 }
+
+.graph-options-link {
+  margin-bottom: 10px;
+}

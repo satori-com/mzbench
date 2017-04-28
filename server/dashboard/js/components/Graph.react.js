@@ -173,7 +173,15 @@ class Graph extends React.Component {
         }
         return (<div>
                     <div id={this._graphDOMId()}></div>
-                    {checkboxes.length > 1 ? <div className="col-md-12">{checkboxes}</div> : null}
+                    {checkboxes.length > 1 ?
+                        <div>
+                            <div className="col-md-12 graph-options-link">
+                                <a href="#collapseOptions" className="col-xs-6" data-toggle="collapse" aria-expanded="false" aria-controls="collapseOptions">
+                                    Options <span className="caret"></span>
+                                </a>
+                            </div>
+                            <div className="col-md-12 collapse" id="collapseOptions">{checkboxes}</div>
+                        </div> : null}
                 </div>);
     }
 
