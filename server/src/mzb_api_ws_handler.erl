@@ -443,58 +443,50 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
 
 dispatch_request(#{<<"cmd">> := <<"update_name">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"name">> := NewName} = Cmd,
-    try
-        mzb_api_auth:auth_api_call(<<"POST">>, <<"/update_name">>, {login, Login}, BenchId),
-        ok = mzb_api_server:update_name(BenchId, [binary_to_list(NewName)])
-    catch
-        _:Exception ->
-            Str =
-                case Exception of
-                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
-                    _ -> io_lib:format("~p", Exception)
-                end,
-            mzb_api_firehose:notify(danger, mzb_string:format("Update name failed: ~s", [Str]))
-    end,
+    apply_update(
+        fun () ->
+            mzb_api_auth:auth_api_call(<<"POST">>, <<"/update_name">>, {login, Login}, BenchId),
+            ok = mzb_api_server:update_name(BenchId, [binary_to_list(NewName)])
+        end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
 dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
-    try
-        mzb_api_auth:auth_api_call(<<"POST">>, <<"/add_tag">>, {login, Login}, BenchId),
-        ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
-    catch
-        _:Exception ->
-            Str =
-                case Exception of
-                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
-                    _ -> io_lib:format("~p", Exception)
-                end,
-            mzb_api_firehose:notify(danger, mzb_string:format("Add tag failed: ~s", [Str]))
-    end,
+    apply_update(
+        fun () ->
+            mzb_api_auth:auth_api_call(<<"POST">>, <<"/add_tag">>, {login, Login}, BenchId),
+            ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
+        end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
 dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
-    try
-        mzb_api_auth:auth_api_call(<<"POST">>, <<"/remove_tag">>, {login, Login}, BenchId),
-        ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])
-    catch
-        _:Exception ->
-            Str =
-                case Exception of
-                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
-                    _ -> io_lib:format("~p", Exception)
-                end,
-            mzb_api_firehose:notify(danger, mzb_string:format("Add tag failed: ~s", [Str]))
-    end,
+    apply_update(
+        fun () ->
+            mzb_api_auth:auth_api_call(<<"POST">>, <<"/remove_tag">>, {login, Login}, BenchId),
+            ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])
+        end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
 dispatch_request(Cmd, State) ->
     lager:warning("~p has received unexpected info: ~p~n~p", [?MODULE, Cmd, State]),
     {ok, State}.
+
+apply_update(Fun) ->
+    try
+        Fun()
+    catch
+        _:Exception ->
+            Str =
+                case Exception of
+                    {ReasonAtom, ReasonStr} when is_atom(ReasonAtom) -> ReasonStr;
+                    _ -> io_lib:format("~p", [Exception])
+                end,
+            mzb_api_firehose:notify(danger, mzb_string:format("~s", [Str]))
+    end.
 
 disk_status() ->
   FreeRequired = application:get_env(mzbench_api, warn_free_disk_kb, 0),
