@@ -332,20 +332,18 @@ div.log-window pre{
 }
 
 .search-bench-character {
-  display: none;
+  visibility: hidden;
+  margin-left: 3px;
+  font-size: 11px;
 }
 
 .bs.bs-selected:hover .search-bench-character {
-  display: inline-block;
-  margin-left: 3px;
-  font-size: 11px;
+  visibility: visible;
   color: #fafafa;
 }
 
 .bs:hover .search-bench-character {
-  display: inline-block;
-  margin-left: 3px;
-  font-size: 11px;
+  visibility: visible;
   color: #9c969d;
 }
 

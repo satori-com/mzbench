@@ -61,16 +61,16 @@ class TimelineElement extends React.Component {
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
                     <h6 className="no-overflow">
+                        <Star selected={bench.tags.indexOf("favorites") > -1} onClick={(v) => {
+                                if (v == true) MZBenchActions.addBenchTag(bench.id, "favorites");
+                                else MZBenchActions.removeBenchTag(bench.id, "favorites");
+                            }}/>
                         #{bench.id} {bench.name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
                         <span title="Search for similar benchmarks" className="search-bench-character glyphicon glyphicon-search" aria-hidden="true"
                             onClick={(e) => {
                                 e.preventDefault();
                                 MZBenchRouter.navigate("/timeline", {q: bench.name});
-                            }}/>
-                        <Star selected={bench.tags.indexOf("favorites") > -1} onClick={(v) => {
-                                if (v == true) MZBenchActions.addBenchTag(bench.id, "favorites");
-                                else MZBenchActions.removeBenchTag(bench.id, "favorites");
                             }}/>
                     </h6>
                     {tags}
