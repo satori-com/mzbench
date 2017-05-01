@@ -789,9 +789,10 @@ compare(_, _) -> false.
 
 is_satisfy_fields(Query, BenchInfo) ->
     try
+        EscapedQuery = re:replace(Query, "[.^$*+?()[{\\\|\s#]", "\\\\&",[global]),
         SearchFields = get_searchable_fields(BenchInfo),
         lists:any(fun({substr, Field}) ->
-                      case re:run(Field, Query, [caseless]) of
+                      case re:run(Field, EscapedQuery, [caseless]) of
                           {match, _} -> true;
                           _ -> false
                       end;
