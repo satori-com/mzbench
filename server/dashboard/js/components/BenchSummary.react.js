@@ -80,7 +80,9 @@ class BenchSummary extends React.Component {
                         <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Author</div>
-                                <div className="col-xs-8 bench-details-el">{bench.author}</div>
+                                <div className="col-xs-8 bench-details-el">
+                                    {bench.author_name == "" ? bench.author : bench.author_name + ' (' + bench.author + ')'}
+                                </div>
                             </div>
                         </div>
                         <div className="col-xs-12 col-md-5">

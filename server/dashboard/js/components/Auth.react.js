@@ -108,15 +108,25 @@ class Auth extends React.Component {
                             <p>Please copy-paste it to ~/.config/mzbench/token file in your home directory</p>
                         </div> :
                         <div className="auth-token-modal">
-                            How long do you want the token to be valid:
-                            <select ref="validTime" defaultValue="86400">
-                                <option value="3600">an hour</option>
-                                <option value="86400">a day</option>
-                                <option value="2592000">a month</option>
-                                <option value="31536000">a year</option>
-                                <option value="0">forever</option>
-                            </select>&nbsp;
-                            <button type="button" className="btn btn-primary btn-sm" onClick={this.onGenerateToken.bind(this)}>Generate</button>
+                            <div className="form-group row">
+                                <div className="col-md-4">How long do you want the token to be valid:</div>
+                                <div className="col-md-8"><select className="form-control" ref="validTime" defaultValue="86400">
+                                    <option value="3600">an hour</option>
+                                    <option value="86400">a day</option>
+                                    <option value="2592000">a month</option>
+                                    <option value="31536000">a year</option>
+                                    <option value="0">forever</option>
+                                </select></div>
+                            </div>
+                            <div className="form-group row">
+                                <div className="col-md-4">Name to be shown (optional):</div>
+                                <div className="col-md-8"><input className="form-control" ref="tokenName"/></div>
+                            </div>
+                            <div className="form-group row">
+                                <div className="col-md-12 text-right">
+                                    <button type="button" className="btn btn-primary btn-sm" onClick={this.onGenerateToken.bind(this)}>Generate</button>
+                                </div>
+                            </div>
                         </div>
                     }
                 </Modal>)
@@ -148,7 +158,8 @@ class Auth extends React.Component {
 
     onGenerateToken() {
         let tokenLifetime = this.refs.validTime.value;
-        AuthStore.requestToken(tokenLifetime);
+        let tokenName = this.refs.tokenName.value;
+        AuthStore.requestToken(tokenName, tokenLifetime);
     }
 
     _resolveState() {

@@ -265,8 +265,9 @@ dispatch_info(Info, State) ->
     lager:warning("~p has received unexpected info: ~p", [?MODULE, Info]),
     {ok, State}.
 
-dispatch_request(#{<<"cmd">> := <<"generate-token">>, <<"lifetime">> := LifeTime}, #state{user_info = UserInfo} = State) ->
-    NewToken = mzb_api_auth:generate_token(binary_to_integer(LifeTime), UserInfo),
+dispatch_request(#{<<"cmd">> := <<"generate-token">>} = Cmd, #state{user_info = UserInfo} = State) ->
+    #{<<"name">> := Name, <<"lifetime">> := LifeTime} = Cmd,
+    NewToken = mzb_api_auth:generate_token(binary_to_list(Name), binary_to_integer(LifeTime), UserInfo),
     {reply, #{type => "GENERATED_TOKEN", token => NewToken}, State};
 
 dispatch_request(#{<<"cmd">> := <<"ping">>}, State) ->
@@ -726,6 +727,7 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      env => EnvMap2,
                      results => Results,
                      author => mzb_bc:maps_get(author, Config, "anonymous"),
+                     author_name => mzb_bc:maps_get(author_name, Config, ""),
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags],
                      parent => mzb_bc:maps_get(parent, Config, undefined)
                      },

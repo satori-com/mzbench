@@ -63,8 +63,8 @@ start_bench(Params) ->
         {error, Reason} -> erlang:error(Reason)
     end.
 
-restart_bench(Id, Login) ->
-    case gen_server:call(?MODULE, {restart_bench, Id, Login}, infinity) of
+restart_bench(Id, UserInfo) ->
+    case gen_server:call(?MODULE, {restart_bench, Id, UserInfo}, infinity) of
         {ok, Resp} -> Resp;
         {error, {exception, {C,E,ST}}} -> erlang:raise(C,E,ST);
         {error, not_found} ->
@@ -328,21 +328,20 @@ handle_call({start_bench, Params}, _From, #{status:= inactive} = State) ->
     lager:info("[ SERVER ] Start of bench failed because server is inactive ~p", [Params]),
     {reply, {error, server_inactive}, State};
 
-handle_call({restart_bench, RestartId, Login}, _From, #{status:= active, data_dir:= DataDir} = State) ->
+handle_call({restart_bench, RestartId, UserInfo}, _From, #{status:= active, data_dir:= DataDir} = State) ->
     lager:info("[ SERVER ] Restarting bench #~b", [RestartId]),
     RestartIdStr = erlang:integer_to_list(RestartId),
     ParamsFile = filename:join([DataDir, RestartIdStr, "params.bin"]),
     case file:read_file(ParamsFile) of
         {ok, Binary} ->
 
-            Params =
-                % BC code: migration of data, convert dont_provision_nodes to provistion_nodes
-                case erlang:binary_to_term(Binary) of
-                    #{dont_provision_nodes:= V} = P -> P#{provision_nodes => not V};
-                    P -> P
-                end,
+            Params = erlang:binary_to_term(Binary),
 
-            case start_bench_child(Params#{author => Login, parent => RestartId}, State) of
+            NewParams = Params#{author => maps:get(login, UserInfo),
+                                author_name => maps:get(name, UserInfo),
+                                parent => RestartId},
+
+            case start_bench_child(NewParams, State) of
                 {ok, Id, NewState} ->
                     {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
                 {error, Reason, NewState} ->
@@ -354,7 +353,7 @@ handle_call({restart_bench, RestartId, Login}, _From, #{status:= active, data_di
             {reply, {error, Reason}, State}
     end;
 
-handle_call({restart_bench, RestartId}, _From, #{status:= inactive} = State) ->
+handle_call({restart_bench, RestartId, _}, _From, #{status:= inactive} = State) ->
     lager:info("[ SERVER ] Restart of bench failed because server is inactive #~p", [RestartId]),
     {reply, {error, server_inactive}, State};
 

@@ -181,7 +181,7 @@ handle(<<"POST">>, <<"/start">>, UserInfo, Req) ->
 
 handle(<<"GET">>, <<"/restart">>, UserInfo, Req) ->
     with_bench_id(Req, fun (Id) ->
-        Resp = mzb_api_server:restart_bench(Id, maps:get(login, UserInfo)),
+        Resp = mzb_api_server:restart_bench(Id, UserInfo),
         {ok, reply_json(200, Resp, Req), #{}}
     end);
 

@@ -9,7 +9,7 @@
     auth_connection_by_ref/2,
     sign_out_connection/1,
     auth_api_call/4,
-    generate_token/2,
+    generate_token/3,
     get_auth_methods/0,
     get_user_table/0 % for debug only
 ]).
@@ -174,8 +174,8 @@ add_connection(ConnectionPid, UserInfo) ->
     ok = gen_server:call(?MODULE, {add_connection, ConnectionPid, Ref, UserInfo}),
     Ref.
 
-generate_token(Lifetime, UserInfo) ->
-    case gen_server:call(?MODULE, {generate_token, Lifetime, UserInfo}) of
+generate_token(Name, Lifetime, UserInfo) ->
+    case gen_server:call(?MODULE, {generate_token, Name, Lifetime, UserInfo}) of
         {ok, Token} -> Token;
         {error, Reason} -> erlang:error(Reason)
     end.
@@ -247,9 +247,15 @@ handle_call({remove_connection, Ref}, _From, State) ->
     dets:sync(auth_tokens),
     {reply, ok, State};
 
-handle_call({generate_token, Lifetime, UserInfo}, _From, State = #s{start_id = StartId}) ->
+handle_call({generate_token, Name, Lifetime, UserInfo}, _From, State = #s{start_id = StartId}) ->
     Token = generate_ref(),
-    insert(cli, Token, UserInfo, StartId, Lifetime),
+    NewUserInfo =
+        case Name of
+            "" -> UserInfo;
+            undefined -> UserInfo;
+            _ -> UserInfo#{name => Name}
+        end,
+    insert(cli, Token, NewUserInfo, StartId, Lifetime),
     {reply, {ok, Token}, State};
 
 handle_call(_Request, _From, State) ->

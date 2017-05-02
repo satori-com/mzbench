@@ -98,6 +98,7 @@ init([Id, Params]) ->
         id => Id,
         parent => mzb_bc:maps_get(parent, Params, undefined),
         author => mzb_bc:maps_get(author, Params, "anonymous"),
+        author_name => mzb_bc:maps_get(author_name, Params, ""),
         benchmark_name => BenchName,
         nodes_arg => maps:get(nodes, Params),
         exclusive => maps:get(exclusive, Params),

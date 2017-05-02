@@ -208,8 +208,10 @@ class AuthStore extends EventEmitter {
         });
     }
 
-    requestToken(tokenLifetime) {
-        MZBenchWS.send({cmd: "generate-token", lifetime: tokenLifetime.toString()});
+    requestToken(tokenName, tokenLifetime) {
+        MZBenchWS.send({cmd: "generate-token",
+                        name: tokenName,
+                        lifetime: tokenLifetime.toString()});
     }
 
     handleGeneratedToken(token) {

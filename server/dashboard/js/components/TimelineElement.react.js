@@ -57,6 +57,16 @@ class TimelineElement extends React.Component {
                     })}
                 </div>;
 
+        let author = null;
+
+        if (bench.author != "anonymous") {
+            if (bench.author_name == "") {
+                author = (<div>by {bench.author}</div>);
+            } else {
+                author = (<div>by {bench.author_name}</div>);
+            }
+        }
+
         return (
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
@@ -76,7 +86,7 @@ class TimelineElement extends React.Component {
                     {tags}
                     <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time_client} /></div>
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
-                    {bench.author != "anonymous" ? <div>by {bench.author}</div> : null}
+                    {author}
                 </div>
             </a>
         );
