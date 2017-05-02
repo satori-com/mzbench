@@ -441,31 +441,31 @@ dispatch_request(#{<<"cmd">> := <<"stop_streaming_logs">>} = Cmd,
     #{<<"stream_id">> := StreamId} = Cmd,
     {ok, State#state{log_streams = remove_stream(StreamId, Streams)}};
 
-dispatch_request(#{<<"cmd">> := <<"update_name">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
+dispatch_request(#{<<"cmd">> := <<"update_name">>} = Cmd, #state{user_info = UserInfo} = State) ->
     #{<<"bench">> := BenchId, <<"name">> := NewName} = Cmd,
     apply_update(
         fun () ->
-            mzb_api_auth:auth_api_call(<<"POST">>, <<"/update_name">>, {login, Login}, BenchId),
+            _ = mzb_api_auth:auth_api_call(<<"POST">>, <<"/update_name">>, {login, UserInfo}, BenchId),
             ok = mzb_api_server:update_name(BenchId, [binary_to_list(NewName)])
         end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
-dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
+dispatch_request(#{<<"cmd">> := <<"add_tag">>} = Cmd, #state{user_info = UserInfo} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     apply_update(
         fun () ->
-            mzb_api_auth:auth_api_call(<<"POST">>, <<"/add_tag">>, {login, Login}, BenchId),
+            _ = mzb_api_auth:auth_api_call(<<"POST">>, <<"/add_tag">>, {login, UserInfo}, BenchId),
             ok = mzb_api_server:add_tags(BenchId, [binary_to_list(Tag)])
         end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),
     {ok, State};
 
-dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{user_info = #{login := Login}} = State) ->
+dispatch_request(#{<<"cmd">> := <<"remove_tag">>} = Cmd, #state{user_info = UserInfo} = State) ->
     #{<<"bench">> := BenchId, <<"tag">> := Tag} = Cmd,
     apply_update(
         fun () ->
-            mzb_api_auth:auth_api_call(<<"POST">>, <<"/remove_tag">>, {login, Login}, BenchId),
+            _ = mzb_api_auth:auth_api_call(<<"POST">>, <<"/remove_tag">>, {login, UserInfo}, BenchId),
             ok = mzb_api_server:remove_tags(BenchId, [binary_to_list(Tag)])
         end),
     mzb_api_firehose:update_bench(mzb_api_server:status(BenchId)),

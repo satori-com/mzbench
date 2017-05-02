@@ -11,8 +11,8 @@ init(Req, _Opts) ->
         Path = cowboy_req:path(Req),
         Method = cowboy_req:method(Req),
         lager:info("[ ~s ] ~s", [Method, Path]),
-        Login = authorize(Method, Path, Req),
-        handle(Method, Path, Login, Req)
+        UserInfo = authorize(Method, Path, Req),
+        handle(Method, Path, UserInfo, Req)
     catch
         error:{not_found, Reason} ->
             Req2 = reply_error(404, <<"not_found">>, Reason, Req),
@@ -53,7 +53,7 @@ authorize(Method, Path, Req) ->
     Ref = case proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined) of
             undefined ->
                 <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
-                {token, Token};
+                {clitoken, Token};
             Cookie ->
                 Token = cowboy_req:header(<<"csrf-stoken">>, Req, <<"">>),
                 {cookie, Cookie, Token}
@@ -160,7 +160,7 @@ handle(<<"POST">>, <<"/typecheck">>, _, Req) ->
             erlang:error({badarg, "Missing script file"})
     end;
 
-handle(<<"POST">>, <<"/start">>, Login, Req) ->
+handle(<<"POST">>, <<"/start">>, UserInfo, Req) ->
     Params = parse_start_params(Req),
     RequestedHost = cowboy_req:header(<<"host">>, Req, undefined),
     case cowboy_req:parse_header(<<"content-type">>, Req) of
@@ -172,32 +172,33 @@ handle(<<"POST">>, <<"/start">>, Login, Req) ->
                     Params#{script => #{name => ScriptName, body => ScriptBody},
                             includes => Includes,
                             req_host => RequestedHost,
-                            author => Login}),
+                            author => maps:get(login, UserInfo),
+                            author_name => maps:get(name, UserInfo)}),
             {ok, reply_json(200, Resp, Req2), #{}};
         _ ->
             erlang:error({badarg, "Missing script file"})
     end;
 
-handle(<<"GET">>, <<"/restart">>, Login, Req) ->
+handle(<<"GET">>, <<"/restart">>, UserInfo, Req) ->
     with_bench_id(Req, fun (Id) ->
-        Resp = mzb_api_server:restart_bench(Id, Login),
+        Resp = mzb_api_server:restart_bench(Id, maps:get(login, UserInfo)),
         {ok, reply_json(200, Resp, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/stop">>, Login, Req) ->
+handle(<<"GET">>, <<"/stop">>, _, Req) ->
     with_bench_id(Req, fun(Id) ->
-        ok = mzb_api_server:stop_bench(Id, Login),
+        ok = mzb_api_server:stop_bench(Id),
         {ok, reply_json(200, #{status => <<"stopped">>}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/change_env">>, Login, Req) ->
+handle(<<"GET">>, <<"/change_env">>, _, Req) ->
     with_bench_id(Req, fun (Id) ->
         NewEnv = cowboy_req:parse_qs(Req),
-        ok = mzb_api_server:change_env(Id, proplists:delete(<<"id">>, NewEnv), Login),
+        ok = mzb_api_server:change_env(Id, proplists:delete(<<"id">>, NewEnv)),
         {ok, reply_json(200, #{status => <<"set">>}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/run_command">>, _Login, Req) ->
+handle(<<"GET">>, <<"/run_command">>, _, Req) ->
     with_bench_id(Req, fun (Id) ->
         try
             #{command:= Command, pool:= Pool, percent:= Percent} =
@@ -213,17 +214,17 @@ handle(<<"GET">>, <<"/run_command">>, _Login, Req) ->
         {ok, reply_json(200, #{status => <<"ok">>}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/status">>, _Login, Req) ->
+handle(<<"GET">>, <<"/status">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         {ok, reply_json(200, format_status(mzb_api_server:status(Id)), Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/results">>, _Login, Req) ->
+handle(<<"GET">>, <<"/results">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         {ok, reply_json(200, format_results(mzb_api_server:status(Id)), Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/log">>, _Login, Req) ->
+handle(<<"GET">>, <<"/log">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
@@ -231,7 +232,7 @@ handle(<<"GET">>, <<"/log">>, _Login, Req) ->
         {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/userlog">>, _Login, Req) ->
+handle(<<"GET">>, <<"/userlog">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config} = mzb_api_server:status(Id),
         #{log_compression:= Compression} = Config,
@@ -239,7 +240,7 @@ handle(<<"GET">>, <<"/userlog">>, _Login, Req) ->
         {ok, stream_from_file(Filename, Compression, Id, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/data">>, _Login, Req) ->
+handle(<<"GET">>, <<"/data">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         #{config:= Config, metrics:= Metrics} =
             fun WaitMetricsCreations() ->
@@ -256,36 +257,21 @@ handle(<<"GET">>, <<"/data">>, _Login, Req) ->
         {ok, stream_metrics_from_files(Filenames, Id, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/email_report">>, _Login, Req) ->
+handle(<<"GET">>, <<"/email_report">>, _UserInfo, Req) ->
     with_bench_id(Req, fun (Id) ->
         #{addr:= Addrs} = cowboy_req:match_qs([{addr, fun check_string_multi_param/1}], Req),
         ok = mzb_api_server:email_report(Id, Addrs),
         {ok, reply_json(200, #{}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/server_logs">>, _Login, Req) ->
-    Headers = [{<<"content-type">>, <<"text/plain">>}],
-    #{severity:= Severity} = cowboy_req:match_qs([{severity, fun check_severity/1, info}], Req),
-    Req2 = cowboy_req:chunked_reply(200, Headers, Req),
-    Id = {mzb_api_slogs_backend, self()},
-    ok = gen_event:add_handler(lager_event, Id, [Severity, self()]),
-    lager:set_loglevel(mzb_api_slogs_backend, self(), Severity),
-    {cowboy_loop, Req2, #{lager_backend_id => Id}};
-
-handle(<<"GET">>, <<"/graphs">>, _Login, Req) ->
+handle(<<"GET">>, <<"/graphs">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         Location = list_to_binary(mzb_string:format("/#/bench/~p/overview", [Id])),
         Headers = [{<<"Location">>, Location}],
         {ok, cowboy_req:reply(302, Headers, <<>>, Req), #{}}
     end);
 
-%% obsolete endpoint, to be removed soon
-handle(<<"GET">>, <<"/report.json">>, _Login, Req) ->
-    Filter = fun (I) -> mzb_api_ws_handler:normalize([I]) end,
-    {_BenchInfo, _, _} = mzb_api_server:get_info(Filter, undefined, undefined, undefined, 1),
-    {ok, reply_json(200, #{}, Req), #{}};
-
-handle(<<"GET">>, <<"/clusters_info">>, _Login, Req) ->
+handle(<<"GET">>, <<"/clusters_info">>, _UserInfo, Req) ->
     List = mzb_api_cloud:clusters_info(),
     Keys = [id, state, n, bench_id, timestamp, provider, hosts, reason],
     F = fun (D) ->
@@ -304,7 +290,7 @@ handle(<<"GET">>, <<"/clusters_info">>, _Login, Req) ->
         end, Info),
     {ok, reply_json(200, Sorted, Req), #{}};
 
-handle(<<"GET">>, <<"/deallocate_cluster">>, _Login, Req) ->
+handle(<<"GET">>, <<"/deallocate_cluster">>, _UserInfo, Req) ->
     ClusterId =
         try
             #{id:= Id} = cowboy_req:match_qs([{id, int}], Req),
@@ -326,7 +312,7 @@ handle(<<"GET">>, <<"/deallocate_cluster">>, _Login, Req) ->
         _:no_cluster -> erlang:error({not_found, "Cluster is not allocated"})
     end;
 
-handle(<<"GET">>, <<"/remove_cluster_info">>, _Login, Req) ->
+handle(<<"GET">>, <<"/remove_cluster_info">>, _UserInfo, Req) ->
     ClusterId =
         try
             #{id:= Id} = cowboy_req:match_qs([{id, int}], Req),
@@ -347,7 +333,7 @@ handle(<<"GET">>, <<"/remove_cluster_info">>, _Login, Req) ->
         _:not_found -> erlang:error({not_found, "Cluster not found"})
     end;
 
-handle(<<"GET">>, <<"/add_tags">>, _Login, Req) ->
+handle(<<"GET">>, <<"/add_tags">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         Tags =
             try
@@ -362,7 +348,7 @@ handle(<<"GET">>, <<"/add_tags">>, _Login, Req) ->
         {ok, reply_json(200, #{}, Req), #{}}
     end);
 
-handle(<<"GET">>, <<"/remove_tags">>, _Login, Req) ->
+handle(<<"GET">>, <<"/remove_tags">>, _UserInfo, Req) ->
     with_bench_id(Req, fun(Id) ->
         Tags =
             try
@@ -377,8 +363,8 @@ handle(<<"GET">>, <<"/remove_tags">>, _Login, Req) ->
         {ok, reply_json(200, #{}, Req), #{}}
     end);
 
-handle(Method, Path, Login, Req) ->
-    lager:error("Unknown request from ~p: ~p ~p~n~p", [Login, Method, Path, Req]),
+handle(Method, Path, UserInfo, Req) ->
+    lager:error("Unknown request from ~p: ~p ~p~n~p", [maps:get(login, UserInfo), Method, Path, Req]),
     erlang:error({not_found, io_lib:format("Wrong endpoint: ~p ~p", [Method, Path])}).
 
 with_bench_id(Req, Action) ->
@@ -475,12 +461,6 @@ format_results(#{}) ->
 
 format_percentiles(Percentiles) ->
     maps:from_list([{list_to_binary(Name), Value} || {Name, Value} <- Percentiles]).
-
-check_severity(<<"debug">>) -> {true, debug};
-check_severity(<<"info">>) -> {true, info};
-check_severity(<<"warning">>) -> {true, warning};
-check_severity(<<"error">>) -> {true, error};
-check_severity(E) -> erlang:error({badarg, io_lib:format("Invalid severity: ~p", [E])}).
 
 check_string_multi_param(List) when is_list(List) -> {true, [binary_to_list(E)|| E <- List]};
 check_string_multi_param(Bin) when is_binary(Bin) -> {true, [binary_to_list(Bin)]};

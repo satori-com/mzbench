@@ -114,36 +114,36 @@ auth("google" = Type, Code) ->
 auth_connection_by_ref(ConnectionPid, Ref) ->
     gen_server:call(?MODULE, {auth_connection_by_ref, ConnectionPid, Ref}).
 
-auth_api_call(<<"POST">>, <<"/auth">>, _Ref, _BenchId) -> "default";
-auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref, _BenchId) -> "default";
+auth_api_call(<<"POST">>, <<"/auth">>, _Ref, _BenchId) -> #{};
+auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref, _BenchId) -> #{};
 auth_api_call(_Method, Path, Ref, BenchId) ->
     case get_methods() of
-        [] -> "anonymous";
+        [] -> anon_info();
         _ -> auth_api_call_ref(Path, Ref, BenchId)
     end.
 
-auth_api_call_ref(Path, {login, Login}, BenchId) ->
-    auth_login_access(Path, Login, BenchId);
-auth_api_call_ref(Path, {token, Token}, BenchId) ->
+auth_api_call_ref(Path, {login, UserInfo}, BenchId) ->
+    auth_login_access(Path, maps:get(login, UserInfo), BenchId),
+    UserInfo;
+auth_api_call_ref(Path, {clitoken, Token}, BenchId) ->
     case get_user_info(Token) of
-        {ok, UserInfo} -> auth_login_access(Path, maps:get(login, UserInfo), BenchId);
-        {error, unknown_ref} -> erlang:error(forbidden)
+        {ok, UserInfo} ->
+            auth_login_access(Path, maps:get(login, UserInfo), BenchId),
+            UserInfo;
+        {error, unknown_ref} ->
+            erlang:error(forbidden)
     end;
-auth_api_call_ref(Path, {cookie, Cookie, Token}, BenchId) when (Path == <<"/stop">>)
-                    or (Path == <<"/restart">>) or (Path == <<"/change_env">>)
-                    or (Path == <<"/run_command">>) ->
+auth_api_call_ref(Path, {cookie, Cookie, CSRFToken}, BenchId) ->
     case dets:lookup(auth_tokens, Cookie) of
-        [{_, #{user_info:= #{login := Login}, connection_pids:= Pids}}] ->
-                case lists:member(Token, maps:values(Pids)) of
-                    true -> auth_login_access(Path, Login, BenchId);
-                    false -> erlang:error(forbidden)
+        [{_, #{user_info:= #{login := Login} = UserInfo, connection_pids:= Pids}}] ->
+                case lists:member(CSRFToken, maps:values(Pids)) of
+                    true ->
+                        auth_login_access(Path, Login, BenchId),
+                        UserInfo;
+                    false ->
+                        erlang:error(forbidden)
                 end;
         [] -> erlang:error(forbidden)
-    end;
-auth_api_call_ref(Path, {cookie, Cookie, _}, BenchId) ->
-    case get_user_info(Cookie) of
-        {ok, UserInfo} -> auth_login_access(Path, maps:get(login, UserInfo), BenchId);
-        {error, unknown_ref} -> erlang:error(forbidden)
     end.
 
 auth_login_access(Path, Login, BenchId) when
@@ -151,10 +151,10 @@ auth_login_access(Path, Login, BenchId) when
                     (Path == <<"/add_tag">>) or (Path == <<"/remove_tag">>) or
                     (Path == <<"/update_name">>) or (Path == <<"/run_command">>) ->
     case check_admin_listed(Login) of
-        true -> Login;
+        true -> ok;
         false -> _ = check_listed_or_fail(Login),
                 #{config:= #{author := Author}} = mzb_api_server:status(BenchId),
-                if Author == Login -> Login;
+                if Author == Login -> ok;
                     true ->  erlang:error(forbidden)
                 end
     end;
@@ -162,7 +162,7 @@ auth_login_access(_, Login, _) -> check_listed_or_fail(Login).
 
 check_listed_or_fail(Login) ->
     case check_black_white_listed(Login) of
-        ok -> Login;
+        ok -> ok;
         error -> erlang:error(forbidden)
     end.
 
@@ -227,15 +227,7 @@ handle_call({add_connection, ConnectionPid, Ref, UserInfo}, _From, State = #s{st
 handle_call({auth_connection_by_ref, ConnectionPid, Ref}, _From, State = #s{start_id = StartId}) ->
     case get_methods() of
         [] ->
-            UserInfo =
-                #{
-                    login => "anonymous",
-                    login_type => "undefined",
-                    name => "anonymous",
-                    picture_url => "",
-                    email => ""
-                },
-            {reply, {ok, UserInfo, <<>>}, State};
+            {reply, {ok, anon_info(), <<>>}, State};
         _ ->
             case get_user_info(Ref) of
                 {ok, UserInfo} ->
@@ -452,3 +444,12 @@ remove_connection(Pid, NextId) ->
                     remove_connection(Pid, dets:next(auth_tokens, NextId))
             end
     end.
+
+anon_info() ->
+    #{
+        login => "anonymous",
+        login_type => "undefined",
+        name => "anonymous",
+        picture_url => "",
+        email => ""
+    }.
