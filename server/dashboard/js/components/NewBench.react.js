@@ -223,11 +223,7 @@ class NewBench extends React.Component {
         $.ajax({url: typecheck_query + env_query, type : 'POST',
             processData: false,
             contentType: false,
-            beforeSend: function (xhr) {
-                if (AuthStore.getRef()) {
-                    xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getRef() );
-                }
-            },
+            beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) },
             data: formData,
             success: (checkdata) => {
                 notify.update({message: `Starting...`, type: 'info', delay: 0});
@@ -248,7 +244,9 @@ class NewBench extends React.Component {
                             msg += `<br>${data.responseJSON.reason.split('\n')[0]}`;
                         notify.update({message: msg, type: 'danger'});
                         setTimeout(() => notify.close(), 5000);
-                    }});
+                    },
+                    beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) }
+                    });
                 },
             error: (data) => {
                 let msg = "";

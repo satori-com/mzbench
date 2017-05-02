@@ -78,7 +78,8 @@ class BenchReports extends React.Component {
             error: () => {
                 notify.update({message: `Sending report failed`, type: 'danger'});
                 setTimeout(() => notify.close(), 5000);
-            }
+            },
+            beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) }
         });
         event.preventDefault();
         this.refs.emailReportModal.close();

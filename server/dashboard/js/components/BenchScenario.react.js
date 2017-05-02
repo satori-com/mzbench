@@ -99,15 +99,12 @@ class BenchScenario extends React.Component {
                 notify.update({message: successMessage, type: 'success'});
                 setTimeout(() => notify.close(), 5000);
             },
-            beforeSend: function (xhr) {
-                if (AuthStore.getToken()) {
-                    xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getToken() );
-                }
-            },
             error: () => {
                 notify.update({message: failMessage, type: 'danger'});
                 setTimeout(() => notify.close(), 5000);
-            }});
+            },
+            beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) }
+            });
     }
 
     _onRunCommand(event) {

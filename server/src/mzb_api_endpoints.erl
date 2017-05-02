@@ -50,10 +50,13 @@ init(Req, _Opts) ->
 authorize(Method, Path, Req) ->
     Cookies = cowboy_req:parse_cookies(Req),
     #{id:= BenchId} = cowboy_req:match_qs([{id, int, 0}], Req),
-    <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
     Ref = case proplists:get_value(mzb_api_auth:cookie_name(), Cookies, undefined) of
-            undefined -> {token, Token};
-            Cookie -> {cookie, Cookie, Token}
+            undefined ->
+                <<"Bearer ", Token/binary>> = cowboy_req:header(<<"authorization">>, Req, <<"Bearer ">>),
+                {token, Token};
+            Cookie ->
+                Token = cowboy_req:header(<<"csrf-stoken">>, Req, <<"">>),
+                {cookie, Cookie, Token}
         end,
     mzb_api_auth:auth_api_call(Method, Path, Ref, BenchId).
 

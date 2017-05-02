@@ -205,11 +205,7 @@ class BenchSummary extends React.Component {
             $.ajax({url: anchor.attr('href'),
                     success: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
                     error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});},
-                    beforeSend: function (xhr) {
-                        if (AuthStore.getToken()) {
-                            xhr.setRequestHeader("Authorization", "Bearer " + AuthStore.getToken() );
-                        }
-                    }
+                    beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) }
                 });
         }
     }

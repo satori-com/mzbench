@@ -174,6 +174,12 @@ class AuthStore extends EventEmitter {
         return this.token;
     }
 
+    addCSRFToken(xhr) {
+        if (this.getToken()) {
+            xhr.setRequestHeader("csrf-stoken", this.getToken() );
+        }
+    }
+
     setToken(token) {
         this.token = token;
     }
@@ -197,7 +203,8 @@ class AuthStore extends EventEmitter {
           success: () => {
                 MZBenchActions.unsubscribeBenchTimeline();
                 this.reauth();
-            }
+            },
+          beforeSend: (xhr) => { this.addCSRFToken(xhr) }
         });
     }
 
