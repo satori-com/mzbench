@@ -125,7 +125,7 @@ init([Asserts, LoopAssertMetrics, Nodes, Env]) ->
         metric_groups = [],
         env = Env,
         update_interval_ms = UpdateIntervalMs,
-        assert_accuracy_ms = round(UpdateIntervalMs * 1.5)
+        assert_accuracy_ms = round(UpdateIntervalMs * 3)
         }}.
 
 handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
