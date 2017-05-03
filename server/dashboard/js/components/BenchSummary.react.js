@@ -206,7 +206,13 @@ class BenchSummary extends React.Component {
         if (!anchor.attr('disabled')) {
             $.ajax({url: anchor.attr('href'),
                     success: () => {$.notify({message: action_message}, {type: 'success', delay: 3000});},
-                    error: () => {$.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});},
+                    error: (res) => {
+                        if (res.statusText) {
+                            $.notify({message: res.statusText}, {type: 'danger', delay: 3000});
+                        } else {
+                            $.notify({message: 'Request failed'}, {type: 'danger', delay: 3000});
+                        }
+                    },
                     beforeSend: (xhr) => { AuthStore.addCSRFToken(xhr) }
                 });
         }
