@@ -461,7 +461,10 @@ def get_auth_headers(host):
         return None
 
 def read_token(host):
-    token_file = os.path.expanduser("~/.config/mzbench/token")
+    if 'MZBENCHTOKEN' in os.environ:
+        token_file = os.environ['MZBENCHTOKEN']
+    else:
+        token_file = os.path.expanduser("~/.config/mzbench/token")
 
     if (not os.path.isfile(token_file)):
         return None
