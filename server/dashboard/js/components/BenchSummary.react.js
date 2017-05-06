@@ -56,6 +56,20 @@ class BenchSummary extends React.Component {
         var canStop = AuthStore.isAnonymousServer() ||
                       (this.props.bench.author == AuthStore.userLogin());
 
+
+        let logLinks = null;
+        if (bench.system_errors > 0 && bench.user_errors > 0) {
+            logLinks = <div>
+                         {bench.system_errors} in <a href={`#/bench/${bench.id}/logs/system/errors`}>system logs</a> and {bench.user_errors} in <a href={`#/bench/${bench.id}/logs/user/errors`}>user logs</a>
+                       </div>;
+        } else if (bench.system_errors > 0) {
+            logLinks = <div>{bench.system_errors} in <a href={`#/bench/${bench.id}/logs/system/errors`}>system logs</a></div>;
+        } else if (bench.user_errors > 0) {
+            logLinks = <div>{bench.user_errors} in <a href={`#/bench/${bench.id}/logs/user/errors`}>user logs</a>)</div>;
+        } else {
+            logLinks = <div>0</div>;
+        }
+
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
@@ -113,7 +127,17 @@ class BenchSummary extends React.Component {
                         <div className="col-xs-12 col-md-5">
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Status</div>
-                                <div className="col-xs-8 bench-details-el"><span className={`label ${labelClass}`}>{bench.status}</span></div>
+                                <div className="col-xs-8 bench-details-el">
+                                    <span className={`label ${labelClass}`}>{bench.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-xs-12 col-md-5">
+                            <div className="row">
+                                <div className="col-xs-4 bench-details-key bench-details-el">Errors</div>
+                                <div className="col-xs-8 bench-details-el"> 
+                                    {logLinks}
+                                </div>
                             </div>
                         </div>
                         {bench.parent != "undefined" ?

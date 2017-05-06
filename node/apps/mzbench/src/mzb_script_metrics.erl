@@ -16,7 +16,8 @@ script_metrics(Pools, _WorkerNodes) ->
                         WorkerStatusGraphs ++
                         [
                           {graph, #{title => "Errors and Blocked workers",
-                                    metrics => [{"errors", counter},
+                                    metrics => [{"errors.system", counter},
+                                                {"errors.user", counter},
                                                 {"blocked.workers", counter}]}},
                           {graph, #{title => "Logs",
                                     metrics => [{"logs.written", counter},

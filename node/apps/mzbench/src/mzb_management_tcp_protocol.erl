@@ -158,8 +158,7 @@ handle_call({new_metrics, Metrics}, _From, State = #state{}) ->
     {reply, ok, State};
 
 handle_call({report, [Name, Value]}, _From, State = #state{}) ->
-    Metric = io_lib:format("~B\t~p~n", [unix_time(), Value]),
-    send_message({metric_value, Name, Metric}, State),
+    send_message({metric_value, Name, unix_time(), Value}, State),
     {reply, ok, State};
 
 handle_call(Request, _From, State) ->

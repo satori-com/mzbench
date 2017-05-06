@@ -729,7 +729,9 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      author => mzb_bc:maps_get(author, Config, "anonymous"),
                      author_name => mzb_bc:maps_get(author_name, Config, ""),
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags],
-                     parent => mzb_bc:maps_get(parent, Config, undefined)
+                     parent => mzb_bc:maps_get(parent, Config, undefined),
+                     system_errors => mzb_bc:maps_get(system_errors, Status, 0),
+                     user_errors => mzb_bc:maps_get(user_errors, Status, 0)
                      },
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,

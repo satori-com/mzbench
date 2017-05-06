@@ -160,7 +160,9 @@ init([Id, Params]) ->
         self => self(), % stages are spawned, so we can't get pipeline pid from callback
         director_node => undefined,
         previous_status => undefined,
-        results => undefined
+        results => undefined,
+        user_errors => 0,
+        system_errors => 0
     },
     info("Node repo: ~p", [NodeInstallSpec], State),
     {ok, State}.
@@ -496,6 +498,15 @@ handle_cast({env_changed, NewEnv}, State = #{config:= Config}) ->
     NewState = State#{config => Config#{env => Env2}},
     {noreply, maybe_update_bench(NewState)};
 
+handle_cast({error_counter, system, Value}, State) ->
+    {noreply, maybe_update_bench(State#{system_errors => Value})};
+
+handle_cast({error_counter, user, Value}, State) ->
+    {noreply, maybe_update_bench(State#{user_errors => Value})};
+
+handle_cast({error_counter, inc_system}, #{system_errors:= OldValue} = State) ->
+    {noreply, maybe_update_bench(State#{system_errors => OldValue + 1})};
+
 handle_cast(_Msg, State) ->
     error("Unhandled cast: ~p", [_Msg], State),
     {noreply, State}.
@@ -655,7 +666,7 @@ send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
 status(State) ->
-    mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results], State).
+    mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results, user_errors, system_errors], State).
 
 generate_bench_env(Id, Params) ->
     Env = maps:get(env, Params),
@@ -808,11 +819,12 @@ info(Format, Args, State) ->
 error(Format, Args, State) ->
     log(error, Format, Args, State).
 
-log(Severity, Format, Args, #{log_file_handler:= H, id:= Id}) ->
+log(Severity, Format, Args, #{log_file_handler:= H, id:= Id, self:= Self}) ->
     Format2 = "[ BENCH #~b ] " ++ Format,
     Args2 = [Id|Args],
     DefaultLogger = mzb_api_app:default_logger(),
     DefaultLogger(Severity, Format2, Args2),
+    (Severity == error) andalso mzb_pipeline:cast(Self, {error_counter, inc_system}),
     format_log(H, Severity, Format, Args).
 
 format_log(_Handler, debug, _Format, _Args) -> ok;
@@ -946,16 +958,16 @@ director_call(Connection, Msg, Timeout) ->
             end
     end.
 
-handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handlers} = S) ->
+handle_management_msg({message, Msg}, Self, S) ->
     case erlang:binary_to_term(Msg) of
-        {metric_value, Name, Values} ->
-            case maps:find(Name, Handlers) of
-                {ok, H} -> {H({write, Values}), S};
-                error ->
-                    MetricsFile = metrics_file(Name, Config),
-                    H = get_file_writer(MetricsFile, none),
-                    {H({write, Values}), S#{handlers => maps:put(Name, H, Handlers)}}
-            end;
+        {metric_value, "errors.user" = Name, Timestamp, Value} ->
+            mzb_pipeline:cast(Self, {error_counter, user, Value}),
+            report_metrics(Name, Timestamp, Value, S);
+        {metric_value, "errors.system" = Name, Timestamp, Value} ->
+            mzb_pipeline:cast(Self, {error_counter, system, Value}),
+            report_metrics(Name, Timestamp, Value, S);
+        {metric_value, Name, Timestamp, Value} ->
+            report_metrics(Name, Timestamp, Value, S);
         {response, Continuation, Res} ->
             Continuation(Res),
             {ok, S};
@@ -966,6 +978,16 @@ handle_management_msg({message, Msg}, Self, #{config:= Config, handlers:= Handle
 handle_management_msg({error, _}, _, S = #{handlers:= Handlers}) ->
     _ = [ H(close) || {_, H} <- maps:to_list(Handlers)],
     {ok, S#{handlers => #{}}}.
+
+report_metrics(Name, Timestamp, Value, #{config:= Config, handlers:= Handlers} = S) ->
+    ToWrite = io_lib:format("~B\t~p~n", [Timestamp, Value]),
+    case maps:find(Name, Handlers) of
+        {ok, H} -> {H({write, ToWrite}), S};
+        error ->
+            MetricsFile = metrics_file(Name, Config),
+            H = get_file_writer(MetricsFile, none),
+            {H({write, ToWrite}), S#{handlers => maps:put(Name, H, Handlers)}}
+    end.
 
 aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
 

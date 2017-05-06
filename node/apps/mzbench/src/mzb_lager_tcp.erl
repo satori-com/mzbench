@@ -17,25 +17,27 @@
                 last_n = 0,
                 limit = 0,
                 is_active = true,
-                dropped = 0}).
+                dropped = 0,
+                error_metric = undefined}).
 
 -define(TERSE_FORMAT,[time, " ", color, "[", severity,"] ", pid , " ", message, "\n"]).
 -define(INTERVAL, 100). % in ms
 
-init([Level, Sock, MessageQLenLimit, RateLimit]) ->
+init([Level, Sock, MessageQLenLimit, RateLimit, ErrorMetric]) ->
     system_log:info("Started tcp lager backend for ~p ~p", [Level, Sock]),
     erlang:process_flag(trap_exit, true),
     Formatter = lager_default_formatter,
     FormatterConfig = ?TERSE_FORMAT,
     RateLimit > 0 andalso erlang:send_after(?INTERVAL, self(), trigger_rate_limiter),
-    mzb_metrics:notify("errors", 0),
+    mzb_metrics:notify(ErrorMetric, 0),
     {ok, #state{level=lager_util:config_to_mask(Level),
             formatter=Formatter,
             format_config=FormatterConfig,
             colors=[],
             socket = Sock,
             msg_q_len_limit = MessageQLenLimit,
-            limit = RateLimit}}.
+            limit = RateLimit,
+            error_metric = ErrorMetric}}.
 
 handle_call(get_loglevel, #state{level=Level} = State) ->
     {ok, Level, State};
@@ -57,7 +59,9 @@ handle_event({log, _}, #state{skip_messages = N} = State) when N > 0 ->
     {ok, State#state{skip_messages = N - 1}};
 
 handle_event({log, Message},
-    #state{socket = Socket, level=L,formatter=Formatter,format_config=FormatConfig,colors=Colors, n = N, msg_q_len_limit = MaxQ} = State) ->
+    #state{socket = Socket, level = L, formatter = Formatter,
+           format_config = FormatConfig, colors = Colors, n = N,
+           msg_q_len_limit = MaxQ, error_metric = ErrorMetric} = State) ->
 
     case (MaxQ /= undefined) andalso (N rem 10 == 0) andalso erlang:process_info(self(), message_queue_len) of
         {_, Len} when Len > MaxQ ->
@@ -66,7 +70,7 @@ handle_event({log, Message},
             {ok, State#state{skip_messages = Len div 2, n = N + 1}};
         _ ->
             _ = case lager_msg:severity(Message) of
-                error -> mzb_metrics:notify("errors", 1);
+                error -> mzb_metrics:notify(ErrorMetric, 1);
                 _ -> ok
             end,
             mzb_metrics:notify({"logs.written", counter}, 1),

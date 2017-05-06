@@ -39,11 +39,11 @@ init(Ref, Socket, Transport, Opts) ->
         true ->
             LogQueueMax = application:get_env(mzbench, log_queue_max_len, undefined),
             LogRateLimit = application:get_env(mzbench, log_rate_limit, undefined),
-            gen_event:add_handler(lager_event, {mzb_lager_tcp, Socket}, [info, Socket, LogQueueMax, LogRateLimit]);
+            gen_event:add_handler(lager_event, {mzb_lager_tcp, Socket}, [info, Socket, LogQueueMax, LogRateLimit, "errors.user"]);
         _ -> ok
     end,
     ok = case lists:member(system, Opts) of
-        true -> gen_event:add_handler(system_log_lager_event, {mzb_lager_tcp, Socket}, [info, Socket, undefined, 0]);
+        true -> gen_event:add_handler(system_log_lager_event, {mzb_lager_tcp, Socket}, [info, Socket, undefined, 0, "errors.system"]);
         _ -> ok
     end,
     lager:set_loglevel(mzb_lager_tcp, Socket, info),
