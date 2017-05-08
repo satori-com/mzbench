@@ -65,7 +65,7 @@ class BenchSummary extends React.Component {
         } else if (bench.system_errors > 0) {
             logLinks = <div>{bench.system_errors} in <a href={`#/bench/${bench.id}/logs/system/errors`}>system logs</a></div>;
         } else if (bench.user_errors > 0) {
-            logLinks = <div>{bench.user_errors} in <a href={`#/bench/${bench.id}/logs/user/errors`}>user logs</a>)</div>;
+            logLinks = <div>{bench.user_errors} in <a href={`#/bench/${bench.id}/logs/user/errors`}>user logs</a></div>;
         } else {
             logLinks = <div>0</div>;
         }
