@@ -63,6 +63,7 @@ connect(State, Meta, Host, Port) when is_list(Host) ->
 connect(State, Meta, Host, Port, Protocol, Options) when is_list(Host) ->
     connect(State, Meta, list_to_binary(Host), Port, Protocol, Options);
 connect(State, _Meta, Host, Port, Protocol, Options) ->
+    lager:info("Trying: ~p", [Options]),
     {ok, ConnRef} = hackney:connect(
         if Protocol == http -> hackney_tcp;
            Protocol == https -> hackney_ssl;
