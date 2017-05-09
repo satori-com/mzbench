@@ -2,7 +2,7 @@
 
 -export([initial_state/0, metrics/0]).
 
--export([connect/4, set_options/3, disconnect/2,
+-export([connect/4, connect/5, set_options/3, disconnect/2,
     get/3, post/4, set_prefix/3]).
 
 -type meta() :: [{Key :: atom(), Value :: any()}].
@@ -57,9 +57,16 @@ disconnect(#state{connection = Connection} = State, _Meta) ->
 
 -spec connect(state(), meta(), string() | binary(), integer()) -> {nil, state()}.
 connect(State, Meta, Host, Port) when is_list(Host) ->
-    connect(State, Meta, list_to_binary(Host), Port);
-connect(State, _Meta, Host, Port) ->
-    {ok, ConnRef} = hackney:connect(hackney_tcp, Host, Port, []),
+    connect(State, Meta, list_to_binary(Host), Port, http).
+
+-spec connect(state(), meta(), string() | binary(), integer(), atom()) -> {nil, state()}.
+connect(State, Meta, Host, Port, Protocol) when is_list(Host) ->
+    connect(State, Meta, list_to_binary(Host), Port, Protocol);
+connect(State, _Meta, Host, Port, Protocol) ->
+    {ok, ConnRef} = hackney:connect(
+        if Protocol == http -> hackney_tcp;
+           Protocol == https -> hackney_ssl;
+           true -> lager:error("Unsupported protocol ~p", [Protocol]) end, Host, Port, []),
     {nil, State#state{connection = ConnRef}}.
 
 -spec set_options(state(), meta(), http_options()) -> {nil, state()}.
