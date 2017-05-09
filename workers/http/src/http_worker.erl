@@ -66,7 +66,7 @@ connect(State, _Meta, Host, Port, Protocol, Options) ->
     lager:info("Trying: ~p", [Options]),
     {ok, ConnRef} = hackney:connect(
         if Protocol == http -> hackney_tcp;
-           Protocol == https -> hackney_ssl;
+           Protocol == https -> ssl:connect(binary_to_list(Host), Port, [{nodelay, true}], 3000), hackney_ssl;
            true -> lager:error("Unsupported protocol ~p", [Protocol]) end, Host, Port, Options),
     {nil, State#state{connection = ConnRef}}.
 
