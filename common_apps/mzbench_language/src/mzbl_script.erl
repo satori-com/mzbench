@@ -193,26 +193,36 @@ extract_info(Script, Env) ->
     {Script3, Env2, Asserts}.
 
 import_resource(Env, File, Type) ->
-    {ok, Content} = case re:run(File, "^https?://", [{capture, first}, caseless]) of
-        {match, _} ->
-            {ok, Result} = httpc:request(File),
-            {_, _, Body} = Result,
-            {ok, Body};
-        nomatch ->
-            Root = proplists:get_value("bench_script_dir", Env),
-            WorkerDirs = proplists:get_value("bench_workers_dir", Env),
-            try
-                file:read_file(filename:join(Root, File))
-            catch
-                error:{read_file_error, _, enoent} = E ->
-                    Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
-                    case lists:append([mzb_file:wildcard(M) || M <- Masks])  of
-                        [] -> erlang:error(E);
-                        [Path|_] -> file:read_file(Path)
-                    end
-            end
-    end,
-    convert(Content, Type).
+    try
+        Content = case re:run(File, "^https?://", [{capture, first}, caseless]) of
+            {match, _} ->
+                {ok, Result} = httpc:request(File),
+                {_, _, Body} = Result,
+                Body;
+            nomatch ->
+                Root = proplists:get_value("bench_script_dir", Env),
+                WorkerDirs = proplists:get_value("bench_workers_dir", Env),
+                case file:read_file(filename:join(Root, File)) of
+                    {ok, D} -> D;
+                    {error, enoent} ->
+                        Masks = [filename:join([D, "*", "resources", File]) || D <- WorkerDirs],
+                        case lists:append([mzb_file:wildcard(M) || M <- Masks])  of
+                            [] -> erlang:error(enoent);
+                            [Path|_] ->
+                                lager:error("Trying ~p...", [Path]),
+                                case file:read_file(Path) of
+                                    {ok, D} -> D;
+                                    {error, R} -> erlang:error(R)
+                                end
+                        end
+                end
+        end,
+        convert(Content, Type)
+    catch
+        _:Reason ->
+            lager:error("Resource ~p(~p) import error: ~p", [File, Type, Reason]),
+            erlang:error({import_resource_error, File, Type, Reason})
+    end.
 
 -spec interpret_defaults([{string(), script_expr()}], [{term(), term()}]) -> [{term(), term()}].
 interpret_defaults(DefaultsList, Env) ->

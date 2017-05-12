@@ -71,23 +71,38 @@ is_alive() ->
 
 init([SuperPid, BenchName, Script, Nodes, Env, Continuation]) ->
     system_log:info("[ director ] Bench name ~p, director node ~p", [BenchName, erlang:node()]),
-    {Pools, Env2, Asserts} = mzbl_script:extract_info(Script, Env),
-    system_log:info("[ director ] Pools: ~p, Env: ~p, Asserts: ~p", [Pools, Env2, Asserts]),
-
-    {_, []} = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}),
-    gen_server:cast(self(), start_pools),
     _ = mzb_lists:pmap(fun(Node) ->
         ok = mzb_interconnect:call(Node, {mzb_watchdog, activate})
     end, lists:usort(Nodes)),
-    {ok, #state{
-        script = Pools,
-        env = Env2,
-        assertions = Asserts,
-        nodes = Nodes,
-        bench_name = BenchName,
-        super_pid = SuperPid,
-        continuation = Continuation
-    }}.
+    try mzbl_script:extract_info(Script, Env) of
+        {Pools, Env2, Asserts} ->
+            system_log:info("[ director ] Pools: ~p, Env: ~p, Asserts: ~p", [Pools, Env2, Asserts]),
+
+            {_, []} = mzb_interconnect:multi_call(Nodes, {set_signaler_nodes, Nodes}),
+            gen_server:cast(self(), start_pools),
+
+            {ok, #state{
+                script = Pools,
+                env = Env2,
+                assertions = Asserts,
+                nodes = Nodes,
+                bench_name = BenchName,
+                super_pid = SuperPid,
+                continuation = Continuation
+            }}
+    catch
+        _:{import_resource_error, _, _, _} = Reason ->
+            notify(Reason),
+            {ok, #state{
+                script = [],
+                env = [],
+                assertions = [],
+                nodes = Nodes,
+                bench_name = BenchName,
+                super_pid = SuperPid,
+                continuation = Continuation
+            }}
+    end.
 
 handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, nodes = Nodes} = State) ->
     system_log:info("Changing env: ~p", [NewEnv]),
@@ -150,6 +165,9 @@ handle_cast({notification, {assertions_failed, _} = Reason}, #state{} = State) -
     maybe_stop(State#state{stop_reason = Reason});
 
 handle_cast({notification, server_connection_closed = Reason}, #state{} = State) ->
+    maybe_stop(State#state{stop_reason = Reason});
+
+handle_cast({notification, {import_resource_error, _, _, _} = Reason}, #state{} = State) ->
     maybe_stop(State#state{stop_reason = Reason});
 
 handle_cast(Req, State) ->
@@ -291,7 +309,10 @@ format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     {error, {asserts_failed, length(FailedAsserts)}, Str, get_stats_data()};
 format_results(#state{stop_reason = {start_metrics_failed, E}}) ->
     Str = mzb_string:format("FAILED~nstart metrics subsystem failed: ~p", [E]),
-    {error, start_metrics_failed, Str, get_stats_data()}.
+    {error, start_metrics_failed, Str, get_stats_data()};
+format_results(#state{stop_reason = {import_resource_error, File, Type, Error}}) ->
+    Str = mzb_string:format("FAILED~nFile ~p import failed: ~p", [File, Error]),
+    {error, {import_resource_error, File, Type, Error}, Str, {[], []}}.
 
 get_stats_data() ->
     try
