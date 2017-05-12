@@ -697,7 +697,7 @@ normalize(BenchInfos) ->
     lists:map(fun normalize_bench/1, Sorted).
 
 normalize_bench({Id, Status = #{config:= Config}}) ->
-    StatusFields =  mzb_bc:maps_with([status, metrics], Status),
+    StatusFields = mzb_bc:maps_with([status, metrics], Status),
 
     TimeFields = maps:fold(fun (K, V, AccIn) when is_number(V) ->
                                    maps:put(K, mzb_string:iso_8601_fmt(V), AccIn);
@@ -731,7 +731,8 @@ normalize_bench({Id, Status = #{config:= Config}}) ->
                      tags => [erlang:list_to_atom(E) || Tags <- [mzb_bc:maps_get(tags, Config, [])], is_list(Tags), E <- Tags],
                      parent => mzb_bc:maps_get(parent, Config, undefined),
                      system_errors => mzb_bc:maps_get(system_errors, Status, 0),
-                     user_errors => mzb_bc:maps_get(user_errors, Status, 0)
+                     user_errors => mzb_bc:maps_get(user_errors, Status, 0),
+                     includes => maps:from_list([{iolist_to_binary(F), S} || {F, S} <- mzb_bc:maps_get(includes, Status, [])])
                      },
 
     lists:foldl(fun (Map, Acc) -> maps:merge(Acc, Map) end,

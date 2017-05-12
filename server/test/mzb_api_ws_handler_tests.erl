@@ -10,6 +10,7 @@ normalize_test() ->
                start_time => 1437549842,
                system_errors => 1,
                user_errors => 2,
+               includes => [{"file1", 3}, {"file2", 4}],
                config => #{script => #{body => script_body, name => "script_name.erl"},
                            author => "john@example", author_name => "John Smith",
                            benchmark_name => "Test bench", nodes_arg => "1", cloud => "", vm_args => [], env => []}}},
@@ -21,6 +22,7 @@ normalize_test() ->
                finish_time => 1437549842,
                system_errors => 0,
                user_errors => 0,
+               includes => [],
                config => #{script => #{body => script_body1, name => "another_name.erl"},
                            benchmark_name => "Test bench", nodes_arg => "1", cloud => "",
                            vm_args => [], env => [], tags => ["tag1", "tag2"], parent => 0},
@@ -49,7 +51,8 @@ normalize_test() ->
           results => #{<<"m1">> => #{type => counter, value => 51, rps => #{<<"50">> => 10, <<"max">> => 20}},
                        <<"m2">> => #{type => gauge, percentiles => #{<<"50">> => 40, <<"max">> => 100}}},
           system_errors => 0,
-          user_errors => 0},
+          user_errors => 0,
+          includes => #{}},
         #{id => 1,
           parent => undefined,
           author => "john@example",
@@ -67,7 +70,8 @@ normalize_test() ->
           tags => [],
           results => #{},
           system_errors => 1,
-          user_errors => 2}],
+          user_errors => 2,
+          includes => #{<<"file1">> => 3, <<"file2">> => 4}}],
         Normalized).
 
 filter_test() ->

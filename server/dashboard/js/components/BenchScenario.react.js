@@ -18,6 +18,7 @@ class BenchScenario extends React.Component {
     }
     render() {
         let env = this.props.bench.env;
+        let attached = this.props.bench.includes;
         let editable = this.props.bench.status == "running";
         var envForm = env.map((kv, index) => {
                 return (
@@ -60,9 +61,15 @@ class BenchScenario extends React.Component {
                         </Highlight>
                     </div>
                 </div>
+                { Object.keys(attached).length > 0 ?
+                    (<div className="fluid-container">
+                        <div className="col-md-12 col-xs-12"><label><span className="glyphicon glyphicon-paperclip"/> Attached files</label></div>
+                            {Object.keys(attached).map((f) => {
+                                return <div key={f} className="col-md-4 col-xs-6">{f} <span className="text-muted">({humanFileSize(attached[f])})</span></div>;
+                            })}
+                     </div>) : null}
             </div>
         );
-
     }
 
     renderPoolOption(value, idx) {
@@ -141,6 +148,12 @@ class BenchScenario extends React.Component {
         this._runAjax(query, "Environment has been updated", "Failed to save new environment", notify);
     }
 
+};
+
+function humanFileSize(size) {
+    if (size == 0) return '0B';
+    var i = Math.floor( Math.log(size) / Math.log(1024) );
+    return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
 };
 
 BenchScenario.propTypes = {

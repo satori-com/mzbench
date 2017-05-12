@@ -128,7 +128,7 @@ init([Id, Params]) ->
         tags => Tags
     },
     Data = #{
-        includes => Includes
+        includes => [ {File, erlang:iolist_size(Data), Data} || {File, Data} <- Includes ]
     },
 
     ok = init_data_dir(Config),
@@ -264,7 +264,7 @@ handle_stage(pipeline, uploading_includes, #{config:= Config, data:= Data} = Sta
     #{includes:= Includes} = Data,
     #{director_host:= DirectorHost, worker_hosts:= WorkerHosts} = Config,
     lists:foreach(
-        fun ({Name, Content}) ->
+        fun ({Name, _, Content}) ->
             mzb_api_provision:ensure_file_content([DirectorHost|WorkerHosts], Content, Name, Config, get_logger(State))
         end, Includes);
 
@@ -665,8 +665,10 @@ send_email_report(Emails, #{id:= Id,
 send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
-status(State) ->
-    mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results, user_errors, system_errors], State).
+status(#{data:= #{includes:= Includes}} = State) ->
+    Res = mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results, user_errors, system_errors], State),
+    Filenames = [{Filename, Size} || {Filename, Size, _} <- Includes],
+    Res#{includes => Filenames}.
 
 generate_bench_env(Id, Params) ->
     Env = maps:get(env, Params),
