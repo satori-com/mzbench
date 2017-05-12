@@ -316,8 +316,9 @@ server_data_dir() ->
     DataDir = mzb_api_paths:bench_data_dir(),
     filename:absname(DataDir).
 
-handle_call({start_bench, Params}, _From, #{status:= active} = State) ->
-    case start_bench_child(Params, State) of
+handle_call({start_bench, Params}, _From, #{status:= active, data_dir:= DataDir} = State) ->
+    NewParams = add_parent_resources(Params, DataDir),
+    case start_bench_child(NewParams, State) of
         {ok, Id, NewState} ->
             {reply, {ok, #{id => Id, status => <<"pending">>}}, NewState};
         {error, Reason, NewState} ->
@@ -591,4 +592,24 @@ sys_username() ->
                 User -> User
             end;
         User -> User
+    end.
+
+add_parent_resources(Params, DataDir) ->
+    case mzb_bc:maps_get(parent, Params, undefined) of
+        undefined -> Params;
+        Parent ->
+            ParentStr = erlang:integer_to_list(Parent),
+            ParamsFile = filename:join([DataDir, ParentStr, "params.bin"]),
+            case file:read_file(ParamsFile) of
+                {ok, Binary} ->
+                    ParentParams = erlang:binary_to_term(Binary),
+                    Includes = mzb_bc:maps_get(includes, Params, []),
+                    ParentIncludes = mzb_bc:maps_get(includes, ParentParams, []),
+                    ExistingFiles = proplists:get_keys(Includes),
+                    NewIncludes = Includes ++ [{F, D} || {F, D} <- ParentIncludes, not lists:member(F, ExistingFiles)],
+                    Params#{includes => NewIncludes};
+                {error, ErrorReason} ->
+                    lager:error("Failed to read parent benchmark #~p (file ~p) cause ~p", [Parent, ParamsFile, ErrorReason]),
+                    Params
+            end
     end.
