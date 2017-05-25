@@ -2,6 +2,7 @@ import moment from 'moment';
 import React from 'react';
 import MetricsStore from '../stores/MetricsStore';
 import BenchStore from '../stores/BenchStore';
+import PropTypes from 'prop-types';
 
 const MAX_POINTS_PER_GRAPH = 300;
 const RUNNING_GRAPH_SHOWED_DURATION = 10; // minutes
@@ -639,21 +640,21 @@ class Graph extends React.Component {
 
 
 Graph.propTypes = {
-    benchId: React.PropTypes.number,
-    benchStartTime: React.PropTypes.object,
-    benchFinishTime: React.PropTypes.object,
+    benchId: PropTypes.number,
+    benchStartTime: PropTypes.object,
+    benchFinishTime: PropTypes.object,
 
-    targets: React.PropTypes.array.isRequired,
-    isRunning: React.PropTypes.bool,
-    title: React.PropTypes.string,
-    units: React.PropTypes.string,
+    targets: PropTypes.array.isRequired,
+    isRunning: PropTypes.bool,
+    title: PropTypes.string,
+    units: PropTypes.string,
 
-    kind: React.PropTypes.string,
-    x_env: React.PropTypes.string,
-    benchset: React.PropTypes.array,
+    kind: PropTypes.string,
+    x_env: PropTypes.string,
+    benchset: PropTypes.array,
 
-    domPrefix: React.PropTypes.string,
-    renderFullscreen: React.PropTypes.bool
+    domPrefix: PropTypes.string,
+    renderFullscreen: PropTypes.bool
 };
 
 Graph.defaultProps = {

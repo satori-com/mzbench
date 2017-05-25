@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
 class Modal extends React.Component {
     componentDidMount() {
@@ -44,8 +45,8 @@ class Modal extends React.Component {
 };
 
 Modal.propTypes = {
-    title: React.PropTypes.string,
-    onOk: React.PropTypes.func
+    title: PropTypes.string,
+    onOk: PropTypes.func
 };
 
 Modal.defaultProps = {

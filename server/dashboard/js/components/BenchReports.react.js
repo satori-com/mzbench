@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Modal from './Modal.react';
+import PropTypes from 'prop-types';
 
 class BenchReports extends React.Component {
     constructor(props) {
@@ -95,7 +96,7 @@ class BenchReports extends React.Component {
 };
 
 BenchReports.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchReports;

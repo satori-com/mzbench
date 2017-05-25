@@ -6,6 +6,7 @@ import MZBenchRouter from '../utils/MZBenchRouter';
 import MZBenchActions from '../actions/MZBenchActions';
 import Autosuggest from 'react-autosuggest';
 import Misc from '../utils/Misc';
+import PropTypes from 'prop-types';
 
 class SimpleSuggestion {
     getTagSuggestions(value) {
@@ -357,9 +358,9 @@ class DashboardEdit extends React.Component {
 };
 
 DashboardEdit.propTypes = {
-    item: React.PropTypes.object,
-    updateInterval: React.PropTypes.number,
-    benchLimit: React.PropTypes.number
+    item: PropTypes.object,
+    updateInterval: PropTypes.number,
+    benchLimit: PropTypes.number
 };
 
 DashboardEdit.defaultProps = {

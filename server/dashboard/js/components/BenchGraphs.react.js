@@ -5,6 +5,7 @@ import GraphModal from './GraphModal.react';
 import LoadingSpinner from './LoadingSpinner.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import BenchStore from '../stores/BenchStore';
+import PropTypes from 'prop-types';
 
 class BenchGraphs extends React.Component {
     constructor(props) {
@@ -160,7 +161,7 @@ class BenchGraphs extends React.Component {
 };
 
 BenchGraphs.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchGraphs;

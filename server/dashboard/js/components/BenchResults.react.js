@@ -1,5 +1,6 @@
 import React from 'react';
 import BenchGraphs from './BenchGraphs.react';
+import PropTypes from 'prop-types';
 
 class BenchResults extends React.Component {
     render() {
@@ -66,7 +67,7 @@ class BenchResults extends React.Component {
 }
 
 BenchResults.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchResults;

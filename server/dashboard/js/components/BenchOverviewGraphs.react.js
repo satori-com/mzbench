@@ -1,5 +1,6 @@
 import React from 'react';
 import BenchGraphs from './BenchGraphs.react';
+import PropTypes from 'prop-types';
 
 class BenchOverviewGraphs extends React.Component {
     render() {
@@ -13,7 +14,7 @@ class BenchOverviewGraphs extends React.Component {
 }
 
 BenchOverviewGraphs.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchOverviewGraphs;

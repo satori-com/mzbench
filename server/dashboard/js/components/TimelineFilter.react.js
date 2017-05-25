@@ -2,6 +2,7 @@ import React from 'react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import MZBenchActions from '../actions/MZBenchActions';
 import BenchStore from '../stores/BenchStore';
+import PropTypes from 'prop-types';
 
 class TimelineFilter extends React.Component {
     constructor(props) {
@@ -62,9 +63,9 @@ class TimelineFilter extends React.Component {
 };
 
 TimelineFilter.propTypes = {
-    filter: React.PropTypes.string,
-    dashboardMode: React.PropTypes.bool,
-    autoSearchInterval: React.PropTypes.number
+    filter: PropTypes.string,
+    dashboardMode: PropTypes.bool,
+    autoSearchInterval: PropTypes.number
 };
 
 TimelineFilter.defaultProps = {

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 class BenchNav extends React.Component {
     render() {
@@ -23,8 +24,8 @@ class BenchNav extends React.Component {
 };
 
 BenchNav.propTypes = {
-    bench: React.PropTypes.object.isRequired,
-    selectedTab: React.PropTypes.string
+    bench: PropTypes.object.isRequired,
+    selectedTab: PropTypes.string
 };
 
 BenchNav.defaultProps = {

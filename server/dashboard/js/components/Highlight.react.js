@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Hjs from 'highlight.js';
+import PropTypes from 'prop-types';
 
 class Highlight extends React.Component {
     componentDidMount() {
@@ -28,7 +29,7 @@ class Highlight extends React.Component {
 };
 
 Highlight.PropTypes = {
-    className: React.PropTypes.string
+    className: PropTypes.string
 };
 
 export default Highlight;

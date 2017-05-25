@@ -6,6 +6,7 @@ import MZBenchActions from '../actions/MZBenchActions';
 import Star from './Star.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import GlobalStore from '../stores/GlobalStore';
+import PropTypes from 'prop-types';
 
 class TimelineElement extends React.Component {
     render() {
@@ -103,8 +104,8 @@ class TimelineElement extends React.Component {
 }
 
 TimelineElement.propTypes = {
-    bench: React.PropTypes.object.isRequired,
-    isSelected: React.PropTypes.bool
+    bench: PropTypes.object.isRequired,
+    isSelected: PropTypes.bool
 };
 
 TimelineElement.defaultProps = {

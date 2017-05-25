@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 
 class Duration extends React.Component {
     constructor(props) {
@@ -49,7 +50,7 @@ class Duration extends React.Component {
 };
 
 Duration.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default Duration;

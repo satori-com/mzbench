@@ -7,6 +7,7 @@ import Modal from './Modal.react';
 import Menu, {SubMenu, MenuItem} from 'rc-menu';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import LoadingSpinner from './LoadingSpinner.react';
+import PropTypes from 'prop-types';
 
 class Auth extends React.Component {
     constructor(props) {
@@ -175,8 +176,8 @@ class Auth extends React.Component {
 };
 
 Auth.propTypes = {
-    title: React.PropTypes.string,
-    onOk: React.PropTypes.func
+    title: PropTypes.string,
+    onOk: PropTypes.func
 };
 
 Auth.defaultProps = {

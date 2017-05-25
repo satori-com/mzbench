@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import Highlight from './Highlight.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import AuthStore from '../stores/AuthStore';
+import PropTypes from 'prop-types';
 
 const PERCENTS = [100, 75, 66, 50, 33, 25, 15, 10, 7, 5, 1];
 const POOLS = [1, 2, 3, 4, 5];
@@ -157,7 +158,7 @@ function humanFileSize(size) {
 };
 
 BenchScenario.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchScenario;

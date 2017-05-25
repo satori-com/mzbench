@@ -4,9 +4,10 @@ import MZBenchActions from '../actions/MZBenchActions';
 import moment from 'moment';
 import 'moment-duration-format';
 import BenchStore from '../stores/BenchStore';
-import TagInput from 'react-categorized-tag-input';
+import { WithContext as ReactTags } from 'react-tag-input';
 import AuthStore from '../stores/AuthStore';
 import InlineEdit from 'react-edit-inline';
+import PropTypes from 'prop-types';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -51,7 +52,7 @@ class BenchSummary extends React.Component {
                 return acc;
             }, tagSuggestions);
 
-        var tags = this.state.tags.slice().map((t) => {return {title: t, category: 'cat1'};});
+        var tags = this.state.tags.slice().map((t, i) => {return {id: i, text: t};});
 
         var canStop = AuthStore.isAnonymousServer() ||
                       (this.props.bench.author == AuthStore.userLogin());
@@ -151,18 +152,12 @@ class BenchSummary extends React.Component {
                             <div className="row">
                                 <div className="col-xs-4 bench-details-key bench-details-el">Tags</div>
                                 <div className="col-xs-8 bench-details-el">
-                                    <TagInput value={tags}
-                                              categories={[{
-                                                        id: 'cat1', type: 'tag',
-                                                        title: 'existing tags',
-                                                        items: tagSuggestions.slice(),
-                                                        single: false
-                                                      }]}
-                                              addNew={true}
-                                              transformTag={(tag) => {return tag.title;}}
-                                              onChange={this._handleTagChange.bind(this)}
-                                              placeholder="Add a tag"
-                                              />
+                                    <ReactTags tags={tags}
+                                               autofocus={false}
+                                               suggestions={tagSuggestions.slice()}
+                                               handleDelete={this._handleTagDelete.bind(this)}
+                                               handleAddition={this._handleTagAddition.bind(this)}
+                                               handleDrag={this._handleTagDrag.bind(this)} />
                                 </div>
                             </div>
                         </div>
@@ -199,21 +194,30 @@ class BenchSummary extends React.Component {
         MZBenchActions.updateBenchName(this.props.bench.id, newName.name);
     }
 
-    _handleTagChange(tags) {
-        var new_tags = tags.map((t) => {return t.title;});
-        var old_tags = this.state.tags;
-        this.setState({tags: new_tags});
-        new_tags.map((t) => {
-            if (old_tags.indexOf(t) == -1) {
-                MZBenchActions.addBenchTag(this.props.bench.id, t);
-            }
-        });
+    _handleTagDelete(i) {
+        let tags = this.state.tags;
+        MZBenchActions.removeBenchTag(this.props.bench.id, tags[i]);
+        tags.splice(i, 1);
+        this.setState({tags: tags});
+    }
 
-        old_tags.map((t) => {
-            if (new_tags.indexOf(t) == -1) {
-                MZBenchActions.removeBenchTag(this.props.bench.id, t);
-            }
-        });
+    _handleTagAddition(tag) {
+        let tags = this.state.tags;
+        if (tags.indexOf(tag) == -1) {
+            MZBenchActions.addBenchTag(this.props.bench.id, tag);
+            tags.push(tag);
+            this.setState({tags: tags});
+        }
+    }
+
+    _handleTagDrag(tag, currPos, newPos) {
+        let tags = this.state.tags;
+ 
+        // mutate array
+        tags.splice(currPos, 1);
+        tags.splice(newPos, 0, tag.text);
+        // re-render
+        this.setState({ tags: tags });
     }
 
     _onCloneBench(event) {
@@ -244,7 +248,7 @@ class BenchSummary extends React.Component {
 };
 
 BenchSummary.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchSummary;

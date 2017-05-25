@@ -4,6 +4,7 @@ import Duration from './Duration.react';
 import BenchSummary from './BenchSummary.react';
 import BenchOverviewGraphs from './BenchOverviewGraphs.react';
 import BenchResults from './BenchResults.react';
+import PropTypes from 'prop-types';
 
 class BenchOverview extends React.Component {
     render() {
@@ -21,7 +22,7 @@ class BenchOverview extends React.Component {
 };
 
 BenchOverview.propTypes = {
-    bench: React.PropTypes.object.isRequired
+    bench: PropTypes.object.isRequired
 };
 
 export default BenchOverview;

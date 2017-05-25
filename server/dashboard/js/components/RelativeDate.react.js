@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+import PropTypes from 'prop-types';
 
 class RelativeDate extends React.Component {
     componentDidMount() {
@@ -35,8 +36,8 @@ class RelativeDate extends React.Component {
 };
 
 RelativeDate.propTypes = {
-    date: React.PropTypes.object.isRequired,
-    updateInterval: React.PropTypes.number,
+    date: PropTypes.object.isRequired,
+    updateInterval: PropTypes.number,
 };
 
 RelativeDate.defaultProps = {

@@ -5,6 +5,7 @@ import MZBenchActions from '../actions/MZBenchActions';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import BenchLogEntry from './BenchLogEntry.react';
 import LoadingSpinner from './LoadingSpinner.react';
+import PropTypes from 'prop-types';
 
 const LOGS_PER_PAGE = 100;
 
@@ -306,8 +307,8 @@ class BenchLog extends React.Component {
 };
 
 BenchLog.propTypes = {
-    bench: React.PropTypes.object.isRequired,
-    autoSearchInterval: React.PropTypes.number
+    bench: PropTypes.object.isRequired,
+    autoSearchInterval: PropTypes.number
 };
 
 BenchLog.defaultProps = {

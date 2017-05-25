@@ -5,6 +5,7 @@ import MZBenchRouter from '../utils/MZBenchRouter';
 import MZBenchActions from '../actions/MZBenchActions';
 import BenchChecker from '../utils/BenchChecker';
 import AuthStore from '../stores/AuthStore';
+import PropTypes from 'prop-types';
 
 require('brace/mode/python');
 require('brace/theme/github');
@@ -261,8 +262,8 @@ class NewBench extends React.Component {
 };
 
 NewBench.propTypes = {
-    bench: React.PropTypes.object,
-    clouds: React.PropTypes.array
+    bench: PropTypes.object,
+    clouds: PropTypes.array
 };
 
 export default NewBench;

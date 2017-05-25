@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 class DashboardNav extends React.Component {
     render() {
@@ -21,8 +22,8 @@ class DashboardNav extends React.Component {
 };
 
 DashboardNav.propTypes = {
-    item: React.PropTypes.object.isRequired,
-    selectedTab: React.PropTypes.string
+    item: PropTypes.object.isRequired,
+    selectedTab: PropTypes.string
 };
 
 DashboardNav.defaultProps = {

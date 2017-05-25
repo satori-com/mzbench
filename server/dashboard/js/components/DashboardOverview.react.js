@@ -4,9 +4,8 @@ import BenchStore from '../stores/BenchStore';
 import Graph from './Graph.react';
 import MZBenchActions from '../actions/MZBenchActions';
 import Misc from '../utils/Misc';
-import Collapsible from 'react-collapsible';
 import moment from 'moment';
-
+import PropTypes from 'prop-types';
 
 class DashboardOverview extends React.Component {
     constructor(props) {
@@ -95,9 +94,16 @@ class DashboardOverview extends React.Component {
                         <p className="dashboard">{c.description}</p>
                         <Graph targets={targets} kind={c.kind} x_env={xEnv}
                             title={c.metric} benchset={benches} domPrefix={guid} height="400"/>
-                        <Collapsible triggerText="Show benches" triggerTextWhenOpen="Hide benches">
-                            {this.renderTable(c.metric, c.kind, Misc.ucfirst(groupEnv), Misc.ucfirst(xEnv), benches)}
-                        </Collapsible>
+                        <div className="row">
+                            <div className="col-md-12 graph-options-link">
+                                <a href={"#collapseBenches" + guid} className="col-xs-6" data-toggle="collapse" aria-expanded="false" aria-controls={"collapseBenches" + guid}>
+                                    Benches <span className="caret"></span>
+                                </a>
+                                <div className="col-md-12 collapse" id={"collapseBenches" + guid}>
+                                    {this.renderTable(c.metric, c.kind, Misc.ucfirst(groupEnv), Misc.ucfirst(xEnv), benches)}
+                                </div>
+                            </div>
+                        </div>
                     </div>);
         });
     }
@@ -105,7 +111,7 @@ class DashboardOverview extends React.Component {
 };
 
 DashboardOverview.propTypes = {
-    item: React.PropTypes.object.isRequired
+    item: PropTypes.object.isRequired
 };
 
 export default DashboardOverview;
