@@ -8,6 +8,7 @@ import { WithContext as ReactTags } from 'react-tag-input';
 import AuthStore from '../stores/AuthStore';
 import InlineEdit from 'react-edit-inline';
 import PropTypes from 'prop-types';
+import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 
 class BenchSummary extends React.Component {
     constructor(props) {
@@ -71,6 +72,20 @@ class BenchSummary extends React.Component {
             logLinks = <div>0</div>;
         }
 
+        let resultPopover = null;
+
+        if (bench.status == "failed" && bench.result_str != "") {
+            const popoverClick =
+                <Tooltip id="reason-popover" title="Reason">
+                    {bench.result_str}
+                </Tooltip>;
+
+            resultPopover =
+                <OverlayTrigger trigger="click" placement="bottom" overlay={popoverClick}>
+                    <span className="small">{' '}<a href="#showReason" onClick={(e) => {e.preventDefault();}}>(reason)</a></span>
+                </OverlayTrigger>
+        }
+
         return (
             <div className="fluid-container">
                 <div className="row bench-details">
@@ -130,6 +145,7 @@ class BenchSummary extends React.Component {
                                 <div className="col-xs-4 bench-details-key bench-details-el">Status</div>
                                 <div className="col-xs-8 bench-details-el">
                                     <span className={`label ${labelClass}`}>{bench.status}</span>
+                                    {resultPopover}
                                 </div>
                             </div>
                         </div>

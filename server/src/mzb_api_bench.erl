@@ -161,6 +161,7 @@ init([Id, Params]) ->
         director_node => undefined,
         previous_status => undefined,
         results => undefined,
+        result_str => "",
         user_errors => 0,
         system_errors => 0
     },
@@ -206,7 +207,9 @@ handle_stage(pipeline, checking_script, #{config:= Config}) ->
     AST = mzbl_script:read_from_string(binary_to_list(ScriptBody)),
     case mzbl_typecheck:check(AST, list) of
         {false, Reason, Location} ->
-            erlang:error({type_error, Reason, Location});
+            ResStr = mzbl_typecheck:format_error(Reason),
+            mzb_pipeline:error({type_error, Reason, Location},
+                               fun (S) -> S#{result_str => ResStr} end);
         _ -> ok
     end,
     fun (S) -> S end;
@@ -246,7 +249,9 @@ handle_stage(pipeline, connect_nodes, #{cluster_connection:= Connection, config:
     #{worker_hosts:= WorkerHosts} = Config,
     case director_call(Connection, {connect_nodes, lists:zip(WorkerHosts, InterconnectPorts)}) of
         ok -> ok;
-        {error, Error} -> erlang:error({connect_cluster_error, Error})
+        {error, Error} ->
+            mzb_pipeline:error({connect_cluster_error, Error},
+                               fun (S) -> S#{result_str => "Cluster connect problem"} end)
     end;
 
 handle_stage(pipeline, uploading_script, #{config:= Config} = State) ->
@@ -291,8 +296,10 @@ handle_stage(pipeline, pre_hooks, #{cluster_connection:= Connection, config:= Co
             DirFun({read_and_validate, remote_path(ScriptFilePath, Config), mzbl_script:normalize_env(DefaultEnv)})
         catch
             error:{error, List} ->
-                error("~s", [string:join(List, "\n")], State),
-                erlang:error(validation_failed)
+                ResStr = string:join(List, "\n"),
+                error("~s", [ResStr], State),
+                mzb_pipeline:error(validation_failed,
+                                   fun (S) -> S#{result_str => ResStr} end)
 
         end,
     ActualWorkerHosts = case WorkerHosts of
@@ -310,24 +317,28 @@ handle_stage(pipeline, starting, #{cluster_connection:= Connection, config:= Con
     case director_call(Connection, {start_benchmark, remote_path(ScriptFilePath, Config), Env}) of
         ok -> ok;
         {error, List} ->
-            error("Start benchmark failed, ~s", [string:join(List, "\n")], State),
-            erlang:error(start_benchmark_failed)
+            ResStr = mzb_string:format("Start failed: ~s", [string:join(List, "\n")]),
+            error(ResStr, [], State),
+            mzb_pipeline:error(start_benchmark_failed,
+                               fun (S) -> S#{result_str => ResStr} end)
     end;
 
 handle_stage(pipeline, running, #{cluster_connection:= Connection} = State) ->
     try director_call(Connection, get_results, infinity) of
         {ok, Str, {Metrics, Histograms}} ->
-            info("Benchmark result: ~s", [Str], State),
+            info("Benchmark result: SUCCESS~n~s", [Str], State),
             Res = aggregate_results(Metrics, Histograms, State),
-            fun (S) -> S#{results => Res} end;
+            fun (S) -> S#{results => Res, result_str => Str} end;
         {error, Reason, ReasonStr, {Metrics, Histograms}} ->
-            error("Benchmark result: ~s", [ReasonStr], State),
+            error("Benchmark result: FAILED~n~s", [ReasonStr], State),
             Res = aggregate_results(Metrics, Histograms, State),
-            mzb_pipeline:error({benchmark_failed, Reason}, fun (S) -> S#{results => Res} end)
+            mzb_pipeline:error({benchmark_failed, Reason}, fun (S) -> S#{results => Res, result_str => ReasonStr} end)
     catch
         _:Error ->
-            error("Benchmark exception: ~s", [Error], State),
-            erlang:error({benchmark_failed, Error})
+            ResStr = mzb_string:format("Benchmark result: EXCEPTION~n~p", [Error]),
+            error(ResStr, [], State),
+            mzb_pipeline:error({benchmark_failed, Error},
+                               fun (S) -> S#{result_str => ResStr} end)
     end;
 
 handle_stage(pipeline, post_hooks, #{cluster_connection:= Connection, config:= Config} = State) ->
@@ -582,9 +593,15 @@ handle_pipeline_status_ll({start, Phase, Stage}, State) ->
 handle_pipeline_status_ll({complete, Phase, Stage}, State) ->
     info("Stage '~s - ~s': finished", [Phase, Stage], State),
     State;
-handle_pipeline_status_ll({exception, Phase, Stage, E, ST}, State) ->
+handle_pipeline_status_ll({exception, Phase, Stage, E, ST}, #{result_str:= ResStr} = State) ->
     error("Stage '~s - ~s': failed~n~s", [Phase, Stage, format_error(Stage, {E, ST})], State),
-    State;
+    case ResStr of
+        "" ->
+            Res = mzb_string:format("Stage ~p failed: ~p", [Stage, E]),
+            State#{result_str => Res};
+        _ ->
+            State
+    end;
 handle_pipeline_status_ll({final, Final}, State) ->
     info("Bench final: ~s", [Final], State),
     State#{status => Final, finish_time => seconds()}.
@@ -666,7 +683,8 @@ send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
 status(#{data:= #{includes:= Includes}} = State) ->
-    Res = mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics, results, user_errors, system_errors], State),
+    Res = mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics,
+                            results, result_str, user_errors, system_errors], State),
     Filenames = [{Filename, Size} || {Filename, Size, _} <- Includes],
     Res#{includes => Filenames}.
 

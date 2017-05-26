@@ -290,28 +290,28 @@ maybe_report_and_stop(#state{owner = Owner, continuation = Continuation} = State
     {stop, normal, State}.
 
 format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = 0}) ->
-    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully", [Ok]), get_stats_data()};
+    {ok, mzb_string:format("~b workers have finished successfully", [Ok]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = 0, stopped = Stopped}) ->
-    {ok, mzb_string:format("SUCCESS~n~b workers have finished successfully (~b workers have been stopped)", [Ok, Stopped]), get_stats_data()};
+    {ok, mzb_string:format("~b workers have finished successfully (~b workers have been stopped)", [Ok, Stopped]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = 0}) ->
     {error, {workers_failed, NOk},
-        mzb_string:format("FAILED~n~b of ~b workers failed", [NOk, Ok + NOk]), get_stats_data()};
+        mzb_string:format("~b of ~b workers failed", [NOk, Ok + NOk]), get_stats_data()};
 format_results(#state{stop_reason = normal, succeed = Ok, failed = NOk, stopped = Stopped}) ->
     {error, {workers_failed, NOk},
-        mzb_string:format("FAILED~n~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped]), get_stats_data()};
+        mzb_string:format("~b of ~b workers failed and ~b workers have been stopped", [NOk, Ok + NOk, Stopped]), get_stats_data()};
 format_results(#state{stop_reason = {assertions_failed, dynamic_deadlock}}) ->
-    Str = mzb_string:format("FAILED~nDynamic deadlock detected~n", []),
+    Str = mzb_string:format("Dynamic deadlock detected", []),
     {error, {asserts_failed, 1}, Str, get_stats_data()};
 format_results(#state{stop_reason = {assertions_failed, FailedAsserts}}) ->
     AssertsStr = string:join([S||{_, S} <- FailedAsserts], "\n"),
-    Str = mzb_string:format("FAILED~n~b assertions failed~n~s",
+    Str = mzb_string:format("~b assertions failed~n~s",
                         [length(FailedAsserts), AssertsStr]),
     {error, {asserts_failed, length(FailedAsserts)}, Str, get_stats_data()};
 format_results(#state{stop_reason = {start_metrics_failed, E}}) ->
-    Str = mzb_string:format("FAILED~nstart metrics subsystem failed: ~p", [E]),
+    Str = mzb_string:format("start metrics subsystem failed: ~p", [E]),
     {error, start_metrics_failed, Str, get_stats_data()};
 format_results(#state{stop_reason = {import_resource_error, File, Type, Error}}) ->
-    Str = mzb_string:format("FAILED~nFile ~p import failed: ~p", [File, Error]),
+    Str = mzb_string:format("File ~p import failed: ~p", [File, Error]),
     {error, {import_resource_error, File, Type, Error}, Str, {[], []}}.
 
 get_stats_data() ->

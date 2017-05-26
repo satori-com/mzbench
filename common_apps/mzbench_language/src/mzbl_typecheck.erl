@@ -1,6 +1,6 @@
 -module(mzbl_typecheck).
 
--export([check/2, check/3]).
+-export([check/2, check/3, format_error/1]).
 
 -include("mzbl_types.hrl").
 
@@ -280,3 +280,12 @@ is(X, T) -> {false, {X, is_not, T}, undefined}.
 add_location(Meta, {false, Reason, undefined}) ->
     {false, Reason, mzbl_script:meta_to_location_string(Meta)};
 add_location(_, X) -> X.
+
+format_error({X, is_not, Y}) ->
+    mzb_string:format("~p is not ~p", [X, Y]);
+format_error({neither, Reason1, Reason2}) ->
+    mzb_string:format("~s and ~s", [format_error(Reason1), format_error(Reason2)]);
+format_error(Str) when is_list(Str) ->
+    Str;
+format_error(Term) ->
+    mzb_string:format("~p", [Term]).
