@@ -7,6 +7,7 @@ import Star from './Star.react';
 import MZBenchRouter from '../utils/MZBenchRouter';
 import GlobalStore from '../stores/GlobalStore';
 import PropTypes from 'prop-types';
+import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 
 class TimelineElement extends React.Component {
     render() {
@@ -68,6 +69,8 @@ class TimelineElement extends React.Component {
             }
         }
 
+        const searchTooltip = <Tooltip id="search-tooltip">Search for similar benchmarks</Tooltip>;
+
         return (
             <a href={`#/bench/${bench.id}/overview`} className="bs-link">
                 <div className={cssClass}>
@@ -78,11 +81,13 @@ class TimelineElement extends React.Component {
                             }}/>
                         #{bench.id} {bench.name}
                         {bench.isRunning() ? <span className="label">{bench.status}</span> : null}
-                        <span title="Search for similar benchmarks" className="search-bench-character glyphicon glyphicon-search" aria-hidden="true"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                MZBenchRouter.navigate("/timeline", {q: bench.name});
-                            }}/>
+                        <OverlayTrigger delay={200} placement="top" overlay={searchTooltip}>
+                            <span className="search-bench-character glyphicon glyphicon-search" aria-hidden="true"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    MZBenchRouter.navigate("/timeline", {q: bench.name});
+                                }}/>
+                        </OverlayTrigger>
                     </h6>
                     {tags}
                     <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time_client} /></div>

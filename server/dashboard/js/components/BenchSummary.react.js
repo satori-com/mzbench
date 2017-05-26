@@ -95,7 +95,8 @@ class BenchSummary extends React.Component {
                                 <div className="col-xs-4 col-md-2 bench-details-key bench-details-hd">Scenario</div>
                                 <div className="col-xs-8 col-md-10 bench-details-hd">
                                     #{bench.id + ' '}
-                                    <span title="Click to edit" style={{width: "inherit"}}>
+                                    <OverlayTrigger delay={200} placement="top" overlay={<Tooltip id="name-tooltip">Click to edit</Tooltip>}>
+                                    <span style={{width: "inherit"}}>
                                         <InlineEdit className=""
                                                     validate={ (m) => { return true; } }
                                                     activeClassName="inline-change-input"
@@ -104,6 +105,7 @@ class BenchSummary extends React.Component {
                                                     change={this._updateBenchName.bind(this)}
                                                     />
                                     </span>
+                                    </OverlayTrigger>
                                 </div>
                             </div>
                         </div>
