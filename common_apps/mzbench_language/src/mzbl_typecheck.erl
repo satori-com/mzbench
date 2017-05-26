@@ -281,6 +281,7 @@ add_location(Meta, {false, Reason, undefined}) ->
     {false, Reason, mzbl_script:meta_to_location_string(Meta)};
 add_location(_, X) -> X.
 
+-spec format_error(term()) -> string().
 format_error({X, is_not, Y}) ->
     mzb_string:format("~p is not ~p", [X, Y]);
 format_error({neither, Reason1, Reason2}) ->

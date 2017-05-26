@@ -43,7 +43,7 @@ def runtime_error_test():
 
 def env_param_missing_test():
     run_failing_bench(scripts_dir + 'env.erl', env={},
-        expected_log_message_regex=r'''Benchmark result: Unexpected error: {{{var_is_unbound,"pool_size"}''')
+        expected_log_message_regex=r'''Var 'pool_size' is not defined''')
 
 
 def signal_timeout_test():

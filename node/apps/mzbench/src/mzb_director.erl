@@ -142,14 +142,14 @@ handle_cast(start_pools, #state{nodes = []} = State) ->
     {stop, empty_nodes, State};
 
 handle_cast(start_pools, #state{script = Script, env = Env, nodes = Nodes} = State) ->
-    try start_metrics(State) of
-        ok ->
-            {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
-            StartedPools = start_pools(NewScript, Env, Nodes, []),
-            maybe_stop(State#state{pools = StartedPools})
+    try
+        start_metrics(State),
+        {[{_, {ok, NewScript}}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {compile_env, Script, Env}),
+        StartedPools = start_pools(NewScript, Env, Nodes, []),
+        maybe_stop(State#state{pools = StartedPools})
     catch
         _:E ->
-            maybe_stop(State#state{stop_reason = {start_metrics_failed, E}})
+            maybe_stop(State#state{stop_reason = E})
     end;
 
 handle_cast({pool_report, PoolPid, Info, true}, #state{pools = Pools} = State) ->
@@ -206,16 +206,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 start_metrics(#state{script = Script, assertions = Asserts, env = Env, nodes = Nodes, super_pid = SuperPid}) ->
-    LoopAssertMetrics = mzbl_script:get_loop_assert_metrics(Script),
-    {ok, _} = supervisor:start_child(SuperPid,
-        {mzb_metrics,
-         {mzb_metrics, start_link, [Asserts, LoopAssertMetrics, Nodes, Env]},
-         transient, 5000, worker, [mzb_metrics]}),
-    {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
-    SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
-    WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
-    mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),
-    ok.
+    try
+        LoopAssertMetrics = mzbl_script:get_loop_assert_metrics(Script),
+        {ok, _} = supervisor:start_child(SuperPid,
+            {mzb_metrics,
+             {mzb_metrics, start_link, [Asserts, LoopAssertMetrics, Nodes, Env]},
+             transient, 5000, worker, [mzb_metrics]}),
+        {NodeSystemMetrics, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), get_system_metrics, _DefaultTimeout = 60000),
+        SystemMetrics = lists:append([M || {_, M} <- NodeSystemMetrics]),
+        WorkerMetrics = mzb_script_metrics:script_metrics(Script, Nodes),
+        mzb_metrics:declare_metrics(WorkerMetrics ++ SystemMetrics),
+        ok
+    catch
+        C:E ->
+            ST = erlang:get_stacktrace(),
+            erlang:raise(C, {start_metrics_failed, E}, ST)
+    end.
 
 start_pools([], _, _, Acc) ->
     system_log:info("[ director ] Started all pools"),
@@ -312,7 +318,14 @@ format_results(#state{stop_reason = {start_metrics_failed, E}}) ->
     {error, start_metrics_failed, Str, get_stats_data()};
 format_results(#state{stop_reason = {import_resource_error, File, Type, Error}}) ->
     Str = mzb_string:format("File ~p import failed: ~p", [File, Error]),
-    {error, {import_resource_error, File, Type, Error}, Str, {[], []}}.
+    {error, {import_resource_error, File, Type, Error}, Str, {[], []}};
+format_results(#state{stop_reason = {var_is_unbound, Var}}) ->
+    Str = mzb_string:format("Var '~s' is not defined", [Var]),
+    {error, {var_is_unbound, Var}, Str, {[], []}};
+format_results(#state{stop_reason = Reason}) ->
+    Str = mzb_string:format("~p", [Reason]),
+    {error, Reason, Str, {[], []}}.
+
 
 get_stats_data() ->
     try
