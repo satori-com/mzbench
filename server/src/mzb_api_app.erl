@@ -18,14 +18,14 @@ start(_Type, _Args) ->
 start_http_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
-            {"/",                 cowboy_static, {priv_file, mzbench_api, "/http_root/index.html"}},
-            {"/dev",              cowboy_static, {priv_file, mzbench_api, "/http_root/index.dev.html"}},
-            {"/js/vendors/[...]", cowboy_static, {priv_dir, mzbench_api, ["/http_root/js/vendors"], [{mimetypes, cow_mimetypes, web}]}},
-            {"/js/[...]",         cowboy_static, {priv_dir, mzbench_api, ["/http_root/js"], [{mimetypes, cow_mimetypes, web}]}},
-            {"/css/[...]",        cowboy_static, {priv_dir, mzbench_api, ["/http_root/css"], [{mimetypes, cow_mimetypes, web}]}},
-            {"/favicon.ico",      cowboy_static, {priv_file, mzbench_api, "/http_root/favicon.ico"}},
-            {"/ws",               mzb_api_ws_handler, []},
-            {'_',                 mzb_api_endpoints, []}
+            {"/",                        cowboy_static, {priv_file, mzbench_api, "/http_root/index.html"}},
+            {"/[:vsn]/dev",              cowboy_static, {priv_file, mzbench_api, "/http_root/index.dev.html"}},
+            {"/[:vsn]/js/vendors/[...]", cowboy_static, {priv_dir, mzbench_api, ["/http_root/js/vendors"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/[:vsn]/js/[...]",         cowboy_static, {priv_dir, mzbench_api, ["/http_root/js"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/[:vsn]/css/[...]",        cowboy_static, {priv_dir, mzbench_api, ["/http_root/css"], [{mimetypes, cow_mimetypes, web}]}},
+            {"/[:vsn]/favicon.ico",      cowboy_static, {priv_file, mzbench_api, "/http_root/favicon.ico"}},
+            {"/[:vsn]/ws",               mzb_api_ws_handler, []},
+            {'_',                        mzb_api_endpoints, []}
         ]}
     ]),
     {ok, CowboyInterfaceStr} = application:get_env(mzbench_api, network_interface),

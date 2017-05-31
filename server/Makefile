@@ -55,6 +55,7 @@ jsbuild-auto:
 .PHONY: jsbuild-prod
 jsbuild-prod:
 	cd dashboard && npm run build
+	echo $$((`cat priv/version`+1)) > priv/version
 
 .PHONY: test-unit
 test-unit: compile
