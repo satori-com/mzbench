@@ -136,15 +136,20 @@ auth_api_call_ref(Path, {clitoken, Token}, BenchId) ->
 auth_api_call_ref(Path, {cookie, Cookie, CSRFToken}, BenchId) ->
     case dets:lookup(auth_tokens, Cookie) of
         [{_, #{user_info:= #{login := Login} = UserInfo, connection_pids:= Pids}}] ->
-                case lists:member(CSRFToken, maps:values(Pids)) of
-                    true ->
-                        auth_login_access(Path, Login, BenchId),
-                        UserInfo;
-                    false ->
-                        erlang:error(forbidden)
-                end;
+            case (not must_check_csrf_for(Path)) orelse lists:member(CSRFToken, maps:values(Pids)) of
+                true ->
+                    auth_login_access(Path, Login, BenchId),
+                    UserInfo;
+                false ->
+                    erlang:error(forbidden)
+            end;
         [] -> erlang:error(forbidden)
     end.
+
+must_check_csrf_for(<<"/data">>) -> false;
+must_check_csrf_for(<<"/log">>) -> false;
+must_check_csrf_for(<<"/userlog">>) -> false;
+must_check_csrf_for(_) -> true.
 
 auth_login_access(Path, Login, BenchId) when
                     (Path == <<"/stop">>) or (Path == <<"/change_env">>) or
