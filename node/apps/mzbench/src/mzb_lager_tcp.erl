@@ -20,7 +20,7 @@
                 dropped = 0,
                 error_metric = undefined}).
 
--define(TERSE_FORMAT,[time, " ", color, "[", severity,"] ", pid , " ", message, "\n"]).
+-define(TERSE_FORMAT,[time, " ", color, "[", severity,"] [", node,"] ", pid , " ", message, "\n"]).
 -define(INTERVAL, 100). % in ms
 
 init([Level, Sock, MessageQLenLimit, RateLimit, ErrorMetric]) ->
