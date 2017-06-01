@@ -1,7 +1,7 @@
 /* Example Styles for React Tags*/
 div.ReactTags__tags {
     position: relative;
-    margin-top: -4px;
+    margin-top: -2px;
 }
 
 /* Styles for the input */
@@ -19,10 +19,10 @@ div.ReactTags__selected span.ReactTags__tag {
   background-color: rgb(230, 240, 250);
   /*border: 1px solid rgb(220, 220, 220);*/
   border-radius: 3px;
-  padding: .3em .4em;
+  padding: .3em;
   color: rgb(60, 60, 60);
   display: inline-block;
-  margin: 0 .3em .1em 0;
+  margin: 0 .2em .2em 0;
   cursor: pointer;
   word-break: break-all;
   max-width: 100%;

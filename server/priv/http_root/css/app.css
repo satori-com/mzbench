@@ -152,6 +152,10 @@ ul.nav.bench-nav {
   font-weight: bold;
 }
 
+.restart-button {
+    display: inline-flex;
+}
+
 .reset-query {
     margin: 10px 0;
 }
