@@ -90,7 +90,7 @@ class TimelineElement extends React.Component {
                         </OverlayTrigger>
                     </h6>
                     {tags}
-                    <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.start_time_client} /></div>
+                    <div><i className="glyphicon glyphicon-calendar"></i> <RelativeDate date = {bench.create_time_client} /></div>
                     <div><i className="glyphicon glyphicon-time"></i> {moment.duration(duration).humanize()}</div>
                     {author}
                 </div>

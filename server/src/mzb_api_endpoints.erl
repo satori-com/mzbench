@@ -432,13 +432,18 @@ reply_error(HttpCode, Code, Description, Req) ->
 
 format_status(#{status:= failed, reason:= {crashed, _Reason}, config:= undefined}) ->
     #{status => failed, reason => crashed};
-format_status(#{status:= Status, start_time:= StartTime, finish_time:= FinishTime}) ->
-    Data = #{status => Status, start_time => list_to_binary(iso_8601_fmt(StartTime))},
-    Data1 = case FinishTime of
+format_status(#{status:= Status, start_time:= StartTime, finish_time:= FinishTime} = S) ->
+    CreateTime = mzb_bc:maps_get(create_time, S, StartTime),
+    Data = #{status => Status, create_time => list_to_binary(iso_8601_fmt(CreateTime))},
+    Data1 = case StartTime of
         undefined -> Data;
-        _ -> Data#{finish_time => list_to_binary(iso_8601_fmt(FinishTime))}
+        _ -> Data#{start_time => list_to_binary(iso_8601_fmt(StartTime))}
     end,
-    Data1.
+    Data2 = case FinishTime of
+        undefined -> Data1;
+        _ -> Data1#{finish_time => list_to_binary(iso_8601_fmt(FinishTime))}
+    end,
+    Data2.
 
 format_results(#{results:= undefined}) ->
     #{};

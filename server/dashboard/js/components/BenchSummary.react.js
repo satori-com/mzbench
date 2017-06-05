@@ -139,7 +139,7 @@ class BenchSummary extends React.Component {
                         <div className="col-xs-12 col-md-6">
                             <div className="row">
                                 <div className="col-xs-3 bench-details-key bench-details-el">Date</div>
-                                <div className="col-xs-9 bench-details-el">{bench.start_time_client.format("lll")}</div>
+                                <div className="col-xs-9 bench-details-el">{bench.create_time_client.format("lll")}</div>
                             </div>
                         </div>
                         <div className="col-xs-12 col-md-6">

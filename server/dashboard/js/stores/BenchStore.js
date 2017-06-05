@@ -60,8 +60,20 @@ class Bench {
         return true;
     }
 
+    get create_time_client() {
+        if (this.create_time) {
+            return moment(this.create_time).add(data.server_date_diff);
+        } else {
+            return undefined;
+        }
+    }
+
     get start_time_client() {
-        return moment(this.start_time).add(data.server_date_diff);
+        if (this.start_time) {
+            return moment(this.start_time).add(data.server_date_diff);
+        } else {
+            return undefined;
+        }
     }
 
     get finish_time_client() {

@@ -699,12 +699,14 @@ normalize(BenchInfos) ->
 normalize_bench({Id, Status = #{config:= Config}}) ->
     StatusFields = mzb_bc:maps_with([status, metrics], Status),
 
+    CreateTime = mzb_bc:maps_get(create_time, Status, maps:get(start_time, Status)),
+    TimeMap = mzb_bc:maps_with([create_time, finish_time, start_time],
+                               Status#{create_time => CreateTime}),
     TimeFields = maps:fold(fun (K, V, AccIn) when is_number(V) ->
                                    maps:put(K, mzb_string:iso_8601_fmt(V), AccIn);
                                (_, _, AccIn) -> AccIn
                            end,
-                           #{},
-                           mzb_bc:maps_with([finish_time, start_time], Status)),
+                           #{}, TimeMap),
 
     #{script:= #{body:= ScriptBody,
                  name:= ScriptName},

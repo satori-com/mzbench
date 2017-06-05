@@ -494,10 +494,11 @@ start_bench_child(Params, #{next_id:= Id, monitors:= Mons, user:= User} = State)
                 catch
                     _:_ ->
                         StartTime = mzb_api_bench:seconds(),
-                        #{id => Id, status => zombie, start_time => StartTime, finish_time => StartTime, config => #{}, metrics => #{}}
+                        #{id => Id, status => zombie, create_time => StartTime,
+                          config => #{}, metrics => #{}}
                 end,
             % If server crashes for some reason we want some info about this bench to be saved on disk
-            Status2 = Status#{finish_time => maps:get(start_time, Status), status => zombie},
+            Status2 = Status#{start_time => maps:get(create_time, Status), finish_time => maps:get(create_time, Status), status => zombie},
             write_status(Id, Status2, State),
             NewState = State#{next_id => Id + 1, monitors => maps:put(Mon, Id, Mons)},
             {ok, Id, check_max_bench_num(NewState)};

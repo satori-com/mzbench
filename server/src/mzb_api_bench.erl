@@ -67,12 +67,11 @@ remove_tags(Pid, Tags) ->
     mzb_pipeline:call(Pid, {remove_tags, Tags}).
 
 init([Id, Params]) ->
-    Now = os:timestamp(),
-    StartTime = seconds(Now),
+    CreateTime = seconds(),
     % Acceptance tests assume the following purpose format: bench-<id>-<timestamp>
     % {{_, M, D}, {H, Mi, S}} = calendar:now_to_universal_time(now()),
     % Purpose = mzb_string:format("bench-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~2.10.0B-~b", [M,D,H,Mi,S,Id]),
-    Purpose = mzb_string:format("bench-~b-~b", [Id, StartTime]),
+    Purpose = mzb_string:format("bench-~b-~b", [Id, CreateTime]),
     Includes = mzb_bc:maps_get(includes, Params, []),
     VMArgs = case maps:find(vm_args, Params) of
         {ok, [_|_] = List} -> List;
@@ -144,7 +143,8 @@ init([Id, Params]) ->
 
     State = #{
         id => Id,
-        start_time => StartTime,
+        create_time => CreateTime,
+        start_time => undefined,
         finish_time => undefined,
         status => init,
         config => Config,
@@ -194,13 +194,13 @@ workflow_config(_State) ->
 
 get_logger(State) -> fun (S, F, A) -> log(S, F, A, State) end.
 
-handle_stage(pipeline, init, #{start_time:= StartTime, config:= Config} = State) ->
+handle_stage(pipeline, init, #{config:= Config} = State) ->
     case maps:find(emulate_bench_crash, Config) of
         {ok, true} -> exit(self(), {emulated_crash, nothing_to_see_here, please_move_along});
         _ -> ok
     end,
 
-    info("Starting benchmark at ~b~n~p", [StartTime, Config], State);
+    info("Starting benchmark~n~p", [Config], State);
 
 handle_stage(pipeline, checking_script, #{config:= Config}) ->
     #{script:= #{body:= ScriptBody}} = Config,
@@ -217,7 +217,7 @@ handle_stage(pipeline, checking_script, #{config:= Config}) ->
 handle_stage(pipeline, wait_exclusive, #{id:= Id, config:= Config}) ->
     Exclusive = mzb_bc:maps_get(exclusive, Config, []),
     mzb_api_exclusive:lock(Id, Exclusive),
-    fun (S) -> S end;
+    fun (S) -> S#{start_time => seconds()} end;
 
 handle_stage(pipeline, allocating_hosts, #{config:= Config} = State) ->
     {Hosts, UserName, Deallocator} = allocate_hosts(Config, get_logger(State)),
@@ -683,7 +683,7 @@ send_email_report(_Emails, Status) ->
     {error, {badarg, Status}}.
 
 status(#{data:= #{includes:= Includes}} = State) ->
-    Res = mzb_bc:maps_with([id, status, start_time, finish_time, config, metrics,
+    Res = mzb_bc:maps_with([id, status, create_time, start_time, finish_time, config, metrics,
                             results, result_str, user_errors, system_errors], State),
     Filenames = [{Filename, Size} || {Filename, Size, _} <- Includes],
     Res#{includes => Filenames}.
