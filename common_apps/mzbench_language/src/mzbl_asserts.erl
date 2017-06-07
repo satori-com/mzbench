@@ -85,17 +85,12 @@ update_state(TimeSinceCheck, State, Env) ->
         end, State).
 
 -spec check_loop_expr(list(), [tuple()]) -> boolean().
-check_loop_expr(List, Env) -> lists:all(fun(Expr) -> check_expr(Expr, Env) end, List).
+check_loop_expr(List, Env) ->
+    lists:all(fun(Expr) -> check_expr(Expr, Env) end, List).
 
 get_value(V, _) when is_number(V) -> [V];
 get_value(Metric, _) when is_list(Metric) -> mzb_metrics:get_by_wildcard(Metric);
-get_value(#operation{name = VarKind, args = [Name | Default]}, Env)
-                            when (VarKind == 'var') or (VarKind == 'numvar') ->
-    AName = erlang:list_to_atom(Name),
-    case erlang:function_exported(mzb_compiled_vars, AName, 0) of
-        true -> [mzb_compiled_vars:AName()];
-        false -> [mzbl_ast:var_eval(VarKind, Env, [Name | Default])]
-    end.
+get_value(Expr, Env) -> [mzbl_interpreter:eval_std(Expr, Env)].
 
 -spec check_expr(any(), [tuple()]) -> boolean().
 check_expr(#operation{name = 'not', args = [Exp1]}, Env) -> not check_expr(Exp1, Env);

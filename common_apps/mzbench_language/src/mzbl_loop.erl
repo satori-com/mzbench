@@ -179,7 +179,7 @@ looprun(TimeFun, Rate, Body, WorkerProvider, State, Env, Opts = #opts{parallel =
     {nil, State}.
 
 timerun(Start, Shift, TimeFun, Rate, Body, WorkerProvider, Env, IsFirst, Opts, Batch, OldState, OldDone, OldIter, OldRun) ->
-    case mzbl_asserts:check_loop_expr(Opts#opts.while, Env) of
+    case mzbl_asserts:check_loop_expr(Opts#opts.while, [{Opts#opts.iterator, OldIter}|Env]) of
         false -> {nil, OldState};
         _ ->
 
