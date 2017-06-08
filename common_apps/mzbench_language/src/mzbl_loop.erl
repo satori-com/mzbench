@@ -245,6 +245,7 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
 
     NewDone =
         case {Rate, Prev} of
+            {undefined, _} -> Done;
             {Prev, _} when (NewRun =< OldRun) orelse (Done < DoneLastUpdate + 10 * Step) -> Done;
             {Prev, _} ->
                 ND = Prev * CurTime / ?MSEC_in_SEC,
@@ -252,8 +253,6 @@ eval_rates(#const_rate{rate_fun = F, value = Prev} = RateState, Done, CurTime, _
                     true -> ND;
                     false -> Done
                 end;
-            {undefined, _} -> Done;
-            {_New, undefined} -> Done;
             {New, _} -> (New * CurTime / ?MSEC_in_SEC) % It's important not to round done counter here
         end,
 
