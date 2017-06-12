@@ -122,7 +122,8 @@ handle_call({change_env, NewEnv}, _From, #state{script = Script, env = Env, node
 handle_call({run_command, Pool, Percent, Command}, _From, #state{nodes = Nodes} = State) ->
     system_log:info("Running a command: ~p on ~p of pool~p", [Command, Percent, Pool]),
     try
-        {[{_, [ok | _]}|_], []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {run_command, Pool, Percent, Command}),
+        {Replies, []} = mzb_interconnect:multi_call(lists:usort([node()|Nodes]), {run_command, Pool, Percent, Command}),
+        true = lists:all(fun(X) -> X == ok end, lists:flatten([L || {_, L} <- Replies])),
         {reply, ok, State}
     catch
         _:E ->
