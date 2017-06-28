@@ -23,11 +23,11 @@ start_interpreter(Module) ->
     {MetricsPipeName, MetricsPipe} = create_fifo(Module),
     PythonExec = os:find_executable("python"),
     PythonPort = open_port({spawn, io_lib:format("~s -i", [PythonExec])}, [
-        {line, 255}, 
+        {line, 255},
         {env, [
             {"MZ_PYTHON_WORKER_FIFO_NAME", MetricsPipeName}
         ]},
-        exit_status, 
+        exit_status,
         eof,
         stderr_to_stdout
     ]),
@@ -55,8 +55,8 @@ start_interpreter(Module) ->
 
 -spec stop_interpreter(python_interpreter()) -> ok.
 stop_interpreter(#python_interpreter{
-                            metrics_pipe        = MetricsPipe, 
-                            metrics_pipe_name   = MetricsPipeName, 
+                            metrics_pipe        = MetricsPipe,
+                            metrics_pipe_name   = MetricsPipeName,
                             python_port         = PythonPort
                         }) ->
     _ = (catch port_command(PythonPort, "quit()\n")),
@@ -86,7 +86,7 @@ send_command(#python_interpreter{python_port = PythonPort} = Interpreter, CmdTem
         "except:\n"
         "    traceback.print_exc()\n"
         "    mzbench._instruction_failed(sys.exc_info())\n"
-        "\n", 
+        "\n",
         [Command])),
     read_python_output(Interpreter).
 
@@ -252,6 +252,6 @@ encode_str_for_python(Str) ->
     lists:reverse(lists:foldl(
         fun($', Acc) -> lists:reverse("\\'") ++ Acc;
             ($\\, Acc) -> "\\\\" ++ Acc;
+            ($\n, Acc) -> "\\\n" ++ Acc;
             (Char, Acc) -> [Char | Acc] end,
         "", Str)).
-
