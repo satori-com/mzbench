@@ -252,6 +252,6 @@ encode_str_for_python(Str) ->
     lists:reverse(lists:foldl(
         fun($', Acc) -> lists:reverse("\\'") ++ Acc;
             ($\\, Acc) -> "\\\\" ++ Acc;
-            ($\n, Acc) -> "\\\n" ++ Acc;
+            ($\n, Acc) -> lists:reverse("\\\n") ++ Acc;
             (Char, Acc) -> [Char | Acc] end,
         "", Str)).
