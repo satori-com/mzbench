@@ -240,7 +240,9 @@ interpret_defaults(DefaultsList, Env) ->
              (string() | binary(), binary) -> binary();
              (string() | binary(), text) -> string();
              (string() | binary(), json) -> list() | map();
-             (string() | binary(), tsv) -> [string()].
+             (string() | binary(), lines) -> [string()];
+             (string() | binary(), tsv) -> [binary()].
+convert(X, lines) when is_binary(X) -> binary:split(X, <<"\n">>);
 convert(X, binary) when is_binary(X) -> X;
 convert(X, binary) -> list_to_binary(X);
 convert(X, text) when is_binary(X) -> binary_to_list(X);
