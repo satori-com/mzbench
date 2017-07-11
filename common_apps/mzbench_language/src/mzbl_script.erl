@@ -192,6 +192,10 @@ extract_info(Script, Env) ->
     Script3 = mzbl_ast:map_meta(fun (Meta, Op) -> [{function, Op}|Meta] end, Script2),
     {Script3, Env2, Asserts}.
 
+string2lines("\n" ++ Str, Acc) -> [lists:reverse([$\n|Acc]) | string2lines(Str,[])];
+string2lines([H|T], Acc)       -> string2lines(T, [H|Acc]);
+string2lines([], Acc)          -> [lists:reverse(Acc)].
+
 import_resource(Env, File, Type) ->
     try
         Content = case re:run(File, "^https?://", [{capture, first}, caseless]) of
@@ -217,7 +221,10 @@ import_resource(Env, File, Type) ->
                         end
                 end
         end,
-        convert(Content, Type)
+        case Type of
+            lines ->  convert(string2lines(erlang:binary_to_list(Content), []), Type) ;
+            _ -> convert(Content, Type)
+        end
     catch
         _:Reason ->
             lager:error("Resource ~p(~p) import error: ~p", [File, Type, Reason]),
@@ -240,9 +247,9 @@ interpret_defaults(DefaultsList, Env) ->
              (string() | binary(), binary) -> binary();
              (string() | binary(), text) -> string();
              (string() | binary(), json) -> list() | map();
-             (string() | binary(), lines) -> [string()];
+             (string() | binary(), lines) -> [binary()];
              (string() | binary(), tsv) -> [binary()].
-convert(X, lines) when is_binary(X) -> binary:split(X, <<"\n">>);
+convert(X, lines) -> X;
 convert(X, binary) when is_binary(X) -> X;
 convert(X, binary) -> list_to_binary(X);
 convert(X, text) when is_binary(X) -> binary_to_list(X);
