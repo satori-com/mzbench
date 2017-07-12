@@ -3,6 +3,7 @@
 -export([parse/1,
          hostname/1,
          add_indents/1,
+         convert/2,
          get_real_script_name/1,
          read/1,
          read_from_string/1,
