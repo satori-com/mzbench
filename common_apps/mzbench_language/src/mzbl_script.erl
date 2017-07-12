@@ -193,10 +193,6 @@ extract_info(Script, Env) ->
     Script3 = mzbl_ast:map_meta(fun (Meta, Op) -> [{function, Op}|Meta] end, Script2),
     {Script3, Env2, Asserts}.
 
-string2lines("\n" ++ Str, Acc) -> [lists:reverse([$\n|Acc]) | string2lines(Str,[])];
-string2lines([H|T], Acc)       -> string2lines(T, [H|Acc]);
-string2lines([], Acc)          -> [lists:reverse(Acc)].
-
 import_resource(Env, File, Type) ->
     try
         Content = case re:run(File, "^https?://", [{capture, first}, caseless]) of
@@ -245,9 +241,10 @@ interpret_defaults(DefaultsList, Env) ->
              (string() | binary(), binary) -> binary();
              (string() | binary(), text) -> string();
              (string() | binary(), json) -> list() | map();
-             ([binary()], lines) -> [binary()];
+             (string() | binary(), lines) -> [string()];
              (string() | binary(), tsv) -> [binary()].
-convert(X, lines) ->  string2lines(erlang:binary_to_list(X), []);
+convert(X, lines) when is_binary(X) -> convert(binary_to_list(X), lines);
+convert(X, lines) when is_list(X) ->  string:tokens(X, "\n");
 convert(X, binary) when is_binary(X) -> X;
 convert(X, binary) -> list_to_binary(X);
 convert(X, text) when is_binary(X) -> binary_to_list(X);

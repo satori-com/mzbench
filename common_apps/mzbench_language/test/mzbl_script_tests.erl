@@ -174,4 +174,4 @@ install_specs_check(ExpectedInstallSpecs, Script) ->
     ?assertEqual(ExpectedInstallSpecs, mzbl_script:extract_install_specs(AST, [])).
 
 convert_lines_test() ->
-    ?assertEqual(["A\n","B\n","C"], mzbl_script:convert(<<"A\nB\nC">>, lines)).
+    ?assertEqual(["A","B","C"], mzbl_script:convert(<<"A\nB\nC">>, lines)).
