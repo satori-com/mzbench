@@ -221,10 +221,7 @@ import_resource(Env, File, Type) ->
                         end
                 end
         end,
-        case Type of
-            lines ->  convert(string2lines(erlang:binary_to_list(Content), []), Type) ;
-            _ -> convert(Content, Type)
-        end
+        convert(Content, Type)
     catch
         _:Reason ->
             lager:error("Resource ~p(~p) import error: ~p", [File, Type, Reason]),
@@ -247,9 +244,9 @@ interpret_defaults(DefaultsList, Env) ->
              (string() | binary(), binary) -> binary();
              (string() | binary(), text) -> string();
              (string() | binary(), json) -> list() | map();
-             (string() | binary(), lines) -> [binary()];
+             ([binary()], lines) -> [binary()];
              (string() | binary(), tsv) -> [binary()].
-convert(X, lines) -> X;
+convert(X, lines) ->  string2lines(erlang:binary_to_list(X), []);
 convert(X, binary) when is_binary(X) -> X;
 convert(X, binary) -> list_to_binary(X);
 convert(X, text) when is_binary(X) -> binary_to_list(X);
