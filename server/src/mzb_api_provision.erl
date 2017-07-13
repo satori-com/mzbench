@@ -94,22 +94,30 @@ clean_nodes(NodePids, Config, Logger) ->
             [RootDir, mzb_api_paths:node_deployment_path()]),
         [],
         Logger),
-    _ = mzb_lists:pmap(fun({Code, Host, Pid}) ->
-                try erlang:list_to_integer(Code) of
-                    0 -> ok;
-                    _ ->
-                        mzb_subprocess:remote_cmd(UserName, [Host],
-                            io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
-                catch
-                    _:Error ->
-                        lager:error("Bad node stop code: ~p~nReason: ~p", [Code, Error]),
-                        mzb_subprocess:remote_cmd(UserName, [Host],
-                            io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
-                end
-            end,
-        lists:zip3(Codes, [DirectorHost|WorkerHosts], NodePids)),
+    _ = kill_nodes(NodePids, [DirectorHost|WorkerHosts], Codes, UserName, Logger),
     length(RootDir) > 1 andalso mzb_subprocess:remote_cmd(UserName, [DirectorHost|WorkerHosts], io_lib:format("rm -rf ~s", [RootDir]), [], Logger),
     ok.
+
+kill_nodes([], _, _, _, _) -> ok;
+kill_nodes(_, [], _, _, _) -> ok;
+kill_nodes(_, _, [], _, _) -> ok;
+kill_nodes([Pid | NodePids], [H|Hosts], [Code|StopResults], UserName, Logger) ->
+    IsStoppedAlready =
+        try erlang:list_to_integer(Code) of
+            0 -> true;
+            _ -> false
+        catch
+            _:Error ->
+                lager:error("Bad node stop code: ~p~nReason: ~p", [Code, Error]),
+                false
+        end,
+
+    case IsStoppedAlready of
+        false -> mzb_subprocess:remote_cmd(UserName, [H],
+                    io_lib:format("kill -9 ~p; true", [Pid]), [], Logger);
+        true -> ok
+    end,
+    kill_nodes(NodePids, Hosts, StopResults, UserName, Logger).
 
 ntp_check(_, [H], Logger) ->
     Logger(info, "There's only one host, no need to make ntp check", []),
