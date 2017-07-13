@@ -172,3 +172,6 @@ extract_while_metrics_test() ->
 install_specs_check(ExpectedInstallSpecs, Script) ->
     AST = mzbl_script:read_from_string(Script),
     ?assertEqual(ExpectedInstallSpecs, mzbl_script:extract_install_specs(AST, [])).
+
+convert_lines_test() ->
+    ?assertEqual(["A","B","C"], mzbl_script:convert(<<"A\nB\nC">>, lines)).
