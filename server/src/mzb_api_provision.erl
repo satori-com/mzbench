@@ -95,10 +95,16 @@ clean_nodes(NodePids, Config, Logger) ->
         [],
         Logger),
     _ = mzb_lists:pmap(fun({Code, Host, Pid}) ->
-                case erlang:list_to_integer(Code) of
+                try erlang:list_to_integer(Code) of
                     0 -> ok;
-                    _ -> mzb_subprocess:remote_cmd(UserName,[Host],
-                        io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
+                    _ ->
+                        mzb_subprocess:remote_cmd(UserName, [Host],
+                            io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
+                catch
+                    _:Error ->
+                        lager:error("Bad node stop code: ~p~nReason: ~p", [Code, Error]),
+                        mzb_subprocess:remote_cmd(UserName, [Host],
+                            io_lib:format("kill -9 ~p; true", [Pid]), [], Logger)
                 end
             end,
         lists:zip3(Codes, [DirectorHost|WorkerHosts], NodePids)),
