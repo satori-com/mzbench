@@ -31,7 +31,7 @@ remote_cmd(UserName, Hosts, Executable, Args, Logger, Opts) ->
                             undefined -> "";
                             _ -> io_lib:format("~s@", [UserName])
                         end,
-                    mzb_string:format("ssh -A -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ~s~s \"source /etc/profile; ~s ~s\"",
+                    mzb_string:format("ssh -A -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ~s~s \"source /etc/profile; ~s ~s\"",
                             [UserNameParam, H, Executable, string:join(Args2, " ")])
                 end
         end,
