@@ -5,7 +5,6 @@ import shlex
 import subprocess
 import sys
 import nose
-import re
 
 dirname = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dirname)
@@ -57,11 +56,7 @@ def worker_provisioning_fail_test():
         scripts_dir + 'worker_from_git.erl',
         env={'worker_branch': worker_commit,
              'mzbench_repo':  mzbench_repo},
-        expected_log_message_regex=r"Stage 'pipeline - provisioning': failed",
-        check_log_function=lambda log:\
-            "Error: tried to stop mzbench node, but it didn't even start!"\
-            if len(re.findall('mzbench stop', log)) > len(re.findall('mzbench stop; true', log))\
-            else None)
+        expected_log_message_regex=r"Stage 'pipeline - provisioning': failed")
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_bdl_dir + 'time_assertion_fail.bdl', env={},
