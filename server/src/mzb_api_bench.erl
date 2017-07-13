@@ -391,9 +391,9 @@ handle_stage(finalize, sending_email_report, #{emails:= Emails} = State) ->
 handle_stage(finalize, cleaning_nodes, #{config:= #{deallocate_after_bench:= false}} = State) ->
     info("Skip cleaning nodes. Deallocate after bench is false", [], State);
 handle_stage(finalize, cleaning_nodes,
-    State = #{config:= Config = #{director_host:= DirectorHost}})
+    State = #{node_pids := NodePids, config:= Config = #{director_host:= DirectorHost}})
       when DirectorHost /= undefined ->
-    mzb_api_provision:clean_nodes(Config, get_logger(State));
+    mzb_api_provision:clean_nodes(NodePids, Config, get_logger(State));
 handle_stage(finalize, cleaning_nodes, State) ->
     info("Skip cleaning nodes. Unknown nodes", [], State);
 

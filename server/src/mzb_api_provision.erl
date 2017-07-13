@@ -2,7 +2,7 @@
 
 -export([
     provision_nodes/2,
-    clean_nodes/2,
+    clean_nodes/3,
     ensure_file_content/5,
     ensure_dir/4
 ]).
@@ -81,11 +81,10 @@ release_rpcterms(UserName, Host, ConfigPath, Module, Function, Logger) ->
 
 % couldn't satisfy both erl 18 and 19 dialyzers, spec commented
 %-spec clean_nodes(#{director_host:=_, purpose:=atom() | binary() | [atom() | [any()] | char()], user_name:=_, worker_hosts:=_, _=>_}, fun((_,_,_) -> any())) -> ok.
-clean_nodes(Config, Logger) ->
+clean_nodes(NodePids, Config, Logger) ->
     #{
         user_name:= UserName,
         director_host:= DirectorHost,
-        node_pids:= NodePids,
         worker_hosts:= WorkerHosts} = Config,
     RootDir = mzb_api_bench:remote_path("", Config),
     Codes = mzb_subprocess:remote_cmd(
