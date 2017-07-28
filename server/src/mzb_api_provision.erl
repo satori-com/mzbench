@@ -90,7 +90,7 @@ clean_nodes(NodePids, Config, Logger) ->
     Codes = mzb_subprocess:remote_cmd(
         UserName,
         [DirectorHost|WorkerHosts],
-        io_lib:format("cd ~s; ~s/mzbench/bin/mzbench stop > /dev/null 2>&1; echo $?",
+        io_lib:format("cd ~s; timeout 30s ~s/mzbench/bin/mzbench stop > /dev/null 2>&1; echo $?",
             [RootDir, mzb_api_paths:node_deployment_path()]),
         [],
         Logger),
