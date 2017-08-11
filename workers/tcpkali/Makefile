@@ -11,6 +11,7 @@ compile:
 
 tcpkali:
 	git clone https://github.com/machinezone/tcpkali tcpkali
+	git checkout Zdelay
 
 tcpkali-compile: tcpkali
 	cd tcpkali && autoreconf -iv && ./configure && make
