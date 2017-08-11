@@ -4,7 +4,8 @@
     initial_state/0,
     metrics/0,
     statsd/0,
-    start/3
+    start/3,
+    start_cmd/3
 ]).
 
 -define(Timeout, 5000).
@@ -77,6 +78,15 @@ start(#state{executable = Exec} = State, _Meta, Options) ->
                                 1 -> A ++ " -" ++ L ++ Val2;
                                 _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
                             "", Options),
+    lager:info("Executing ~p...", [Command]),
+    case run(Command) of
+        0 -> ok;
+        ExitCode -> erlang:error({tcpkali_error, ExitCode})
+    end,
+    {nil, State}.
+
+start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
+    Command = Exec ++ " " ++ Options,
     lager:info("Executing ~p...", [Command]),
     case run(Command) of
         0 -> ok;
