@@ -1018,40 +1018,48 @@ aggregate_results(Metrics, Histograms, #{config:= Config} = State) ->
     Flatten = [ M || {group, _, Graphs} <- Metrics, {graph, #{metrics:= Ms}} <- Graphs, M <- Ms],
 
     Res = lists:flatmap(
-        fun
-            ({Name, counter, _}) ->
-                File = mzb_api_bench:metrics_file(Name, Config),
-                FinalValue = metric_file_fold(File, fun (_, Value, _) -> Value end, undefined),
-                FileRPS = mzb_api_bench:metrics_file(Name ++ ".rps", Config),
-                Data = metric_file_fold(FileRPS, fun (_, Value, Acc) -> [Value|Acc] end, []),
-                RPSFinal = statistics(Data, Percentiles),
-                [{Name, counter, {FinalValue, RPSFinal}}];
-            ({Name, Type, _}) when Type == gauge; Type == derived ->
-                File = mzb_api_bench:metrics_file(Name, Config),
-                Data = metric_file_fold(File, fun (_, Value, Acc) -> [Value|Acc] end, []),
-                Final = statistics(Data, Percentiles),
-                [{Name, gauge, Final}];
-            ({Name, histogram, _}) ->
-                case proplists:get_value(Name, Histograms, undefined) of
-                    undefined -> [];
-                    Values ->
-                        {ok, Ref} = hdr_histogram:from_binary(Values),
-                        try
-                            PValues = lists:map(
-                                fun (min) -> {"min", hdr_histogram:min(Ref)};
-                                    (max) -> {"max", hdr_histogram:max(Ref)};
-                                    (mean) -> {"mean", hdr_histogram:mean(Ref)};
-                                    (median) -> {"median", hdr_histogram:median(Ref)};
-                                    (N) when N =< 100 -> {integer_to_list(N), hdr_histogram:percentile(Ref, erlang:float(N))}
-                                end, Percentiles),
-                            [{Name, histogram, PValues}]
-                        after
-                            hdr_histogram:close(Ref)
-                        end
-                end
+        fun (M) ->
+            try
+                aggregate_results_for_metric(M, Config, Percentiles, Histograms)
+            catch
+                _:Error ->
+                    error("Aggregating result for ~p failed: ~p~nStacktrace: ~p", [M, Error, erlang:get_stacktrace()], State),
+                    []
+            end
         end, Flatten),
     info("Bench final metrics: ~300p", [Res], State),
     Res.
+
+aggregate_results_for_metric({Name, counter, _}, Config, Percentiles, _) ->
+    File = mzb_api_bench:metrics_file(Name, Config),
+    FinalValue = metric_file_fold(File, fun (_, Value, _) -> Value end, undefined),
+    FileRPS = mzb_api_bench:metrics_file(Name ++ ".rps", Config),
+    Data = metric_file_fold(FileRPS, fun (_, Value, Acc) -> [Value|Acc] end, []),
+    RPSFinal = statistics(Data, Percentiles),
+    [{Name, counter, {FinalValue, RPSFinal}}];
+aggregate_results_for_metric({Name, Type, _}, Config, Percentiles, _) when Type == gauge; Type == derived ->
+    File = mzb_api_bench:metrics_file(Name, Config),
+    Data = metric_file_fold(File, fun (_, Value, Acc) -> [Value|Acc] end, []),
+    Final = statistics(Data, Percentiles),
+    [{Name, gauge, Final}];
+aggregate_results_for_metric({Name, histogram, _}, _, Percentiles, Histograms) ->
+    case proplists:get_value(Name, Histograms, undefined) of
+        undefined -> [];
+        Values ->
+            {ok, Ref} = hdr_histogram:from_binary(Values),
+            try
+                PValues = lists:map(
+                    fun (min) -> {"min", hdr_histogram:min(Ref)};
+                        (max) -> {"max", hdr_histogram:max(Ref)};
+                        (mean) -> {"mean", hdr_histogram:mean(Ref)};
+                        (median) -> {"median", hdr_histogram:median(Ref)};
+                        (N) when N =< 100 -> {integer_to_list(N), hdr_histogram:percentile(Ref, erlang:float(N))}
+                    end, Percentiles),
+                [{Name, histogram, PValues}]
+            after
+                hdr_histogram:close(Ref)
+            end
+    end.
 
 statistics([], _) -> [];
 statistics(Data, Percentiles) ->
