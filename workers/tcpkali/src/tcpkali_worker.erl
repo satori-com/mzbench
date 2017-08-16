@@ -5,7 +5,8 @@
     metrics/0,
     statsd/0,
     start/3,
-    start_cmd/3
+    start_cmd/3,
+    json2cbor/3
 ]).
 
 -define(Timeout, 5000).
@@ -93,6 +94,12 @@ start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
     {nil, State}.
+
+json2cbor(State, _Meta, Str) ->
+    JSON = jiffy:decode(Str, [return_maps]),
+    CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
+    Formatted = erlang:iolist_to_binary([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
+    {Formatted, State}.
 
 prepare_val(Val) when is_float(Val) ->   float_to_list(Val);
 prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
