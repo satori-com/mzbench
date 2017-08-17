@@ -99,7 +99,7 @@ start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
 json2cbor(State, _Meta, Str) ->
     JSON = jiffy:decode(Str, [return_maps]),
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
-    Formatted = erlang:iolist_to_binary([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
+    Formatted = lists:flatten([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
     {Formatted, State}.
 
 encode(State, Meta, "cbor", Str) ->
