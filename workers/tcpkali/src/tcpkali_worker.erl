@@ -71,7 +71,7 @@ metrics() ->
     ].
 
 start(#state{executable = Exec} = State, _Meta, Options) ->
-    Command = Exec ++ lists:foldr(fun({raw, Raw}, A) -> A ++ " " ++ Raw;
+    Command = Exec ++ lists:foldl(fun({raw, Raw}, A) -> A ++ " " ++ Raw;
                         ({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
                         ({Opt, Val}, A) ->
                             L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
