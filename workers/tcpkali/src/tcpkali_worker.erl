@@ -97,7 +97,13 @@ start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
     {nil, State}.
 
 json2cbor(State, _Meta, Str) ->
-    JSON = jiffy:decode(Str, [return_maps]),
+    Str2 = re:replace(Str, "\\\\", "\\\\\\\\",[{return,list}, global]),
+    % Hack: {message.marker} will be replaced with 30 bytes long marker inside tcpkali
+    % which will make cbor broken because "{message.marker}" itself has different length
+    % so we replace it with "{message.marker             }" which has the same meaning
+    % but it will not change length after replacement inside tcpkali
+    Str3 = re:replace(Str2, "{message.marker}", "{message.marker             }",[{return,list},global]),
+    JSON = jiffy:decode(Str3, [return_maps]),
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
     Formatted = lists:flatten([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
     {Formatted, State}.
