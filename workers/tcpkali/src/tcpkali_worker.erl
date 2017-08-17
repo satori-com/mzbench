@@ -6,7 +6,8 @@
     statsd/0,
     start/3,
     start_cmd/3,
-    json2cbor/3
+    json2cbor/3,
+    encode/4
 ]).
 
 -define(Timeout, 5000).
@@ -100,6 +101,11 @@ json2cbor(State, _Meta, Str) ->
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
     Formatted = erlang:iolist_to_binary([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
     {Formatted, State}.
+
+encode(State, Meta, "cbor", Str) ->
+    json2cbor(State, Meta, Str);
+encode(State, _Meta, _, Str) ->
+    {Str, State}.
 
 prepare_val(Val) when is_float(Val) ->   float_to_list(Val);
 prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
