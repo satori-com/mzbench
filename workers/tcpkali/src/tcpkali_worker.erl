@@ -7,7 +7,10 @@
     start/3,
     start_cmd/3,
     json2cbor/3,
-    encode/4
+    json2cbor/4,
+    encode/4,
+    replace_expressions/2,
+    replace_back/2
 ]).
 
 -define(Timeout, 5000).
@@ -96,16 +99,62 @@ start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
     end,
     {nil, State}.
 
-json2cbor(State, _Meta, Str) ->
-    Str2 = re:replace(Str, "\\\\", "\\\\\\\\",[{return,list}, global]),
+generate_filler(N, Id) ->
+    Prefix = "\\{" ++ erlang:integer_to_list(Id),
+    Postfix = "}",
+    NumToGenerate = N - length(Prefix) - length(Postfix),
+    case NumToGenerate  >= 0 of
+        true -> Prefix ++ [$\s || _  <- lists:seq(1, NumToGenerate)] ++ Postfix;
+        false -> erlang:error({expression_too_small})
+    end.
+
+replace_expressions(Str) ->
     % Hack: {message.marker} will be replaced with 30 bytes long marker inside tcpkali
     % which will make cbor broken because "{message.marker}" itself has different length
     % so we replace it with "{message.marker             }" which has the same meaning
-    % but it will not change length after replacement inside tcpkali
-    Str3 = re:replace(Str2, "{message.marker}", "{message.marker             }",[{return,list},global]),
+    % but it will not change the length after replacement is done
+    Str2 = re:replace(Str, "\\\\{message.marker}", "\\\\{message.marker             }",[{return,list},global]),
+    replace_expressions(Str2, []).
+
+replace_expressions(Str, Acc) ->
+    RE = "(?<PREFIX>^.*)(?<EXPR>\\\\{.*})\\((?<NUM>[0-9]+)\\)(?<ENDING>.*$)",
+    case re:run(Str, RE, [{capture, [<<"PREFIX">>,<<"EXPR">>, <<"NUM">>, <<"ENDING">>], list}]) of
+        {match, [Prefix, Expr, NumStr, Ending]} ->
+            Num = erlang:list_to_integer(NumStr),
+            LastId =
+                case Acc of
+                    [] -> 0;
+                    [{N, _}|_] -> N
+                end,
+            Replacement = generate_filler(Num, LastId + 1),
+            replace_expressions(Prefix ++ Replacement ++ Ending, [{LastId + 1, Expr}|Acc]);
+        nomatch ->
+            {Str, Acc}
+    end.
+
+replace_back(Str, []) -> Str;
+replace_back(Str, [{Id, Expr} | Tail]) ->
+    RE = lists:flatten(io_lib:format("\\\\{~b\\s*}", [Id])),
+    Expr2 = re:replace(Expr, "\\\\", "\\\\\\\\",[{return,list}, global]),
+    Res = re:replace(Str, RE, Expr2, [{return,list}]),
+    replace_back(Res, Tail).
+
+json2cbor(State, _Meta, Str) ->
+    json2cbor(State, _Meta, Str, string).
+
+json2cbor(State, _Meta, Str, Type) ->
+    Str2 = re:replace(Str, "\\\\", "\\\\\\\\",[{return,list}, global]),
+
+    {Str3, Expressions} = replace_expressions(Str2),
+
     JSON = jiffy:decode(Str3, [return_maps]),
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
-    Formatted = lists:flatten([format_byte(X) || <<X:8>> <= CBORBin]),
+    CBOR = replace_back(CBORBin, Expressions),
+    Formatted =
+        case Type of
+            binary -> iolist_to_binary(CBOR);
+            string -> lists:flatten([format_byte(X) || <<X:8>> <= iolist_to_binary(CBOR)])
+        end,
     {Formatted, State}.
 
 format_byte(B) ->
