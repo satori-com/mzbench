@@ -105,8 +105,14 @@ json2cbor(State, _Meta, Str) ->
     Str3 = re:replace(Str2, "{message.marker}", "{message.marker             }",[{return,list},global]),
     JSON = jiffy:decode(Str3, [return_maps]),
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
-    Formatted = lists:flatten([io_lib:format("\\x~2.16.0B",[X]) || <<X:8>> <= CBORBin]),
+    Formatted = lists:flatten([format_byte(X) || <<X:8>> <= CBORBin]),
     {Formatted, State}.
+
+format_byte(B) ->
+    case lists:member(B, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{} .,;-+=\\/") of
+        true -> B;
+        false -> io_lib:format("\\x~2.16.0B",[B])
+    end.
 
 encode(State, Meta, "cbor", Str) ->
     json2cbor(State, Meta, Str);
