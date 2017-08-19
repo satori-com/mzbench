@@ -14,7 +14,15 @@
     cast_to_type/2
    ]).
 
+-ifdef(USE_STRONG_RAND_BYTES).
+
+random_binary(N) -> crypto:strong_rand_bytes(N).
+
+-else.
+
 random_binary(N) -> crypto:rand_bytes(N).
+
+-endif.
 
 random_list(N) -> erlang:binary_to_list(crypto:rand_bytes(N)).
 
