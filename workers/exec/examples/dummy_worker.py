@@ -14,5 +14,7 @@ if __name__ == '__main__':
         s.sendto("dummy.counter1:{0}|c\n".format(i), (DEFAULT_IP, DEFAULT_PORT))
         s.sendto("dummy.gauge1:{0}|g\n".format(i), (DEFAULT_IP, DEFAULT_PORT))
         print("Reporting {0}".format(i), file=sys.stdout)
+        sys.stdout.flush()
         print("Some error at {0}".format(i), file=sys.stderr)
+        sys.stderr.flush()
         time.sleep(0.1)
