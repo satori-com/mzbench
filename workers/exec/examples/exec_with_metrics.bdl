@@ -1,0 +1,19 @@
+#!benchDL
+# shell command execution example
+make_install(git = "https://github.com/machinezone/mzbench.git",
+             dir = "workers/exec")
+
+# installing a programm we want to run
+# (in this case: dummy_worker.py)
+# if the programm is already provisioned this step can be skipped
+pre_hook():
+    exec(all, "rm -rf /tmp/test-dir/mzbench && mkdir -p /tmp/test-dir/ && cd /tmp/test-dir/ && git clone https://github.com/machinezone/mzbench.git")
+
+pool(size = 4,
+     worker_type = exec_worker):
+
+    # declaring metrics our programm will report
+    declare_metric("TestGroup1", "TestTitle1", "dummy.counter1", counter)
+    declare_metric("TestGroup2", "TestTitle2", "dummy.gauge1", gauge)
+
+    execute("/tmp/test-dir/mzbench/workers/exec/examples/dummy_worker.py")
