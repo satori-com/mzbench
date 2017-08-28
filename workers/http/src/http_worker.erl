@@ -3,7 +3,7 @@
 -export([initial_state/0, metrics/0]).
 
 -export([connect/4, set_options/3, disconnect/2,
-    get/3, post/4, set_prefix/3]).
+    get/3, post/4, put/4, set_prefix/3]).
 
 -type meta() :: [{Key :: atom(), Value :: any()}].
 -type http_options() :: list().
@@ -80,6 +80,14 @@ post(State, Meta, Endpoint, Payload) when is_list(Endpoint) ->
 post(#state{connection = Connection, prefix = Prefix, options = Options} = State, _Meta, Endpoint, Payload) ->
     Response = ?TIMED(Prefix ++ ".latency", hackney:send_request(Connection,
         {post, Endpoint, Options, Payload})),
+    {nil, State#state{connection = record_response(Prefix, Response)}}.
+
+-spec put(state(), meta(), string() | binary(), iodata()) -> {nil, state()}.
+put(State, Meta, Endpoint, Payload) when is_list(Endpoint) ->
+    put(State, Meta, list_to_binary(Endpoint), Payload);
+put(#state{connection = Connection, prefix = Prefix, options = Options} = State, _Meta, Endpoint, Payload) ->
+    Response = ?TIMED(Prefix ++ ".latency", hackney:send_request(Connection,
+        {put, Endpoint, Options, Payload})),
     {nil, State#state{connection = record_response(Prefix, Response)}}.
 
 record_response(Prefix, Response) ->
