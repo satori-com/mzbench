@@ -50,7 +50,7 @@ def add_indents(text):
 
             if comma != None and char == comma:
                 comma = None
-            elif char in ['"', "'"]:
+            elif char in ['"', "'"] and comma is None:
                 comma = char
 
             if comma == None:
