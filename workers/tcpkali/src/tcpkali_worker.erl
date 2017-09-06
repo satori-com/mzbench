@@ -3,7 +3,7 @@
 -export([
     initial_state/0,
     metrics/0,
-    statsd/0,
+    statsd/2,
     start/3,
     start_cmd/3,
     json2cbor/3,
@@ -31,49 +31,32 @@ initial_state() ->
 metrics() ->
     [
         {group, "Tcpkali", [
-            {graph, #{title => "Connections opened",
-                      units => "N",
-                      metrics => [{"tcpkali.connections.opened",  counter}]}},
-            {graph, #{title => "Connections total",
-                      units => "N",
-                      metrics => [{"tcpkali.connections.total", gauge},
-                                  {"tcpkali.connections.total.in", gauge},
-                                  {"tcpkali.connections.total.out", gauge}]}},
-            {graph, #{title => "Traffic bitrate",
-                      units => "N",
-                      metrics => [{"tcpkali.traffic.bitrate", gauge},
-                                  {"tcpkali.traffic.bitrate.in", gauge},
-                                  {"tcpkali.traffic.bitrate.out", gauge}]}},
-
-            {graph, #{title => "Traffic data",
-                      units => "N",
-                      metrics => [{"tcpkali.traffic.data", counter},
-                                  {"tcpkali.traffic.data.rcvd", counter},
-                                  {"tcpkali.traffic.data.sent", counter}]}},
-            {graph, #{title => "Messages",
-                      units => "N",
-                      metrics => [{"tcpkali.traffic.msgs.sent", counter},
-                                  {"tcpkali.traffic.msgs.rcvd", counter}]}},
-            {graph, #{title => "Latency",
-                      units => "ms",
-                      metrics => [{"tcpkali.latency.message.min", gauge},
-                                  {"tcpkali.latency.message.mean", gauge},
-                                  {"tcpkali.latency.message.95", gauge},
-                                  {"tcpkali.latency.message.99", gauge},
-                                  {"tcpkali.latency.message.99.5", gauge},
-                                  {"tcpkali.latency.message.max", gauge}]}},
-            {graph, #{title => "Latency connect",
-                      units => "ms",
-                      metrics => [{"tcpkali.latency.connect.min", gauge},
-                                  {"tcpkali.latency.connect.mean", gauge},
-                                  {"tcpkali.latency.connect.95", gauge},
-                                  {"tcpkali.latency.connect.99", gauge},
-                                  {"tcpkali.latency.connect.99.5", gauge},
-                                  {"tcpkali.latency.connect.max", gauge}]}}
+            {graph, #{title => "Traffic bitrate (aggregated)",
+                      units => "bits/sec",
+                      metrics => [
+                                  {"tcpkali.traffic.bitrate.in", derived, #{resolver => traffic_in_resolver}}
+%                                  {"tcpkali.traffic.bitrate.out", derived, #{resolver => traffic_out_resolver}}
+                                  ]}}
         ]}
     ].
 
-start(#state{executable = Exec} = State, _Meta, Options) ->
+metric_by_name("tcpkali.latency.connect." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Latency connect", units => "ms", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.latency.message." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Latency", units => "ms", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.traffic.bitrate." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Traffic bitrate", units => "bits/s", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.connections.total." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Connections total", units => "N", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.traffic.msgs." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.connections.opened" ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name(_) -> undefined.
+
+start(#state{executable = Exec} = State, Meta, Options) ->
     Command = Exec ++ lists:foldl(fun({raw, Raw}, A) -> A ++ " " ++ Raw;
                         ({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
                         ({Opt, Val}, A) ->
@@ -83,17 +66,19 @@ start(#state{executable = Exec} = State, _Meta, Options) ->
                                 1 -> A ++ " -" ++ L ++ Val2;
                                 _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
                             "", Options),
-    lager:info("Executing ~p...", [Command]),
-    case run(Command) of
+    WorkerID = proplists:get_value(worker_id, Meta),
+    case run(Command, WorkerID) of
         0 -> ok;
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
     {nil, State}.
 
-start_cmd(#state{executable = Exec} = State, _Meta, "tcpkali " ++ Options) ->
+start_cmd(#state{executable = Exec} = State, Meta, "tcpkali " ++ Options) ->
     Command = Exec ++ " " ++ Options,
-    lager:info("Executing ~p...", [Command]),
-    case run(Command) of
+    WorkerID = proplists:get_value(worker_id, Meta),
+    PoolID = proplists:get_value(pool_id, Meta),
+    ID = lists:flatten(io_lib:format("~b.~b", [PoolID, WorkerID])),
+    case run(Command, ID) of
         0 -> ok;
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
@@ -176,9 +161,11 @@ prepare_val(Val) when is_list(Val) ->
         _ -> "'" ++ Val ++ "'"
     end.
 
-run(Command) ->
-    erlang:spawn(?MODULE, statsd, []),
-    {ok, Pid, _OsPid} = exec:run(Command, [monitor, stdout, stderr]),
+run(Command, WorkerID) ->
+    StatsdPort = spawn_statsd(WorkerID),
+    PortOption = lists:flatten(io_lib:format(" --statsd-port ~b", [StatsdPort])),
+    lager:info("Executing ~p...", [Command ++ PortOption]),
+    {ok, Pid, _OsPid} = exec:run(Command ++ PortOption, [monitor, stdout, stderr]),
     get_data(Pid).
 
 get_data(Pid) ->
@@ -190,26 +177,53 @@ get_data(Pid) ->
         {'DOWN', _ , _, _, normal} -> 0
     end.
 
-statsd() ->
-    {ok, ListenSocket} = gen_udp:open(?StatsdPort, [binary, {active, false}]),
-    accept(ListenSocket).
+spawn_statsd(WorkerID) ->
+    erlang:spawn(?MODULE, statsd, [self(), WorkerID]),
+    receive
+        {started, Port} -> Port
+    after
+        5000 -> erlang:error(statsd_start_timed_out)
+    end.
 
-parse(<<>>) -> ok;
-parse(Bin) ->
-    lists:map(fun report/1, binary:split(Bin, <<"\n">>, [global])).
+statsd(Parent, WorkerID) ->
+    {ok, ListenSocket} = gen_udp:open(0, [binary, {active, false}]),
+    {ok, Port} = inet:port(ListenSocket),
+    Parent ! {started, Port},
+    accept(ListenSocket, WorkerID).
 
-report(<<>>) -> ok;
-report(Bin) ->
+parse(<<>>, _) -> ok;
+parse(Bin, WId) ->
+    lists:map(fun (B) -> report(B, WId) end, binary:split(Bin, <<"\n">>, [global])).
+
+report(<<>>, _) -> ok;
+report(Bin, WorkerID) ->
     case binary:split(Bin, [<<"|">>, <<":">>], [global]) of
         [Metric, Value, Type|_] ->
-                                 MetricStr = binary_to_list(Metric),
-                                 {TypeAtom, ValueInt} = case Type of
-                                                <<"c">> -> {counter, parse_int(Value)};
-                                                <<"g">> -> {gauge, parse_int(Value)};
-                                                _ -> lager:info("Unknown type ~p", [Type]), gauge
-                                            end,
-                                 mzb_metrics:notify({MetricStr, TypeAtom}, ValueInt);
+            MetricStr = binary_to_list(Metric),
+            {TypeAtom, ValueInt} =
+                case Type of
+                    <<"c">> -> {counter, parse_int(Value)};
+                    <<"g">> -> {gauge, parse_int(Value)};
+                    _ -> lager:info("Unknown type ~p", [Type]), gauge
+                end,
+            case TypeAtom of
+                gauge -> notify(MetricStr ++ "." ++ WorkerID, TypeAtom, ValueInt);
+                counter -> notify(MetricStr, TypeAtom, ValueInt)
+            end;
         _ -> lager:info("Unknown format: ~s", [Bin])
+    end.
+
+notify(Metric, Type, Value) ->
+    case metric_by_name(Metric) of
+        undefined -> ignore;
+        MetricSpec ->
+            case erlang:get({metric_cache, MetricSpec}) of
+                declared -> ok;
+                undefined ->
+                    mzb_metrics:declare_metrics([MetricSpec]),
+                    erlang:put({metric_cache, MetricSpec}, declared)
+            end,
+            mzb_metrics:notify({Metric, Type}, Value)
     end.
 
 parse_int(Bin) ->
@@ -220,10 +234,10 @@ parse_int(Bin) ->
             erlang:round(erlang:binary_to_float(Bin))
     end.
 
-accept(Socket) ->
+accept(Socket, WId) ->
     inet:setopts(Socket, [{active, once}]),
     receive
         {udp, Socket, _Host, _Port, Binary} ->
-            parse(Binary),
-            accept(Socket)
+            parse(Binary, WId),
+            accept(Socket, WId)
     end.
