@@ -161,14 +161,24 @@ metric_by_name("tcpkali.traffic.bitrate." ++ _) ->
     undefined;
 metric_by_name("tcpkali.connections.total." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Connections total", units => "N", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.connections.opened." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.connections.opened" = Name) ->
     {group, "Tcpkali (aggregated)", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.msgs.rcvd." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.msgs.sent." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.msgs." ++ _ = Name) ->
     {group, "Tcpkali (aggregated)", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.data.writes" ++ _) ->
     undefined;
 metric_by_name("tcpkali.traffic.data.reads" ++ _) ->
     undefined;
+metric_by_name("tcpkali.traffic.data.sent." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.data.rcvd." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
     {group, "Tcpkali (aggregated)", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.pools_num" = Name) ->
@@ -334,9 +344,13 @@ report(Bin, WorkerID) ->
                     <<"g">> -> {gauge, parse_int(Value)};
                     _ -> lager:info("Unknown type ~p", [Type]), gauge
                 end,
+
             case TypeAtom of
-                gauge -> notify(MetricStr ++ "." ++ WorkerID, TypeAtom, ValueInt);
-                counter -> notify(MetricStr, TypeAtom, ValueInt)
+                gauge ->
+                    notify(MetricStr ++ "." ++ WorkerID, TypeAtom, ValueInt);
+                counter ->
+                    notify(MetricStr ++ "." ++ WorkerID, TypeAtom, ValueInt),
+                    notify(MetricStr, TypeAtom, ValueInt)
             end;
         _ -> lager:info("Unknown format: ~s", [Bin])
     end.
