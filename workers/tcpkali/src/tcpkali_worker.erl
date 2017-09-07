@@ -10,7 +10,11 @@
     json2cbor/4,
     encode/4,
     replace_expressions/2,
-    replace_back/2
+    replace_back/2,
+    traffic_in_resolver/0,
+    traffic_out_resolver/0,
+    connections_in_resolver/0,
+    connections_out_resolver/0
 ]).
 
 -define(Timeout, 5000).
@@ -34,26 +38,80 @@ metrics() ->
             {graph, #{title => "Traffic bitrate (aggregated)",
                       units => "bits/sec",
                       metrics => [
-                                  {"tcpkali.traffic.bitrate.in", derived, #{resolver => traffic_in_resolver}}
-%                                  {"tcpkali.traffic.bitrate.out", derived, #{resolver => traffic_out_resolver}}
+                                  {"tcpkali.traffic.bitrate.in", derived, #{resolver => traffic_in_resolver}},
+                                  {"tcpkali.traffic.bitrate.out", derived, #{resolver => traffic_out_resolver}}
+                                  ]}},
+            {graph, #{title => "Connections total (aggregated)",
+                      units => "N",
+                      metrics => [
+                                  {"tcpkali.connections.total.in", derived, #{resolver => connections_in_resolver}},
+                                  {"tcpkali.connections.total.out", derived, #{resolver => connections_out_resolver}}
                                   ]}}
         ]}
     ].
+
+traffic_in_resolver() ->
+    aggregate_sum("tcpkali.traffic.bitrate.in").
+
+traffic_out_resolver() ->
+    aggregate_sum("tcpkali.traffic.bitrate.out").
+
+connections_in_resolver() ->
+    aggregate_sum("tcpkali.connections.total.in").
+
+connections_out_resolver() ->
+    aggregate_sum("tcpkali.connections.total.out").
+
+aggregate_sum(Name) ->
+    case get_metric("tcpkali.pools_num", undefined) of
+        undefined -> erlang:error(undefined_number_of_pools);
+        Pools ->
+            lists:foldl(
+                fun (P, Acc1) ->
+                    Workers = get_metric("tcpkali.workers_num.pool~b", [P], 0),
+                    lists:foldl(
+                        fun (W, Acc2) ->
+                            Acc2 + get_metric("~s.~b.~b", [Name, P, W], 0)
+                        end, Acc1, lists:seq(1, Workers))
+                end, 0, lists:seq(1, Pools))
+    end.
+
+get_metric(Format, Args, Default) ->
+    get_metric(lists:flatten(io_lib:format(Format, Args)), Default).
+
+get_metric(Name, Default) ->
+    try mzb_metrics:get_value(Name) of
+        Val -> Val
+    catch
+        error:{badarg, _, _} -> Default
+    end.
 
 metric_by_name("tcpkali.latency.connect." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Latency connect", units => "ms", metrics => [{Name, gauge}]}}]};
 metric_by_name("tcpkali.latency.message." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Latency", units => "ms", metrics => [{Name, gauge}]}}]};
-metric_by_name("tcpkali.traffic.bitrate." ++ _ = Name) ->
+metric_by_name("tcpkali.traffic.bitrate.in." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Traffic bitrate", units => "bits/s", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.traffic.bitrate.out." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Traffic bitrate", units => "bits/s", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.traffic.bitrate." ++ _) ->
+    undefined;
 metric_by_name("tcpkali.connections.total." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Connections total", units => "N", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.connections.opened" = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.msgs." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.data.writes" ++ _) ->
+    undefined;
+metric_by_name("tcpkali.traffic.data.reads" ++ _) ->
+    undefined;
 metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
-metric_by_name("tcpkali.connections.opened" ++ _ = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.pools_num" = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Pools num", units => "N", metrics => [{Name, gauge}]}}]};
+metric_by_name("tcpkali.workers_num." ++ _ = Name) ->
+    {group, "Tcpkali", [{graph, #{title => "Workers num", units => "N", metrics => [{Name, gauge}]}}]};
 metric_by_name(_) -> undefined.
 
 start(#state{executable = Exec} = State, Meta, Options) ->
@@ -66,8 +124,8 @@ start(#state{executable = Exec} = State, Meta, Options) ->
                                 1 -> A ++ " -" ++ L ++ Val2;
                                 _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
                             "", Options),
-    WorkerID = proplists:get_value(worker_id, Meta),
-    case run(Command, WorkerID) of
+    ID = report_worker_nums(Meta),
+    case run(Command, ID) of
         0 -> ok;
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
@@ -75,14 +133,21 @@ start(#state{executable = Exec} = State, Meta, Options) ->
 
 start_cmd(#state{executable = Exec} = State, Meta, "tcpkali " ++ Options) ->
     Command = Exec ++ " " ++ Options,
-    WorkerID = proplists:get_value(worker_id, Meta),
-    PoolID = proplists:get_value(pool_id, Meta),
-    ID = lists:flatten(io_lib:format("~b.~b", [PoolID, WorkerID])),
+    ID = report_worker_nums(Meta),
     case run(Command, ID) of
         0 -> ok;
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
     {nil, State}.
+
+report_worker_nums(Meta) ->
+    WorkerID = proplists:get_value(worker_id, Meta),
+    PoolID = proplists:get_value(pool_id, Meta),
+    PoolNum = proplists:get_value(pools_num, Meta),
+    WorkersNum = proplists:get_value(pool_size, Meta),
+    notify(lists:flatten(io_lib:format("tcpkali.workers_num.pool~b", [PoolID])), gauge, WorkersNum),
+    notify("tcpkali.pools_num", gauge, PoolNum),
+    lists:flatten(io_lib:format("~b.~b", [PoolID, WorkerID])).
 
 generate_filler(N, Id) ->
     Prefix = "\\{" ++ erlang:integer_to_list(Id),
