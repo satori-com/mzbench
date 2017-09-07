@@ -14,7 +14,19 @@
     traffic_in_resolver/0,
     traffic_out_resolver/0,
     connections_in_resolver/0,
-    connections_out_resolver/0
+    connections_out_resolver/0,
+    latency_mean_resolver/0,
+    latency_min_resolver/0,
+    latency_95_resolver/0,
+    latency_99_resolver/0,
+    latency_99_5_resolver/0,
+    latency_max_resolver/0,
+    latency_connect_mean_resolver/0,
+    latency_connect_min_resolver/0,
+    latency_connect_95_resolver/0,
+    latency_connect_99_resolver/0,
+    latency_connect_99_5_resolver/0,
+    latency_connect_max_resolver/0
 ]).
 
 -define(Timeout, 5000).
@@ -46,23 +58,71 @@ metrics() ->
                       metrics => [
                                   {"tcpkali.connections.total.in", derived, #{resolver => connections_in_resolver}},
                                   {"tcpkali.connections.total.out", derived, #{resolver => connections_out_resolver}}
-                                  ]}}
+                                  ]}},
+            {graph, #{title => "Latency (aggregated)",
+                      units => "ms",
+                      metrics => [
+                                  {"tcpkali.latency.message.mean", derived, #{resolver => latency_mean_resolver}},
+                                  {"tcpkali.latency.message.min", derived, #{resolver => latency_min_resolver}},
+                                  {"tcpkali.latency.message.95", derived, #{resolver => latency_95_resolver}},
+                                  {"tcpkali.latency.message.99", derived, #{resolver => latency_99_resolver}},
+                                  {"tcpkali.latency.message.99.5", derived, #{resolver => latency_99_5_resolver}},
+                                  {"tcpkali.latency.message.max", derived, #{resolver => latency_max_resolver}}
+                                 ]}},
+            {graph, #{title => "Latency connect (aggregated)",
+                      units => "ms",
+                      metrics => [
+                                  {"tcpkali.latency.connect.mean", derived, #{resolver => latency_connect_mean_resolver}},
+                                  {"tcpkali.latency.connect.min", derived, #{resolver => latency_connect_min_resolver}},
+                                  {"tcpkali.latency.connect.95", derived, #{resolver => latency_connect_95_resolver}},
+                                  {"tcpkali.latency.connect.99", derived, #{resolver => latency_connect_99_resolver}},
+                                  {"tcpkali.latency.connect.99.5", derived, #{resolver => latency_connect_99_5_resolver}},
+                                  {"tcpkali.latency.connect.max", derived, #{resolver => latency_connect_max_resolver}}
+                                 ]}}
         ]}
     ].
 
-traffic_in_resolver() ->
-    aggregate_sum("tcpkali.traffic.bitrate.in").
+traffic_in_resolver() -> aggregate_sum("tcpkali.traffic.bitrate.in").
+traffic_out_resolver() -> aggregate_sum("tcpkali.traffic.bitrate.out").
+connections_in_resolver() -> aggregate_sum("tcpkali.connections.total.in").
+connections_out_resolver() -> aggregate_sum("tcpkali.connections.total.out").
+latency_mean_resolver() -> aggregate_mean("tcpkali.latency.message.mean").
+latency_min_resolver() -> aggregate_min("tcpkali.latency.message.min").
+latency_95_resolver() -> aggregate_percentile("tcpkali.latency.message.95", 95).
+latency_99_resolver() -> aggregate_percentile("tcpkali.latency.message.99", 99).
+latency_99_5_resolver() -> aggregate_percentile("tcpkali.latency.messeage.99.5", 99.5).
+latency_max_resolver() -> aggregate_max("tcpkali.latency.message.max").
+latency_connect_mean_resolver() -> aggregate_mean("tcpkali.latency.connect.mean").
+latency_connect_min_resolver() -> aggregate_min("tcpkali.latency.connect.min").
+latency_connect_95_resolver() -> aggregate_percentile("tcpkali.latency.connect.95", 95).
+latency_connect_99_resolver() -> aggregate_percentile("tcpkali.latency.connect.99", 99).
+latency_connect_99_5_resolver() -> aggregate_percentile("tcpkali.latency.connect.99.5", 99.5).
+latency_connect_max_resolver() -> aggregate_max("tcpkali.latency.connect.max").
 
-traffic_out_resolver() ->
-    aggregate_sum("tcpkali.traffic.bitrate.out").
+aggregate_percentile(_Name, _Percentile) ->
+    0.
 
-connections_in_resolver() ->
-    aggregate_sum("tcpkali.connections.total.in").
+aggregate_mean(Name) ->
+    {Time, Messages} = metric_fold(
+        fun (Val, Pool, Worker, {TotalTime, TotalMsgs}) ->
+            MessagesIn = get_metric("tcpkali.traffic.msgs.rcvd.~b.~b", [Pool, Worker], 0),
+            {TotalTime + Val*MessagesIn, TotalMsgs + MessagesIn}
+        end, {0, 0}, Name),
+    case Messages of
+        0 -> 0;
+        _ -> Time / Messages
+    end.
 
-connections_out_resolver() ->
-    aggregate_sum("tcpkali.connections.total.out").
+aggregate_min(Name) ->
+    metric_fold(fun (Val, _, _, Acc) -> min(Acc, Val) end, 0, Name).
+
+aggregate_max(Name) ->
+    metric_fold(fun (Val, _, _, Acc) -> max(Acc, Val) end, 0, Name).
 
 aggregate_sum(Name) ->
+    metric_fold(fun (Val, _, _, Acc) -> Acc + Val end, 0, Name).
+
+metric_fold(Fun, InitialAcc, Name) ->
     case get_metric("tcpkali.pools_num", undefined) of
         undefined -> erlang:error(undefined_number_of_pools);
         Pools ->
@@ -71,9 +131,9 @@ aggregate_sum(Name) ->
                     Workers = get_metric("tcpkali.workers_num.pool~b", [P], 0),
                     lists:foldl(
                         fun (W, Acc2) ->
-                            Acc2 + get_metric("~s.~b.~b", [Name, P, W], 0)
+                            Fun(get_metric("~s.~b.~b", [Name, P, W], 0), P, W, Acc2)
                         end, Acc1, lists:seq(1, Workers))
-                end, 0, lists:seq(1, Pools))
+                end, InitialAcc, lists:seq(1, Pools))
     end.
 
 get_metric(Format, Args, Default) ->
