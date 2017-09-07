@@ -114,7 +114,7 @@ aggregate_mean(Name) ->
     end.
 
 aggregate_min(Name) ->
-    metric_fold(fun (Val, _, _, Acc) -> min(Acc, Val) end, 0, Name).
+    metric_fold(fun (Val, _, _, Acc) -> min(Acc, Val) end, undefined, Name).
 
 aggregate_max(Name) ->
     metric_fold(fun (Val, _, _, Acc) -> max(Acc, Val) end, 0, Name).
@@ -131,7 +131,10 @@ metric_fold(Fun, InitialAcc, Name) ->
                     Workers = get_metric("tcpkali.workers_num.pool~b", [P], 0),
                     lists:foldl(
                         fun (W, Acc2) ->
-                            Fun(get_metric("~s.~b.~b", [Name, P, W], 0), P, W, Acc2)
+                            case get_metric("~s.~b.~b", [Name, P, W], undefined) of
+                                undefined -> Acc2;
+                                Val -> Fun(Val, P, W, Acc2)
+                            end
                         end, Acc1, lists:seq(1, Workers))
                 end, InitialAcc, lists:seq(1, Pools))
     end.
