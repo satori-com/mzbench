@@ -109,9 +109,9 @@ metric_by_name("tcpkali.traffic.data.reads" ++ _) ->
 metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.pools_num" = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Pools num", units => "N", metrics => [{Name, gauge}]}}]};
+    {group, "Tcpkali", [{graph, #{title => "Pools num", units => "N", metrics => [{Name, gauge, #{visibility => false}}]}}]};
 metric_by_name("tcpkali.workers_num." ++ _ = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Workers num", units => "N", metrics => [{Name, gauge}]}}]};
+    {group, "Tcpkali", [{graph, #{title => "Workers num", units => "N", metrics => [{Name, gauge, #{visibility => false}}]}}]};
 metric_by_name(_) -> undefined.
 
 start(#state{executable = Exec} = State, Meta, Options) ->
