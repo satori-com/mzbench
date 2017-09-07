@@ -46,20 +46,20 @@ initial_state() ->
 
 metrics() ->
     [
-        {group, "Tcpkali", [
-            {graph, #{title => "Traffic bitrate (aggregated)",
+        {group, "Tcpkali (aggregated)", [
+            {graph, #{title => "Traffic bitrate",
                       units => "bits/sec",
                       metrics => [
                                   {"tcpkali.traffic.bitrate.in", derived, #{resolver => traffic_in_resolver}},
                                   {"tcpkali.traffic.bitrate.out", derived, #{resolver => traffic_out_resolver}}
                                   ]}},
-            {graph, #{title => "Connections total (aggregated)",
+            {graph, #{title => "Connections total",
                       units => "N",
                       metrics => [
                                   {"tcpkali.connections.total.in", derived, #{resolver => connections_in_resolver}},
                                   {"tcpkali.connections.total.out", derived, #{resolver => connections_out_resolver}}
                                   ]}},
-            {graph, #{title => "Latency (aggregated)",
+            {graph, #{title => "Latency",
                       units => "ms",
                       metrics => [
                                   {"tcpkali.latency.message.mean", derived, #{resolver => latency_mean_resolver}},
@@ -69,7 +69,7 @@ metrics() ->
                                   {"tcpkali.latency.message.99.5", derived, #{resolver => latency_99_5_resolver}},
                                   {"tcpkali.latency.message.max", derived, #{resolver => latency_max_resolver}}
                                  ]}},
-            {graph, #{title => "Latency connect (aggregated)",
+            {graph, #{title => "Latency connect",
                       units => "ms",
                       metrics => [
                                   {"tcpkali.latency.connect.mean", derived, #{resolver => latency_connect_mean_resolver}},
@@ -159,15 +159,15 @@ metric_by_name("tcpkali.traffic.bitrate." ++ _) ->
 metric_by_name("tcpkali.connections.total." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Connections total", units => "N", metrics => [{Name, gauge}]}}]};
 metric_by_name("tcpkali.connections.opened" = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
+    {group, "Tcpkali (aggregated)", [{graph, #{title => "Connections opened", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.msgs." ++ _ = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
+    {group, "Tcpkali (aggregated)", [{graph, #{title => "Messages", units => "N", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.data.writes" ++ _) ->
     undefined;
 metric_by_name("tcpkali.traffic.data.reads" ++ _) ->
     undefined;
 metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
-    {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
+    {group, "Tcpkali (aggregated)", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.pools_num" = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Pools num", units => "N", metrics => [{Name, gauge, #{visibility => false}}]}}]};
 metric_by_name("tcpkali.workers_num." ++ _ = Name) ->
