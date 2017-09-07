@@ -268,9 +268,12 @@ convert(X, T) -> erlang:error({invalid_conversion, T, X}).
 
 -spec enumerate_pools([script_expr()]) -> [script_expr()].
 enumerate_pools(Pools) ->
+    PoolsNum = lists:sum(lists:map(fun (#operation{name = pool}) -> 1; (_) -> 0 end, Pools)),
     {Pools2, _} = lists:mapfoldl(
         fun (#operation{name = pool} = Op, Number) ->
-                {mzbl_ast:add_meta(Op, [{pool_name, "pool" ++ integer_to_list(Number)}, {pool_id, Number}]), Number + 1};
+                {mzbl_ast:add_meta(Op, [{pools_num, PoolsNum},
+                                        {pool_name, "pool" ++ integer_to_list(Number)},
+                                        {pool_id, Number}]), Number + 1};
             (Op, Number) ->
                 {Op, Number}
         end, 1, Pools),
