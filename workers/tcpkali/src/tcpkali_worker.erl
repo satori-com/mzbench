@@ -99,8 +99,11 @@ latency_connect_95_resolver() -> aggregate_percentile("tcpkali.latency.connect.9
 latency_connect_99_resolver() -> aggregate_percentile("tcpkali.latency.connect.99", 99).
 latency_connect_max_resolver() -> aggregate_max("tcpkali.latency.connect.max").
 
-aggregate_percentile(_Name, _Percentile) ->
-    0.
+% Temporarily use average while working on better solution for merging
+aggregate_percentile("tcpkali.latency.message." ++ _ = Metric, _Percentile) ->
+    aggregate_mean(Metric, "tcpkali.traffic.msgs.rcvd.");
+aggregate_percentile("tcpkali.latency.connect." ++ _ = Metric, _Percentile) ->
+    aggregate_mean(Metric, "tcpkali.connections.opened.").
 
 aggregate_mean(Name, WeightMetric) ->
     {Time, Messages} = metric_fold(
