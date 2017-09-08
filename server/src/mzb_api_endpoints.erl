@@ -457,6 +457,12 @@ format_results(#{results:= Results}) ->
             {list_to_binary(Name), #{type => counter, rps => format_percentiles(Percentiles)}};
             ({Name, counter, {Val, Percentiles}}) ->
             {list_to_binary(Name), #{type => counter, value => Val, rps => format_percentiles(Percentiles)}};
+            ({Name, gauge, {undefined, Percentiles}}) ->
+            {list_to_binary(Name), #{type => gauge, percentiles => format_percentiles(Percentiles)}};
+            ({Name, gauge, {Val, Percentiles}}) ->
+            {list_to_binary(Name), #{type => gauge, value => Val, percentiles => format_percentiles(Percentiles)}};
+            ({Name, gauge, Percentiles}) ->
+            {list_to_binary(Name), #{type => gauge, percentiles => format_percentiles(Percentiles)}};
             ({Name, Type, Percentiles}) ->
             {list_to_binary(Name), #{type => Type, percentiles => format_percentiles(Percentiles)}}
         end, Results),

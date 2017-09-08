@@ -1040,8 +1040,13 @@ aggregate_results_for_metric({Name, counter, _}, Config, Percentiles, _) ->
 aggregate_results_for_metric({Name, Type, _}, Config, Percentiles, _) when Type == gauge; Type == derived ->
     File = mzb_api_bench:metrics_file(Name, Config),
     Data = metric_file_fold(File, fun (_, Value, Acc) -> [Value|Acc] end, []),
+    FinalValue =
+        case Data of
+            [V|_] -> V;
+            [] -> undefined
+        end,
     Final = statistics(Data, Percentiles),
-    [{Name, gauge, Final}];
+    [{Name, gauge, {FinalValue, Final}}];
 aggregate_results_for_metric({Name, histogram, _}, _, Percentiles, Histograms) ->
     case proplists:get_value(Name, Histograms, undefined) of
         undefined -> [];
