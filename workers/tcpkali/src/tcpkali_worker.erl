@@ -86,13 +86,13 @@ traffic_in_resolver() -> aggregate_sum("tcpkali.traffic.bitrate.in").
 traffic_out_resolver() -> aggregate_sum("tcpkali.traffic.bitrate.out").
 connections_in_resolver() -> aggregate_sum("tcpkali.connections.total.in").
 connections_out_resolver() -> aggregate_sum("tcpkali.connections.total.out").
-latency_mean_resolver() -> aggregate_mean("tcpkali.latency.message.mean").
+latency_mean_resolver() -> aggregate_mean("tcpkali.latency.message.mean", "tcpkali.traffic.msgs.rcvd.").
 latency_min_resolver() -> aggregate_min("tcpkali.latency.message.min").
 latency_95_resolver() -> aggregate_percentile("tcpkali.latency.message.95", 95).
 latency_99_resolver() -> aggregate_percentile("tcpkali.latency.message.99", 99).
 latency_99_5_resolver() -> aggregate_percentile("tcpkali.latency.messeage.99.5", 99.5).
 latency_max_resolver() -> aggregate_max("tcpkali.latency.message.max").
-latency_connect_mean_resolver() -> aggregate_mean("tcpkali.latency.connect.mean").
+latency_connect_mean_resolver() -> aggregate_mean("tcpkali.latency.connect.mean", "tcpkali.connections.opened.").
 latency_connect_min_resolver() -> aggregate_min("tcpkali.latency.connect.min").
 latency_connect_95_resolver() -> aggregate_percentile("tcpkali.latency.connect.95", 95).
 latency_connect_99_resolver() -> aggregate_percentile("tcpkali.latency.connect.99", 99).
@@ -102,10 +102,10 @@ latency_connect_max_resolver() -> aggregate_max("tcpkali.latency.connect.max").
 aggregate_percentile(_Name, _Percentile) ->
     0.
 
-aggregate_mean(Name) ->
+aggregate_mean(Name, WeightMetric) ->
     {Time, Messages} = metric_fold(
         fun (Val, Pool, Worker, {TotalTime, TotalMsgs}) ->
-            MessagesIn = get_metric("tcpkali.traffic.msgs.rcvd.~b.~b", [Pool, Worker], 0),
+            MessagesIn = get_metric("~s~b.~b", [WeightMetric, Pool, Worker], 0),
             {TotalTime + Val*MessagesIn, TotalMsgs + MessagesIn}
         end, {0, 0}, Name),
     case Messages of
