@@ -40,10 +40,10 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 
 ",
-    ?assertEqual([{"docker0", [{ibytes, 0}, {obytes, 0}]},
-                  {"enp0s3",  [{ibytes, 66976}, {obytes, 60243}]},
-                  {"enp0s8",  [{ibytes, 0}, {obytes, 1566}]},
-                  {"lo",      [{ibytes, 8277}, {obytes, 8277}]}],
+    ?assertEqual([{"docker0", [{ibytes, 0}, {obytes, 0}, {ipkts, 0}, {opkts, 0}]},
+                  {"enp0s3",  [{ibytes, 66976}, {obytes, 60243}, {ipkts, 627}, {opkts, 477}]},
+                  {"enp0s8",  [{ibytes, 0}, {obytes, 1566}, {ipkts, 0}, {opkts, 21}]},
+                  {"lo",      [{ibytes, 8277}, {obytes, 8277}, {ipkts, 88}, {opkts, 88}]}],
                  mzb_system_load_monitor:parse_linux_netstat_output(Output)).
 
 netstat_linux2_parse_test() ->
@@ -68,8 +68,8 @@ lo        Link encap:Local Loopback
           RX bytes:9170812056 (8.5 GiB)  TX bytes:9170812056 (8.5 GiB)
 
 ",
-    ?assertEqual([{"eth0", [{ibytes, 16533820912}, {obytes, 128116084567}]},
-                  {"lo", [{ibytes, 9170812056}, {obytes, 9170812056}]}],
+    ?assertEqual([{"eth0", [{ibytes, 16533820912}, {obytes, 128116084567}, {ipkts, 217532415}, {opkts, 259342117}]},
+                  {"lo", [{ibytes, 9170812056}, {obytes, 9170812056}, {ipkts, 108100757}, {opkts, 108100757}]}],
                  mzb_system_load_monitor:parse_linux_netstat_output(Output)).
 
 netstat_darwin_parse_test() ->
@@ -94,13 +94,13 @@ bridg 1500  <Link#9>    7a:31:c1:eb:5a:00        0     0          0        1    
 tun0  1500  <Link#10>                         3893     0    1604324     5336     0    1195731     0
 tun0  1500  192.168.2.6/3 192.168.2.6         3893     -    1604324     5336     -    1195731     -
 ",
-    ?assertEqual([{"awdl0",   [{ibytes, 0}, {obytes, 3151}]},
-                  {"bridg-0", [{ibytes, 0}, {obytes, 342}]},
-                  {"bridg-1", [{ibytes, 3}, {obytes, 346}]},
-                  {"en0",     [{ibytes, 158702977}, {obytes, 17967004}]},
-                  {"en1",     [{ibytes, 0}, {obytes, 0}]},
-                  {"en2",     [{ibytes, 0}, {obytes, 0}]},
-                  {"lo0",     [{ibytes, 238271}, {obytes, 238271}]},
-                  {"p2p0",    [{ibytes, 0}, {obytes, 0}]},
-                  {"tun0",    [{ibytes, 1604324}, {obytes, 1195731}]}],
+    ?assertEqual([{"awdl0",   [{ibytes, 0}, {obytes, 3151}, {ipkts, 0}, {opkts, 20}]},
+                  {"bridg-0", [{ibytes, 0}, {obytes, 342}, {ipkts, 0}, {opkts, 1}]},
+                  {"bridg-1", [{ibytes, 3}, {obytes, 346}, {ipkts, 0}, {opkts, 1}]},
+                  {"en0",     [{ibytes, 158702977}, {obytes, 17967004}, {ipkts, 163292}, {opkts, 131377}]},
+                  {"en1",     [{ibytes, 0}, {obytes, 0}, {ipkts, 0}, {opkts, 0}]},
+                  {"en2",     [{ibytes, 0}, {obytes, 0}, {ipkts, 0}, {opkts, 0}]},
+                  {"lo0",     [{ibytes, 238271}, {obytes, 238271}, {ipkts, 5289}, {opkts, 5289}]},
+                  {"p2p0",    [{ibytes, 0}, {obytes, 0}, {ipkts, 0}, {opkts, 0}]},
+                  {"tun0",    [{ibytes, 1604324}, {obytes, 1195731}, {ipkts, 3893}, {opkts, 5336}]}],
                  mzb_system_load_monitor:parse_darwin_netstat_output(Output)).
