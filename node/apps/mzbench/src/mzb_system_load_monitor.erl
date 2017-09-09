@@ -45,13 +45,21 @@ metric_names() ->
                   units => "%",
                   metrics => [{metric_name("ram"), gauge}]}}] ++
 
-        [{graph, #{title => "Network transmit - " ++ I,
+        [{graph, #{title => "Network transmit (bytes) - " ++ I,
                   units => "bytes",
-                  metrics => [{metric_name("nettx." ++ I), gauge}]}} || I <- local_interfaces() ] ++
+                  metrics => [{metric_name("nettx.bytes." ++ I), gauge}]}} || I <- local_interfaces() ] ++
 
-        [{graph, #{title => "Network receive - " ++ I,
+        [{graph, #{title => "Network receive (bytes) - " ++ I,
                   units => "bytes",
-                  metrics => [{metric_name("netrx." ++ I), gauge}]}} || I <- local_interfaces() ]
+                  metrics => [{metric_name("netrx.bytes." ++ I), gauge}]}} || I <- local_interfaces() ] ++
+
+        [{graph, #{title => "Network transmit (packets) - " ++ I,
+                  units => "N",
+                  metrics => [{metric_name("nettx.pkts." ++ I), gauge}]}} || I <- local_interfaces() ] ++
+
+        [{graph, #{title => "Network receive (packets) - " ++ I,
+                  units => "N",
+                  metrics => [{metric_name("netrx.pkts." ++ I), gauge}]}} || I <- local_interfaces() ]
                   },
      {group, "MZBench Internals", [
         {graph, #{title => "Mailbox messages",
@@ -136,13 +144,24 @@ handle_info(trigger,
                     OldPL ->
                         CurrentRX = proplists:get_value(ibytes, PL),
                         OldRX = proplists:get_value(ibytes, OldPL),
+                        RXRate = (CurrentRX - OldRX) / (LastIntervalDuration / 1000),
+
                         CurrentTX = proplists:get_value(obytes, PL),
                         OldTX = proplists:get_value(obytes, OldPL),
-                        RXRate = (CurrentRX - OldRX) / (LastIntervalDuration / 1000),
                         TXRate = (CurrentTX - OldTX) / (LastIntervalDuration / 1000),
 
-                        ok = mzb_metrics:notify({metric_name("netrx."++IfName), gauge}, RXRate),
-                        ok = mzb_metrics:notify({metric_name("nettx."++IfName), gauge}, TXRate)
+                        CurrentRXpkts = proplists:get_value(ipkts, PL),
+                        OldRXpkts = proplists:get_value(ipkts, OldPL),
+                        RXPktRate = (CurrentRXpkts - OldRXpkts) / (LastIntervalDuration / 1000),
+
+                        CurrentTXpkts = proplists:get_value(opkts, PL),
+                        OldTXpkts = proplists:get_value(opkts, OldPL),
+                        TXPktRate = (CurrentTXpkts - OldTXpkts) / (LastIntervalDuration / 1000),
+
+                        ok = mzb_metrics:notify({metric_name("netrx.bytes."++IfName), gauge}, RXRate),
+                        ok = mzb_metrics:notify({metric_name("nettx.bytes."++IfName), gauge}, TXRate),
+                        ok = mzb_metrics:notify({metric_name("netrx.pkts."++IfName), gauge}, RXPktRate),
+                        ok = mzb_metrics:notify({metric_name("nettx.pkts."++IfName), gauge}, TXPktRate)
                 end
         end, NetStat),
 
@@ -237,7 +256,10 @@ parse_darwin_netstat_output(Str) ->
                         Name = proplists:get_value("Name", Proplist),
                         IBytes = proplists:get_value("Ibytes", Proplist),
                         OBytes = proplists:get_value("Obytes", Proplist),
-                        {true, {Name, [{ibytes, list_to_integer(IBytes)}, {obytes, list_to_integer(OBytes)}]}}
+                        Ipkts = proplists:get_value("Ipkts", Proplist),
+                        Opkts = proplists:get_value("Opkts", Proplist),
+                        {true, {Name, [{ibytes, list_to_integer(IBytes)}, {obytes, list_to_integer(OBytes)},
+                                       {ipkts, list_to_integer(Ipkts)}, {opkts, list_to_integer(Opkts)}]}}
                 catch
                     _:_ -> false
                 end
@@ -299,12 +321,25 @@ parse_netstat_sectionV1(Str) ->
             nomatch -> error({wrong_format, Str})
         end,
 
+    InPkts =
+        case re:run(Str, "RX packets:(\\d+)", [{capture, [1], list}]) of
+            {match, [InPktsStr]} -> erlang:list_to_integer(InPktsStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+
     Out =
         case re:run(Str, "TX bytes:(\\d+)", [{capture, [1], list}]) of
             {match, [OutStr]} -> erlang:list_to_integer(OutStr);
             nomatch -> error({wrong_format, Str})
         end,
-    {Name, [{ibytes, In}, {obytes, Out}]}.
+
+    OutPkts =
+        case re:run(Str, "TX packets:(\\d+)", [{capture, [1], list}]) of
+            {match, [OutPktsStr]} -> erlang:list_to_integer(OutPktsStr);
+            nomatch -> error({wrong_format, Str})
+        end,
+
+    {Name, [{ibytes, In}, {obytes, Out}, {ipkts, InPkts}, {opkts, OutPkts}]}.
 
 parse_netstat_sectionV2(Str) ->
     Name =
@@ -313,17 +348,17 @@ parse_netstat_sectionV2(Str) ->
             nomatch -> error({wrong_format, Str})
         end,
 
-    In =
-        case re:run(Str, "RX packets \\d+\\s+bytes (\\d+)", [{capture, [1], list}]) of
-            {match, [InStr]} -> erlang:list_to_integer(InStr);
+    {In, InPkts} =
+        case re:run(Str, "RX packets (\\d+)\\s+bytes (\\d+)", [{capture, [1,2], list}]) of
+            {match, [InPktsStr, InStr]} -> {erlang:list_to_integer(InStr), erlang:list_to_integer(InPktsStr)};
             nomatch -> error({wrong_format, Str})
         end,
 
-    Out =
-        case re:run(Str, "TX packets \\d+\\s+bytes (\\d+)", [{capture, [1], list}]) of
-            {match, [OutStr]} -> erlang:list_to_integer(OutStr);
+    {Out, OutPkts} =
+        case re:run(Str, "TX packets (\\d+)\\s+bytes (\\d+)", [{capture, [1,2], list}]) of
+            {match, [OutPktsStr, OutStr]} -> {erlang:list_to_integer(OutStr), erlang:list_to_integer(OutPktsStr)};
             nomatch -> error({wrong_format, Str})
         end,
 
-    {Name, [{ibytes, In}, {obytes, Out}]}.
+    {Name, [{ibytes, In}, {obytes, Out}, {ipkts, InPkts}, {opkts, OutPkts}]}.
 
