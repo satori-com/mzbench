@@ -89,7 +89,7 @@ check_loop_expr(List, Env) ->
     lists:all(fun(Expr) -> check_expr(Expr, Env) end, List).
 
 get_value(V, _) when is_number(V) -> [V];
-get_value(Metric, _) when is_list(Metric) -> mzb_metrics:get_by_wildcard(Metric);
+get_value(Metric, _) when is_list(Metric) -> [V || {_, V} <- mzb_metrics:get_by_wildcard(Metric)];
 get_value(Expr, Env) -> [mzbl_interpreter:eval_std(Expr, Env)].
 
 -spec check_expr(any(), [tuple()]) -> boolean().

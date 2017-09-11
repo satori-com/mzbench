@@ -87,7 +87,7 @@ get_by_wildcard(Wildcard) ->
     ets:foldl(fun({Name, _, Value}, A) -> 
         case re:run(Name, Regexp) of
             nomatch -> A;
-            _ -> [Value | A]
+            _ -> [{Name, Value} | A]
         end end, [], ?MODULE).
 
 final_trigger() ->
