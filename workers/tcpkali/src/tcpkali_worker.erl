@@ -17,15 +17,15 @@
     connections_out_resolver/0,
     latency_mean_resolver/0,
     latency_min_resolver/0,
+    latency_50_resolver/0,
     latency_95_resolver/0,
     latency_99_resolver/0,
-    latency_99_5_resolver/0,
     latency_max_resolver/0,
     latency_connect_mean_resolver/0,
     latency_connect_min_resolver/0,
+    latency_connect_50_resolver/0,
     latency_connect_95_resolver/0,
     latency_connect_99_resolver/0,
-    latency_connect_99_5_resolver/0,
     latency_connect_max_resolver/0
 ]).
 
@@ -64,9 +64,9 @@ metrics() ->
                       metrics => [
                                   {"tcpkali.latency.message.mean", derived, #{resolver => latency_mean_resolver}},
                                   {"tcpkali.latency.message.min", derived, #{resolver => latency_min_resolver}},
+                                  {"tcpkali.latency.message.50", derived, #{resolver => latency_50_resolver}},
                                   {"tcpkali.latency.message.95", derived, #{resolver => latency_95_resolver}},
                                   {"tcpkali.latency.message.99", derived, #{resolver => latency_99_resolver}},
-                                  {"tcpkali.latency.message.99.5", derived, #{resolver => latency_99_5_resolver}},
                                   {"tcpkali.latency.message.max", derived, #{resolver => latency_max_resolver}}
                                  ]}},
             {graph, #{title => "Latency connect",
@@ -74,9 +74,9 @@ metrics() ->
                       metrics => [
                                   {"tcpkali.latency.connect.mean", derived, #{resolver => latency_connect_mean_resolver}},
                                   {"tcpkali.latency.connect.min", derived, #{resolver => latency_connect_min_resolver}},
+                                  {"tcpkali.latency.connect.50", derived, #{resolver => latency_connect_50_resolver}},
                                   {"tcpkali.latency.connect.95", derived, #{resolver => latency_connect_95_resolver}},
                                   {"tcpkali.latency.connect.99", derived, #{resolver => latency_connect_99_resolver}},
-                                  {"tcpkali.latency.connect.99.5", derived, #{resolver => latency_connect_99_5_resolver}},
                                   {"tcpkali.latency.connect.max", derived, #{resolver => latency_connect_max_resolver}}
                                  ]}}
         ]}
@@ -88,15 +88,15 @@ connections_in_resolver() -> aggregate_sum("tcpkali.connections.total.in").
 connections_out_resolver() -> aggregate_sum("tcpkali.connections.total.out").
 latency_mean_resolver() -> aggregate_mean("tcpkali.latency.message.mean", "tcpkali.traffic.msgs.rcvd.").
 latency_min_resolver() -> aggregate_min("tcpkali.latency.message.min").
+latency_50_resolver() -> aggregate_percentile("tcpkali.latency.message.50", 50).
 latency_95_resolver() -> aggregate_percentile("tcpkali.latency.message.95", 95).
 latency_99_resolver() -> aggregate_percentile("tcpkali.latency.message.99", 99).
-latency_99_5_resolver() -> aggregate_percentile("tcpkali.latency.messeage.99.5", 99.5).
 latency_max_resolver() -> aggregate_max("tcpkali.latency.message.max").
 latency_connect_mean_resolver() -> aggregate_mean("tcpkali.latency.connect.mean", "tcpkali.connections.opened.").
 latency_connect_min_resolver() -> aggregate_min("tcpkali.latency.connect.min").
+latency_connect_50_resolver() -> aggregate_percentile("tcpkali.latency.connect.50", 50).
 latency_connect_95_resolver() -> aggregate_percentile("tcpkali.latency.connect.95", 95).
 latency_connect_99_resolver() -> aggregate_percentile("tcpkali.latency.connect.99", 99).
-latency_connect_99_5_resolver() -> aggregate_percentile("tcpkali.latency.connect.99.5", 99.5).
 latency_connect_max_resolver() -> aggregate_max("tcpkali.latency.connect.max").
 
 aggregate_percentile(_Name, _Percentile) ->
@@ -301,14 +301,32 @@ prepare_val(Val) when is_list(Val) ->
 
 run(Command, WorkerID) ->
     StatsdPort = spawn_statsd(WorkerID),
-    PortOption = lists:flatten(io_lib:format(" --statsd-port ~b", [StatsdPort])),
-    lager:info("Executing ~p...", [Command ++ PortOption]),
-    {ok, Pid, _OsPid} = exec:run(Command ++ PortOption, [monitor, stdout, stderr]),
+    CommandToExec = set_default_percentiles(set_statsd_port(Command, StatsdPort)),
+    lager:info("Executing ~p...", [CommandToExec]),
+    {ok, Pid, _OsPid} = exec:run(CommandToExec, [monitor, stdout, stderr]),
     get_data(Pid).
+
+set_statsd_port(Command, Port) ->
+    case is_arg_set(Command, "--statsd-port") of
+        false -> Command ++ lists:flatten(io_lib:format(" --statsd-port ~b", [Port]));
+        true -> Command
+    end.
+
+set_default_percentiles(Command) ->
+    case is_arg_set(Command, "--latency-percentiles") of
+        false -> Command ++ " --latency-percentiles 50,95,99";
+        true -> Command
+    end.
+
+is_arg_set(Command, Arg) ->
+    case re:run(Command, " " ++ Arg ++ " ") of
+        {match, _} -> true;
+        nomatch -> false
+    end.
 
 get_data(Pid) ->
     receive
-        {Stream, _Pid, Bytes} when (Stream == stdout) or (Stream == stderr) -> 
+        {Stream, _Pid, Bytes} when (Stream == stdout) or (Stream == stderr) ->
             lager:info("Output: ~s", [Bytes]),
             get_data(Pid);
         {'DOWN', _ , _, _, {exit_status, Code}} -> Code;
