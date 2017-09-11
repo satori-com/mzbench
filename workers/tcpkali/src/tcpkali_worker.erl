@@ -26,7 +26,9 @@
     latency_connect_50_resolver/0,
     latency_connect_95_resolver/0,
     latency_connect_99_resolver/0,
-    latency_connect_max_resolver/0
+    latency_connect_max_resolver/0,
+    pkts_in_resolver/0,
+    pkts_out_resolver/0
 ]).
 
 -define(Timeout, 5000).
@@ -78,6 +80,12 @@ metrics() ->
                                   {"tcpkali.latency.connect.95", derived, #{resolver => latency_connect_95_resolver}},
                                   {"tcpkali.latency.connect.99", derived, #{resolver => latency_connect_99_resolver}},
                                   {"tcpkali.latency.connect.max", derived, #{resolver => latency_connect_max_resolver}}
+                                 ]}},
+            {graph, #{title => "Packet rate",
+                      units => "packets/s",
+                      metrics => [
+                                  {"tcpkali.pkts.in", derived, #{resolver => pkts_in_resolver}},
+                                  {"tcpkali.pkts.out", derived, #{resolver => pkts_out_resolver}}
                                  ]}}
         ]}
     ].
@@ -98,6 +106,12 @@ latency_connect_50_resolver() -> aggregate_mean("tcpkali.latency.connect.50", "t
 latency_connect_95_resolver() -> aggregate_mean("tcpkali.latency.connect.95", "tcpkali.connections.opened."). %aggregate_percentile("tcpkali.latency.connect.95", 95).
 latency_connect_99_resolver() -> aggregate_mean("tcpkali.latency.connect.99", "tcpkali.connections.opened."). %aggregate_percentile("tcpkali.latency.connect.99", 99).
 latency_connect_max_resolver() -> aggregate_max("tcpkali.latency.connect.max").
+
+pkts_in_resolver() ->
+    lists:sum([V || {_, V} <- mzb_metrics:get_by_wildcard("systemload.netrx.pkts.*.*")]).
+
+pkts_out_resolver() ->
+    lists:sum([V || {_, V} <- mzb_metrics:get_by_wildcard("systemload.nettx.pkts.*.*")]).
 
 %aggregate_percentile(_Name, _Percentile) ->
 %    0.
