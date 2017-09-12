@@ -193,7 +193,9 @@ metric_by_name("tcpkali.traffic.data.sent." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.traffic.data.rcvd." ++ _ = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
-metric_by_name("tcpkali.traffic.data." ++ _ = Name) ->
+metric_by_name("tcpkali.traffic.data.sent" = Name) ->
+    {group, "Tcpkali (aggregated)", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
+metric_by_name("tcpkali.traffic.data.rcvd" = Name) ->
     {group, "Tcpkali (aggregated)", [{graph, #{title => "Traffic data", units => "bytes/s", metrics => [{Name, counter}]}}]};
 metric_by_name("tcpkali.pools_num" = Name) ->
     {group, "Tcpkali", [{graph, #{title => "Pools num", units => "N", metrics => [{Name, gauge, #{visibility => false}}]}}]};
