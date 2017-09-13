@@ -316,7 +316,7 @@ prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
 prepare_val(Val) when is_list(Val) ->
     case length(string:tokens(Val, " ")) of
         0 -> Val;
-        _ -> "'" ++ Val ++ "'"
+        _ -> "'" ++ re:replace(Val, "'", "'\"'\"'",[{return,list}, global]) ++ "'"
     end.
 
 run(Command, WorkerID) ->
