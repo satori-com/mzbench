@@ -308,7 +308,8 @@ format_byte(B) ->
 encode(State, Meta, "cbor", Str) ->
     json2cbor(State, Meta, Str);
 encode(State, _Meta, _, Str) ->
-    {Str, State}.
+    Str2 = re:replace(Str, "(?<EXPR>\\\\{.*})(?<NUM>\\([0-9]+\\))", "\\1", [{return,list},global]),
+    {Str2, State}.
 
 prepare_val(Val) when is_float(Val) ->   float_to_list(Val);
 prepare_val(Val) when is_integer(Val) -> integer_to_list(Val);
