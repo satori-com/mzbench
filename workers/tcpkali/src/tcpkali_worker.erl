@@ -259,7 +259,7 @@ replace_expressions(Str) ->
     replace_expressions(Str2, []).
 
 replace_expressions(Str, Acc) ->
-    RE = "(?<PREFIX>^.*)(?<EXPR>\\\\{.*})\\((?<NUM>[0-9]+)\\)(?<ENDING>.*$)",
+    RE = "(?<PREFIX>^.*)(?<EXPR>\\\\{.*?})\\((?<NUM>[0-9]+)\\)(?<ENDING>.*$)",
     case re:run(Str, RE, [{capture, [<<"PREFIX">>,<<"EXPR">>, <<"NUM">>, <<"ENDING">>], list}]) of
         {match, [Prefix, Expr, NumStr, Ending]} ->
             Num = erlang:list_to_integer(NumStr),
@@ -308,7 +308,7 @@ format_byte(B) ->
 encode(State, Meta, "cbor", Str) ->
     json2cbor(State, Meta, Str);
 encode(State, _Meta, _, Str) ->
-    Str2 = re:replace(Str, "(?<EXPR>\\\\{.*})(?<NUM>\\([0-9]+\\))", "\\1", [{return,list},global]),
+    Str2 = re:replace(Str, "(?<EXPR>\\\\{.*?})(?<NUM>\\([0-9]+\\))", "\\1", [{return,list},global]),
     {Str2, State}.
 
 prepare_val(Val) when is_float(Val) ->   float_to_list(Val);
