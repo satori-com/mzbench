@@ -14,11 +14,19 @@
     cast_to_type/2
    ]).
 
+-ifdef(USE_STRONG_RAND_BYTES).
+
+random_binary(N) -> crypto:strong_rand_bytes(N).
+
+-else.
+
 random_binary(N) -> crypto:rand_bytes(N).
 
-random_list(N) -> erlang:binary_to_list(crypto:rand_bytes(N)).
+-endif.
 
-random_string(N) -> base64:encode_to_string(crypto:strong_rand_bytes(N)).
+random_list(N) -> erlang:binary_to_list(random_binary(N)).
+
+random_string(N) -> base64:encode_to_string(random_binary(N)).
 
 random_number(N) -> crypto:rand_uniform(0, N).
 
@@ -77,4 +85,3 @@ cast_to_type(Value, TypedValue) when is_list(Value) and is_float(TypedValue) ->
 cast_to_type(Value, TypedValue) when is_list(Value) and is_binary(TypedValue) ->
     list_to_binary(Value);
 cast_to_type(Value, _) -> Value.
-
