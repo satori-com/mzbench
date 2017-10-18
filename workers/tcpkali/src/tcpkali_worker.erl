@@ -289,7 +289,14 @@ json2cbor(State, _Meta, Str, Type) ->
 
     {Str3, Expressions} = replace_expressions(Str2),
 
-    JSON = jiffy:decode(Str3, [return_maps]),
+    JSON =
+        try jiffy:decode(Str3, [return_maps])
+        catch
+            C:E ->
+                lager:error("Bad json: ~s", [Str3]),
+                erlang:raise(C, E, erlang:get_stacktrace())
+        end,
+
     CBORBin = erlang:iolist_to_binary(cbor:encode(JSON)),
     CBOR = replace_back(CBORBin, Expressions),
     Formatted =
