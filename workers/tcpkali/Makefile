@@ -29,6 +29,9 @@ generate_tgz: compile tcpkali-compile
 	cd pkgroot && tar czf ../${PKG_NAME}.tgz ./${PKG_NAME} && cd ..
 	rm -rf pkgroot
 
+compile_asn1:
+	cd src/ && erlc +der -bber ../tcpkali/asn1/TcpkaliOrchestration.asn1
+
 clean:
 	rm -rf log*
 	rm -rf data.*

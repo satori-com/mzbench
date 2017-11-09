@@ -1,11 +1,14 @@
 -module(tcpkali_worker).
 
+-include("TcpkaliOrchestration.hrl").
+
 -export([
     initial_state/0,
     metrics/0,
     statsd/2,
     start/3,
     start_cmd/3,
+    maxrate_for_latency/3,
     json2cbor/3,
     json2cbor/4,
     encode/4,
@@ -33,6 +36,9 @@
 
 -define(Timeout, 5000).
 -define(StatsdPort, 8125).
+-define(RateDiffMax, 0.05).
+-define(StepMax, 20).
+-define(StepMin, 1).
 
 -record(state, {
             executable :: string()
@@ -207,15 +213,7 @@ metric_by_name("tcpkali.workers_num." ++ _ = Name) ->
 metric_by_name(_) -> undefined.
 
 start(#state{executable = Exec} = State, Meta, Options) ->
-    Command = Exec ++ lists:foldl(fun({raw, Raw}, A) -> A ++ " " ++ Raw;
-                        ({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
-                        ({Opt, Val}, A) ->
-                            L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
-                            Val2 = prepare_val(Val),
-                            case length(L) of
-                                1 -> A ++ " -" ++ L ++ Val2;
-                                _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
-                            "", Options),
+    Command = Exec ++ format_command(Options),
     ID = report_worker_nums(Meta),
     case run(Command, ID) of
         0 -> ok;
@@ -231,6 +229,183 @@ start_cmd(#state{executable = Exec} = State, Meta, "tcpkali " ++ Options) ->
         ExitCode -> erlang:error({tcpkali_error, ExitCode})
     end,
     {nil, State}.
+
+format_command(Options) ->
+    lists:foldl(fun
+        ({raw, Raw}, A) -> A ++ " " ++ Raw;
+        ({url, Url}, A) -> A ++ " \"" ++ Url ++ "\"";
+        ({Opt, Val}, A) ->
+            L = string:join(string:tokens(atom_to_list(Opt), "_"), "-"),
+            Val2 = prepare_val(Val),
+            case length(L) of
+                1 -> A ++ " -" ++ L ++ Val2;
+                _ -> A ++ " --" ++ L ++ " " ++ Val2 end end,
+            "", Options).
+
+maxrate_for_latency(#state{executable = Exec} = State, Meta, Options) ->
+    ID = report_worker_nums(Meta),
+    MaxLatency = proplists:get_value(max_latency, Options, undefined),
+    Options2 = proplists:delete(max_latency, Options),
+    OrchAddr = start_orchestrator({max_rate, MaxLatency}, ID),
+    lager:info("Started orchestration server at ~s", [OrchAddr]),
+    Command = Exec ++ format_command([{server, OrchAddr} | Options2]),
+    case run(Command, ID) of
+        0 -> ok;
+        ExitCode -> erlang:error({tcpkali_error, ExitCode})
+    end,
+    {nil, State}.
+
+start_orchestrator(Alg, ID) ->
+    {ok, LSocket} = gen_tcp:listen(0, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]),
+    {ok, Port} = inet:port(LSocket),
+    WorkerPid = self(),
+    spawn_link(
+        fun () ->
+            {ok, Socket} = gen_tcp:accept(LSocket),
+            send_start(Socket),
+            lager:info("Accepted connection at orchestration server from tcpkali"),
+            orchestrate(Socket, Alg, WorkerPid, ID)
+        end),
+    lists:flatten(io_lib:format("127.0.0.1:~b", [Port])).
+
+orchestrate(Socket, Alg, WorkerPid, ID) ->
+    Self = self(),
+
+    LatencyMetric     = "tcpkali.latency.message.95",
+    RateMetric        = "tcpkali.traffic.msgs.sent." ++ ID ++ ".rps",
+    ConnectionsMetric = "tcpkali.connections.total.out." ++ ID,
+
+    HandleMetric = fun (Metric, Value) -> Self ! {metric, Metric, Value} end,
+    mzb_metrics:subscribe(LatencyMetric, HandleMetric),
+    mzb_metrics:subscribe(RateMetric, HandleMetric),
+    mzb_metrics:subscribe(ConnectionsMetric, HandleMetric),
+
+    Ref = monitor(process, WorkerPid),
+    {_, TargetRate} = send_increase_rate(Socket, 0),
+    State = #{socket => Socket,
+              alg => Alg,
+              rate => undefined,
+              target_rate => TargetRate,
+              connections_num => 0,
+              latency => 0,
+              parent_mon => Ref,
+              direction => up,
+              step => ?StepMax},
+
+    %% Main loop of orchestrator
+    fun R(S) ->
+        receive
+            {metric, RateMetric, RateValue} ->
+                R(S#{rate => RateValue});
+            {metric, ConnectionsMetric, ConnectionsNum} ->
+                R(S#{connections_num => ConnectionsNum});
+            {metric, LatencyMetric, LatencyValue} ->
+                R(maintain_alg(LatencyValue, S));
+            {'DOWN', Ref, process, _, _} -> ok
+        end
+    end (State).
+
+%% not received any rate metric updates yet
+maintain_alg(_Latency, State = #{rate:= undefined}) ->
+    State;
+%% no established connections
+maintain_alg(_Latency, State = #{connections_num:= 0}) ->
+    State;
+maintain_alg(Latency, State = #{alg:= {max_rate, MaxLatency}}) ->
+    #{rate:= CurrentRate,
+      target_rate:= TargetRate,
+      connections_num:= Connections,
+      socket:= Socket,
+      direction:= Direction,
+      step:= Step} = State,
+
+    %% check that real rate is close enough to desired rate
+    case abs(TargetRate - CurrentRate/Connections)/TargetRate < ?RateDiffMax of
+        true when Latency < MaxLatency ->
+            NewState =
+                case Direction of
+                    up -> State;
+                    down -> State#{direction => up, step => max(Step div 2, ?StepMin)}
+                end,
+            NewStep = maps:get(step, NewState),
+            lager:info("Current latency is ~p, target is ~p, "
+                       "increasing rate by ~b%",
+                       [Latency, MaxLatency, NewStep]),
+            {_, NextTargetRate} = send_increase_rate(Socket, NewStep),
+            NewState#{target_rate => NextTargetRate};
+        true when Latency > MaxLatency ->
+            NewState =
+                case Direction of
+                    up -> State#{direction => down, step => max(Step div 2, ?StepMin)};
+                    down -> State
+                end,
+            NewStep = maps:get(step, NewState),
+            lager:info("Current latency is ~p, target is ~p, "
+                       "decreasing rate by ~b%",
+                       [Latency, MaxLatency, NewStep]),
+            {_, NextTargetRate} = send_decrease_rate(Socket, NewStep),
+            NewState#{target_rate => NextTargetRate};
+        true ->
+            State;
+        false ->
+            lager:info("Waiting for rate to catch up: ~p -> ~p", [CurrentRate/Connections, TargetRate]),
+            State
+    end.
+
+send_increase_rate(Socket, Percents) ->
+    send_message(Socket, increaseRatePercent, Percents),
+    wait_current_rate(Socket).
+
+send_decrease_rate(Socket, Percents) ->
+    send_message(Socket, decreaseRatePercent, Percents),
+    wait_current_rate(Socket).
+
+send_start(Socket) ->
+    send_message(Socket, start, #'Start'{}).
+
+wait_current_rate(Socket) ->
+    case read_command(Socket, <<>>) of
+        {ok, {currentRate, #'CurrentRate'{valueBase = Units,
+                                          value = {Mantissa, Base, Exp}}}} ->
+            {Units, Mantissa*math:pow(Base, Exp)};
+        {ok, {currentRate, #'CurrentRate'{valueBase = Units,
+                                          value = ValueStr}}} ->
+            %% format: 123.E-2
+            Value = case string:tokens(ValueStr, ".E") of
+                [Mantissa, "+" ++ Exp] ->
+                    list_to_integer(Mantissa) * math:pow(10, Exp);
+                [Mantissa, "-" ++ Exp] ->
+                    list_to_integer(Mantissa) * math:pow(10, -Exp)
+            end,
+            {Units, Value};
+        {ok, Msg} ->
+            lager:error("Received wrong message from tcpkali (waiting for currentRate): ~p", [Msg]),
+            erlang:error({wrong_message, Msg});
+        {error, Reason} ->
+            lager:error("Failed to get currentRate from tcpkali: ~p", [Reason]),
+            erlang:error({no_current_rate, Reason})
+    end.
+
+read_command(Socket, Buffer) ->
+    {ok, Data} = gen_tcp:recv(Socket, 0, 5000),
+    case 'TcpkaliOrchestration':decode('TcpkaliMessage', <<Buffer/binary, Data/binary>>) of
+        {ok, Msg} ->
+            {ok, Msg};
+        {error, timeout} ->
+            {error, timeout};
+        % probably not received the whole message yet
+        {error, _Reason} when Data /= <<>> ->
+            read_command(Socket, <<Buffer/binary, Data/binary>>);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+encode_message(Type, Msg) ->
+    {ok, Bin} = 'TcpkaliOrchestration':encode('TcpkaliMessage', {Type, Msg}),
+    Bin.
+
+send_message(Socket, Type, Msg) ->
+    ok = gen_tcp:send(Socket, encode_message(Type, Msg)).
 
 report_worker_nums(Meta) ->
     WorkerID = proplists:get_value(worker_id, Meta),
