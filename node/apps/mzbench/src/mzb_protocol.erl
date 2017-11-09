@@ -59,6 +59,18 @@ handle(get_system_metrics, _) ->
 handle({declare_metrics, MetricGroups}, _) ->
     {reply, mzb_metrics:local_declare_metrics(MetricGroups)};
 
+handle({user_metric_subscribe, Ref, NodeFrom, Metric}, _) ->
+    Callback =
+        fun (MetricName, Value) ->
+            Message = {user_metric_value, Ref, {MetricName, Value}},
+            mzb_interconnect:cast(NodeFrom, Message)
+        end,
+    {reply, mzb_metrics:local_subscribe(Metric, Callback)};
+
+handle({user_metric_value, _Ref = Callback, {Metric, Value}}, _) ->
+    Callback(Metric, Value),
+    noreply;
+
 handle(Unhandled, _) ->
     system_log:error("Unhandled node message: ~p", [Unhandled]),
     erlang:error({unknown_message, Unhandled}).
