@@ -334,9 +334,12 @@ maintain_alg(Latency, State = #{alg:= {max_rate, MaxLatency}}) ->
       direction:= Direction,
       step:= Step} = State,
 
+    LowThreshold = MaxLatency - round(MaxLatency * 0.1),
+    HighThreshold = MaxLatency,
+
     %% check that real rate is close enough to desired rate
     case abs(TargetRate - CurrentRate/Connections)/TargetRate < ?RateDiffMax of
-        true when Latency < MaxLatency ->
+        true when Latency < LowThreshold ->
             NewState =
                 case Direction of
                     up -> State;
@@ -348,7 +351,7 @@ maintain_alg(Latency, State = #{alg:= {max_rate, MaxLatency}}) ->
                        [Latency, MaxLatency, NewStep]),
             {_, NextTargetRate} = send_increase_rate(Socket, NewStep),
             NewState#{target_rate => NextTargetRate};
-        true when Latency > MaxLatency ->
+        true when Latency > HighThreshold ->
             NewState =
                 case Direction of
                     up -> State#{direction => down, step => max(Step div 2, ?StepMin)};
