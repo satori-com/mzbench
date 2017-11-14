@@ -37,7 +37,7 @@
 -define(Timeout, 5000).
 -define(StatsdPort, 8125).
 -define(RateDiffMax, 0.05).
--define(StepMax, 20).
+-define(StepMax, 40).
 -define(StepMin, 1).
 
 -record(state, {
@@ -244,29 +244,39 @@ format_command(Options) ->
 
 maxrate_for_latency(#state{executable = Exec} = State, Meta, Options) ->
     ID = report_worker_nums(Meta),
-    MaxLatency = proplists:get_value(max_latency, Options, undefined),
+    MaxLatency = mzb_utility:any_to_num(proplists:get_value(max_latency, Options, 0)),
     Options2 = proplists:delete(max_latency, Options),
-    OrchAddr = start_orchestrator({max_rate, MaxLatency}, ID),
-    lager:info("Started orchestration server at ~s", [OrchAddr]),
-    Command = Exec ++ format_command([{server, OrchAddr} | Options2]),
-    case run(Command, ID) of
-        0 -> ok;
-        ExitCode -> erlang:error({tcpkali_error, ExitCode})
-    end,
-    {nil, State}.
+    {Orch, OrchAddr} = start_orchestrator({max_rate, MaxLatency}, ID),
+    try
+        Command = Exec ++ format_command([{server, OrchAddr} | Options2]),
+        case run(Command, ID) of
+            0 -> ok;
+            ExitCode -> erlang:error({tcpkali_error, ExitCode})
+        end,
+        {nil, State}
+    after
+        stop_orchestration(Orch)
+    end.
 
 start_orchestrator(Alg, ID) ->
     {ok, LSocket} = gen_tcp:listen(0, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]),
     {ok, Port} = inet:port(LSocket),
     WorkerPid = self(),
-    spawn_link(
+    OrchPid = spawn_link(
         fun () ->
             {ok, Socket} = gen_tcp:accept(LSocket),
             send_start(Socket),
             lager:info("Accepted connection at orchestration server from tcpkali"),
             orchestrate(Socket, Alg, WorkerPid, ID)
         end),
-    lists:flatten(io_lib:format("127.0.0.1:~b", [Port])).
+    OrchAddr = lists:flatten(io_lib:format("127.0.0.1:~b", [Port])),
+    lager:info("Started orchestration server at ~s", [OrchAddr]),
+    {{OrchPid, LSocket}, OrchAddr}.
+
+stop_orchestration({Pid, LSocket}) ->
+    erlang:unlink(Pid),
+    gen_tcp:close(LSocket),
+    Pid ! {stop, normal}.
 
 orchestrate(Socket, Alg, WorkerPid, ID) ->
     Self = self(),
@@ -301,7 +311,12 @@ orchestrate(Socket, Alg, WorkerPid, ID) ->
                 R(S#{connections_num => ConnectionsNum});
             {metric, LatencyMetric, LatencyValue} ->
                 R(maintain_alg(LatencyValue, S));
-            {'DOWN', Ref, process, _, _} -> ok
+            {'DOWN', Ref, process, _, _} ->
+                gen_tcp:close(Socket),
+                ok;
+            {stop, _Reason} ->
+                gen_tcp:close(Socket),
+                ok
         end
     end (State).
 
@@ -381,21 +396,26 @@ wait_current_rate(Socket) ->
         {ok, Msg} ->
             lager:error("Received wrong message from tcpkali (waiting for currentRate): ~p", [Msg]),
             erlang:error({wrong_message, Msg});
+        {error, closed} ->
+            lager:error("Orch connection from tcpkali was closed"),
+            erlang:error(tcpkali_orch_connection_closed);
         {error, Reason} ->
             lager:error("Failed to get currentRate from tcpkali: ~p", [Reason]),
             erlang:error({no_current_rate, Reason})
     end.
 
 read_command(Socket, Buffer) ->
-    {ok, Data} = gen_tcp:recv(Socket, 0, 5000),
-    case 'TcpkaliOrchestration':decode('TcpkaliMessage', <<Buffer/binary, Data/binary>>) of
-        {ok, Msg} ->
-            {ok, Msg};
-        {error, timeout} ->
-            {error, timeout};
-        % probably not received the whole message yet
-        {error, _Reason} when Data /= <<>> ->
-            read_command(Socket, <<Buffer/binary, Data/binary>>);
+    case gen_tcp:recv(Socket, 0, 5000) of
+        {ok, Data} ->
+            case 'TcpkaliOrchestration':decode('TcpkaliMessage', <<Buffer/binary, Data/binary>>) of
+                {ok, Msg} ->
+                    {ok, Msg};
+                % probably not received the whole message yet
+                {error, _Reason} when Data /= <<>> ->
+                    read_command(Socket, <<Buffer/binary, Data/binary>>);
+                {error, Reason} ->
+                    {error, Reason}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
