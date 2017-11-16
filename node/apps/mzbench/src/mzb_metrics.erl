@@ -221,12 +221,14 @@ tick(#s{last_tick_time = LastTick} = State) ->
             State5 = check_dynamic_deadlock(State4),
             State6 = notify_metrics_subscribers(State5),
             ok = report_metrics(State6),
+
+            MergingTime = timer:now_diff(os:timestamp(), Now) / 1000,
+            global_set("metric_merging_time", gauge, MergingTime),
+
             State6#s{last_tick_time = Now}
     end.
 
 aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = Histograms} = State) ->
-    StartTime = os:timestamp(),
-
     Values = mzb_lists:pmap(
         fun (N) ->
             case mzb_interconnect:call(N, {get_local_metrics_values, extract_metrics(MetricGroups)}) of
@@ -252,10 +254,6 @@ aggregate_metrics(#s{nodes = Nodes, metric_groups = MetricGroups, histograms = H
                 lists:keystore(Name, 1, Acc, {Name, NewRef});
             (_, Acc) -> Acc
         end, Histograms, groupby([{{N,T}, V} || {N, V, T} <- lists:append(Values)])),
-
-    FinishTime = os:timestamp(),
-    MergingTime = timer:now_diff(FinishTime, StartTime) / 1000,
-    global_set("metric_merging_time", gauge, MergingTime),
 
     State#s{histograms = NewHistograms}.
 
