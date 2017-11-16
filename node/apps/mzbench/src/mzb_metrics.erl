@@ -79,7 +79,7 @@ declare_metrics(Groups) ->
     end.
 
 local_declare_metrics(Groups) ->
-    gen_server:call(?MODULE, {declare_metrics, Groups}).
+    gen_server:cast(?MODULE, {declare_metrics, Groups}).
 
 get_value(Metric) ->
     try global_get(Metric)
@@ -144,19 +144,6 @@ init([Asserts, LoopAssertMetrics, Nodes, Env]) ->
         metrics_subscribers = #{}
         }}.
 
-handle_call({declare_metrics, Groups}, _From, #s{metric_groups = OldGroups} = State) ->
-    try mzb_script_metrics:normalize(Groups ++ OldGroups) of
-        NewGroups ->
-            mzb_metric_reporter:new_metrics(NewGroups),
-            NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
-            [ mzb_metrics:notify({N, counter}, 0) || N <- NewCounters],
-            {reply, ok, State#s{metric_groups = NewGroups}}
-    catch
-        error:Error ->
-            system_log:error("Metrics declaration error: ~s", [mzb_script_metrics:format_error(Error)]),
-            {reply, {error, Error}, State}
-    end;
-
 handle_call(final_trigger, _From, State) ->
     NewState = tick(State#s{active = false, stop_time = os:timestamp()}),
     {reply, ok, NewState};
@@ -179,6 +166,19 @@ handle_call({local_subscribe, Metric, Callback}, _From,
 handle_call(Req, _From, State) ->
     system_log:error("Unhandled call: ~p", [Req]),
     {stop, {unhandled_call, Req}, State}.
+
+handle_cast({declare_metrics, Groups}, #s{metric_groups = OldGroups} = State) ->
+    try mzb_script_metrics:normalize(Groups ++ OldGroups) of
+        NewGroups ->
+            mzb_metric_reporter:new_metrics(NewGroups),
+            NewCounters = [N || {N, counter, _} <- extract_metrics(NewGroups)] -- [N || {N, counter, _} <- extract_metrics(OldGroups)],
+            [ mzb_metrics:notify({N, counter}, 0) || N <- NewCounters],
+            {noreply, State#s{metric_groups = NewGroups}}
+    catch
+        error:Error ->
+            system_log:error("Metrics declaration error: ~s", [mzb_script_metrics:format_error(Error)]),
+            {noreply, State}
+    end;
 
 handle_cast(Msg, State) ->
     system_log:error("Unhandled cast: ~p", [Msg]),
