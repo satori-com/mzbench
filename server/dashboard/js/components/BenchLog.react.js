@@ -196,7 +196,7 @@ class BenchLog extends React.Component {
         var rect = logElement.getBoundingClientRect();
         let right = (window.innerWidth - rect.right);
         let topBtn = ReactDOM.findDOMNode(this.refs.topbtn);
-        topBtn.style.visibility = (document.body.scrollTop > 0 ? 'visible' : 'hidden');
+        topBtn.style.visibility = (window.pageYOffset > 0 ? 'visible' : 'hidden');
         topBtn.style.right = right + 'px';
     }
 
@@ -284,19 +284,19 @@ class BenchLog extends React.Component {
 
     goBottom() {
         var newValue = document.body.scrollHeight - window.innerHeight;
-        if (document.body.scrollTop < newValue) {
-            document.body.scrollTop = newValue;
+        if (window.pageYOffset < newValue) {
+            window.scrollTo(0, newValue);
             this.followFlag = true;
         }
     }
 
     goTop() {
-        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
     }
 
     updatePage () {
         let node = document.body;
-        var shouldIncrementPage = (node.scrollTop + window.innerHeight + 2000 > node.scrollHeight);
+        var shouldIncrementPage = (window.pageYOffset + window.innerHeight + 2000 > node.scrollHeight);
         let endReached = (this.state.logAfterQuery.length <= this.state.logShown);
         if (shouldIncrementPage && !endReached) {
             this.setState({logShown: this.state.logShown + LOGS_PER_PAGE});
