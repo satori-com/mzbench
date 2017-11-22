@@ -181,7 +181,7 @@ class BenchLog extends React.Component {
         if (!logElement) return;
         var rect = logElement.getBoundingClientRect();
         let top = (rect.top > 0) ? rect.top : 0;
-        let right = (window.innerWidth - rect.right);
+        let right = (document.body.clientWidth - rect.right);
         let followDiv = ReactDOM.findDOMNode(this.refs.followdiv);
         followDiv.style.top = top + 'px';
         followDiv.style.right = right + 'px';
@@ -194,7 +194,7 @@ class BenchLog extends React.Component {
         let logElement = ReactDOM.findDOMNode(this.refs.logwindow);
         if (!logElement) return;
         var rect = logElement.getBoundingClientRect();
-        let right = (window.innerWidth - rect.right);
+        let right = (document.body.clientWidth - rect.right);
         let topBtn = ReactDOM.findDOMNode(this.refs.topbtn);
         topBtn.style.visibility = (window.pageYOffset > 0 ? 'visible' : 'hidden');
         topBtn.style.right = right + 'px';
