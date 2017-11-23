@@ -2,13 +2,13 @@
 
 ***Expressive, scalable load testing tool***
 
-[![Build Status](https://travis-ci.org/machinezone/mzbench.svg?branch=master)](https://travis-ci.org/machinezone/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Issue stats](http://issuestats.com/github/machinezone/mzbench/badge/issue?style=flat-square)](http://issuestats.com/github/machinezone/mzbench) [![Pull Requests stats](http://issuestats.com/github/machinezone/mzbench/badge/pr?style=flat-square)](http://issuestats.com/github/machinezone/mzbench)
+[![Build Status](https://travis-ci.org/satori-com/mzbench.svg?branch=master)](https://travis-ci.org/satori-com/mzbench) [![Join the chat at https://gitter.im/machinezone/mzbench](https://badges.gitter.im/machinezone/mzbench.svg)](https://gitter.im/machinezone/mzbench?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ![Graphs](doc/images/graphs.gif)
 
-MZBench helps software testers and developers test their products under high real life load. By testing your product with MZBench before going to production, you reduce the risk of outages under real life highload.
+MZBench helps software developers benchmark and stress test their products. Testing of your product with MZBench before going to production may reduce the risk of outages under real life highload.
 
-MZBench runs test scenarios on many machines simultaneous, maintaining millions of connections, which make it suitable even for large scale products.
+MZBench runs test scenarios on many machines simultaneously, maintaining millions of connections, which makes it suitable even for large scale products.
 
 MZBench is:
 
