@@ -6,8 +6,13 @@
 
 -spec eval_std(Expr :: [script_expr()], Env :: worker_env()) -> term().
 eval_std(Expr, Env) ->
-    {Res, _} = eval(Expr, undefined, Env, undefined),
-    Res.
+    try
+        {Res, _} = eval(Expr, undefined, Env, undefined),
+        Res
+    catch
+        error:{mzbl_interpreter_runtime_error, {{E, R}, _}} ->
+            erlang:raise(E, R, erlang:get_stacktrace())
+    end.
 
 -spec eval(script_expr(), worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
