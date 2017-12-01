@@ -1,7 +1,8 @@
 -module(dummy_worker).
 
 -export([initial_state/0, metrics/0,
-         print/3, test_method/3, test_pre_hook/1, test_proplist/3, doubled_print_counter/0]).
+         print/3, test_method/3, test_pre_hook/1, test_proplist/3,
+         doubled_print_counter/0, terminate_state/2]).
 
 -type state() :: string().
 
@@ -33,3 +34,8 @@ test_pre_hook(Env) ->
 test_proplist(State, _Meta, Proplist) ->
     true = proplists:get_value(test, Proplist),
     {ok, State}.
+
+terminate_state(Res, State) ->
+    %% need this log for tests
+    system_log:info("TERMINATE ~p ~p", [Res, State]),
+    ok.

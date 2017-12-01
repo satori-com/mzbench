@@ -278,8 +278,8 @@ maybe_stop(#s{} = State) ->
 maybe_report_error(_, {ok, _}) -> ok;
 maybe_report_error(Pid, {error, Reason}) ->
     system_log:error("Worker ~p has finished abnormally: ~p", [Pid, Reason]);
-maybe_report_error(Pid, {exception, Node, {_C, E, ST}}) ->
-    system_log:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p", [Pid, Node, E, ST]).
+maybe_report_error(Pid, {exception, Node, {_C, E, ST}, WorkerState}) ->
+    system_log:error("Worker ~p on ~p has crashed: ~p~nStacktrace: ~p~nState of worker: ~p", [Pid, Node, E, ST, WorkerState]).
 
 sleep_off(StartTime, ShouldBe) ->
     Current = msnow() - StartTime,

@@ -3,28 +3,47 @@
 -export([eval/4, eval_std/2]).
 
 -include("mzbl_types.hrl").
+
 -spec eval_std(Expr :: [script_expr()], Env :: worker_env()) -> term().
 eval_std(Expr, Env) ->
-    {Res, _} = eval(Expr, undefined, Env, undefined),
-    Res.
+    try
+        {Res, _} = eval(Expr, undefined, Env, undefined),
+        Res
+    catch
+        error:{mzbl_interpreter_runtime_error, {{E, R}, _}} ->
+            erlang:raise(E, R, erlang:get_stacktrace())
+    end.
 
 -spec eval(script_expr(), worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
-eval(#operation{is_std = false, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
+%% Generates exception: error:{mzbl_interpreter_runtime_error, {{Error, _Reason}, State }}
+eval(Expr, State, Env, WorkerProvider) ->
+    try
+        eval_(Expr, State, Env, WorkerProvider)
+    catch
+        error:{mzbl_interpreter_runtime_error, _} = E ->
+            erlang:raise(error, E, erlang:get_stacktrace());
+        E:R ->
+            erlang:raise(error, {mzbl_interpreter_runtime_error, {{E, R}, State}}, erlang:get_stacktrace())
+    end.
+
+-spec eval_(script_expr(), worker_state(), worker_env(), module())
+    -> {script_value(), worker_state()}.
+eval_(#operation{is_std = false, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
     eval_function(Name, Args, Meta, State, Env, WorkerProvider);
-eval(#operation{is_std = true, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
+eval_(#operation{is_std = true, name = Name, args = Args, meta = Meta}, State, Env, WorkerProvider) ->
     eval_std_function(Name, Args, Meta, State, Env, WorkerProvider);
-eval(ExprList, State, Env, WorkerProvider) when is_list(ExprList) ->
+eval_(ExprList, State, Env, WorkerProvider) when is_list(ExprList) ->
     lists:foldl(fun(E, {EvaluatedParams, CurrentState}) ->
                     {Result, S} = eval(E, CurrentState, Env, WorkerProvider),
                     {EvaluatedParams ++ [Result], S}
               end,
               {[], State},
               ExprList);
-eval(#constant{value=V} = C, State, Env,  WorkerProvider) -> 
+eval_(#constant{value=V} = C, State, Env,  WorkerProvider) ->
     {Value, NewState} = eval(V, State, Env, WorkerProvider),
     {C#constant{value=Value}, NewState};
-eval(Value, State, _Env,  _) -> {Value, State}.
+eval_(Value, State, _Env,  _) -> {Value, State}.
 
 eval_function(Name, [], Meta, State, _, WorkerProvider) ->
     WorkerProvider:apply(Name, [], State, Meta);

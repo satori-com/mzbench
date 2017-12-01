@@ -18,6 +18,7 @@ scripts_dir = mzbench_dir + 'acceptance_tests/scripts/'
 scripts_bdl_dir = mzbench_dir + 'acceptance_tests/scripts.bdl/'
 mzbench_script = mzbench_dir + 'bin/mzbench'
 
+
 def emulate_crash_test():
     run_failing_bench(scripts_dir + 'correct_script.erl',
         env={'emulate_bench_crash': 'true'},
@@ -49,6 +50,7 @@ def signal_timeout_test():
     run_failing_bench(scripts_dir + 'signal_count_neg.erl', env={},
         expected_log_message_regex=r'\[error\].*Worker.*has crashed: {timeout,{wait_signal,"A"}}')
 
+
 def worker_provisioning_fail_test():
     worker_commit = 'this_revision_does_not_exist'
     mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
@@ -57,6 +59,7 @@ def worker_provisioning_fail_test():
         env={'worker_branch': worker_commit,
              'mzbench_repo':  mzbench_repo},
         expected_log_message_regex=r"Stage 'pipeline - provisioning': failed")
+
 
 def time_assertions_fail_test():
     run_failing_bench(scripts_bdl_dir + 'time_assertion_fail.bdl', env={},
