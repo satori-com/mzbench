@@ -3,19 +3,21 @@
 -export([eval/4, eval_std/2]).
 
 -include("mzbl_types.hrl").
+
 -spec eval_std(Expr :: [script_expr()], Env :: worker_env()) -> term().
 eval_std(Expr, Env) ->
     {Res, _} = eval(Expr, undefined, Env, undefined),
     Res.
+
 -spec eval(script_expr(), worker_state(), worker_env(), module())
     -> {script_value(), worker_state()}.
-    %% Generates exception: error:{mzbl_interpreter_runtime_error, {{Error, _Reason}, State }}
+%% Generates exception: error:{mzbl_interpreter_runtime_error, {{Error, _Reason}, State }}
 eval(Expr, State, Env, WorkerProvider) ->
     try
         eval_(Expr, State, Env, WorkerProvider)
     catch
-        error:{mzbl_interpreter_runtime_error, {{Error, _Reason}, State }} = E ->
-            erlang:raise(Error, E, erlang:get_stacktrace());
+        error:{mzbl_interpreter_runtime_error, _} = E ->
+            erlang:raise(error, E, erlang:get_stacktrace());
         E:R ->
             erlang:raise(error, {mzbl_interpreter_runtime_error, {{E, R}, State}}, erlang:get_stacktrace())
     end.

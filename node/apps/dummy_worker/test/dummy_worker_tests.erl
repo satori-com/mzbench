@@ -112,7 +112,7 @@ error_test() ->
                {test_method, \"BAR\"},
                {error, \"Error successfully failed.\"},
                {test_method, \"BAZ\"}].",
-    ?assertError("Error successfully failed.", run(Script)).
+    ?assertError({mzbl_interpreter_runtime_error, {{error, "Error successfully failed."}, {dummy_worker, "BARFOO"}}}, run(Script)).
 
 tuple_test() ->
     Script = "[{test_method, {sprintf, \"~p\", [{t, {test_method, \"Foo\"}, 2, 3}]}}].",
