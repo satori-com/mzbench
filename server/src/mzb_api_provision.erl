@@ -331,18 +331,23 @@ find_package(PackagesDirs, PackageName) ->
 
 build_package_on_host(Host, User, RemoteTarballPath, InstallSpec, Logger) ->
     DeploymentDirectory = mzb_file:tmp_filename(),
-    CloneAndCDCommand = case InstallSpec of
+    case InstallSpec of
         #git_install_spec{repo = GitRepo, branch = GitBranch, dir = GitSubDir} ->
-            mzb_string:format("git clone ~s deployment_code && cd deployment_code && git checkout ~s && cd ./~s", [GitRepo, GitBranch, GitSubDir]);
+            Cmd = mzb_string:format("git clone ~s deployment_code && cd deployment_code && git checkout ~s && cd ./~s", [GitRepo, GitBranch, GitSubDir]),
+            GenerationCmd = io_lib:format("mkdir -p ~s && cd ~s && ~s "
+                                          "&& make generate_tgz && mv *.tgz ~s",
+                                          [DeploymentDirectory, DeploymentDirectory,
+                                           Cmd, RemoteTarballPath]),
+            _ = mzb_subprocess:remote_cmd(User, [Host], GenerationCmd, [], Logger);
         #rsync_install_spec{remote = Remote, excludes = Excludes, dir = SubDir} ->
-            mzb_string:format("rsync -aW ~s ~s deployment_code && cd deployment_code/~s",
-                [string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, SubDir])
+            TargetFolder = DeploymentDirectory ++ "/deployment_code",
+            Cmd = mzb_string:format("rsync -aW --rsync-path='mkdir -p ~s && rsync' ~s ~s/ ~s",
+                [TargetFolder, string:join(["--exclude=" ++ E || E <- Excludes], " "), Remote, User ++ "@" ++ Host ++ ":" ++ TargetFolder]),
+            mzb_subprocess:exec_format(Cmd, [], [], Logger),
+            GenerationCmd = io_lib:format("cd ~s/~s && make generate_tgz && mv *.tgz ~s",
+                                          [TargetFolder, SubDir, RemoteTarballPath]),
+            _ = mzb_subprocess:remote_cmd(User, [Host], GenerationCmd, [], Logger)
     end,
-    GenerationCmd = io_lib:format("mkdir -p ~s && cd ~s && ~s "
-                                  "&& make generate_tgz && mv *.tgz ~s",
-                                  [DeploymentDirectory, DeploymentDirectory,
-                                   CloneAndCDCommand, RemoteTarballPath]),
-    _ = mzb_subprocess:remote_cmd(User, [Host], GenerationCmd, [], Logger),
     ok.
 
 install_node(Hosts, #{node_install_spec:= InstallSpec} = Config, Logger) ->
