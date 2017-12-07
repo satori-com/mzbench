@@ -476,6 +476,13 @@ Execute the statement `<Statement>` and continue with the benchmark even if it f
 
 If the statement succeeds, its result is returned; otherwise, the failure reason is returned.
 
+### error
+
+```python
+error(<Reason>)
+```
+
+Throw an error with a given reason. Calling error will stop the current worker script execution and mark it as failed. Reason could be any term.
 
 ## Randomization
 
@@ -507,6 +514,14 @@ random_binary(<Size>)
 ```
 
 Return a binary sequence of `<Size>` random bytes.
+
+### random_string
+
+```python
+random_string(<Length>)
+```
+
+Return randomly generated string of given length.
 
 ### choose
 
@@ -540,15 +555,6 @@ dump("<Text>")
 
 Write `<Text>` to the benchmark log.
 
-### sprintf
-
-```python
-sprintf("<Format>", [<Value1>, <Value2>, ...])
-```
-
-Return [formatted text](http://www.erlang.org/doc/man/io.html#fwrite-1) with a given format and placeholder values.
-
-
 ## Data Conversion
 
 ### t
@@ -567,8 +573,15 @@ term_to_binary(<term>)
 
 Convert an Erlang term to a binary object. [Learn more](http://www.erlang.org/doc/man/erlang.html#term_to_binary-1) in the Erlang docs.
 
+## Usefull functions
 
-## Pause
+### sprintf
+
+```python
+sprintf("<Format>", [<Value1>, <Value2>, ...])
+```
+
+Return [formatted text](http://www.erlang.org/doc/man/io.html#fwrite-1) with a given format and placeholder values.
 
 ### wait
 
@@ -577,6 +590,32 @@ wait(<Time>)
 ```
 
 Pause the current job for [`<Time>`](#time_1).
+
+### seq
+
+```python
+seq(<From>, <To>)
+```
+
+Return a sequence of integers starting with <From> and ending with <To>. <From> and <To> are included to the sequence.
+
+### concat
+
+```python
+concat(<List1>, <List2>)
+concat(<ListOfLists>)
+```
+
+Concatenate lists. Can be used for strings as well.
+
+### Tokens
+
+```python
+tokens(<Str>)
+tokens(<Str>, <ListOfSeparators>)
+```
+
+Return a list of tokens in <Str>, separated by the characters in <ListOfSeparators>. By default separators are ',' and ' '(space).
 
 # Conventions
 
