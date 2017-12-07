@@ -15,7 +15,7 @@ MZBench is:
  - **Cloud-aware:** allocates nodes directly from Amazon EC2 or run on a local machine.
  - **Scalable:** tested with 100 nodes and millions of connections.
  - **Extendable:** lets you write your own [cloud plugins](cloud_plugins#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker).
- - **Open-source:** released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
+ - **Open-source:** released under the [BSD license](https://github.com/satori-com/mzbench/blob/master/LICENSE).
 
 
 ## Installation
@@ -24,7 +24,7 @@ MZBench is:
 
 Available for CentOS 7 and Amazon Linux.
 
-Download MZBench RPM from [Github releases page](https://github.com/machinezone/mzbench/releases)
+Download MZBench RPM from [Github releases page](https://github.com/satori-com/mzbench/releases)
 
 ```bash
 # Install RPM
@@ -45,7 +45,7 @@ Docker is a container platform, more information is available at its [website](h
 docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
 ```
 
-After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/machinezone/mzbench/tree/master/docker).
+After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/satori-com/mzbench/tree/master/docker).
 
 ### From sources
 
@@ -58,14 +58,14 @@ To use MZBench, you'll need:
 Download MZBench from GitHub and install Python requirements:
 
 ```bash
-$ git clone https://github.com/machinezone/mzbench
+$ git clone https://github.com/satori-com/mzbench
 $ sudo pip install -r mzbench/requirements.txt
 ```
 
 If you want to use virtualenv (optional) to isolate Python dependencies:
 
 ```bash
-$ git clone https://github.com/machinezone/mzbench
+$ git clone https://github.com/satori-com/mzbench
 $ cd mzbench
 $ virtualenv venv
 $ source venv/bin/activate

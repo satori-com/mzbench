@@ -67,7 +67,7 @@ You can define environment variables with the `--env` option.
 
 After debugging, test the worker with a real MZBench server and real cloud nodes. To make it installable on MZBench nodes, specify the worker's git address in your benchmark scenario with [`make_install(git = <URL>, branch = <Branch>, dir = <Dir>)`](scenarios/spec.md#make_install).
 
-[Simple HTTP worker example →](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl)
+[Simple HTTP worker example →](https://github.com/satori-com/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl)
 
 
 ## How to write an Erlang worker
@@ -432,4 +432,4 @@ The tuple `('<metric_name>', '<metric_type>')` is the same that was used during 
 
 ## Importing external metrics
 
-It could be useful to have an external data at MZBench dashboard. For this purpose a worker could fetch metrics from outside or implement statsd server and push all the data to MZBench API server. Please refer to [tcpkali](https://github.com/machinezone/mzbench/blob/master/workers/tcpkali/src/tcpkali_worker.erl) worker code as an example.
+It could be useful to have an external data at MZBench dashboard. For this purpose a worker could fetch metrics from outside or implement statsd server and push all the data to MZBench API server. Please refer to [tcpkali](https://github.com/satori-com/mzbench/blob/master/workers/tcpkali/src/tcpkali_worker.erl) worker code as an example.

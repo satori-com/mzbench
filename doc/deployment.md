@@ -19,7 +19,7 @@ Requirement:
 
  - [Pip]((https://pip.pypa.io/en/stable/)) Python package manager
 
-Download MZBench RPM from [Github releases page](https://github.com/machinezone/mzbench/releases)
+Download MZBench RPM from [Github releases page](https://github.com/satori-com/mzbench/releases)
 
 ```bash
 # Install RPM
@@ -32,7 +32,7 @@ sudo pip install mzbench_api_client
 mzbench start_server
 ```
 
-MZBench server from RPM has all [Github workers](https://github.com/machinezone/mzbench/tree/master/workers) bundled.
+MZBench server from RPM has all [Github workers](https://github.com/satori-com/mzbench/tree/master/workers) bundled.
 If you need to add a worker to this installation, please use `mzbench add_worker <tgz_file>`
 command. Please refer to ["How to write your own worker"](workers.md#how-to-write-a-worker)
 guide to learn more about generation of this tarball.
@@ -45,7 +45,7 @@ Docker is a container platform, more information is available at its [website](h
 docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
 ```
 
-After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/machinezone/mzbench/tree/master/docker).
+After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/satori-com/mzbench/tree/master/docker).
 
 ## From sources
 
@@ -60,7 +60,7 @@ Install and start the MZBench API server:
 
 ```bash
 # Clone the current MZBench source code
-git clone https://github.com/machinezone/mzbench.git
+git clone https://github.com/satori-com/mzbench.git
 
 # Install Python requirements
 sudo pip install -r mzbench/requirements.txt
@@ -293,7 +293,7 @@ Default value: `none`
 
 The MZBench git repository used to deploy worker nodes.
 
-By default, the MZBench source code is taken from <https://github.com/machinezone/mzbench.git>.
+By default, the MZBench source code is taken from <https://github.com/satori-com/mzbench.git>.
 
 
 ### node_commit
