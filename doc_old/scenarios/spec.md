@@ -22,7 +22,7 @@ Each of these tuples is called a *statement*. A statement represents a function 
 
 Some statements only appear at the top level of a scenario. They're called *top-level statements*. There're two kinds of top-level statements: [directives](#directives) and [pools](#pools).
 
-[See live examples of MZBench scenarios on GitHub →](https://github.com/machinezone/mzbench/tree/master/examples)
+[See live examples of MZBench scenarios on GitHub →](https://github.com/satori-com/mzbench/tree/master/examples)
 
 
 # Directives
@@ -147,7 +147,7 @@ Check if the condition `<Condition>` is satisfied throughout the entire benchmar
 {gt, "http_ok", 20}
 ```
 
-The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
+The `http_ok` metric is provided by the [simple_http](https://github.com/satori-com/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.    
 
 
 # Pools
@@ -166,7 +166,7 @@ Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
     } ].
 ```
 
-The `get` statement is provided by the built-in [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
+The `get` statement is provided by the built-in [simple_http](https://github.com/satori-com/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
 
 The first param in the `pool` statement is a list of *pool options*.
 

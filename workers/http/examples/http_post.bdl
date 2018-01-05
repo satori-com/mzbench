@@ -3,7 +3,7 @@
 
 assert(always, "http_ok.rps" > 0.5)
 
-make_install(git = "https://github.com/machinezone/mzbench.git", # worker installation source
+make_install(git = "https://github.com/satori-com/mzbench.git", # worker installation source
              dir = "workers/http")  # subdir
 
 pool(size = numvar("conn_count", 20), # number of "threads" with default

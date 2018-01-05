@@ -2,7 +2,7 @@
   % "ok" rate should be always greater than 0.5 per second, otherwise it fails
     {assert, always, {gt, "http_ok.rps", 0.5}},
     {make_install, [
-        {git, "https://github.com/machinezone/mzbench.git"}, % worker location
+        {git, "https://github.com/satori-com/mzbench.git"}, % worker location
         {dir, "workers/simple_http"}]}, % sub-folder in git repo
     {pool, [{size, {numvar, "worker_count", 20}}, % 20 parallel "threads"
             {worker_type, simple_http_worker}],

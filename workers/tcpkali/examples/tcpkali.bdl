@@ -1,5 +1,5 @@
 #!benchDL
-make_install(git = "https://github.com/machinezone/mzbench.git",
+make_install(git = "https://github.com/satori-com/mzbench.git",
              dir = "workers/tcpkali")
 
 pool(size = numvar("nodes_num"), worker_type = tcpkali_worker):
@@ -11,4 +11,4 @@ pool(size = numvar("nodes_num"), worker_type = tcpkali_worker):
           message = "test")
 
 # For more information on tcpkali options please refer to tcpkali doc
-# https://github.com/machinezone/tcpkali/blob/master/README.md
+# https://github.com/satori-com/tcpkali/blob/master/README.md

@@ -15,7 +15,7 @@ MZBench is:
  - **Cloud-aware:** MZBench allocates nodes directly from Amazon EC2. 
  - **Scalable:** tested with 100 nodes and millions of connections.
  - **Extendable:** write your own [cloud plugins](cloud_plugins#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker). 
- - **Open-source:** MZBench is released under the [BSD license](https://github.com/machinezone/mzbench/blob/master/LICENSE).
+ - **Open-source:** MZBench is released under the [BSD license](https://github.com/satori-com/mzbench/blob/master/LICENSE).
 
 
 ## Installation
@@ -33,7 +33,7 @@ Erlang is available in the [official repositories on most GNU/Linux distros](htt
 Download MZBench from GitHub and install Python requirements:
 
 ```bash
-$ git clone https://github.com/machinezone/mzbench
+$ git clone https://github.com/satori-com/mzbench
 $ sudo pip install -r mzbench/requirements.txt 
 ```
 
@@ -85,7 +85,7 @@ To know what kind of jobs MZBench can run, it's important to understand the conc
 
 **Worker** is an Erlang module that provides functions for test scenarios. A worker may implement a common protocol like HTTP or XMPP, or a specific routine that is relevant only for a particular test case. It also implements the related metrics.
 
-MZBench ships with workers for [HTTP](https://github.com/machinezone/mzbench/tree/master/workers/http) and [XMPP](https://github.com/machinezone/mzbench/tree/master/workers/xmpp) protocols and a worker that [executes shell commands](https://github.com/machinezone/mzbench/tree/master/workers/exec). This should be enough for most common test cases, but you can use your own workers in necessary.
+MZBench ships with workers for [HTTP](https://github.com/satori-com/mzbench/tree/master/workers/http) and [XMPP](https://github.com/satori-com/mzbench/tree/master/workers/xmpp) protocols and a worker that [executes shell commands](https://github.com/satori-com/mzbench/tree/master/workers/exec). This should be enough for most common test cases, but you can use your own workers in necessary.
 
 
 ## Read Next

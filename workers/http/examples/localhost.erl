@@ -4,7 +4,7 @@
 
 [ {make_install, 
     [
-        {git, "https://github.com/machinezone/mzbench.git"},
+        {git, "https://github.com/satori-com/mzbench.git"},
         {dir, "workers/http"}
     ]
   },

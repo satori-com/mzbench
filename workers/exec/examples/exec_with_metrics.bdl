@@ -1,13 +1,13 @@
 #!benchDL
 # shell command execution example
-make_install(git = "https://github.com/machinezone/mzbench.git",
+make_install(git = "https://github.com/satori-com/mzbench.git",
              dir = "workers/exec")
 
 # installing a programm we want to run
 # (in this case: dummy_worker.py)
 # if the programm is already provisioned this step can be skipped
 pre_hook():
-    exec(all, "rm -rf /tmp/test-dir/mzbench && mkdir -p /tmp/test-dir/ && cd /tmp/test-dir/ && git clone https://github.com/machinezone/mzbench.git")
+    exec(all, "rm -rf /tmp/test-dir/mzbench && mkdir -p /tmp/test-dir/ && cd /tmp/test-dir/ && git clone https://github.com/satori-com/mzbench.git")
 
 pool(size = 4,
      worker_type = exec_worker):

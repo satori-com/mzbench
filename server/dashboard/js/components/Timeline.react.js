@@ -101,7 +101,7 @@ class Timeline extends React.Component {
         return (
             <div className="alert alert-info" role="alert">
                 There aren't any benchmarks.
-                Please read <a href="https://github.com/machinezone/mzbench/blob/master/doc/scenarios/spec.md" target="_blank"><strong>How to write scenarios</strong></a> to create some.
+                Please read <a href="https://github.com/satori-com/mzbench/blob/master/doc/scenarios/spec.md" target="_blank"><strong>How to write scenarios</strong></a> to create some.
             </div>
         );
     }

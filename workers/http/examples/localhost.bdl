@@ -4,7 +4,7 @@
 # which totals up to 50 requests per second altogether.
 
 make_install(
-        git = "https://github.com/machinezone/mzbench.git",
+        git = "https://github.com/satori-com/mzbench.git",
         dir = "workers/http")
 
 pool(size = 5,

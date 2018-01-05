@@ -1,6 +1,6 @@
 [ % post request benchmarking example is similar to get one, the only difference is request type
     {assert, always, {gt, "http_ok.rps", 0.5}},
-    {make_install, [{git, "https://github.com/machinezone/mzbench.git"}, % worker installation source
+    {make_install, [{git, "https://github.com/satori-com/mzbench.git"}, % worker installation source
                     {dir, "workers/http"}]},  % subdir
     {pool, [{size, {numvar, "conn_count", 20}}, % number of "threads" with default
             {worker_start, {linear, {10, rps}}},

@@ -1,5 +1,5 @@
 FROM centos:centos7
-ADD https://github.com/machinezone/mzbench/releases/download/0.5.1/mzbench-0.5.1-centos7.x86_64.rpm mzbench.rpm
+ADD https://github.com/satori-com/mzbench/releases/download/0.5.1/mzbench-0.5.1-centos7.x86_64.rpm mzbench.rpm
 # For some reason yum install for this docker image does not work
 RUN rpm2cpio mzbench.rpm | cpio -idmv
 RUN yum -y install epel-release && yum clean all

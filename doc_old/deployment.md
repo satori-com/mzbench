@@ -22,7 +22,7 @@ Install and start the MZBench API server:
 
 ```bash
 # Clone the current MZBench source code:
-git clone https://github.com/machinezone/mzbench.git
+git clone https://github.com/satori-com/mzbench.git
 
 # Install Python requirements:
 sudo pip install -r mzbench/requirements.txt
@@ -183,7 +183,7 @@ Default value: `none`
 
 The MZBench git repository used to deploy worker nodes.
 
-By default, the MZBench source code is taken from <https://github.com/machinezone/mzbench.git>.
+By default, the MZBench source code is taken from <https://github.com/satori-com/mzbench.git>.
 
 
 ### node_commit

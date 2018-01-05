@@ -13,7 +13,7 @@ Function value could be used in some cases, in the example above `function3` val
 
 Some statements only appear at the top level of a scenario. They're called *top-level statements*. There're two kinds of top-level statements: [directives](#directives) and [pools](#pools).
 
-[See live examples of MZBench scenarios on GitHub →](https://github.com/machinezone/mzbench/tree/master/examples.bdl)
+[See live examples of MZBench scenarios on GitHub →](https://github.com/satori-com/mzbench/tree/master/examples.bdl)
 
 
 # Directives
@@ -115,7 +115,7 @@ Run actions before and after the benchmark. Two kinds of actions are supported: 
 
 **Exec commands** let you to run any shell command on all nodes or only on the director node.
 
-**Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark. An example is available in dummy_worker [code](https://github.com/machinezone/mzbench/blob/master/node/apps/dummy_worker/src/dummy_worker.erl#L30).
+**Worker calls** are functions defined by the worker. They can be executed only on the director node. Worker calls are used to update the [environment variables](#environment-variables) used in the benchmark. An example is available in dummy_worker [code](https://github.com/satori-com/mzbench/blob/master/node/apps/dummy_worker/src/dummy_worker.erl#L30).
 
 ### assert
 
@@ -156,7 +156,7 @@ Check if the condition `<Expression>` is satisfied throughout the entire benchma
 ("h*k" > 20) and (not "http_ok" > 100)
 ```
 
-The `http_ok` metric is provided by the [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.
+The `http_ok` metric is provided by the [simple_http](https://github.com/satori-com/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker. This condition passes if the number of successful HTTP responses is greater than 20.
 
 When multiple metrics are matched against wildcard, condition is checked for every matched metric.
 
@@ -174,7 +174,7 @@ Here's a pool that sends HTTP GET requests to two sites on 10 nodes in parallel:
         get("http://foobar.com")
 ```
 
-The `get` statement is provided by the built-in [simple_http](https://github.com/machinezone/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
+The `get` statement is provided by the built-in [simple_http](https://github.com/satori-com/mzbench/blob/master/workers/simple_http/src/simple_http_worker.erl) worker.
 
 The first param in the `pool` statement is a list of *pool options*.
 

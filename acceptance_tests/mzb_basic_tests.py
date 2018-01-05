@@ -34,7 +34,7 @@ def worker_from_rsync_test():
 
 def lua_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
-    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/satori-com/mzbench')
     env = {'worker_branch': worker_commit,
              'mzbench_repo':  mzbench_repo}
     run_successful_bench(scripts_dir + 'lua_worker_from_git.erl', env=env)
@@ -43,7 +43,7 @@ def lua_worker_from_git_test():
 
 def python_worker_from_git_test():
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
-    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/satori-com/mzbench')
     env = {'worker_branch': worker_commit,
              'mzbench_repo':  mzbench_repo}
     run_successful_bench(scripts_dir + 'python_worker_from_git.erl', env=env)
@@ -53,7 +53,7 @@ def python_worker_from_git_test():
 def worker_from_git_test():
     # worker is located in the same repo as node
     worker_commit = os.environ.get('NODE_COMMIT', 'master')
-    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/satori-com/mzbench')
     env = {'worker_branch': worker_commit,
              'mzbench_repo':  mzbench_repo}
     run_successful_bench(scripts_dir + 'worker_from_git.erl', env=env)

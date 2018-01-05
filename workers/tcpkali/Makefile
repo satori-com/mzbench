@@ -10,7 +10,7 @@ compile:
 	$(REBAR) compile
 
 tcpkali:
-	git clone https://github.com/machinezone/tcpkali tcpkali
+	git clone https://github.com/satori-com/tcpkali tcpkali
 
 tcpkali-compile: tcpkali
 	cd tcpkali && autoreconf -iv && ./configure && make

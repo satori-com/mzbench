@@ -53,7 +53,7 @@ def signal_timeout_test():
 
 def worker_provisioning_fail_test():
     worker_commit = 'this_revision_does_not_exist'
-    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/machinezone/mzbench')
+    mzbench_repo = os.environ.get('MZBENCH_REPO', 'https://github.com/satori-com/mzbench')
     run_failing_bench(
         scripts_dir + 'worker_from_git.erl',
         env={'worker_branch': worker_commit,

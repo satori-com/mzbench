@@ -1,5 +1,5 @@
 [ % shell command execution example, trying to execute "sleep" and "buy milk" commands in two threads
-    {make_install, [{git, "https://github.com/machinezone/mzbench.git"},
+    {make_install, [{git, "https://github.com/satori-com/mzbench.git"},
                     {dir, "workers/exec"}]},
     {pool, [{size, 2},
            {worker_type, exec_worker}],
