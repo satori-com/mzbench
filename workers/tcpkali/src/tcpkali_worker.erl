@@ -363,6 +363,14 @@ maintain_alg(Latency, State = #{alg:= {max_rate, MaxLatency}}) ->
                        [Latency, MaxLatency, NewStep]),
             {_, NextTargetRate} = send_decrease_rate(Socket, NewStep),
             NewState#{target_rate => NextTargetRate};
+        false when Latency > HighThreshold andalso Direction == up ->
+            NewState = State#{direction => down, step => max(Step div 2, ?StepMin)},
+            NewStep = maps:get(step, NewState),
+            lager:info("Current latency is ~p, target is ~p, "
+                       "decreasing rate by ~b%",
+                       [Latency, MaxLatency, NewStep]),
+            {_, NextTargetRate} = send_decrease_rate(Socket, NewStep),
+            NewState#{target_rate => NextTargetRate};
         true ->
             State;
         false ->
