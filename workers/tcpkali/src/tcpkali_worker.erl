@@ -320,6 +320,11 @@ orchestrate(Socket, Alg, WorkerPid, ID) ->
         end
     end (State).
 
+is_rate_reached(Target, Current, up) when Current >= Target -> true;
+is_rate_reached(Target, Current, down) when Current =< Target -> true;
+is_rate_reached(Target, Current, _) ->
+    abs(Target - Current)/Target < ?RateDiffMax.
+
 %% not received any rate metric updates yet
 maintain_alg(_Latency, State = #{rate:= undefined}) ->
     State;
@@ -338,7 +343,7 @@ maintain_alg(Latency, State = #{alg:= {max_rate, MaxLatency}}) ->
     HighThreshold = MaxLatency,
 
     %% check that real rate is close enough to desired rate
-    case abs(TargetRate - CurrentRate/Connections)/TargetRate < ?RateDiffMax of
+    case is_rate_reached(TargetRate, CurrentRate/Connections, Direction) of
         true when Latency < LowThreshold ->
             NewState =
                 case Direction of
