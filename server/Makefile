@@ -39,9 +39,9 @@ rpm: generate
 	-git clone https://github.com/flussonic/epm _build/epm
 	EPM="-s dir --url http://github.com/machinezone/mzbench --description 'Benchmark server' \
 	-m 'Info <info@mz.com>' --vendor 'MZ' --license BSD"
-	cd tmproot && ../_build/epm/epm.erl -f -t deb -n mzbench -v 0.5.2 $(EPM) -a amd64 \
+	cd tmproot && ../_build/epm/epm.erl -f -t deb -n mzbench -v 0.5.3 $(EPM) -a amd64 \
 	           --category net opt
-	cd tmproot && ../_build/epm/epm.erl -f -t rpm -n mzbench -v 0.5.2 $(EPM) -a amd64 \
+	cd tmproot && ../_build/epm/epm.erl -f -t rpm -n mzbench -v 0.5.3 $(EPM) -a amd64 \
 	           --category Server/Benchmark opt
 
 .PHONY: js-dev
