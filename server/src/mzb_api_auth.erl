@@ -114,8 +114,8 @@ auth("google" = Type, Code) ->
 auth_connection_by_ref(ConnectionPid, Ref) ->
     gen_server:call(?MODULE, {auth_connection_by_ref, ConnectionPid, Ref}).
 
-auth_api_call(<<"POST">>, <<"/auth">>, _Ref, _BenchId) -> #{};
-auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref, _BenchId) -> #{};
+auth_api_call(<<"POST">>, <<"/auth">>, _Ref, _BenchId) -> anon_info();
+auth_api_call(<<"GET">>, <<"/github_auth">>, _Ref, _BenchId) -> anon_info();
 auth_api_call(_Method, Path, Ref, BenchId) ->
     case get_methods() of
         [] -> anon_info();
