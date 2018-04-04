@@ -14,7 +14,7 @@ MZBench is:
 
  - **Cloud-aware:** allocates nodes directly from Amazon EC2 or run on a local machine.
  - **Scalable:** tested with 100 nodes and millions of connections.
- - **Extendable:** lets you write your own [cloud plugins](cloud_plugins#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker).
+ - **Extendable:** lets you write your own [cloud plugins](cloud_plugins.md#how-to-write-a-cloud-plugin) and [workers](workers.md#how-to-write-a-worker).
  - **Open-source:** released under the [BSD license](https://github.com/satori-com/mzbench/blob/master/LICENSE).
 
 
