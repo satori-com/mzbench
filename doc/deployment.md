@@ -392,10 +392,10 @@ Additional arguments for the [Erlang VM](Additional arguments for the [Erlang VM
 Default value: `[]`.
 
 
-### ntp_max_timediff
+### ntp_max_timediff_s
 
 ```erlang
-{ntp_max_timediff, <float>}
+{ntp_max_timediff_s, <float>}
 ```
 
 Maximum timeout between node creation in seconds.

@@ -87,7 +87,7 @@ List of [cloud plugins](cloud_plugins.md) that can be used to allocate nodes. On
 
 **`<PluginName>`** is an atom identifying a plugin instance.
 
-**`<ModuleName>`** is the name of the plugin module. Each module has its specific **`<Options>`**. 
+**`<ModuleName>`** is the name of the plugin module. Each module has its specific **`<Options>`**.
 
 There are four built-in plugins:
 
@@ -110,13 +110,13 @@ There are four built-in plugins:
 {network_interface, "<ip address>"}
 ```
 
-Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"`, so the dashboard is unavailable for external connections. 
+Specify the IP address for the dashboard to run on. By default it's `"127.0.0.1"`, so the dashboard is unavailable for external connections.
 
 To open the dashboard to the public, set this param to `"0.0.0.0"`.
 
 !!!warning
     MZBench provides no authentication. Opening the dashboard to the public makes your server vulnerable.
-    
+
     To protect your server, use an external auth proxy server like Nginx.
 
 
@@ -274,10 +274,10 @@ Additional arguments for the [Erlang VM](Additional arguments for the [Erlang VM
 Default value: `[]`.
 
 
-### ntp_max_timediff
+### ntp_max_timediff_s
 
 ```erlang
-{ntp_max_timediff, <float>}
+{ntp_max_timediff_s, <float>}
 ```
 
 Maximum timeout between node creation in seconds.
