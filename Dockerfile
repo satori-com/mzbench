@@ -7,6 +7,7 @@ RUN apk update && apk add \
     git \
     make \
     musl-dev \
+    net-tools \
     openssh openssh-server \
     openssl \
     py2-pip \
