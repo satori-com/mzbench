@@ -1,7 +1,8 @@
 FROM erlang:20.3.2-alpine
 
 # install packages
-RUN apk update && apk add \
+RUN apk update && apk add --no-cache \
+    bash \
     bc \
     g++ \
     git \
