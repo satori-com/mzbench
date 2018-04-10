@@ -20,8 +20,6 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          #command: ["/bin/sleep"]
-          #args: ["1d"]
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
@@ -29,14 +27,14 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /etc/mzbench
-          #          livenessProbe:
-          #            httpGet:
-          #              path: /
-          #              port: {{ .Values.service.internalPort }}
-          #          readinessProbe:
-          #            httpGet:
-          #              path: /
-          #              port: {{ .Values.service.internalPort }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.internalPort }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       volumes:
