@@ -92,6 +92,10 @@ init([Id, Params]) ->
             end,
 
     Tags = mzb_bc:maps_get(tags, Params, []),
+    ProvisionNodes = case Cloud of
+                         k8s -> false;
+                         _ -> maps:get(provision_nodes, Params)
+                     end,
 
     Config = #{
         id => Id,
@@ -106,7 +110,7 @@ init([Id, Params]) ->
         node_install_spec => NodeInstallSpec,
         env => mzbl_script:normalize_env(generate_bench_env(Id, Params)),
         deallocate_after_bench => maps:get(deallocate_after_bench, Params),
-        provision_nodes => maps:get(provision_nodes, Params),
+        provision_nodes => ProvisionNodes,
         req_host => maps:get(req_host, Params),
         initial_user => maps:get(user, Params),
         director_host => undefined,

@@ -3,7 +3,8 @@
 -export([
     remote_cmd/5,
     remote_cmd/6,
-    exec_format/4
+    exec_format/4,
+    check_output/4
 ]).
 
 
@@ -76,6 +77,23 @@ exec_format(Format, Args, Opts, Logger, Handler, InitState) ->
                 [Duration / 1000, Command, Code, Output]),
             erlang:error({cmd_failed, lists:flatten(Command), Code, Output})
     end.
+
+-type logger() :: any(). % FIXME
+-spec check_output(string(), [any()], [any()], logger()) -> {integer(), string()}.
+check_output(Format, Args, Opts, Logger) ->
+    Handler = fun (eof, Acc) -> lists:flatten(Acc);
+                  (Data, Acc) -> [Acc|Data]
+              end,
+    Command = io_lib:format(Format, Args),
+    BeforeExec = os:timestamp(),
+    Logger(info, "[ EXEC ] ~s (~p)", [Command, self()]),
+    Port = open_port({spawn, lists:flatten(Command)}, [stream, eof, exit_status | Opts]),
+    {Code, _Output} = Res = get_data(Port, Handler, []),
+    Duration = timer:now_diff(os:timestamp(), BeforeExec),
+    Logger(info, "[ EXEC ] Command executed in ~p ms~nCmd: ~s~nExit code: ~p~n",
+        [Duration / 1000, Command, Code]),
+    Res.
+
 
 get_data(Port, Handler, State) ->
     receive

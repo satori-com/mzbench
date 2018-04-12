@@ -54,6 +54,24 @@ docker run -d -p 4800:80 --name mzbench_server docker.io/ridrisov/mzbench
 
 After that, open http://localhost:4800/ to see the dashboard. Sources for this docker image are available on [github](https://github.com/satori-com/mzbench/tree/master/docker).
 
+Instead of download the image from the docker hub, you may want to build it manually:
+
+```bash
+docker build -t mzbench -f Dockerfile .
+```
+
+### From Helm package
+
+[Helm](https://helm.sh/) is a package manager for [Kubernetes](https://kubernetes.io/).
+We assume that:
+- you have Kubernetes cluster with the [Helm installed](https://docs.helm.sh/using_helm/#install-helm)
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) (Kubernetes cli) is configured on the local machine
+- [helm cli is installed](https://docs.helm.sh/using_helm/#installing-the-helm-client) on the local machine
+
+Given that you can install mzbench in k8s with the command
+
+    helm install --name mzbench-server deployment/helm/mzbench
+
 ### From sources
 
 To use MZBench, you'll need:

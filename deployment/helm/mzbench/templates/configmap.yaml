@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mzbench-server-config
+  labels:
+    app: mzbench-server
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  server.config: |
+    [{mzbench_api,
+    [{listen_port,80},
+     {network_interface,"0.0.0.0"},
+     {cloud_plugins, [
+        {k8s, #{module => mzb_k8s_plugin,
+                % by default context and namespace are read from kubernetes:
+                % https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#accessing-the-api-from-a-pod
+                % you can overwrite it from here
+                % context => "<empty>",
+                % namespace => "<empty>",
+                pod_spec => [
+                  {image, "{{ .Values.image.repository }}:{{ .Values.image.tag }}" },
+                  {cpu, "500m"},
+                  {memory, "128Mi"}
+                ]}
+        }
+     ]}
+    ]}].
