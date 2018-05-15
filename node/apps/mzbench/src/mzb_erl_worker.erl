@@ -1,6 +1,7 @@
 -module(mzb_erl_worker).
 
 -export([
+    add_pathsz/1,
     load/1,
     init/1,
     apply/3,
