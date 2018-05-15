@@ -730,13 +730,21 @@ run_periodically(StartTime, MaxTime, RetryTimeoutSec, Fn) ->
 allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer(N), N > 0 ->
     #{id:= BenchId,
       purpose:= Purpose,
-      initial_user:= User} = Config,
+      initial_user:= User,
+      env:= Env} = Config,
     Description = mzb_string:format("MZBench cluster:~n~p", [Config]),
-    ClusterConfig = #{
+    DefaultClusterConfig = #{
         purpose => Purpose,
         user => User,
         description => Description
     },
+    ClusterConfig = case Cloud of
+        k8s -> 
+            WorkerImage = proplists:get_value("worker_image", Env),
+            DefaultClusterConfig#{worker_image => WorkerImage};
+        _ -> 
+            DefaultClusterConfig
+    end,
     % Allocate one supplementary node for the director
     Logger(info, "Allocating ~p hosts in ~p cloud...", [N + 1, Cloud]),
     {ok, ClusterId, UserName, Hosts} = mzb_api_cloud:create_cluster(BenchId, Cloud, N + 1, ClusterConfig),
