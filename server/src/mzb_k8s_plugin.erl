@@ -39,7 +39,7 @@ create_cluster(PluginOpts, NumNodes, ClusterConfig) when is_integer(NumNodes), N
     PodSpec = maps:get(pod_spec, PluginOpts),
 
     BenchId = maps:get(bench_id, ClusterConfig),
-    Image = case maps:get(worker_image, ClusterConfig) of
+    Image = case maps:get(node_image, ClusterConfig) of
                 undefined -> get_config_value(image, PodSpec);
                 V -> V
             end,

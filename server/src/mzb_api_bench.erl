@@ -740,8 +740,8 @@ allocate_hosts(#{nodes_arg:= N, cloud:= Cloud} = Config, Logger) when is_integer
     },
     ClusterConfig = case Cloud of
         k8s -> 
-            WorkerImage = proplists:get_value("worker_image", Env),
-            DefaultClusterConfig#{worker_image => WorkerImage};
+            NodeImage = proplists:get_value("node_image", Env),
+            DefaultClusterConfig#{node_image => NodeImage};
         _ -> 
             DefaultClusterConfig
     end,
