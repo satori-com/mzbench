@@ -26,8 +26,10 @@ RUN wget -O /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/r
 
 WORKDIR /opt/mzbench
 COPY . .
-# just in case you have some .o and .so binaries in the tree
-RUN find . -name "*.so" -or -name "*.o" | xargs -I{} rm {}
+# Clean sources just in case you build smth in the same folder
+RUN  make -C /opt/mzbench/server clean \
+ && make -C /opt/mzbench/node clean \
+ && find . -name "*.so" -or -name "*.o" | xargs -I{} rm {}
 
 # Compile and configure server
 RUN pip install -r requirements.txt \
