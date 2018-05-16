@@ -337,10 +337,10 @@ The the [workers](workers.md) installation path on the node machines.
 Default value: `"~/.local/share/mzbench_workers"`
 
 
-### load_all_workers_subdirs
+### load_workers_subdirs
 
 ```erlang
-{load_all_workers_subdirs, (true|false)}
+{load_workers_subdirs, (true|false)}
 ```
 
 During worker node startup, it could load all the modules from all subdirs

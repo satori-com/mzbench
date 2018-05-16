@@ -12,7 +12,7 @@ data:
     [{mzbench_api,
     [{listen_port,80},
      {network_interface,"0.0.0.0"},
-     {load_all_workers_subdirs, true},
+     {load_workers_subdirs, true},
      {auto_update_deployed_code, disable},
      {cloud_plugins, [
         {k8s, #{module => mzb_k8s_plugin,
