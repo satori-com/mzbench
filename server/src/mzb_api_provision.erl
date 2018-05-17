@@ -40,7 +40,8 @@ provision_nodes(Config, Logger) ->
         true ->
             ok = install_node(UniqHosts, Config, Logger),
             install_workers(UniqHosts, Config, Logger, Env);
-        _ -> ok
+        _ -> 
+            ok
     end,
     DirectorNode = nodename(director_sname(Config), 0),
     WorkerNodes = [nodename(worker_sname(Config), N) || N <- lists:seq(1, length(WorkerHosts))],
@@ -202,10 +203,15 @@ vm_args_content(NodeName, #{node_log_port:= LogPort, node_management_port:= Port
     vm_args:= ConfigArgs, node_log_user_port:= LogUserPort,
     node_interconnect_port:= InterconnectPort} = Config) ->
     UpdateIntervalMs = mzb_bc:maps_get(metric_update_interval_ms, Config, undefined),
+    LoadWorkersSubdirs = case application:get_env(mzbench_api, load_workers_subdirs, false) of
+        false -> false;
+        _ -> true
+    end,
     NewArgs =
         [mzb_string:format("-name ~s", [NodeName]),
          mzb_string:format("-mzbench node_management_port ~b", [Port]),
          mzb_string:format("-mzbench node_log_port ~b", [LogPort]),
+         mzb_string:format("-mzbench load_workers_subdirs ~s", [LoadWorkersSubdirs]),
          mzb_string:format("-mzbench node_log_user_port ~b", [LogUserPort]),
          mzb_string:format("-mzbench node_interconnect_port ~b", [InterconnectPort])] ++
         [mzb_string:format("-mzbench metric_update_interval_ms ~b", [UpdateIntervalMs]) || UpdateIntervalMs /= undefined],

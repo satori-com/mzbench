@@ -15,7 +15,7 @@ cloud_plugin_test() ->
                                                        end),
         ok = meck:expect(dummy_plugin, destroy_cluster, fun (dummy_cluster) -> ok end),
         ok = meck:expect(dummy_plugin, foo, fun (clusterId) -> ok end),
-        Config = #{id => 1234, cloud => undefined, initial_user => "user", purpose => "purpose", nodes_arg => 1},
+        Config = #{id => 1234, cloud => undefined, initial_user => "user", purpose => "purpose", nodes_arg => 1, env => undefined},
         mzb_api_cloud:start_link(),
         {dummy_hosts, dummy_user, Deallocator} = (catch mzb_api_bench:allocate_hosts(Config, fun (_, _, _) -> ok end)),
         ok = Deallocator(),

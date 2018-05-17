@@ -332,9 +332,21 @@ Default value: `"/.local/share"`
 {worker_deployment_path, "<path>"}
 ```
 
-The to the [workers](workers.md) installation on node machines.
+The the [workers](workers.md) installation path on the node machines.
 
 Default value: `"~/.local/share/mzbench_workers"`
+
+
+### load_workers_subdirs
+
+```erlang
+{load_workers_subdirs, (true|false)}
+```
+
+During worker node startup, it could load all the modules from all subdirs
+(namely, $$worker_deployment_path$$/*/ebin/*).
+
+Default value: `false`
 
 
 ### plugins_dir

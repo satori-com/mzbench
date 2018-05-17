@@ -39,13 +39,16 @@ create_cluster(PluginOpts, NumNodes, ClusterConfig) when is_integer(NumNodes), N
     PodSpec = maps:get(pod_spec, PluginOpts),
 
     BenchId = maps:get(bench_id, ClusterConfig),
-
+    Image = case maps:get(node_image, ClusterConfig) of
+                undefined -> get_config_value(image, PodSpec);
+                V -> V
+            end,
     BenchName = "mzbench-" ++ integer_to_list(BenchId),
     ID = {Context, Namespace, BenchName},
 
 
     try
-        {ok, _} = create_rc(ID, PodSpec, NumNodes),
+        {ok, _} = create_rc(ID, Image, PodSpec, NumNodes),
         {ok, PodData1} = get_pods(Context, Namespace, ["-l bench=" ++ BenchName]),
         PodNames = get_pod_names(PodData1),
         wait_pods_start(NumNodes, ID, PodNames, ?MAX_POLL_COUNT),
@@ -80,9 +83,8 @@ context_arg(Context) -> ["--context", Context].
 namespace_arg(undefined) -> [];
 namespace_arg(Namespace) -> ["--namespace", Namespace].
 
-create_rc({Context, Namespace, BenchName}, PodSpec, NumNodes) ->
+create_rc({Context, Namespace, BenchName}, Image, PodSpec, NumNodes) ->
     % Might be a good idea to be able to define these values in the benchmark
-    Image = get_config_value(image, PodSpec),
     CPU = get_config_value(cpu, PodSpec),
     Memory = get_config_value(memory, PodSpec),
 
