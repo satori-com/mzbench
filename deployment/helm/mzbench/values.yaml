@@ -4,7 +4,7 @@
 replicaCount: 1
 image:
   repository: docker.io/ridrisov/mzbench
-  tag: 0.5.4
+  tag: 0.5.5
 service:
   name: mzbench-server
   type: ClusterIP

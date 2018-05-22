@@ -1,3 +1,10 @@
+22 May 2018 Version 0.5.5
+ * Support for custom images with workers
+
+13 Apr 2018 Version 0.5.4
+ * k8s plugin
+ * Dropped support for Erlang 17 and 18
+
 21 Mar 2018 Version 0.5.3
  * Various fixes
  * Deps upgrades
