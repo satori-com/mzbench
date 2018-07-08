@@ -20,7 +20,7 @@ pargs <- __ head:value tail:(__ ',' __ value)* __
     [Head|Rest]
 `;
 pair <- __ key:(id / string) __ '=' __ value:value __ `{call, t, [proplists:get_value(key, Node), proplists:get_value(value, Node)], Idx}`;
-value <- unumber / logic_exp / single / list / id / number / string ~;
+value <- unumber / logic_exp / single / list / proplist / id / number / string ~;
 logic_exp <- logic_priority / logic_unary / logic_plain ~;
 logic_priority <- '(' __ head:logic_exp ')' tail:(__ logic_binary __ logic_exp )*
 `
@@ -53,6 +53,7 @@ logic_op <- (single / number / string) __ ('<=' / '>=' / '<' / '>' / '==' / '!='
 end, [lists:nth(1, Node), lists:nth(5, Node)], Idx}`;
 
 list <- '[' pargs? ']' `lists:nth(2, Node)`;
+proplist <- '(' kargs? ')' `lists:nth(2, Node)`;
 number <- int frac? mult?
 `
 case Node of

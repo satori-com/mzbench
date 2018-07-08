@@ -75,7 +75,7 @@ end end).
 
 -spec 'value'(input(), index()) -> parse_result().
 'value'(Input, Index) ->
-  p(Input, Index, 'value', fun(I,D) -> (p_choose([fun 'unumber'/2, fun 'logic_exp'/2, fun 'single'/2, fun 'list'/2, fun 'id'/2, fun 'number'/2, fun 'string'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
+  p(Input, Index, 'value', fun(I,D) -> (p_choose([fun 'unumber'/2, fun 'logic_exp'/2, fun 'single'/2, fun 'list'/2, fun 'proplist'/2, fun 'id'/2, fun 'number'/2, fun 'string'/2]))(I,D) end, fun(Node, _Idx) ->Node end).
 
 -spec 'logic_exp'(input(), index()) -> parse_result().
 'logic_exp'(Input, Index) ->
@@ -124,6 +124,10 @@ end, [lists:nth(1, Node), lists:nth(5, Node)], Idx} end).
 -spec 'list'(input(), index()) -> parse_result().
 'list'(Input, Index) ->
   p(Input, Index, 'list', fun(I,D) -> (p_seq([p_string(<<"[">>), p_optional(fun 'pargs'/2), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->lists:nth(2, Node) end).
+
+-spec 'proplist'(input(), index()) -> parse_result().
+'proplist'(Input, Index) ->
+  p(Input, Index, 'proplist', fun(I,D) -> (p_seq([p_string(<<"(">>), p_optional(fun 'kargs'/2), p_string(<<")">>)]))(I,D) end, fun(Node, _Idx) ->lists:nth(2, Node) end).
 
 -spec 'number'(input(), index()) -> parse_result().
 'number'(Input, Index) ->

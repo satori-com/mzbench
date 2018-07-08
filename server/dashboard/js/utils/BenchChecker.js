@@ -74,7 +74,7 @@ kv
     = k:term _ "=" _ v:term _ {return {key:k, value:v};}
 
 term
-    = unumber / logic_exp / single / list / string / atom / number
+    = unumber / logic_exp / single / list / map / string / atom / number
 
 logic_exp
     = "(" _ head:logic_exp ")" tail:(_ logic_binary _ logic_exp)* {return makeTree(head, tail);}
