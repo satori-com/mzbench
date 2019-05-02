@@ -19,6 +19,7 @@
 %               {image, "http://docker.io/ridrisov/mzbench:mylabel3},
 %               {cpu, "1"},       % limits = request
 %               {memory, "128Mi"},
+%               {extra_pod_spec, #{}}
 %             ]}
 %     }
 %    ]}
@@ -84,23 +85,48 @@ namespace_arg(undefined) -> [];
 namespace_arg(Namespace) -> ["--namespace", Namespace].
 
 create_rc({Context, Namespace, BenchName}, Image, PodSpec, NumNodes) ->
-    % Might be a good idea to be able to define these values in the benchmark
-    CPU = get_config_value(cpu, PodSpec),
-    Memory = get_config_value(memory, PodSpec),
-
-    Resources = "cpu=" ++ CPU ++ ",memory=" ++ Memory,
-    Cmd = ["kubectl", "run", BenchName] ++
-          context_arg(Context) ++
-          namespace_arg(Namespace) ++
-          ["--labels", "app=mzbench-worker,bench=" ++ BenchName,
-           "--image", Image,
-           "--replicas", integer_to_list(NumNodes),
-           "--requests", Resources,
-           "--limits", Resources,
-           "--port", "22",
-           "--generator", "run/v1",
-           "--", "/usr/sbin/sshd", "-D"],
+    YamlFile = write_yaml_resource(BenchName, Image, PodSpec, NumNodes),
+    Cmd = ["kubectl", "apply", context_arg(Context) ++ namespace_arg(Namespace), YamlFile],
     run_kubectl(Cmd, false).
+
+write_yaml_resource(BenchName, Image, Spec, NumNodes) ->
+    TmpFile = mzb_file:tmp_filename(),
+    BenchNameBin = list_to_binary(BenchName),
+    ImageBin = list_to_binary(Image),
+    %% ExtraPodSpec = get_config_value(extra_pod_spec, Spec),
+    ExtraPodSpec = #{affinity =>
+                        #{podAntiAffinity =>
+                              #{preferredDuringSchedulingIgnoredDuringExecution =>
+                                    [#{podAffinityTerm =>
+                                           #{labelSelector =>
+                                                 #{matchExpressions =>
+                                                       [#{key => <<"app">>,
+                                                          operator => <<"In">>,
+                                                          values => ["mzbench-worker"]}]},
+                                             topologyKey => <<"kubernetes.io/hostname">>},
+                                       weight => 100}]}}},
+    Resources = #{memory => list_to_binary(get_config_value(memory, Spec)),
+                  cpu => list_to_binary(get_config_value(cpu, Spec))},
+    Metadata = #{name => BenchNameBin,
+                 labels => #{app => <<"mzbench-worker">>,
+                             bench => BenchNameBin}},
+    PodSpec = ExtraPodSpec#{containers => [#{image => ImageBin,
+                                             name => BenchNameBin,
+                                             ports => #{containerPort => 22},
+                                             command => [<<"/usr/sbin/sshd">>, <<"-D">>],
+                                             resources => #{requests => Resources,
+                                                            limits => Resources}}]},
+    Deployment = #{kind => <<"Deployment">>,
+                   apiVersion => <<"apps/v1">>,
+                   metadata => Metadata,
+                   spec => #{replicas => NumNodes,
+                             selector => #{matchLabels =>
+                                               #{app => BenchNameBin}},
+                             template => #{metadata => Metadata,
+                                           spec => PodSpec}}},
+
+    file:write_file(TmpFile, jiffy:encode(Deployment)),
+    TmpFile.
 
 delete_rc({Context, Namespace, BenchName}) ->
     Cmd = ["kubectl", "delete", "rc", BenchName] ++
